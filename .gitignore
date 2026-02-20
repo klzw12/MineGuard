@@ -1,0 +1,52 @@
+# 前端构建文件
+frontend/unpackage/
+frontend/node_modules/
+frontend/dist/
+frontend/.hbuilderx/
+frontend/.DS_Store
+
+# 后端构建文件
+backend/target/
+backend/.mvn/
+backend/mvnw
+backend/mvnw.cmd
+
+# IDE文件
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+
+# 日志文件
+*.log
+logs/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# 临时文件
+*.tmp
+*.temp
+*.bak
+
+# 配置文件（包含敏感信息）
+application-local.yml
+application-local.properties
+*.local.yml
+*.local.properties
+
+# 依赖文件
+node_modules/
+.trae/
+
+# 缓存文件
+.cache/
+*.cache
