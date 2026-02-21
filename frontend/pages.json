@@ -1,0 +1,211 @@
+{
+	"pages": [ 
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "MineGuard",
+				"navigationStyle": "default"
+			}
+		},
+		{
+			"path": "pages/auth/login",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationStyle": "default"
+			}
+		},
+		{
+			"path": "pages/auth/register",
+			"style": {
+				"navigationBarTitleText": "注册",
+				"navigationStyle": "default"
+			}
+		},
+		{
+			"path": "pages/auth/reset-password",
+			"style": {
+				"navigationBarTitleText": "忘记密码",
+				"navigationStyle": "default"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "MineGuard",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	},
+	"uniIdRouter": {
+		"loginPage": "pages/auth/login",
+		"needLogin": [
+			"pages/user/home/index",
+			"pages/user/task/index",
+			"pages/user/vehicle/index",
+			"pages/user/profile/index",
+			"pages/admin/home/index",
+			"pages/admin/vehicle/index",
+			"pages/admin/driver/index",
+			"pages/admin/monitor/index",
+			"pages/admin/report/index",
+			"pages/admin/profile/index"
+		]
+	},
+	"tabBar": {
+		"color": "#999999",
+		"selectedColor": "#34C759",
+		"backgroundColor": "#FFFFFF",
+		"borderStyle": "black",
+		"list": [
+			{
+				"pagePath": "pages/user/home/index",
+				"text": "首页",
+				"iconPath": "static/svgs/home.svg",
+				"selectedIconPath": "static/svgs/home.svg"
+			},
+			{
+				"pagePath": "pages/user/task/index",
+				"text": "任务",
+				"iconPath": "static/svgs/report.svg",
+				"selectedIconPath": "static/svgs/report.svg"
+			},
+			{
+				"pagePath": "pages/user/vehicle/index",
+				"text": "车辆",
+				"iconPath": "static/svgs/car.svg",
+				"selectedIconPath": "static/svgs/car.svg"
+			},
+			{
+				"pagePath": "pages/user/profile/index",
+				"text": "我的",
+				"iconPath": "static/svgs/user.svg",
+				"selectedIconPath": "static/svgs/user.svg"
+			}
+		]
+	},
+	"subPackages": [
+		{
+			"root": "pages/admin",
+			"pages": [
+				{
+					"path": "home/index",
+					"style": {
+						"navigationBarTitleText": "管理中心",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "vehicle/index",
+					"style": {
+						"navigationBarTitleText": "车辆管理",
+						"navigationStyle": "default"
+					}
+				},
+				{
+					"path": "driver/index",
+					"style": {
+						"navigationBarTitleText": "司机管理",
+						"navigationStyle": "default"
+					}
+				},
+				{
+					"path": "monitor/index",
+					"style": {
+						"navigationBarTitleText": "实时监控",
+						"navigationStyle": "default"
+					}
+				},
+				{
+					"path": "report/index",
+					"style": {
+						"navigationBarTitleText": "统计报表",
+						"navigationStyle": "default"
+					}
+				},
+				{
+					"path": "profile/index",
+					"style": {
+						"navigationBarTitleText": "个人中心",
+						"navigationStyle": "default"
+					}
+				}
+			]
+		},
+		{
+			"root": "pages/user",
+			"pages": [
+				{
+					"path": "home/index",
+					"style": {
+						"navigationBarTitleText": "司机中心",
+						"navigationStyle": "custom"
+					}
+				},
+				{
+					"path": "task/index",
+					"style": {
+						"navigationBarTitleText": "任务管理",
+						"navigationStyle": "default"
+					}
+				},
+				{
+					"path": "vehicle/index",
+					"style": {
+						"navigationBarTitleText": "车辆状态",
+						"navigationStyle": "default"
+					}
+				},
+				{
+					"path": "profile/index",
+					"style": {
+						"navigationBarTitleText": "个人中心",
+						"navigationStyle": "default"
+					}
+				}
+			]
+		}
+	],
+	"adminTabBar": {
+		"color": "#999999",
+		"selectedColor": "#007AFF",
+		"backgroundColor": "#FFFFFF",
+		"borderStyle": "black",
+		"list": [
+			{
+				"pagePath": "pages/admin/home/index",
+				"text": "首页",
+				"iconPath": "static/svgs/home.svg",
+				"selectedIconPath": "static/svgs/home.svg"
+			},
+			{
+				"pagePath": "pages/admin/vehicle/index",
+				"text": "车辆",
+				"iconPath": "static/svgs/car.svg",
+				"selectedIconPath": "static/svgs/car.svg"
+			},
+			{
+				"pagePath": "pages/admin/driver/index",
+				"text": "司机",
+				"iconPath": "static/svgs/user.svg",
+				"selectedIconPath": "static/svgs/user.svg"
+			},
+			{
+				"pagePath": "pages/admin/monitor/index",
+				"text": "监控",
+				"iconPath": "static/svgs/camera.svg",
+				"selectedIconPath": "static/svgs/camera.svg"
+			},
+			{
+				"pagePath": "pages/admin/report/index",
+				"text": "报表",
+				"iconPath": "static/svgs/report.svg",
+				"selectedIconPath": "static/svgs/report.svg"
+			},
+			{
+				"pagePath": "pages/admin/profile/index",
+				"text": "我的",
+				"iconPath": "static/svgs/setting.svg",
+				"selectedIconPath": "static/svgs/setting.svg"
+			}
+		]
+	}
+}

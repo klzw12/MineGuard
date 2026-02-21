@@ -1,0 +1,250 @@
+<template>
+	<view class="home-container">
+		<!-- 头部区域 -->
+		<view class="header-section">
+			<image class="app-logo" src="/static/logo/logo.png"></image>
+			<text class="app-title">MineGuard</text>
+			<text class="app-slogan">矿山安全智能监控系统</text>
+		</view>
+		
+		<!-- 核心功能与解决方案 -->
+		<view class="features-section">
+			<text class="section-title">我们能做什么</text>
+			<view class="features-grid">
+				<view class="feature-card">
+					<view class="card-icon">
+						<image src="/static/svgs/safe.svg" mode="aspectFit"></image>
+					</view>
+					<text class="card-title">安全监控</text>
+					<text class="card-desc">实时监控矿山安全状况，及时发现并预警潜在隐患</text>
+				</view>
+				
+				<view class="feature-card">
+					<view class="card-icon">
+						<image src="/static/svgs/locate.svg" mode="aspectFit"></image>
+					</view>
+					<text class="card-title">人员定位</text>
+					<text class="card-desc">实时追踪人员位置，确保人员安全，提高管理效率</text>
+				</view>
+				
+				<view class="feature-card">
+					<view class="card-icon">
+						<image src="/static/svgs/report.svg" mode="aspectFit"></image>
+					</view>
+					<text class="card-title">隐患上报</text>
+					<text class="card-desc">快速上报安全隐患，简化流程，提高响应速度</text>
+				</view>
+				
+				<view class="feature-card">
+					<view class="card-icon">
+						<image src="/static/svgs/message.svg" mode="aspectFit"></image>
+					</view>
+					<text class="card-title">消息通知</text>
+					<text class="card-desc">实时接收安全警报，确保信息及时传递，快速响应</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 快捷入口 -->
+		<view class="quick-links">
+			<view class="quick-link" @click="navigateToLogin">
+				<view class="quick-icon">
+					<image src="/static/svgs/user.svg" mode="aspectFit"></image>
+				</view>
+				<text class="quick-text">登录/注册</text>
+			</view>
+			<view class="quick-link" @click="showAboutDialog">
+				<view class="quick-icon">
+					<image src="/static/svgs/setting.svg" mode="aspectFit"></image>
+				</view>
+				<text class="quick-text">关于我们</text>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref } from 'vue'
+	
+	function navigateToLogin() {
+		uni.navigateTo({
+			url: '/pages/auth/login'
+		})
+	}
+	
+	function showAboutDialog() {
+		uni.showModal({
+			title: '关于 MineGuard',
+			content: 'MineGuard 是一款矿山安全智能监控系统，致力于提供全方位的矿山安全解决方案。\n\n核心功能：\n 安全监控：实时监控矿山安全状况，及时发现并预警潜在隐患\n 人员定位：实时追踪人员位置，确保人员安全，提高管理效率\n 隐患上报：快速上报安全隐患，简化流程，提高响应速度\n 消息通知：实时接收安全警报，确保信息及时传递，快速响应\n \n版本：1.0.0\n作者：klzw\n\n© 2026 MineGuard. All rights reserved.',
+			showCancel: false,
+			confirmText: '确定'
+		})
+	}
+</script>
+
+<style>
+	.home-container {
+		min-height: 100vh;
+		background-color: #f5f5f5;
+		padding: 40rpx;
+		box-sizing: border-box;
+	}
+	
+	/* 头部区域 */
+	.header-section {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		margin-bottom: 60rpx;
+		padding: 40rpx;
+		background-color: #007AFF;
+		border-radius: 20rpx;
+		color: #fff;
+		box-shadow: 0 4rpx 20rpx rgba(0, 122, 255, 0.3);
+	}
+	
+	.app-logo {
+		width: 120rpx;
+		height: 120rpx;
+		margin-bottom: 20rpx;
+		border-radius: 20rpx;
+		background-color: #fff;
+		padding: 10rpx;
+	}
+	
+	.app-title {
+		font-size: 36rpx;
+		font-weight: bold;
+		margin-bottom: 10rpx;
+	}
+	
+	.app-slogan {
+		font-size: 24rpx;
+		opacity: 0.9;
+	}
+	
+	/* 核心功能部分 */
+	.features-section {
+		margin-bottom: 60rpx;
+	}
+	
+	.features-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 30rpx;
+	}
+	
+	.feature-card {
+		background-color: #fff;
+		border-radius: 20rpx;
+		padding: 40rpx 30rpx;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+		transition: all 0.3s ease;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	
+	.feature-card:active {
+		transform: scale(0.98);
+		box-shadow: 0 1rpx 5rpx rgba(0, 0, 0, 0.1);
+	}
+	
+	.card-icon {
+		width: 80rpx;
+		height: 80rpx;
+		margin-bottom: 20rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background-color: #f5f5f5;
+		border-radius: 16rpx;
+	}
+	
+	.card-icon image {
+		width: 50rpx;
+		height: 50rpx;
+	}
+	
+	.card-title {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #333;
+		margin-bottom: 10rpx;
+	}
+	
+	.card-desc {
+		font-size: 22rpx;
+		color: #999;
+		text-align: center;
+		line-height: 1.4;
+	}
+	
+	/* 通用样式 */
+	.section-title {
+		font-size: 32rpx;
+		font-weight: bold;
+		color: #333;
+		margin-bottom: 30rpx;
+	}
+	
+	/* 快捷入口 */
+	.quick-links {
+		display: flex;
+		gap: 20rpx;
+		margin-bottom: 40rpx;
+	}
+	
+	.quick-link {
+		flex: 1;
+		background-color: #fff;
+		border-radius: 15rpx;
+		padding: 30rpx;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+	}
+	
+	.quick-icon {
+		width: 60rpx;
+		height: 60rpx;
+		margin-bottom: 10rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background-color: #f5f5f5;
+		border-radius: 12rpx;
+	}
+	
+	.quick-icon image {
+		width: 40rpx;
+		height: 40rpx;
+	}
+	
+	.quick-text {
+		font-size: 24rpx;
+		color: #666;
+	}
+	
+	/* 响应式设计 */
+	@media (min-width: 768px) {
+		.home-container {
+			max-width: 1200rpx;
+			margin: 0 auto;
+			padding: 60rpx;
+		}
+		
+		.features-grid {
+			grid-template-columns: repeat(4, 1fr);
+		}
+		
+		.header-section {
+			padding: 60rpx;
+		}
+		
+		.feature-card {
+			padding: 50rpx 40rpx;
+		}
+	}
+</style>

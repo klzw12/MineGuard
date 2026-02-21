@@ -1,0 +1,493 @@
+<template>
+	<view class="admin-home-container">
+		<!-- 顶部导航栏 -->
+		<view class="admin-navbar">
+			<text class="navbar-title">管理中心</text>
+			<view class="navbar-actions">
+				<view class="notification-btn" @click="handleNotification">
+					<text class="notification-icon">🔔</text>
+					<view class="notification-badge">3</view>
+				</view>
+				<view class="profile-btn" @click="navigateToProfile">
+					<image src="/static/avatar/Minecraft.png" mode="aspectFit"></image>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 左侧导航菜单 - 使用组件 -->
+		<AdminSidebar />
+		
+		<!-- 主内容区域 -->
+		<view class="admin-content">
+			<!-- 欢迎信息 -->
+			<view class="welcome-section">
+				<text class="welcome-text">欢迎，管理员</text>
+				<text class="welcome-subtext">今天是 {{ currentDate }}</text>
+			</view>
+			
+			<!-- 数据概览 -->
+			<view class="overview-section">
+				<text class="section-title">数据概览</text>
+				<view class="overview-cards">
+					<view class="overview-card">
+						<text class="card-value">128</text>
+						<text class="card-label">车辆总数</text>
+						<text class="card-trend">+5 本月</text>
+					</view>
+					<view class="overview-card">
+						<text class="card-value">96</text>
+						<text class="card-label">在线车辆</text>
+						<text class="card-trend">85%</text>
+					</view>
+					<view class="overview-card">
+						<text class="card-value">1,245</text>
+						<text class="card-label">今日运量</text>
+						<text class="card-trend">+12% 昨日</text>
+					</view>
+					<view class="overview-card">
+						<text class="card-value">8</text>
+						<text class="card-label">今日预警</text>
+						<text class="card-trend danger">+2 昨日</text>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 功能快捷入口 -->
+			<view class="features-section">
+				<text class="section-title">快捷操作</text>
+				<view class="features-grid">
+					<view class="feature-card" @click="navigateToVehicle">
+						<view class="card-icon">
+							<image src="/static/svgs/car.svg" mode="aspectFit"></image>
+						</view>
+						<text class="card-title">车辆管理</text>
+					</view>
+					<view class="feature-card" @click="navigateToDriver">
+						<view class="card-icon">
+							<image src="/static/svgs/user.svg" mode="aspectFit"></image>
+						</view>
+						<text class="card-title">司机管理</text>
+					</view>
+					<view class="feature-card" @click="navigateToMonitor">
+						<view class="card-icon">
+							<image src="/static/svgs/locate.svg" mode="aspectFit"></image>
+						</view>
+						<text class="card-title">实时监控</text>
+					</view>
+					<view class="feature-card" @click="navigateToReport">
+						<view class="card-icon">
+							<image src="/static/svgs/report.svg" mode="aspectFit"></image>
+						</view>
+						<text class="card-title">统计报表</text>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 最新预警 -->
+			<view class="alerts-section">
+				<view class="section-header">
+					<text class="section-title">最新预警</text>
+					<navigator url="/pages/admin/monitor/index" class="view-all">查看全部</navigator>
+				</view>
+				<view class="alert-list">
+					<view class="alert-item danger">
+						<view class="alert-icon">
+							<text>🚨</text>
+						</view>
+						<view class="alert-content">
+							<text class="alert-title">车辆超载</text>
+							<text class="alert-desc">车辆豫A-12345 超载 20%</text>
+							<text class="alert-time">10分钟前</text>
+						</view>
+						<text class="alert-arrow">›</text>
+					</view>
+					<view class="alert-item warning">
+						<view class="alert-icon">
+							<text>⚠️</text>
+						</view>
+						<view class="alert-content">
+							<text class="alert-title">超速行驶</text>
+							<text class="alert-desc">车辆豫B-67890 速度 60km/h</text>
+							<text class="alert-time">25分钟前</text>
+						</view>
+						<text class="alert-arrow">›</text>
+					</view>
+					<view class="alert-item info">
+						<view class="alert-icon">
+							<text>ℹ️</text>
+						</view>
+						<view class="alert-content">
+							<text class="alert-title">车辆离线</text>
+							<text class="alert-desc">车辆豫C-24680 信号中断</text>
+							<text class="alert-time">1小时前</text>
+						</view>
+						<text class="alert-arrow">›</text>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref, onMounted } from 'vue'
+	import AdminSidebar from '../../../components/AdminSidebar.uvue'
+	
+	const currentDate = ref('')
+	
+	onMounted(() => {
+		// 设置当前日期
+		const now = new Date()
+		currentDate.value = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`
+	})
+	
+	function handleNotification() {
+		uni.showToast({
+			title: '通知功能开发中',
+			icon: 'none',
+			position: 'bottom'
+		})
+	}
+	
+	function navigateToProfile() {
+		uni.redirectTo({
+			url: '/pages/admin/profile/index'
+		})
+	}
+</script>
+
+<style lang="scss">
+	.admin-home-container {
+		display: flex;
+		flex-direction: row;
+		min-height: 100vh;
+		background-color: #f5f7fa;
+	}
+	
+	/* 顶部导航栏 */
+	.admin-navbar {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 80rpx;
+		background-color: #007AFF;
+		color: #fff;
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0 40rpx;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+		z-index: 999;
+	}
+	
+	.navbar-title {
+		font-size: 32rpx;
+		font-weight: bold;
+	}
+	
+	.navbar-actions {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 20rpx;
+	}
+	
+	.notification-btn {
+		position: relative;
+		padding: 10rpx;
+	}
+	
+	.notification-icon {
+		font-size: 28rpx;
+	}
+	
+	.notification-badge {
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 24rpx;
+		height: 24rpx;
+		background-color: #FF3B30;
+		color: #fff;
+		border-radius: 50%;
+		font-size: 16rpx;
+		font-weight: bold;
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.profile-btn {
+		width: 50rpx;
+		height: 50rpx;
+		border-radius: 50%;
+		overflow: hidden;
+	}
+	
+	.profile-btn image {
+		width: 100%;
+		height: 100%;
+	}
+	
+	/* 侧边栏组件样式由组件自身管理 */
+	
+	/* 主内容区域 */
+	.admin-content {
+		flex: 1;
+		margin-left: 220rpx;
+		margin-top: 80rpx;
+		padding: 40rpx;
+		box-sizing: border-box;
+		min-height: calc(100vh - 80rpx);
+	}
+	
+	/* 欢迎信息 */
+	.welcome-section {
+		margin-bottom: 40rpx;
+	}
+	
+	.welcome-text {
+		font-size: 36rpx;
+		font-weight: bold;
+		color: #333;
+		margin-bottom: 10rpx;
+	}
+	
+	.welcome-subtext {
+		font-size: 24rpx;
+		color: #666;
+	}
+	
+	/* 数据概览 */
+	.overview-section {
+		margin-bottom: 50rpx;
+	}
+	
+	.section-title {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #333;
+		margin-bottom: 20rpx;
+	}
+	
+	.overview-cards {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 20rpx;
+	}
+	
+	.overview-card {
+		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+		color: #fff;
+		border-radius: 20rpx;
+		padding: 30rpx;
+		box-shadow: 0 4rpx 20rpx rgba(0, 122, 255, 0.3);
+	}
+	
+	.card-value {
+		font-size: 48rpx;
+		font-weight: bold;
+		margin-bottom: 10rpx;
+	}
+	
+	.card-label {
+		font-size: 24rpx;
+		opacity: 0.9;
+		margin-bottom: 10rpx;
+	}
+	
+	.card-trend {
+		font-size: 20rpx;
+		opacity: 0.8;
+	}
+	
+	.card-trend.danger {
+		color: #FF3B30;
+	}
+	
+	/* 功能快捷入口 */
+	.features-section {
+		margin-bottom: 50rpx;
+	}
+	
+	.features-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 20rpx;
+	}
+	
+	.feature-card {
+		background-color: #fff;
+		border-radius: 20rpx;
+		padding: 40rpx 30rpx;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+		transition: all 0.3s ease;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	
+	.feature-card:active {
+		transform: scale(0.98);
+		box-shadow: 0 1rpx 5rpx rgba(0, 0, 0, 0.1);
+	}
+	
+	.card-icon {
+		width: 80rpx;
+		height: 80rpx;
+		margin-bottom: 20rpx;
+	}
+	
+	.card-icon image {
+		width: 100%;
+		height: 100%;
+	}
+	
+	.card-title {
+		font-size: 24rpx;
+		color: #333;
+		font-weight: bold;
+	}
+	
+	/* 最新预警 */
+	.alerts-section {
+		margin-bottom: 40rpx;
+	}
+	
+	.section-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 20rpx;
+	}
+	
+	.view-all {
+		font-size: 24rpx;
+		color: #007AFF;
+	}
+	
+	.alert-list {
+		background-color: #fff;
+		border-radius: 20rpx;
+		overflow: hidden;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+	}
+	
+	.alert-item {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 30rpx;
+		border-bottom: 1rpx solid #f0f0f0;
+		transition: all 0.3s ease;
+	}
+	
+	.alert-item:last-child {
+		border-bottom: none;
+	}
+	
+	.alert-item:active {
+		background-color: #f5f5f5;
+	}
+	
+	.alert-item.danger {
+		background-color: rgba(255, 59, 48, 0.05);
+	}
+	
+	.alert-item.warning {
+		background-color: rgba(240, 173, 78, 0.05);
+	}
+	
+	.alert-item.info {
+		background-color: rgba(52, 152, 219, 0.05);
+	}
+	
+	.alert-icon {
+		font-size: 40rpx;
+		margin-right: 20rpx;
+	}
+	
+	.alert-content {
+		flex: 1;
+	}
+	
+	.alert-title {
+		font-size: 24rpx;
+		font-weight: bold;
+		color: #333;
+		margin-bottom: 5rpx;
+	}
+	
+	.alert-desc {
+		font-size: 22rpx;
+		color: #666;
+		margin-bottom: 5rpx;
+	}
+	
+	.alert-time {
+		font-size: 20rpx;
+		color: #999;
+	}
+	
+	.alert-arrow {
+		font-size: 32rpx;
+		color: #999;
+	}
+	
+	/* 响应式设计 */
+	@media (max-width: 768px) {
+		.admin-sidebar {
+			width: 160rpx;
+		}
+		
+		.admin-content {
+			margin-left: 160rpx;
+			padding: 20rpx;
+		}
+	}
+	
+	/* 大屏幕适配 */
+	@media (min-width: 1024px) {
+		.admin-sidebar {
+			width: 240rpx;
+		}
+		
+		.admin-content {
+			margin-left: 240rpx;
+			padding: 50rpx;
+		}
+		
+		/* 调整卡片和容器的间距 */
+		.overview-section,
+		.features-section,
+		.alerts-section {
+			margin-bottom: 60rpx;
+		}
+		
+		/* 调整网格布局 */
+		.overview-cards {
+			grid-template-columns: repeat(4, 1fr);
+		}
+		
+		.features-grid {
+			grid-template-columns: repeat(4, 1fr);
+		}
+		
+		/* 调整字体大小 */
+		.section-title {
+			font-size: 32rpx;
+		}
+		
+		.welcome-text {
+			font-size: 40rpx;
+		}
+		
+		.navbar-title {
+			font-size: 36rpx;
+		}
+	}
+</style>

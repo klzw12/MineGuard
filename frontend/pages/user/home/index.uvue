@@ -1,0 +1,611 @@
+<template>
+	<view class="home-container user-home">
+		<!-- 头部区域 -->
+		<view class="header-section">
+			<text class="welcome-text">欢迎，司机</text>
+			<view class="header-actions">
+				<view class="notification-btn" @click="handleNotification">
+					<text class="notification-icon">🔔</text>
+					<view class="notification-badge">2</view>
+				</view>
+				<view class="profile-btn" @click="navigateToProfile">
+					<image src="/static/avatar/Safe.png" mode="aspectFit"></image>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 任务概览 -->
+		<view class="task-overview-section">
+			<text class="section-title">任务概览</text>
+			<view class="overview-cards">
+				<view class="overview-card">
+					<text class="card-value">8</text>
+					<text class="card-label">今日任务</text>
+					<text class="card-trend">+2 昨日</text>
+				</view>
+				<view class="overview-card">
+					<text class="card-value">3</text>
+					<text class="card-label">待完成</text>
+					<text class="card-trend">进行中</text>
+				</view>
+				<view class="overview-card">
+					<text class="card-value">62.5%</text>
+					<text class="card-label">完成率</text>
+					<text class="card-trend">+5% 昨日</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 快捷操作 -->
+		<view class="quick-actions-section">
+			<text class="section-title">快捷操作</text>
+			<view class="actions-grid">
+				<view class="action-card primary" @click="handleStartTask">
+					<text class="action-icon">🚚</text>
+					<text class="action-title">开始任务</text>
+					<text class="action-subtitle">开始当前任务</text>
+				</view>
+				<view class="action-card" @click="navigateToVehicleStatus">
+					<text class="action-icon">📊</text>
+					<text class="action-title">车辆状态</text>
+					<text class="action-subtitle">检查车辆状态</text>
+				</view>
+				<view class="action-card" @click="navigateToTaskList">
+					<text class="action-icon">📋</text>
+					<text class="action-title">任务列表</text>
+					<text class="action-subtitle">查看所有任务</text>
+				</view>
+				<view class="action-card" @click="handleReportIssue">
+					<text class="action-icon">⚠️</text>
+					<text class="action-title">上报问题</text>
+					<text class="action-subtitle">快速上报问题</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 当前任务 -->
+		<view class="current-task-section">
+			<view class="section-header">
+				<text class="section-title">当前任务</text>
+				<view class="view-all" @click="navigateToTaskList">查看全部</view>
+			</view>
+			<view class="task-card">
+				<view class="task-header">
+					<text class="task-id">任务 ID: TK-20260221-003</text>
+					<view class="task-status">进行中</view>
+				</view>
+				<view class="task-info">
+					<view class="info-item">
+						<text class="info-label">起点:</text>
+						<text class="info-value">矿山 A 区</text>
+					</view>
+					<view class="info-item">
+						<text class="info-label">终点:</text>
+						<text class="info-value">选矿厂</text>
+					</view>
+					<view class="info-item">
+						<text class="info-label">货物:</text>
+						<text class="info-value">铁矿石</text>
+					</view>
+					<view class="info-item">
+						<text class="info-label">重量:</text>
+						<text class="info-value">35 吨</text>
+					</view>
+				</view>
+				<view class="task-actions">
+					<button class="task-btn primary" @click="handleCompleteTask">完成任务</button>
+					<button class="task-btn secondary" @click="handlePauseTask">暂停任务</button>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 车辆状态 -->
+		<view class="vehicle-status-section">
+			<text class="section-title">车辆状态</text>
+			<view class="status-card">
+				<view class="status-header">
+					<text class="vehicle-number">豫A-12345</text>
+					<view class="status-indicator online">在线</view>
+				</view>
+				<view class="status-details">
+					<view class="status-item">
+						<text class="status-icon">⚡</text>
+						<text class="status-label">电量</text>
+						<text class="status-value">85%</text>
+					</view>
+					<view class="status-item">
+						<text class="status-icon">🌡️</text>
+						<text class="status-label">温度</text>
+						<text class="status-value">正常</text>
+					</view>
+					<view class="status-item">
+						<text class="status-icon">🛠️</text>
+						<text class="status-label">状态</text>
+						<text class="status-value">良好</text>
+					</view>
+				</view>
+				<navigator url="/pages/user/vehicle/index" class="view-details-btn">查看详情</navigator>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	function handleNotification() {
+		// 显示通知模态框
+		uni.showModal({
+			title: '通知',
+			content: '通知功能正在开发中，敬请期待！',
+			showCancel: false,
+			confirmText: '确定'
+		})
+	}
+	
+	function handleStartTask() {
+		// 显示开始任务模态框
+		uni.showModal({
+			title: '开始任务',
+			content: '任务已成功开始！',
+			showCancel: false,
+			confirmText: '确定'
+		})
+	}
+	
+	function navigateToVehicleStatus() {
+		uni.switchTab({
+			url: '/pages/user/vehicle/index'
+		})
+	}
+	
+	function navigateToTaskList() {
+		uni.switchTab({
+			url: '/pages/user/task/index'
+		})
+	}
+	
+	function handleReportIssue() {
+		// 显示上报问题模态框
+		uni.showModal({
+			title: '上报问题',
+			content: '上报问题功能正在开发中，敬请期待！',
+			showCancel: false,
+			confirmText: '确定'
+		})
+	}
+	
+	function handleCompleteTask() {
+		// 显示完成任务模态框
+		uni.showModal({
+			title: '完成任务',
+			content: '任务已成功完成！',
+			showCancel: false,
+			confirmText: '确定'
+		})
+	}
+	
+	function handlePauseTask() {
+		// 显示暂停任务模态框
+		uni.showModal({
+			title: '暂停任务',
+			content: '任务已成功暂停！',
+			showCancel: false,
+			confirmText: '确定'
+		})
+	}
+
+	function navigateToProfile() {
+		uni.switchTab({
+			url: '/pages/user/profile/index'
+		})
+	}
+</script>
+
+<style lang="scss">
+	.home-container {
+		min-height: 100vh;
+		background-color: $uni-bg-color-grey;
+		padding: 30rpx;
+		box-sizing: border-box;
+	}
+	
+	.user-home {
+		background: linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%);
+	}
+	
+	/* 头部区域 */
+	.header-section {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 40rpx;
+		padding: 20rpx 0;
+	}
+	
+	.welcome-text {
+		font-size: 32rpx;
+		font-weight: bold;
+		color: $uni-color-success;
+	}
+	
+	.header-actions {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 20rpx;
+	}
+	
+	.notification-btn {
+		position: relative;
+		padding: 10rpx;
+	}
+	
+	.notification-icon {
+		font-size: 36rpx;
+	}
+	
+	.notification-badge {
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 30rpx;
+		height: 30rpx;
+		background-color: $uni-color-error;
+		color: $uni-text-color-inverse;
+		border-radius: $uni-border-radius-circle;
+		font-size: 20rpx;
+		font-weight: bold;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	
+	.profile-btn {
+		width: 60rpx;
+		height: 60rpx;
+		border-radius: $uni-border-radius-circle;
+		overflow: hidden;
+	}
+	
+	.profile-btn image {
+		width: 100%;
+		height: 100%;
+	}
+	
+	/* 任务概览 */
+	.task-overview-section {
+		margin-bottom: 40rpx;
+	}
+	
+	.section-title {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: $uni-color-success;
+		margin-bottom: 20rpx;
+	}
+	
+	.overview-cards {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 20rpx;
+	}
+	
+	.overview-card {
+		background: linear-gradient(135deg, $uni-color-success 0%, darken($uni-color-success, 10%) 100%);
+		color: $uni-text-color-inverse;
+		border-radius: $uni-border-radius-xxl;
+		padding: 25rpx;
+		box-shadow: 0 4rpx 20rpx rgba($uni-color-success, 0.3);
+	}
+	
+	.card-value {
+		font-size: 40rpx;
+		font-weight: bold;
+		margin-bottom: 8rpx;
+	}
+	
+	.card-label {
+		font-size: 22rpx;
+		opacity: 0.9;
+		margin-bottom: 8rpx;
+	}
+	
+	.card-trend {
+		font-size: 18rpx;
+		opacity: 0.8;
+	}
+	
+	/* 快捷操作 */
+	.quick-actions-section {
+		margin-bottom: 40rpx;
+	}
+	
+	.actions-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 20rpx;
+	}
+	
+	.action-card {
+		background-color: $uni-bg-color;
+		border-radius: $uni-border-radius-xxl;
+		padding: 30rpx;
+		box-shadow: $uni-shadow-sm;
+		transition: all 0.3s ease;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	
+	.action-card.primary {
+		background: linear-gradient(135deg, $uni-color-success 0%, darken($uni-color-success, 10%) 100%);
+		color: $uni-text-color-inverse;
+		box-shadow: 0 4rpx 20rpx rgba($uni-color-success, 0.3);
+	}
+	
+	.action-card:active {
+		transform: scale(0.98);
+		box-shadow: $uni-shadow-xs;
+	}
+	
+	.action-icon {
+		font-size: 60rpx;
+		margin-bottom: 15rpx;
+	}
+	
+	.action-title {
+		font-size: 26rpx;
+		font-weight: bold;
+		margin-bottom: 5rpx;
+	}
+	
+	.action-subtitle {
+		font-size: 20rpx;
+		opacity: 0.8;
+	}
+	
+	/* 当前任务 */
+	.current-task-section {
+		margin-bottom: 40rpx;
+	}
+	
+	.section-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 20rpx;
+	}
+	
+	.view-all {
+		font-size: 24rpx;
+		color: $uni-color-success;
+	}
+	
+	.task-card {
+		background-color: $uni-bg-color;
+		border-radius: $uni-border-radius-xxl;
+		padding: 30rpx;
+		box-shadow: $uni-shadow-sm;
+	}
+	
+	.task-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 25rpx;
+		padding-bottom: 20rpx;
+		border-bottom: 1rpx solid $uni-border-color;
+	}
+	
+	.task-id {
+		font-size: 24rpx;
+		font-weight: bold;
+		color: $uni-text-color;
+	}
+	
+	.task-status {
+		padding: 8rpx 20rpx;
+		background-color: $uni-color-success;
+		color: $uni-text-color-inverse;
+		border-radius: 20rpx;
+		font-size: 20rpx;
+	}
+	
+	.task-info {
+		margin-bottom: 30rpx;
+	}
+	
+	.info-item {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		margin-bottom: 15rpx;
+	}
+	
+	.info-label {
+		font-size: 22rpx;
+		color: $uni-text-color-grey;
+		width: 120rpx;
+	}
+	
+	.info-value {
+		font-size: 22rpx;
+		color: $uni-text-color;
+		font-weight: 500;
+	}
+	
+	.task-actions {
+		display: flex;
+		flex-direction: row;
+		gap: 15rpx;
+	}
+	
+	.task-btn {
+		flex: 1;
+		height: 70rpx;
+		border-radius: $uni-border-radius-lg;
+		font-size: 24rpx;
+		font-weight: bold;
+	}
+	
+	.task-btn.primary {
+		background-color: $uni-color-success;
+		color: $uni-text-color-inverse;
+	}
+	
+	.task-btn.secondary {
+		background-color: $uni-bg-color-grey;
+		color: $uni-text-color;
+	}
+	
+	/* 车辆状态 */
+	.vehicle-status-section {
+		margin-bottom: 40rpx;
+	}
+	
+	.status-card {
+		background-color: $uni-bg-color;
+		border-radius: $uni-border-radius-xxl;
+		padding: 30rpx;
+		box-shadow: $uni-shadow-sm;
+	}
+	
+	.status-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 25rpx;
+		padding-bottom: 20rpx;
+		border-bottom: 1rpx solid $uni-border-color;
+	}
+	
+	.vehicle-number {
+		font-size: 26rpx;
+		font-weight: bold;
+		color: $uni-text-color;
+	}
+	
+	.status-indicator {
+		padding: 8rpx 20rpx;
+		border-radius: 20rpx;
+		font-size: 20rpx;
+		font-weight: bold;
+	}
+	
+	.status-indicator.online {
+		background-color: $uni-color-success;
+		color: $uni-text-color-inverse;
+	}
+	
+	.status-details {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 20rpx;
+		margin-bottom: 30rpx;
+	}
+	
+	.status-item {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 20rpx;
+		background-color: $uni-bg-color-grey;
+		border-radius: $uni-border-radius-xl;
+		min-width: 120rpx;
+	}
+	
+	.status-icon {
+		font-size: 36rpx;
+		margin-bottom: 10rpx;
+	}
+	
+	.status-label {
+		font-size: 20rpx;
+		color: $uni-text-color-grey;
+		margin-bottom: 5rpx;
+	}
+	
+	.status-value {
+		font-size: 22rpx;
+		font-weight: bold;
+		color: $uni-text-color;
+	}
+	
+	.view-details-btn {
+		display: block;
+		text-align: center;
+		padding: 20rpx;
+		background-color: $uni-bg-color-grey;
+		color: $uni-color-success;
+		font-size: 24rpx;
+		font-weight: bold;
+		border-radius: $uni-border-radius-lg;
+	}
+	
+	/* 响应式设计 */
+	@media (min-width: 768px) {
+		.home-container {
+			max-width: 1200rpx;
+			margin: 0 auto;
+			padding: 40rpx;
+		}
+		
+		.overview-cards {
+			grid-template-columns: repeat(3, 1fr);
+		}
+		
+		.actions-grid {
+			grid-template-columns: repeat(4, 1fr);
+		}
+		
+		.status-details {
+			grid-template-columns: repeat(3, 1fr);
+		}
+		
+		/* 调整卡片和容器的间距 */
+		.task-overview-section,
+		.quick-actions-section,
+		.current-task-section,
+		.vehicle-status-section {
+			margin-bottom: 50rpx;
+		}
+		
+		/* 调整字体大小 */
+		.section-title {
+			font-size: 32rpx;
+		}
+		
+		.welcome-text {
+			font-size: 36rpx;
+		}
+	}
+	
+	/* 大屏幕适配 */
+	@media (min-width: 1024px) {
+		.home-container {
+			max-width: 1400rpx;
+			padding: 50rpx;
+		}
+		
+		/* 调整卡片大小 */
+		.overview-card {
+			padding: 30rpx;
+		}
+		
+		.card-value {
+			font-size: 48rpx;
+		}
+		
+		.action-card {
+			padding: 40rpx;
+		}
+		
+		.task-card,
+		.status-card {
+			padding: 40rpx;
+		}
+	}
+</style>

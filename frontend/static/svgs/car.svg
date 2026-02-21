@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_图层_1" data-name="图层 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 206.74 147.72">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+        stroke: #000;
+        stroke-miterlimit: 10;
+      }
+    </style>
+  </defs>
+  <rect class="cls-1" x=".5" y=".5" width="205.74" height="125.41" rx="22.54" ry="22.54"/>
+  <ellipse class="cls-1" cx="64.43" cy="120.99" rx="24.59" ry="26.23"/>
+  <ellipse class="cls-1" cx="136.57" cy="120.99" rx="24.59" ry="26.23"/>
+  <rect class="cls-1" x="115.25" y="23.45" width="73.77" height="49.18" rx="18.03" ry="18.03"/>
+</svg>

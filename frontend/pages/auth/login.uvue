@@ -1,0 +1,418 @@
+<template>
+	<view class="login-container">
+		<view class="logo-section">
+			<image class="logo" src="/static/logo/logo.png"></image>
+			<text class="app-name">MineGuard</text>
+			<text class="slogan">矿山安全智能监控系统</text>
+		</view>
+		
+		<view class="form-section">
+			<!-- 用户类型选择 -->
+			<view class="user-type-section">
+				<text class="type-label">登录类型</text>
+				<view class="type-buttons">
+					<view class="type-btn" :class="{ active: userType === 'admin' }" @click="selectUserType('admin')">
+						<text>管理端</text>
+					</view>
+					<view class="type-btn" :class="{ active: userType === 'user' }" @click="selectUserType('user')">
+						<text>用户端</text>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 登录表单 -->
+			<view class="form-item">
+				<text class="label">账号</text>
+				<input 
+					class="input" 
+					type="text" 
+					v-model="username" 
+					placeholder="请输入账号" 
+					placeholder-style="color: #999" 
+					@focus="clearError('username')"
+				/>
+				<text v-if="errors.username" class="error-text">{{ errors.username }}</text>
+			</view>
+			
+			<view class="form-item">
+				<text class="label">密码</text>
+				<input 
+					class="input" 
+					type="password" 
+					v-model="password" 
+					placeholder="请输入密码" 
+					placeholder-style="color: #999" 
+					@focus="clearError('password')"
+				/>
+				<text v-if="errors.password" class="error-text">{{ errors.password }}</text>
+			</view>
+			
+			<button class="login-btn" @click="handleLogin" :disabled="isLoading">
+				<text v-if="!isLoading">登录</text>
+				<text v-else>登录中...</text>
+			</button>
+			
+			<view class="auth-links">
+				<navigator url="/pages/auth/register" class="link">注册账号</navigator>
+				<text class="link" @click="forgotPassword">忘记密码？</text>
+			</view>
+		</view>
+		
+		<view class="footer">
+			<text class="copyright">© 2026 MineGuard. 保留所有权利</text>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref, reactive } from 'vue'
+	
+	const username = ref('')
+	const password = ref('')
+	const userType = ref('user') // 默认用户端
+	const isLoading = ref(false)
+	const errors = reactive({
+		username: '',
+		password: ''
+	})
+	
+	function selectUserType(type) {
+		userType.value = type
+	}
+	
+	function clearError(field) {
+		errors[field] = ''
+	}
+	
+	function validateForm() {
+		let isValid = true
+		
+		// 重置错误信息
+		Object.keys(errors).forEach(key => {
+			errors[key] = ''
+		})
+		
+		// 验证账号
+		if (!username.value.trim()) {
+			errors.username = '请输入账号'
+			isValid = false
+		}
+		
+		// 验证密码
+		if (!password.value.trim()) {
+			errors.password = '请输入密码'
+			isValid = false
+		} else if (password.value.length < 6) {
+			errors.password = '密码长度至少6位'
+			isValid = false
+		}
+		
+		return isValid
+	}
+	
+	function handleLogin() {
+		// 表单验证
+		if (!validateForm()) {
+			return
+		}
+		
+		// 显示加载状态
+		isLoading.value = true
+		
+		// 模拟登录请求
+		setTimeout(() => {
+			// 隐藏加载状态
+			isLoading.value = false
+			
+			// 显示登录成功提示
+			uni.showToast({
+				title: '登录成功',
+				icon: 'success',
+				position: 'bottom'
+			})
+			
+			// 存储登录状态和用户类型
+			uni.setStorageSync('loginStatus', true)
+			uni.setStorageSync('userRole', userType.value)
+			uni.setStorageSync('userInfo', {
+				name: username.value,
+				role: userType.value === 'admin' ? '管理员' : '司机',
+				id: 'U' + Math.floor(Math.random() * 1000000)
+			})
+			
+			// 根据用户类型跳转到对应首页
+			setTimeout(() => {
+				if (userType.value === 'admin') {
+					uni.redirectTo({
+						url: '/pages/admin/home/index'
+					})
+				} else if (userType.value === 'user') {
+					uni.switchTab({
+						url: '/pages/user/home/index'
+					})
+				}
+			}, 1000)
+		}, 1500)
+	}
+	
+	function forgotPassword() {
+		// 跳转到忘记密码页面
+		uni.navigateTo({
+			url: '/pages/auth/reset-password'
+		})
+	}
+</script>
+
+<style lang="scss">
+	.login-container {
+		display: flex;
+		flex-direction: column;
+		min-height: 100vh;
+		padding: 80rpx 40rpx 40rpx;
+		box-sizing: border-box;
+		background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+	}
+	
+	.logo-section {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		margin-bottom: 60rpx;
+		animation: fadeIn 0.8s ease-out forwards;
+	}
+	
+	.logo {
+		width: 160rpx;
+		height: 160rpx;
+		margin-bottom: 30rpx;
+		border-radius: $uni-border-radius-xxl;
+		box-shadow: $uni-shadow-lg;
+	}
+	
+	.app-name {
+		font-size: 36rpx;
+		font-weight: bold;
+		color: $uni-color-primary;
+		margin-bottom: 15rpx;
+	}
+	
+	.slogan {
+		font-size: 24rpx;
+		color: $uni-text-color-grey;
+	}
+	
+	.form-section {
+		flex: 1;
+		width: 100%;
+		background-color: $uni-bg-color;
+		border-radius: $uni-border-radius-xxl;
+		padding: 40rpx;
+		box-shadow: $uni-shadow-lg;
+		animation: slideUp 0.8s ease-out forwards;
+	}
+	
+	/* 用户类型选择 */
+	.user-type-section {
+		margin-bottom: 40rpx;
+	}
+	
+	.type-label {
+		display: block;
+		font-size: 24rpx;
+		color: $uni-text-color;
+		margin-bottom: 15rpx;
+	}
+	
+	.type-buttons {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		gap: 20rpx;
+	}
+	
+	.type-btn {
+		flex: 1;
+		padding: 20rpx;
+		border: 2rpx solid $uni-border-color;
+		border-radius: $uni-border-radius-lg;
+		text-align: center;
+		font-size: 24rpx;
+		color: $uni-text-color-grey;
+		transition: all 0.3s ease;
+	}
+	
+	.type-btn.active {
+		border-color: $uni-color-primary;
+		background-color: rgba($uni-color-primary, 0.1);
+		color: $uni-color-primary;
+		font-weight: bold;
+		transform: translateY(-2rpx);
+		box-shadow: 0 2rpx 10rpx rgba($uni-color-primary, 0.2);
+	}
+	
+	.form-item {
+		margin-bottom: 30rpx;
+	}
+	
+	.label {
+		display: block;
+		font-size: 24rpx;
+		color: $uni-text-color;
+		margin-bottom: 10rpx;
+	}
+	
+	.input {
+		width: 100%;
+		height: 80rpx;
+		background-color: $uni-bg-color-grey;
+		border-radius: $uni-border-radius-lg;
+		padding: 0 30rpx;
+		box-sizing: border-box;
+		font-size: 28rpx;
+		border: 2rpx solid $uni-border-color;
+		transition: all 0.3s ease;
+	}
+	
+	.input:focus {
+		border-color: $uni-color-primary;
+		box-shadow: 0 0 0 4rpx rgba($uni-color-primary, 0.1);
+		background-color: $uni-bg-color;
+	}
+	
+	.error-text {
+		font-size: 20rpx;
+		color: $uni-color-error;
+		margin-top: 8rpx;
+		margin-left: 10rpx;
+	}
+	
+	.login-btn {
+		width: 100%;
+		height: 88rpx;
+		background: linear-gradient(135deg, $uni-color-primary 0%, darken($uni-color-primary, 15%) 100%);
+		color: $uni-text-color-inverse;
+		font-size: 32rpx;
+		font-weight: bold;
+		border-radius: $uni-border-radius-lg;
+		margin-top: 50rpx;
+		margin-bottom: 30rpx;
+		transition: all 0.3s ease;
+	}
+	
+	.login-btn:active:not(:disabled) {
+		transform: scale(0.98);
+		box-shadow: 0 2rpx 10rpx rgba($uni-color-primary, 0.3);
+	}
+	
+	.login-btn:disabled {
+		opacity: $uni-opacity-disabled;
+		transform: none;
+	}
+	
+	.auth-links {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 24rpx;
+		margin-top: 20rpx;
+	}
+	
+	.link {
+		color: $uni-color-primary;
+		transition: color 0.3s ease;
+	}
+	
+	.link:active {
+		color: darken($uni-color-primary, 15%);
+	}
+	
+	.footer {
+		margin-top: 40rpx;
+		text-align: center;
+		animation: fadeIn 1s ease-out forwards;
+	}
+	
+	.copyright {
+		font-size: 20rpx;
+		color: $uni-text-color-grey;
+	}
+	
+	/* 动画效果 */
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+			transform: translateY(20rpx);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	
+	@keyframes slideUp {
+		from {
+			opacity: 0;
+			transform: translateY(40rpx);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	
+	/* 响应式设计 */
+	@media (min-width: 768px) {
+		.login-container {
+			max-width: 600rpx;
+			margin: 0 auto;
+			padding-top: 120rpx;
+		}
+		
+		.form-section {
+			padding: 60rpx;
+		}
+		
+		.form-item {
+			margin-bottom: 40rpx;
+		}
+		
+		.login-btn {
+			margin-top: 60rpx;
+		}
+	}
+	
+	/* 小屏幕设备适配 */
+	@media (max-width: 375px) {
+		.login-container {
+			padding: 60rpx 30rpx 30rpx;
+		}
+		
+		.logo {
+			width: 140rpx;
+			height: 140rpx;
+		}
+		
+		.app-name {
+			font-size: 32rpx;
+		}
+		
+		.slogan {
+			font-size: 22rpx;
+		}
+		
+		.form-section {
+			padding: 30rpx;
+		}
+		
+		.input {
+			height: 70rpx;
+			font-size: 26rpx;
+		}
+		
+		.login-btn {
+			height: 78rpx;
+			font-size: 28rpx;
+		}
+	}
+</style>

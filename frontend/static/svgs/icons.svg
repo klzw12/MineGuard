@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <!-- 导航图标 - 更清晰的轮廓 -->
+  <symbol id="icon-back" viewBox="0 0 24 24">
+    <path fill="currentColor" stroke="#323333" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M19 12H5M12 19l-7-7 7-7"/>
+  </symbol>
+
+  <symbol id="icon-home" viewBox="0 0 24 24">
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M9 22V12h6v10"/>
+  </symbol>
+  
+  <symbol id="icon-dir" viewBox="0 0 24 24">
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/>
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M8 12h8M8 16h8"/>
+  </symbol>
+  
+  <!-- 功能图标 - 更明确的含义 -->
+  <symbol id="icon-camera" viewBox="0 0 24 24">
+    <rect x="2" y="5" width="20" height="15" rx="2" ry="2" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+    <circle cx="12" cy="13" r="3" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" d="M19 9l-3-2h-8l-3 2"/>
+    <circle cx="18" cy="9" r="1" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+  </symbol>
+  
+  <symbol id="icon-car" viewBox="0 0 24 24">
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M5 9h14M5 15h14"/>
+    <rect x="3" y="7" width="18" height="8" rx="1" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+    <circle cx="7" cy="17" r="2" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+    <circle cx="17" cy="17" r="2" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+  </symbol>
+  
+  <symbol id="icon-echart" viewBox="0 0 24 24">
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" d="M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10 10 10 0 0 1-10-10A10 10 0 0 1 12 2z"/>
+    <path fill="#323333" stroke="#323333" stroke-width="0.5" d="M12 2a10 10 0 0 1 10 10h-6A6 6 0 0 0 12 6z"/>
+    <path fill="currentColor" stroke="#323333" stroke-width="0.5" d="M12 6a6 6 0 0 1 6 6v-6h-6z"/>
+    <path fill="currentColor" stroke="#323333" stroke-width="0.5" d="M6 12h6a6 6 0 0 1-6 6V12z"/>
+  </symbol>
+  
+  <symbol id="icon-locate" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+    <circle cx="12" cy="12" r="3" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+  </symbol>
+  
+  <symbol id="icon-position" viewBox="0 0 24 24">
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M12 2C8.1 2 5 5.1 5 9c0 5.3 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/>
+    <circle cx="12" cy="9" r="3" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+  </symbol>
+  
+  <!-- 操作图标 - 更直观的操作 -->
+  <symbol id="icon-setting" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="3" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </symbol>
+  
+  <symbol id="icon-report" viewBox="0 0 24 24">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" fill="#e74c3c" stroke="#323333" stroke-width="1.5"/>
+    <path fill="#e74c3c" stroke="#323333" stroke-width="1.5" stroke-linecap="round" d="M8 7h8M8 11h8M8 15h6"/>
+    <path fill="#e74c3c" stroke="#323333" stroke-width="1.5" stroke-linecap="round" d="M3 7h1M3 11h1M3 15h1"/>
+  </symbol>
+  
+  <symbol id="icon-reflush" viewBox="0 0 24 24">
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M23 4v6h-6"/>
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M1 20v-6h6"/>
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+  </symbol>
+  
+  <symbol id="icon-loading" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" stroke="#323333" stroke-width="2.5" stroke-dasharray="62.8" stroke-dashoffset="62.8" fill="currentColor">
+      <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/>
+    </circle>
+  </symbol>
+  
+  <!-- 信息图标 - 更明确的视觉提示 -->
+  <symbol id="icon-message" viewBox="0 0 24 24">
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    <circle cx="8" cy="10" r="1" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+    <circle cx="12" cy="10" r="1" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+    <circle cx="16" cy="10" r="1" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+  </symbol>
+  
+  <symbol id="icon-warn" viewBox="0 0 24 24">
+    <path fill="#ffc107" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+    <path fill="#ffc107" stroke="#323333" stroke-width="1.5" stroke-linecap="round" d="M12 9v4"/>
+    <circle cx="12" cy="17" r="1" fill="#ffc107" stroke="#323333" stroke-width="1.5"/>
+  </symbol>
+  
+  <!-- 安全图标 -->
+  <symbol id="icon-safe" viewBox="0 0 24 24">
+    <path fill="#2ecc71" stroke="#323333" stroke-width="1.5" d="M12 1L3 5v14l9 4 9-4V5l-9-4z"/>
+    <path fill="#2ecc71" stroke="#323333" stroke-width="1.5" stroke-linecap="round" d="M9 12v5l3 3 3-3v-5M9 8h6"/>
+  </symbol>
+  
+  <!-- 用户图标 -->
+  <symbol id="icon-user" viewBox="0 0 24 24">
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="7" r="4" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+  </symbol>
+  
+  <!-- 搜索图标 -->
+  <symbol id="icon-search" viewBox="0 0 24 24">
+    <circle cx="11" cy="11" r="8" fill="currentColor" stroke="#323333" stroke-width="1.5"/>
+    <path fill="currentColor" stroke="#323333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35"/>
+  </symbol>
+</svg>

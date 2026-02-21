@@ -1,0 +1,250 @@
+<template>
+	<view class="admin-sidebar">
+		<!-- 侧边栏头部 -->
+		<view class="sidebar-header">
+			<text class="sidebar-title">MineGuard</text>
+			<text class="sidebar-subtitle">管理中心</text>
+		</view>
+		
+		<!-- 导航菜单 -->
+		<view class="sidebar-menu">
+			<view 
+				class="sidebar-item" 
+				:class="{ active: currentPath === '/pages/admin/home/index' }" 
+				@click="navigateTo('/pages/admin/home/index')"
+			>
+				<text class="sidebar-icon">🏠</text>
+				<text class="sidebar-text">首页</text>
+			</view>
+			<view 
+				class="sidebar-item" 
+				:class="{ active: currentPath === '/pages/admin/vehicle/index' }" 
+				@click="navigateTo('/pages/admin/vehicle/index')"
+			>
+				<text class="sidebar-icon">🚚</text>
+				<text class="sidebar-text">车辆管理</text>
+			</view>
+			<view 
+				class="sidebar-item" 
+				:class="{ active: currentPath === '/pages/admin/driver/index' }" 
+				@click="navigateTo('/pages/admin/driver/index')"
+			>
+				<text class="sidebar-icon">👨‍💼</text>
+				<text class="sidebar-text">司机管理</text>
+			</view>
+			<view 
+				class="sidebar-item" 
+				:class="{ active: currentPath === '/pages/admin/monitor/index' }" 
+				@click="navigateTo('/pages/admin/monitor/index')"
+			>
+				<text class="sidebar-icon">📺</text>
+				<text class="sidebar-text">实时监控</text>
+			</view>
+			<view 
+				class="sidebar-item" 
+				:class="{ active: currentPath === '/pages/admin/report/index' }" 
+				@click="navigateTo('/pages/admin/report/index')"
+			>
+				<text class="sidebar-icon">📊</text>
+				<text class="sidebar-text">统计报表</text>
+			</view>
+			<view 
+				class="sidebar-item" 
+				:class="{ active: currentPath === '/pages/admin/profile/index' }" 
+				@click="navigateTo('/pages/admin/profile/index')"
+			>
+				<text class="sidebar-icon">👤</text>
+				<text class="sidebar-text">个人中心</text>
+			</view>
+		</view>
+		
+		<!-- 侧边栏底部 -->
+		<view class="sidebar-footer">
+			<view class="sidebar-item logout" @click="handleLogout">
+				<text class="sidebar-icon">🚪</text>
+				<text class="sidebar-text">退出登录</text>
+			</view>
+			<view class="sidebar-version">
+				<text class="version-text">v1.0.0</text>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref, onMounted } from 'vue'
+	
+	const currentPath = ref('')
+	
+	onMounted(() => {
+		// 获取当前页面路径
+		const pages = getCurrentPages()
+		if (pages.length > 0) {
+			currentPath.value = pages[pages.length - 1].route
+		}
+		
+		// 监听页面显示事件，更新当前路径
+		uni.onShow(() => {
+			const pages = getCurrentPages()
+			if (pages.length > 0) {
+				currentPath.value = pages[pages.length - 1].route
+			}
+		})
+	})
+	
+	function navigateTo(url) {
+		uni.redirectTo({
+			url: url
+		})
+	}
+	
+	function handleLogout() {
+		uni.showModal({
+			title: '退出登录',
+			content: '确定要退出登录吗？',
+			confirmText: '确定',
+			cancelText: '取消',
+			success: (res) => {
+				if (res.confirm) {
+					// 清除登录状态
+					uni.removeStorageSync('loginStatus')
+					uni.removeStorageSync('userRole')
+					uni.removeStorageSync('userInfo')
+					// 跳转到登录页面
+					uni.redirectTo({
+						url: '/pages/auth/login'
+					})
+				}
+			}
+		})
+	}
+</script>
+
+<style lang="scss">
+	.admin-sidebar {
+		width: 240rpx;
+		background-color: #fff;
+		box-shadow: 2rpx 0 10rpx rgba(0, 0, 0, 0.1);
+		height: 100vh;
+		position: fixed;
+		top: 0;
+		left: 0;
+		bottom: 0;
+		overflow-y: auto;
+		z-index: 999;
+		
+		/* 侧边栏头部 */
+		.sidebar-header {
+			padding: 40rpx 20rpx;
+			text-align: center;
+			border-bottom: 1rpx solid #f0f0f0;
+			
+			.sidebar-title {
+				font-size: 32rpx;
+				font-weight: bold;
+				color: #007AFF;
+				margin-bottom: 8rpx;
+			}
+			
+			.sidebar-subtitle {
+				font-size: 20rpx;
+				color: #666;
+			}
+		}
+		
+		/* 导航菜单 */
+		.sidebar-menu {
+			padding: 20rpx 0;
+		}
+		
+		/* 菜单项 */
+		.sidebar-item {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			padding: 30rpx 20rpx;
+			margin: 10rpx;
+			border-radius: 10rpx;
+			cursor: pointer;
+			transition: all 0.3s ease;
+			
+			&.active {
+				background-color: rgba(0, 122, 255, 0.1);
+				color: #007AFF;
+				font-weight: bold;
+			}
+			
+			&:active {
+				background-color: rgba(0, 122, 255, 0.1);
+			}
+			
+			&.logout {
+				margin-top: 50rpx;
+				color: #FF3B30;
+				
+				&:active {
+					background-color: rgba(255, 59, 48, 0.1);
+				}
+			}
+		}
+		
+		/* 菜单图标 */
+		.sidebar-icon {
+			font-size: 40rpx;
+			margin-bottom: 10rpx;
+		}
+		
+		/* 菜单文本 */
+		.sidebar-text {
+			font-size: 22rpx;
+			text-align: center;
+		}
+		
+		/* 侧边栏底部 */
+		.sidebar-footer {
+			margin-top: auto;
+			padding: 20rpx 0;
+			
+			.sidebar-version {
+				padding: 20rpx;
+				text-align: center;
+				
+				.version-text {
+					font-size: 18rpx;
+					color: #999;
+				}
+			}
+		}
+	}
+	
+	/* 响应式设计 */
+	@media (max-width: 768px) {
+		.admin-sidebar {
+			width: 200rpx;
+			
+			.sidebar-header {
+				padding: 30rpx 15rpx;
+				
+				.sidebar-title {
+					font-size: 28rpx;
+				}
+				
+				.sidebar-subtitle {
+					font-size: 18rpx;
+				}
+			}
+			
+			.sidebar-item {
+				padding: 25rpx 15rpx;
+				
+				.sidebar-icon {
+					font-size: 36rpx;
+				}
+				
+				.sidebar-text {
+					font-size: 20rpx;
+				}
+			}
+		}
+	}
+</style>

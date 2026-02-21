@@ -1,0 +1,411 @@
+<template>
+	<view class="profile-container">
+		<!-- 顶部导航栏 -->
+		<view class="navbar">
+			<text class="navbar-title">个人中心</text>
+			<button class="navbar-btn" @click="editProfile">
+				<text class="btn-icon">✏️</text>
+			</button>
+		</view>
+		
+		<!-- 用户信息卡片 -->
+		<view class="user-card">
+			<view class="user-avatar">
+				<image class="avatar-img" src="/static/avatar/Mine.png"></image>
+				<view class="avatar-badge">
+					<text class="badge-text">在线</text>
+				</view>
+			</view>
+			<view class="user-info">
+				<text class="user-name">{{ userInfo.name }}</text>
+				<text class="user-role">{{ userInfo.role }}</text>
+				<text class="user-id">ID: {{ userInfo.id }}</text>
+			</view>
+		</view>
+		
+		<!-- 功能列表 -->
+		<view class="feature-section">
+			<text class="section-title">我的功能</text>
+			<view class="feature-list">
+				<view class="feature-item" @click="navigateToTasks">
+					<view class="feature-icon">📋</view>
+					<text class="feature-text">我的任务</text>
+					<text class="feature-arrow">›</text>
+				</view>
+				<view class="feature-item" @click="navigateToVehicle">
+					<view class="feature-icon">🚗</view>
+					<text class="feature-text">我的车辆</text>
+					<text class="feature-arrow">›</text>
+				</view>
+				<view class="feature-item" @click="navigateToMessage">
+					<view class="feature-icon">💬</view>
+					<text class="feature-text">消息通知</text>
+					<text class="feature-arrow">›</text>
+				</view>
+				<view class="feature-item" @click="navigateToSetting">
+					<view class="feature-icon">⚙️</view>
+					<text class="feature-text">设置</text>
+					<text class="feature-arrow">›</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 安全与支持 -->
+		<view class="support-section">
+			<text class="section-title">安全与支持</text>
+			<view class="feature-list">
+				<view class="feature-item" @click="navigateToSecurity">
+					<view class="feature-icon">🔒</view>
+					<text class="feature-text">账号安全</text>
+					<text class="feature-arrow">›</text>
+				</view>
+				<view class="feature-item" @click="navigateToHelp">
+					<view class="feature-icon">❓</view>
+					<text class="feature-text">帮助中心</text>
+					<text class="feature-arrow">›</text>
+				</view>
+				<view class="feature-item" @click="navigateToAbout">
+					<view class="feature-icon">ℹ️</view>
+					<text class="feature-text">关于我们</text>
+					<text class="feature-arrow">›</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 退出登录 -->
+		<button class="logout-btn" @click="logout">
+			<text class="logout-text">退出登录</text>
+		</button>
+		
+		<!-- 版本信息 -->
+		<view class="version-info">
+			<text class="version-text">MineGuard v1.0.0</text>
+		</view>
+	</view>
+</template>
+
+<script lang="uts">
+	export default {
+		data() {
+			return {
+				userInfo: {
+					id: 'U123456',
+					name: '张三',
+					role: '司机',
+					phone: '138****8888',
+					email: 'zhangsan@example.com',
+					vehicleId: 'KG-001',
+					experience: '3年',
+					rating: 4.8
+				}
+			}
+		},
+		methods: {
+			editProfile() {
+				// 编辑个人资料
+				uni.showToast({
+					title: '编辑个人资料功能开发中',
+					icon: 'none',
+					position: 'bottom'
+				});
+			},
+			navigateToTasks() {
+			// 跳转到任务管理
+			uni.switchTab({
+				url: '/pages/user/task/index'
+			});
+		},
+		navigateToVehicle() {
+			// 跳转到车辆状态
+			uni.switchTab({
+				url: '/pages/user/vehicle/index'
+			});
+		},
+			navigateToMessage() {
+			// 显示消息通知模态框
+			uni.showModal({
+				title: '消息通知',
+				content: '消息通知功能正在开发中，敬请期待！',
+				showCancel: false,
+				confirmText: '确定'
+			});
+		},
+		navigateToSetting() {
+			// 显示设置模态框
+			uni.showModal({
+				title: '设置',
+				content: '设置功能正在开发中，敬请期待！',
+				showCancel: false,
+				confirmText: '确定'
+			});
+		},
+		navigateToSecurity() {
+			// 显示账号安全模态框
+			uni.showModal({
+				title: '账号安全',
+				content: '账号安全功能正在开发中，敬请期待！',
+				showCancel: false,
+				confirmText: '确定'
+			});
+		},
+		navigateToHelp() {
+			// 显示帮助中心模态框
+			uni.showModal({
+				title: '帮助中心',
+				content: '帮助中心功能正在开发中，敬请期待！',
+				showCancel: false,
+				confirmText: '确定'
+			});
+		},
+			navigateToAbout() {
+				// 显示关于我们模态框
+				uni.showModal({
+					title: '关于 MineGuard',
+					content: 'MineGuard 是一款矿山安全智能监控系统，致力于提供全方位的矿山安全解决方案。\n\n核心功能：\n- 安全监控：实时监控矿山安全状况，及时发现并预警潜在隐患\n- 人员定位：实时追踪人员位置，确保人员安全，提高管理效率\n- 隐患上报：快速上报安全隐患，简化流程，提高响应速度\n- 消息通知：实时接收安全警报，确保信息及时传递，快速响应\n\n版本：1.0.0\n作者：klzw\n\n© 2026 MineGuard. All rights reserved.',
+					showCancel: false,
+					confirmText: '确定'
+				});
+			},
+			logout() {
+				// 退出登录
+				uni.showModal({
+					title: '退出登录',
+					content: '确定要退出登录吗？',
+					confirmText: '确定',
+					cancelText: '取消',
+					confirmColor: '#34C759',
+					success: (res) => {
+						if (res.confirm) {
+							// 清除登录状态
+							uni.removeStorageSync('loginStatus');
+							uni.removeStorageSync('userRole');
+							uni.removeStorageSync('userInfo');
+							
+							// 跳转到登录页
+				uni.redirectTo({
+					url: '/pages/auth/login'
+				});
+						}
+					}
+				});
+			}
+		}
+	}
+</script>
+
+<style>
+	.profile-container {
+		min-height: 100vh;
+		background-color: #F5F7FA;
+	}
+	
+	/* 顶部导航栏 */
+	.navbar {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 30rpx 40rpx;
+		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+		color: #FFFFFF;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+	}
+	
+	.navbar-title {
+		font-size: 32rpx;
+		font-weight: bold;
+	}
+	
+	.navbar-btn {
+		background: rgba(255, 255, 255, 0.2);
+		border: none;
+		border-radius: 50%;
+		width: 60rpx;
+		height: 60rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.btn-icon {
+		font-size: 28rpx;
+		color: #FFFFFF;
+	}
+	
+	/* 用户信息卡片 */
+	.user-card {
+		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+		margin: 30rpx 40rpx;
+		padding: 40rpx;
+		border-radius: 20rpx;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		color: #FFFFFF;
+		box-shadow: 0 4rpx 20rpx rgba(52, 199, 89, 0.3);
+	}
+	
+	.user-avatar {
+		position: relative;
+		margin-right: 30rpx;
+	}
+	
+	.avatar-img {
+		width: 120rpx;
+		height: 120rpx;
+		border-radius: 50%;
+		border: 4rpx solid rgba(255, 255, 255, 0.3);
+	}
+	
+	.avatar-badge {
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		background-color: #FFFFFF;
+		color: #34C759;
+		padding: 5rpx 15rpx;
+		border-radius: 15rpx;
+		font-size: 20rpx;
+		font-weight: bold;
+		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);
+	}
+	
+	.user-info {
+		flex: 1;
+	}
+	
+	.user-name {
+		font-size: 32rpx;
+		font-weight: bold;
+		margin-bottom: 10rpx;
+	}
+	
+	.user-role {
+		font-size: 24rpx;
+		opacity: 0.9;
+		margin-bottom: 8rpx;
+	}
+	
+	.user-id {
+		font-size: 20rpx;
+		opacity: 0.8;
+	}
+	
+	/* 功能列表 */
+	.feature-section {
+		margin: 30rpx 40rpx;
+	}
+	
+	.section-title {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 20rpx;
+	}
+	
+	.feature-list {
+		background-color: #FFFFFF;
+		border-radius: 20rpx;
+		overflow: hidden;
+		box-shadow: 0 2rpx 15rpx rgba(0, 0, 0, 0.05);
+	}
+	
+	.feature-item {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 30rpx;
+		border-bottom: 2rpx solid #F5F7FA;
+		transition: all 0.3s ease;
+		min-width: 300rpx;
+	}
+	
+	.feature-item:last-child {
+		border-bottom: none;
+	}
+	
+	.feature-item:active {
+		background-color: #F5F7FA;
+	}
+	
+	.feature-icon {
+		font-size: 36rpx;
+		margin-right: 30rpx;
+		width: 50rpx;
+		height: 50rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.feature-text {
+		flex: 1;
+		font-size: 26rpx;
+		color: #333333;
+	}
+	
+	.feature-arrow {
+		font-size: 32rpx;
+		color: #CCCCCC;
+	}
+	
+	/* 安全与支持 */
+	.support-section {
+		margin: 30rpx 40rpx;
+	}
+	
+	/* 退出登录 */
+	.logout-btn {
+		margin: 50rpx 40rpx;
+		padding: 30rpx;
+		background-color: #FFFFFF;
+		border: 2rpx solid #FF3B30;
+		border-radius: 20rpx;
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #FF3B30;
+		transition: all 0.3s ease;
+	}
+	
+	.logout-btn:active {
+		background-color: #FF3B30;
+		color: #FFFFFF;
+	}
+	
+	/* 版本信息 */
+	.version-info {
+		text-align: center;
+		padding: 30rpx;
+		margin-bottom: 50rpx;
+	}
+	
+	.version-text {
+		font-size: 22rpx;
+		color: #999999;
+	}
+	
+	/* 响应式设计 */
+	@media (min-width: 768px) {
+		.profile-container {
+			max-width: 1200rpx;
+			margin: 0 auto;
+		}
+		
+		.user-card {
+			margin: 40rpx;
+			padding: 50rpx;
+		}
+		
+		.feature-section {
+			margin: 40rpx;
+		}
+		
+		.support-section {
+			margin: 40rpx;
+		}
+		
+		.logout-btn {
+			margin: 60rpx 40rpx;
+		}
+	}
+</style>

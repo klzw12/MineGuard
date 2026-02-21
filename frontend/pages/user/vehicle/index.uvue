@@ -1,0 +1,460 @@
+<template>
+	<view class="vehicle-container">
+		<!-- 顶部导航栏 -->
+		<view class="navbar">
+			<text class="navbar-title">车辆状态</text>
+			<button class="navbar-btn" @click="refreshStatus">
+				<text class="btn-icon">🔄</text>
+			</button>
+		</view>
+		
+		<!-- 车辆信息卡片 -->
+		<view class="vehicle-card">
+			<view class="vehicle-header">
+				<text class="vehicle-name">{{ vehicleInfo.name }}</text>
+				<view class="vehicle-status" :class="vehicleInfo.status === 'normal' ? 'status-normal' : 'status-warning'">
+					<text>{{ vehicleInfo.status === 'normal' ? '正常' : '异常' }}</text>
+				</view>
+			</view>
+			
+			<view class="vehicle-info">
+				<view class="info-item">
+					<text class="info-label">车辆编号：</text>
+					<text class="info-value">{{ vehicleInfo.id }}</text>
+				</view>
+				<view class="info-item">
+					<text class="info-label">车辆类型：</text>
+					<text class="info-value">{{ vehicleInfo.type }}</text>
+				</view>
+				<view class="info-item">
+					<text class="info-label">所属区域：</text>
+					<text class="info-value">{{ vehicleInfo.area }}</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 车辆状态指标 -->
+		<view class="status-section">
+			<text class="section-title">实时状态</text>
+			<view class="status-grid">
+				<view class="status-card">
+					<text class="status-icon">📍</text>
+					<text class="status-name">当前位置</text>
+					<text class="status-value">{{ vehicleInfo.location }}</text>
+				</view>
+				<view class="status-card">
+					<text class="status-icon">⛽</text>
+					<text class="status-name">油量</text>
+					<text class="status-value">{{ vehicleInfo.fuel }}%</text>
+				</view>
+				<view class="status-card">
+					<text class="status-icon">🌡️</text>
+					<text class="status-name">发动机温度</text>
+					<text class="status-value">{{ vehicleInfo.temperature }}°C</text>
+				</view>
+				<view class="status-card">
+					<text class="status-icon">⚡</text>
+					<text class="status-name">电池电压</text>
+					<text class="status-value">{{ vehicleInfo.battery }}V</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 车辆健康状态 -->
+		<view class="health-section">
+			<text class="section-title">健康状态</text>
+			<view class="health-list">
+				<view class="health-item" :class="{ warning: item.status === 'warning' }" v-for="(item, index) in vehicleHealth" :key="index">
+					<text class="health-name">{{ item.name }}</text>
+					<view class="health-status">
+						<text class="status-dot" :class="item.status === 'normal' ? 'dot-normal' : 'dot-warning'"></text>
+						<text class="status-text">{{ item.status === 'normal' ? '正常' : '需要维护' }}</text>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 操作按钮 -->
+		<view class="action-buttons">
+			<button class="action-btn primary" @click="startVehicle">
+				<text>启动车辆</text>
+			</button>
+			<button class="action-btn secondary" @click="stopVehicle">
+				<text>停止车辆</text>
+			</button>
+			<button class="action-btn danger" @click="reportIssue">
+				<text>上报问题</text>
+			</button>
+		</view>
+	</view>
+</template>
+
+<script lang="uts">
+	export default {
+		data() {
+			return {
+				vehicleInfo: {
+					id: 'KG-001',
+					name: '矿用卡车1号',
+					type: '重型卡车',
+					area: '矿区A',
+					status: 'normal',
+					location: '矿区A-12号点位',
+					fuel: 75,
+					temperature: 85,
+					battery: 24.5
+				},
+				vehicleHealth: [
+					{
+						name: '发动机',
+						status: 'normal'
+					},
+					{
+						name: '刹车系统',
+						status: 'normal'
+					},
+					{
+						name: '轮胎',
+						status: 'warning'
+					},
+					{
+						name: '灯光系统',
+						status: 'normal'
+					}
+				]
+			}
+		},
+		methods: {
+			refreshStatus() {
+				// 刷新车辆状态
+				uni.showToast({
+					title: '状态已刷新',
+					icon: 'success',
+					position: 'bottom'
+				});
+			},
+			startVehicle() {
+				// 启动车辆
+				uni.showModal({
+					title: '启动车辆',
+					content: '确定要启动矿用卡车1号吗？',
+					confirmText: '确定',
+					cancelText: '取消',
+					confirmColor: '#34C759',
+					success: (res) => {
+						if (res.confirm) {
+							uni.showToast({
+								title: '车辆启动成功',
+								icon: 'success',
+								position: 'bottom'
+							});
+						}
+					}
+				});
+			},
+			stopVehicle() {
+				// 停止车辆
+				uni.showModal({
+					title: '停止车辆',
+					content: '确定要停止矿用卡车1号吗？',
+					confirmText: '确定',
+					cancelText: '取消',
+					confirmColor: '#34C759',
+					success: (res) => {
+						if (res.confirm) {
+							uni.showToast({
+								title: '车辆停止成功',
+								icon: 'success',
+								position: 'bottom'
+							});
+						}
+					}
+				});
+			},
+			reportIssue() {
+				// 上报问题
+				uni.showToast({
+					title: '上报问题功能开发中',
+					icon: 'none',
+					position: 'bottom'
+				});
+			}
+		}
+	}
+</script>
+
+<style>
+	.vehicle-container {
+		min-height: 100vh;
+		background-color: #F5F7FA;
+	}
+	
+	/* 顶部导航栏 */
+	.navbar {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 30rpx 40rpx;
+		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+		color: #FFFFFF;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+	}
+	
+	.navbar-title {
+		font-size: 32rpx;
+		font-weight: bold;
+	}
+	
+	.navbar-btn {
+		background: rgba(255, 255, 255, 0.2);
+		border: none;
+		border-radius: 50%;
+		width: 60rpx;
+		height: 60rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.btn-icon {
+		font-size: 28rpx;
+		color: #FFFFFF;
+	}
+	
+	/* 车辆信息卡片 */
+	.vehicle-card {
+		background-color: #FFFFFF;
+		margin: 30rpx 40rpx;
+		padding: 30rpx;
+		border-radius: 20rpx;
+		box-shadow: 0 2rpx 15rpx rgba(0, 0, 0, 0.05);
+	}
+	
+	.vehicle-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 20rpx;
+	}
+	
+	.vehicle-name {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #333333;
+	}
+	
+	.vehicle-status {
+		padding: 8rpx 16rpx;
+		border-radius: 15rpx;
+		font-size: 20rpx;
+		font-weight: bold;
+	}
+	
+	.status-normal {
+		background-color: #D4EDDA;
+		color: #155724;
+	}
+	
+	.status-warning {
+		background-color: #FFF3CD;
+		color: #856404;
+	}
+	
+	.vehicle-info {
+		display: flex;
+		flex-direction: column;
+		gap: 15rpx;
+	}
+	
+	.info-item {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
+	
+	.info-label {
+		font-size: 24rpx;
+		color: #666666;
+		width: 120rpx;
+	}
+	
+	.info-value {
+		font-size: 24rpx;
+		color: #333333;
+		flex: 1;
+	}
+	
+	/* 车辆状态指标 */
+	.status-section {
+		margin: 30rpx 40rpx;
+	}
+	
+	.section-title {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 20rpx;
+	}
+	
+	.status-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 20rpx;
+	}
+	
+	.status-card {
+		background-color: #FFFFFF;
+		padding: 30rpx;
+		border-radius: 20rpx;
+		box-shadow: 0 2rpx 15rpx rgba(0, 0, 0, 0.05);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		transition: all 0.3s ease;
+		min-width: 200rpx;
+	}
+	
+	.status-card:active {
+		transform: scale(0.98);
+		box-shadow: 0 1rpx 5rpx rgba(0, 0, 0, 0.1);
+	}
+	
+	.status-icon {
+		font-size: 48rpx;
+		margin-bottom: 15rpx;
+	}
+	
+	.status-name {
+		font-size: 24rpx;
+		color: #666666;
+		margin-bottom: 10rpx;
+	}
+	
+	.status-value {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #333333;
+	}
+	
+	/* 车辆健康状态 */
+	.health-section {
+		margin: 30rpx 40rpx;
+	}
+	
+	.health-list {
+		background-color: #FFFFFF;
+		border-radius: 20rpx;
+		overflow: hidden;
+		box-shadow: 0 2rpx 15rpx rgba(0, 0, 0, 0.05);
+	}
+	
+	.health-item {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 30rpx;
+		border-bottom: 2rpx solid #F5F7FA;
+		min-width: 400rpx;
+	}
+	
+	.health-item:last-child {
+		border-bottom: none;
+	}
+	
+	.health-item.warning {
+		background-color: #FFF3CD;
+	}
+	
+	.health-name {
+		font-size: 24rpx;
+		color: #333333;
+	}
+	
+	.health-status {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+	}
+	
+	.status-dot {
+		width: 12rpx;
+		height: 12rpx;
+		border-radius: 50%;
+		margin-right: 10rpx;
+	}
+	
+	.dot-normal {
+		background-color: #34C759;
+	}
+	
+	.dot-warning {
+		background-color: #FF9500;
+	}
+	
+	.status-text {
+		font-size: 24rpx;
+		color: #666666;
+	}
+	
+	/* 操作按钮 */
+	.action-buttons {
+		margin: 40rpx;
+		display: flex;
+		flex-direction: row;
+		gap: 20rpx;
+	}
+	
+	.action-btn {
+		flex: 1;
+		padding: 30rpx;
+		border-radius: 20rpx;
+		font-size: 24rpx;
+		font-weight: bold;
+		transition: all 0.3s ease;
+	}
+	
+	.action-btn.primary {
+		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+		color: #FFFFFF;
+		border: none;
+	}
+	
+	.action-btn.secondary {
+		background-color: #FFFFFF;
+		color: #34C759;
+		border: 2rpx solid #34C759;
+	}
+	
+	.action-btn.danger {
+		background-color: #FFFFFF;
+		color: #FF3B30;
+		border: 2rpx solid #FF3B30;
+	}
+	
+	.action-btn:active {
+		transform: scale(0.98);
+	}
+	
+	/* 响应式设计 */
+	@media (min-width: 768px) {
+		.vehicle-container {
+			max-width: 1200rpx;
+			margin: 0 auto;
+		}
+		
+		.vehicle-card {
+			padding: 40rpx;
+		}
+		
+		.status-grid {
+			grid-template-columns: repeat(4, 1fr);
+		}
+		
+		.status-card {
+			padding: 40rpx;
+		}
+	}
+</style>
