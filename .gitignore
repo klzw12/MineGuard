@@ -10,7 +10,7 @@ backend/target/
 backend/.mvn/
 backend/mvnw
 backend/mvnw.cmd
-
+backend/*/target/
 # IDE文件
 .idea/
 .vscode/
