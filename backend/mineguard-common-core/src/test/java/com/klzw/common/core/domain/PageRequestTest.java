@@ -1,6 +1,6 @@
 package com.klzw.common.core.domain;
 
-import com.klzw.common.core.constant.BusinessConstants;
+import com.klzw.common.core.constant.PaginationConstants;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.DisplayName;
@@ -41,10 +41,10 @@ public class PageRequestTest {
     public void testPageRequestDefaultValues() {
         PageRequest pageRequest = new PageRequest();
         
-        assertEquals(BusinessConstants.DEFAULT_PAGE, pageRequest.getPage());
-        assertEquals(BusinessConstants.DEFAULT_PAGE_SIZE, pageRequest.getSize());
+        assertEquals(PaginationConstants.DEFAULT_PAGE, pageRequest.getPage());
+        assertEquals(PaginationConstants.DEFAULT_PAGE_SIZE, pageRequest.getSize());
         assertNull(pageRequest.getSortField());
-        assertEquals(BusinessConstants.SORT_ASC, pageRequest.getSortOrder());
+        assertEquals(PaginationConstants.SORT_ASC, pageRequest.getSortOrder());
     }
 
     @Test
@@ -54,15 +54,15 @@ public class PageRequestTest {
         
         // 测试 page 为 null
         pageRequest.setPage(null);
-        assertEquals(BusinessConstants.DEFAULT_PAGE, pageRequest.getPage());
+        assertEquals(PaginationConstants.DEFAULT_PAGE, pageRequest.getPage());
         
         // 测试 page 为负数
         pageRequest.setPage(-1);
-        assertEquals(BusinessConstants.DEFAULT_PAGE, pageRequest.getPage());
+        assertEquals(PaginationConstants.DEFAULT_PAGE, pageRequest.getPage());
         
         // 测试 page 为 0
         pageRequest.setPage(0);
-        assertEquals(BusinessConstants.DEFAULT_PAGE, pageRequest.getPage());
+        assertEquals(PaginationConstants.DEFAULT_PAGE, pageRequest.getPage());
     }
 
     @Test
@@ -72,19 +72,19 @@ public class PageRequestTest {
         
         // 测试 size 为 null
         pageRequest.setSize(null);
-        assertEquals(BusinessConstants.DEFAULT_PAGE_SIZE, pageRequest.getSize());
+        assertEquals(PaginationConstants.DEFAULT_PAGE_SIZE, pageRequest.getSize());
         
         // 测试 size 为负数
         pageRequest.setSize(-1);
-        assertEquals(BusinessConstants.DEFAULT_PAGE_SIZE, pageRequest.getSize());
+        assertEquals(PaginationConstants.DEFAULT_PAGE_SIZE, pageRequest.getSize());
         
         // 测试 size 为 0
         pageRequest.setSize(0);
-        assertEquals(BusinessConstants.DEFAULT_PAGE_SIZE, pageRequest.getSize());
+        assertEquals(PaginationConstants.DEFAULT_PAGE_SIZE, pageRequest.getSize());
         
         // 测试 size 超过最大值
         pageRequest.setSize(200);
-        assertEquals(BusinessConstants.MAX_PAGE_SIZE, pageRequest.getSize());
+        assertEquals(PaginationConstants.MAX_PAGE_SIZE, pageRequest.getSize());
     }
 
     @Test

@@ -22,4 +22,13 @@ public enum ResultCodeEnum {
         this.code = code;
         this.message = message;
     }
+
+    public static ResultCodeEnum getByCode(int code) {
+        for (ResultCodeEnum item : values()) {
+            if (item.getCode() == code) {
+                return item;
+            }
+        }
+        return null;
+    }
 }

@@ -1,5 +1,6 @@
 package com.klzw.common.core.result;
 
+import com.klzw.common.core.enums.ResultCodeEnum;
 import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +43,7 @@ public class PageResultTest {
         
         Result<PageResult<String>> result = PageResult.success(total, page, size, list);
         
-        assertEquals(ResultCode.SUCCESS, result.getCode());
+        assertEquals(ResultCodeEnum.SUCCESS.getCode(), result.getCode());
         assertEquals("操作成功", result.getMessage());
         assertNotNull(result.getData());
         assertEquals(total, result.getData().getTotal());
@@ -76,6 +77,6 @@ public class PageResultTest {
         
         PageResult<String> result = PageResult.of(total, page, size, list);
         
-        assertEquals(0, result.getPages()); // 0 / 10 = 0
+        assertEquals(1, result.getPages()); // 当 total 为 0 时，返回 1 而不是 0
     }
 }

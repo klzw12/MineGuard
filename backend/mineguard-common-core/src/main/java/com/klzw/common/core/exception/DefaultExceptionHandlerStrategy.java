@@ -1,8 +1,10 @@
 package com.klzw.common.core.exception;
 
+import com.klzw.common.core.enums.ResultCodeEnum;
 import com.klzw.common.core.result.Result;
-import com.klzw.common.core.result.ResultCode;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class DefaultExceptionHandlerStrategy implements ExceptionHandlerStrategy {
     @Override
     public boolean support(Throwable throwable) {
@@ -11,6 +13,7 @@ public class DefaultExceptionHandlerStrategy implements ExceptionHandlerStrategy
 
     @Override
     public Result<?> handle(Throwable throwable) {
-        return Result.fail(ResultCode.INTERNAL_ERROR, "系统内部错误: " + throwable.getMessage());
+        log.error("未处理异常: message={}", throwable.getMessage(), throwable);
+        return Result.fail(ResultCodeEnum.INTERNAL_ERROR.getCode(), "系统内部错误: " + throwable.getMessage());
     }
 }

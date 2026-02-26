@@ -1,5 +1,6 @@
 package com.klzw.common.core.result;
 
+import com.klzw.common.core.enums.ResultCodeEnum;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.DisplayName;
@@ -13,7 +14,7 @@ public class ResultTest {
     @DisplayName("测试成功响应")
     public void testSuccess() {
         Result<?> result = Result.success();
-        assertEquals(ResultCode.SUCCESS, result.getCode());
+        assertEquals(ResultCodeEnum.SUCCESS.getCode(), result.getCode());
         assertEquals("操作成功", result.getMessage());
         assertNull(result.getData());
     }
@@ -23,7 +24,7 @@ public class ResultTest {
     public void testSuccessWithData() {
         String data = "测试数据";
         Result<String> result = Result.success(data);
-        assertEquals(ResultCode.SUCCESS, result.getCode());
+        assertEquals(ResultCodeEnum.SUCCESS.getCode(), result.getCode());
         assertEquals("操作成功", result.getMessage());
         assertEquals(data, result.getData());
     }
@@ -34,7 +35,7 @@ public class ResultTest {
         String message = "操作成功";
         String data = "测试数据";
         Result<String> result = Result.success(message, data);
-        assertEquals(ResultCode.SUCCESS, result.getCode());
+        assertEquals(ResultCodeEnum.SUCCESS.getCode(), result.getCode());
         assertEquals(message, result.getMessage());
         assertEquals(data, result.getData());
     }
@@ -43,7 +44,7 @@ public class ResultTest {
     @DisplayName("测试失败响应")
     public void testFail() {
         Result<?> result = Result.fail();
-        assertEquals(ResultCode.FAIL, result.getCode());
+        assertEquals(ResultCodeEnum.FAIL.getCode(), result.getCode());
         assertEquals("操作失败", result.getMessage());
         assertNull(result.getData());
     }
@@ -53,7 +54,7 @@ public class ResultTest {
     public void testFailWithMessage() {
         String message = "操作失败";
         Result<?> result = Result.fail(message);
-        assertEquals(ResultCode.FAIL, result.getCode());
+        assertEquals(ResultCodeEnum.FAIL.getCode(), result.getCode());
         assertEquals(message, result.getMessage());
         assertNull(result.getData());
     }
@@ -73,7 +74,7 @@ public class ResultTest {
     @DisplayName("测试系统错误响应")
     public void testError() {
         Result<?> result = Result.error();
-        assertEquals(ResultCode.INTERNAL_ERROR, result.getCode());
+        assertEquals(ResultCodeEnum.INTERNAL_ERROR.getCode(), result.getCode());
         assertEquals("系统内部错误", result.getMessage());
         assertNull(result.getData());
     }
@@ -83,7 +84,7 @@ public class ResultTest {
     public void testErrorWithMessage() {
         String message = "系统错误";
         Result<?> result = Result.error(message);
-        assertEquals(ResultCode.INTERNAL_ERROR, result.getCode());
+        assertEquals(ResultCodeEnum.INTERNAL_ERROR.getCode(), result.getCode());
         assertEquals(message, result.getMessage());
         assertNull(result.getData());
     }

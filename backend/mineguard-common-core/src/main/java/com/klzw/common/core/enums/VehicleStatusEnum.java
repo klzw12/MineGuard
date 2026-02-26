@@ -16,4 +16,13 @@ public enum VehicleStatusEnum {
         this.value = value;
         this.label = label;
     }
+
+    public static VehicleStatusEnum getByValue(int value) {
+        for (VehicleStatusEnum item : values()) {
+            if (item.getValue() == value) {
+                return item;
+            }
+        }
+        return null;
+    }
 }

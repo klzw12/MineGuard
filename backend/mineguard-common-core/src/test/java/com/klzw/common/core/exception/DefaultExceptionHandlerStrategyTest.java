@@ -1,7 +1,7 @@
 package com.klzw.common.core.exception;
 
+import com.klzw.common.core.enums.ResultCodeEnum;
 import com.klzw.common.core.result.Result;
-import com.klzw.common.core.result.ResultCode;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +34,7 @@ public class DefaultExceptionHandlerStrategyTest {
         Result<?> result = strategy.handle(exception);
 
         assertNotNull(result);
-        assertEquals(ResultCode.INTERNAL_ERROR, result.getCode());
+        assertEquals(ResultCodeEnum.INTERNAL_ERROR.getCode(), result.getCode());
         assertTrue(result.getMessage().contains(errorMessage));
     }
 
@@ -46,7 +46,7 @@ public class DefaultExceptionHandlerStrategyTest {
         Result<?> result = strategy.handle(exception);
 
         assertNotNull(result);
-        assertEquals(ResultCode.INTERNAL_ERROR, result.getCode());
+        assertEquals(ResultCodeEnum.INTERNAL_ERROR.getCode(), result.getCode());
         assertTrue(result.getMessage().contains("空指针异常"));
     }
 
@@ -58,7 +58,7 @@ public class DefaultExceptionHandlerStrategyTest {
         Result<?> result = strategy.handle(exception);
 
         assertNotNull(result);
-        assertEquals(ResultCode.INTERNAL_ERROR, result.getCode());
+        assertEquals(ResultCodeEnum.INTERNAL_ERROR.getCode(), result.getCode());
         assertTrue(result.getMessage().contains("运行时异常"));
     }
 }

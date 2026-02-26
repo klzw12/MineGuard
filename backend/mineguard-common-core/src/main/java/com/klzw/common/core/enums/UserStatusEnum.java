@@ -14,4 +14,13 @@ public enum UserStatusEnum {
         this.value = value;
         this.label = label;
     }
+
+    public static UserStatusEnum getByValue(int value) {
+        for (UserStatusEnum item : values()) {
+            if (item.getValue() == value) {
+                return item;
+            }
+        }
+        return null;
+    }
 }

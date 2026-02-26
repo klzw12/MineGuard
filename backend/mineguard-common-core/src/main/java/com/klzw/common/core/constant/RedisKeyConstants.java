@@ -1,5 +1,8 @@
 package com.klzw.common.core.constant;
 
+/**
+ * Redis 缓存 Key 常量
+ */
 public class RedisKeyConstants {
     // 登录用户token
     public static final String LOGIN_TOKEN_KEY = "mineguard:login:token:%s";

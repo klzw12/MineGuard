@@ -21,7 +21,7 @@ public class PageResult<T> {
     }
 
     public static <T> PageResult<T> of(long total, int page, int size, List<T> list) {
-        int pages = (int) Math.ceil((double) total / size);
+        int pages = total == 0 ? 1 : (int) Math.ceil((double) total / size);
         return new PageResult<>(total, page, size, pages, list);
     }
 

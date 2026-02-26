@@ -1,5 +1,8 @@
 package com.klzw.common.core.constant;
 
+/**
+ * 缓存常量
+ */
 public class CacheConstants {
     // 缓存前缀
     public static final String CACHE_PREFIX = "mineguard:";

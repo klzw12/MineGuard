@@ -1,5 +1,6 @@
 package com.klzw.common.core.result;
 
+import com.klzw.common.core.enums.ResultCodeEnum;
 import lombok.Data;
 
 @Data
@@ -15,23 +16,23 @@ public class Result<T> {
     }
 
     public static <T> Result<T> success() {
-        return new Result<>(ResultCode.SUCCESS, "操作成功", null);
+        return new Result<>(ResultCodeEnum.SUCCESS.getCode(), "操作成功", null);
     }
 
     public static <T> Result<T> success(T data) {
-        return new Result<>(ResultCode.SUCCESS, "操作成功", data);
+        return new Result<>(ResultCodeEnum.SUCCESS.getCode(), "操作成功", data);
     }
 
     public static <T> Result<T> success(String message, T data) {
-        return new Result<>(ResultCode.SUCCESS, message, data);
+        return new Result<>(ResultCodeEnum.SUCCESS.getCode(), message, data);
     }
 
     public static <T> Result<T> fail() {
-        return new Result<>(ResultCode.FAIL, "操作失败", null);
+        return new Result<>(ResultCodeEnum.FAIL.getCode(), "操作失败", null);
     }
 
     public static <T> Result<T> fail(String message) {
-        return new Result<>(ResultCode.FAIL, message, null);
+        return new Result<>(ResultCodeEnum.FAIL.getCode(), message, null);
     }
 
     public static <T> Result<T> fail(int code, String message) {
@@ -39,10 +40,10 @@ public class Result<T> {
     }
 
     public static <T> Result<T> error() {
-        return new Result<>(ResultCode.INTERNAL_ERROR, "系统内部错误", null);
+        return new Result<>(ResultCodeEnum.INTERNAL_ERROR.getCode(), "系统内部错误", null);
     }
 
     public static <T> Result<T> error(String message) {
-        return new Result<>(ResultCode.INTERNAL_ERROR, message, null);
+        return new Result<>(ResultCodeEnum.INTERNAL_ERROR.getCode(), message, null);
     }
 }

@@ -16,4 +16,13 @@ public enum TripStatusEnum {
         this.value = value;
         this.label = label;
     }
+
+    public static TripStatusEnum getByValue(int value) {
+        for (TripStatusEnum item : values()) {
+            if (item.getValue() == value) {
+                return item;
+            }
+        }
+        return null;
+    }
 }

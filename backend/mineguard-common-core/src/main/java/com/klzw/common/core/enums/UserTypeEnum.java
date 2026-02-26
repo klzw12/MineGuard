@@ -16,4 +16,13 @@ public enum UserTypeEnum {
         this.value = value;
         this.label = label;
     }
+
+    public static UserTypeEnum getByValue(int value) {
+        for (UserTypeEnum item : values()) {
+            if (item.getValue() == value) {
+                return item;
+            }
+        }
+        return null;
+    }
 }

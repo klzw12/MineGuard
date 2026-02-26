@@ -13,4 +13,5 @@ public class BaseEntity implements Serializable {
     private Integer createBy;
     private Integer updateBy;
     private Integer delFlag;
+    private Integer version;
 }
