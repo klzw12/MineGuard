@@ -46,6 +46,15 @@ public class BaseEntityTest {
         
         baseEntity.setDelFlag(0);
         assertEquals(0, baseEntity.getDelFlag());
+        
+        // 测试 version
+        Integer version = 1;
+        baseEntity.setVersion(version);
+        assertEquals(version, baseEntity.getVersion());
+        
+        version = 2;
+        baseEntity.setVersion(version);
+        assertEquals(version, baseEntity.getVersion());
     }
 
     @Test
@@ -59,5 +68,6 @@ public class BaseEntityTest {
         assertNull(baseEntity.getCreateBy());
         assertNull(baseEntity.getUpdateBy());
         assertNull(baseEntity.getDelFlag());
+        assertNull(baseEntity.getVersion());
     }
 }

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
  * 日期工具类测试
@@ -74,5 +75,37 @@ public class DateUtilsTest {
         LocalDateTime currentDateTime = DateUtils.nowDateTime();
         assertNotNull(currentDateTime);
         assertEquals(LocalDateTime.now().getDayOfYear(), currentDateTime.getDayOfYear());
+    }
+
+    @Test
+    @DisplayName("测试时间格式化")
+    public void testFormatTime() {
+        LocalTime time = LocalTime.of(12, 30, 45);
+        String formattedTime = DateUtils.formatTime(time);
+        assertEquals("12:30:45", formattedTime);
+        
+        // 测试 null 值
+        assertNull(DateUtils.formatTime(null));
+    }
+
+    @Test
+    @DisplayName("测试时间解析")
+    public void testParseTime() {
+        String timeStr = "12:30:45";
+        LocalTime time = DateUtils.parseTime(timeStr);
+        assertEquals(LocalTime.of(12, 30, 45), time);
+        
+        // 测试 null 值
+        assertNull(DateUtils.parseTime(null));
+        assertNull(DateUtils.parseTime(""));
+        assertNull(DateUtils.parseTime("   "));
+    }
+
+    @Test
+    @DisplayName("测试获取当前时间")
+    public void testNowTime() {
+        LocalTime currentTime = DateUtils.nowTime();
+        assertNotNull(currentTime);
+        assertEquals(LocalTime.now().getHour(), currentTime.getHour());
     }
 }

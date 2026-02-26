@@ -16,9 +16,9 @@ public class ExceptionHandlerRegistryTest {
         assertEquals(3, registry.getStrategies().size());
 
         // 验证策略顺序（新注册的策略优先级更高）
-        assertTrue(registry.getStrategies().get(0) instanceof BusinessExceptionHandlerStrategy);
-        assertTrue(registry.getStrategies().get(1) instanceof SystemExceptionHandlerStrategy);
-        assertTrue(registry.getStrategies().get(2) instanceof DefaultExceptionHandlerStrategy);
+        assertInstanceOf(BusinessExceptionHandlerStrategy.class, registry.getStrategies().get(0));
+        assertInstanceOf(SystemExceptionHandlerStrategy.class, registry.getStrategies().get(1));
+        assertInstanceOf(DefaultExceptionHandlerStrategy.class, registry.getStrategies().get(2));
     }
 
     @Test
