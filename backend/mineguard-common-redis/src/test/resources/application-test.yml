@@ -1,0 +1,44 @@
+# 测试环境 Redis 配置
+# 用于单元测试和集成测试
+
+spring:
+  data:
+      redis:
+        host: 192.168.110.133
+        port: 6379
+        password: 1.qwklz5
+        database: 0
+        timeout: 60000
+        lettuce:
+          pool:
+            max-active: 8
+            max-wait: -1
+            max-idle: 8
+            min-idle: 0
+        redisson:
+          retry-attempts: 3
+          retry-interval: 1000
+          connect-timeout: 30000
+          so-timeout: 30000
+
+# Redis 相关配置
+mineguard:
+  redis:
+    # 缓存键前缀
+    key-prefix: "mineguard:"
+    # 默认过期时间（秒）
+    default-expire: 3600
+    # 分布式锁配置
+    lock:
+      # 默认过期时间（秒）
+      default-expire: 30
+      # 重试次数
+      retry-count: 3
+      # 重试间隔（毫秒）
+      retry-interval: 100
+    # 限流配置
+    rate-limit:
+      # 默认限流窗口（秒）
+      default-window: 60
+      # 默认限流次数
+      default-limit: 100
