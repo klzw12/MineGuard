@@ -19,6 +19,7 @@ public class RedisConfig {
 
     private final RedisProperties redisProperties;
 
+    @Autowired
     public RedisConfig(RedisProperties redisProperties)
     {
         this.redisProperties = redisProperties;

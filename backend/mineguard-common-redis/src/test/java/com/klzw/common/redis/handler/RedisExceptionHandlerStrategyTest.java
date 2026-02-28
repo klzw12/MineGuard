@@ -2,137 +2,156 @@ package com.klzw.common.redis.handler;
 
 import com.klzw.common.core.result.Result;
 import com.klzw.common.redis.exception.RedisException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * RedisExceptionHandlerStrategy 测试类
+ * Redis 异常处理策略单元测试
  */
-@SpringBootTest
+@DisplayName("Redis异常处理策略测试")
 public class RedisExceptionHandlerStrategyTest {
 
-    @Autowired
-    private RedisExceptionHandlerStrategy redisExceptionHandlerStrategy;
+    private RedisExceptionHandlerStrategy strategy;
 
-    @Test
-    public void testSupport() {
-        // 测试支持 RedisException
-        RedisException redisException = new RedisException(RedisException.REDIS_CONNECTION_ERROR, "Connection error");
-        assertTrue(redisExceptionHandlerStrategy.support(redisException));
-        
-        // 测试不支持其他异常
-        RuntimeException runtimeException = new RuntimeException("Runtime error");
-        assertFalse(redisExceptionHandlerStrategy.support(runtimeException));
+    @BeforeEach
+    void setUp() {
+        strategy = new RedisExceptionHandlerStrategy();
     }
 
     @Test
-    public void testHandleRedisConnectionError() {
-        // 测试处理 Redis 连接错误
-        RedisException redisException = new RedisException(RedisException.REDIS_CONNECTION_ERROR, "Connection error");
-        Result<?> result = redisExceptionHandlerStrategy.handle(redisException);
+    @DisplayName("支持RedisException异常")
+    void testSupportRedisException() {
+        RedisException exception = new RedisException("测试异常");
+        assertTrue(strategy.support(exception));
+    }
+
+    @Test
+    @DisplayName("不支持其他异常")
+    void testNotSupportOtherException() {
+        RuntimeException exception = new RuntimeException("其他异常");
+        assertFalse(strategy.support(exception));
+    }
+
+    @Test
+    @DisplayName("不支持NullPointerException")
+    void testNotSupportNullPointerException() {
+        NullPointerException exception = new NullPointerException("空指针");
+        assertFalse(strategy.support(exception));
+    }
+
+    @Test
+    @DisplayName("处理连接错误异常")
+    void testHandleConnectionError() {
+        RedisException exception = RedisException.connectionError("连接失败");
+        Result<?> result = strategy.handle(exception);
         
-        assertNotNull(result);
-        assertNotEquals(200, result.getCode());
         assertEquals(RedisException.REDIS_CONNECTION_ERROR, result.getCode());
-        assertEquals("Connection error", result.getMessage());
+        assertEquals("连接失败", result.getMessage());
+        assertNull(result.getData());
     }
 
     @Test
-    public void testHandleRedisSerializationError() {
-        // 测试处理 Redis 序列化错误
-        RedisException redisException = new RedisException(RedisException.REDIS_SERIALIZATION_ERROR, "Serialization error");
-        Result<?> result = redisExceptionHandlerStrategy.handle(redisException);
+    @DisplayName("处理序列化错误异常")
+    void testHandleSerializationError() {
+        RedisException exception = RedisException.serializationError("序列化失败");
+        Result<?> result = strategy.handle(exception);
         
-        assertNotNull(result);
-        assertNotEquals(200, result.getCode());
         assertEquals(RedisException.REDIS_SERIALIZATION_ERROR, result.getCode());
-        assertEquals("Serialization error", result.getMessage());
+        assertEquals("序列化失败", result.getMessage());
+        assertNull(result.getData());
     }
 
     @Test
-    public void testHandleRedisDeserializationError() {
-        // 测试处理 Redis 反序列化错误
-        RedisException redisException = new RedisException(RedisException.REDIS_DESERIALIZATION_ERROR, "Deserialization error");
-        Result<?> result = redisExceptionHandlerStrategy.handle(redisException);
+    @DisplayName("处理反序列化错误异常")
+    void testHandleDeserializationError() {
+        RedisException exception = RedisException.deserializationError("反序列化失败");
+        Result<?> result = strategy.handle(exception);
         
-        assertNotNull(result);
-        assertNotEquals(200, result.getCode());
         assertEquals(RedisException.REDIS_DESERIALIZATION_ERROR, result.getCode());
-        assertEquals("Deserialization error", result.getMessage());
+        assertEquals("反序列化失败", result.getMessage());
+        assertNull(result.getData());
     }
 
     @Test
-    public void testHandleRedisLockAcquireError() {
-        // 测试处理 Redis 锁获取错误
-        RedisException redisException = new RedisException(RedisException.REDIS_LOCK_ACQUIRE_ERROR, "Lock acquire error");
-        Result<?> result = redisExceptionHandlerStrategy.handle(redisException);
+    @DisplayName("处理锁获取错误异常")
+    void testHandleLockAcquireError() {
+        RedisException exception = RedisException.lockAcquireError("获取锁失败");
+        Result<?> result = strategy.handle(exception);
         
-        assertNotNull(result);
-        assertNotEquals(200, result.getCode());
         assertEquals(RedisException.REDIS_LOCK_ACQUIRE_ERROR, result.getCode());
-        assertEquals("Lock acquire error", result.getMessage());
+        assertEquals("获取锁失败", result.getMessage());
+        assertNull(result.getData());
     }
 
     @Test
-    public void testHandleRedisLockReleaseError() {
-        // 测试处理 Redis 锁释放错误
-        RedisException redisException = new RedisException(RedisException.REDIS_LOCK_RELEASE_ERROR, "Lock release error");
-        Result<?> result = redisExceptionHandlerStrategy.handle(redisException);
+    @DisplayName("处理锁释放错误异常")
+    void testHandleLockReleaseError() {
+        RedisException exception = RedisException.lockReleaseError("释放锁失败");
+        Result<?> result = strategy.handle(exception);
         
-        assertNotNull(result);
-        assertNotEquals(200, result.getCode());
         assertEquals(RedisException.REDIS_LOCK_RELEASE_ERROR, result.getCode());
-        assertEquals("Lock release error", result.getMessage());
+        assertEquals("释放锁失败", result.getMessage());
+        assertNull(result.getData());
     }
 
     @Test
-    public void testHandleRedisRateLimitError() {
-        // 测试处理 Redis 限流错误
-        RedisException redisException = new RedisException(RedisException.REDIS_RATE_LIMIT_ERROR, "Rate limit error");
-        Result<?> result = redisExceptionHandlerStrategy.handle(redisException);
+    @DisplayName("处理限流错误异常")
+    void testHandleRateLimitError() {
+        RedisException exception = RedisException.rateLimitError("请求过于频繁");
+        Result<?> result = strategy.handle(exception);
         
-        assertNotNull(result);
-        assertNotEquals(200, result.getCode());
         assertEquals(RedisException.REDIS_RATE_LIMIT_ERROR, result.getCode());
-        assertEquals("Rate limit error", result.getMessage());
+        assertEquals("请求过于频繁", result.getMessage());
+        assertNull(result.getData());
     }
 
     @Test
-    public void testHandleRedisCommandError() {
-        // 测试处理 Redis 命令执行错误
-        RedisException redisException = new RedisException(RedisException.REDIS_COMMAND_ERROR, "Command error");
-        Result<?> result = redisExceptionHandlerStrategy.handle(redisException);
+    @DisplayName("处理命令执行错误异常")
+    void testHandleCommandError() {
+        RedisException exception = RedisException.commandError("命令执行失败");
+        Result<?> result = strategy.handle(exception);
         
-        assertNotNull(result);
-        assertNotEquals(200, result.getCode());
         assertEquals(RedisException.REDIS_COMMAND_ERROR, result.getCode());
-        assertEquals("Command error", result.getMessage());
+        assertEquals("命令执行失败", result.getMessage());
+        assertNull(result.getData());
     }
 
     @Test
-    public void testHandleRedisTimeoutError() {
-        // 测试处理 Redis 超时错误
-        RedisException redisException = new RedisException(RedisException.REDIS_TIMEOUT_ERROR, "Timeout error");
-        Result<?> result = redisExceptionHandlerStrategy.handle(redisException);
+    @DisplayName("处理超时错误异常")
+    void testHandleTimeoutError() {
+        RedisException exception = RedisException.timeoutError("操作超时");
+        Result<?> result = strategy.handle(exception);
         
-        assertNotNull(result);
-        assertNotEquals(200, result.getCode());
         assertEquals(RedisException.REDIS_TIMEOUT_ERROR, result.getCode());
-        assertEquals("Timeout error", result.getMessage());
+        assertEquals("操作超时", result.getMessage());
+        assertNull(result.getData());
     }
 
     @Test
-    public void testHandleRedisUnknownError() {
-        // 测试处理 Redis 未知错误
-        RedisException redisException = new RedisException(9999, "Unknown error");
-        Result<?> result = redisExceptionHandlerStrategy.handle(redisException);
+    @DisplayName("处理带原因的异常")
+    void testHandleExceptionWithCause() {
+        Throwable cause = new RuntimeException("底层错误");
+        RedisException exception = RedisException.connectionError("连接失败", cause);
+        Result<?> result = strategy.handle(exception);
         
-        assertNotNull(result);
-        assertNotEquals(200, result.getCode());
-        assertEquals(9999, result.getCode());
-        assertEquals("Unknown error", result.getMessage());
+        assertEquals(RedisException.REDIS_CONNECTION_ERROR, result.getCode());
+        assertEquals("连接失败", result.getMessage());
+        assertNull(result.getData());
+    }
+
+    @Test
+    @DisplayName("处理自定义错误码异常")
+    void testHandleCustomCodeException() {
+        int customCode = 999;
+        String message = "自定义错误";
+        RedisException exception = new RedisException(customCode, message);
+        Result<?> result = strategy.handle(exception);
+        
+        assertEquals(customCode, result.getCode());
+        assertEquals(message, result.getMessage());
+        assertNull(result.getData());
     }
 }

@@ -4,9 +4,9 @@
 spring:
   data:
       redis:
-        host: 192.168.110.133
-        port: 6379
-        password: 1.qwklz5
+        host: 192.168.110.128
+        port: 6380
+        password: testpass
         database: 0
         timeout: 60000
         lettuce:

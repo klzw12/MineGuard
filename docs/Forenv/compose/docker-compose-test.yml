@@ -8,8 +8,8 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 192.168.110.0/24
-          gateway: 192.168.110.1
+        - subnet: 192.168.111.0/24
+          gateway: 192.168.111.1
 
 volumes:
   # Redis 卷
@@ -102,12 +102,12 @@ services:
       - "6380:6379"
     networks:
       mineguard-network:
-        ipv4_address: 192.168.110.133
+        ipv4_address: 192.168.111.133
     volumes:
       - redis-test-data:/data
       - redis-test-config:/usr/local/etc/redis
       - redis-test-log:/var/log/redis
-    command: redis-server /usr/local/etc/redis/redis.conf
+    command: sh -c "mkdir -p /var/log/redis && chmod 777 /var/log/redis && redis-server --bind 0.0.0.0 --requirepass testpass --logfile /var/log/redis/redis.log"
     environment:
       - TZ=Asia/Shanghai
 
@@ -121,7 +121,7 @@ services:
       - "9003:9001"
     networks:
       mineguard-network:
-        ipv4_address: 192.168.110.134
+        ipv4_address: 192.168.111.134
     volumes:
       - minio-test-data:/data
       - minio-test-config:/root/.minio
@@ -142,7 +142,7 @@ services:
       - "15673:15672"  # 管理控制台端口
     networks:
       mineguard-network:
-        ipv4_address: 192.168.110.135
+        ipv4_address: 192.168.111.135
     volumes:
       - rabbitmq-test-data:/var/lib/rabbitmq
       - rabbitmq-test-config:/etc/rabbitmq
@@ -161,7 +161,7 @@ services:
       - "27018:27017"
     networks:
       mineguard-network:
-        ipv4_address: 192.168.110.136
+        ipv4_address: 192.168.111.136
     volumes:
       - mongodb-test-data:/data/db
       - mongodb-test-config:/data/configdb
