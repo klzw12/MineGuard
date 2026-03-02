@@ -20,7 +20,7 @@ public class EncryptUtils {
         }
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            md.update(str.getBytes());
+            md.update(str.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             byte[] bytes = md.digest();
             StringBuilder sb = new StringBuilder();
             for (byte b : bytes) {
@@ -44,7 +44,7 @@ public class EncryptUtils {
         }
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
-            md.update(str.getBytes());
+            md.update(str.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             byte[] bytes = md.digest();
             StringBuilder sb = new StringBuilder();
             for (byte b : bytes) {
