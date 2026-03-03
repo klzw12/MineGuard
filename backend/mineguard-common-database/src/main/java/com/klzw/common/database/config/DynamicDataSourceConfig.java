@@ -5,7 +5,6 @@ import com.klzw.common.database.properties.DatabaseProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,25 +41,26 @@ public class DynamicDataSourceConfig {
 
     /**
      * 配置动态数据源
+     *
      * @return 动态数据源
      */
     @Primary
     @Bean(name = "dynamicDataSource")
     public DataSource dynamicDataSource() {
         log.info("开始配置动态数据源");
-        
+
         DynamicDataSource dynamicDataSource = new DynamicDataSource();
-        
+
         Map<Object, Object> targetDataSources = new HashMap<>();
         targetDataSources.put(DynamicDataSource.MASTER, masterDataSource);
         targetDataSources.put(DynamicDataSource.SLAVE, slaveDataSource);
-        
+
         dynamicDataSource.setTargetDataSources(targetDataSources);
         dynamicDataSource.setDefaultTargetDataSource(masterDataSource);
-        
-        log.info("动态数据源配置完成，主数据源: {}, 从数据源: {}", 
-                 DynamicDataSource.MASTER, DynamicDataSource.SLAVE);
-        
+
+        log.info("动态数据源配置完成，主数据源: {}, 从数据源: {}",
+                DynamicDataSource.MASTER, DynamicDataSource.SLAVE);
+
         return dynamicDataSource;
     }
 

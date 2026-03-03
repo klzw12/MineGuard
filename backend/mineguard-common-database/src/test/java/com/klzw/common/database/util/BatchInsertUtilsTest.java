@@ -1,6 +1,7 @@
 package com.klzw.common.database.util;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.klzw.common.database.exception.DatabaseException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -93,9 +94,7 @@ class BatchInsertUtilsTest {
                 .thenReturn(false)
                 .thenReturn(true);
 
-        int result = BatchInsertUtils.batchInsert(mockService, dataList, 2);
-
-        assertEquals(3, result);
+        assertThrows(DatabaseException.class, () -> BatchInsertUtils.batchInsert(mockService, dataList, 2));
         verify(mockService, times(3)).saveBatch(anyList());
     }
 
@@ -105,9 +104,7 @@ class BatchInsertUtilsTest {
         List<String> dataList = Arrays.asList("item1", "item2", "item3");
         when(mockService.saveBatch(anyList())).thenReturn(false);
 
-        int result = BatchInsertUtils.batchInsert(mockService, dataList);
-
-        assertEquals(0, result);
+        assertThrows(DatabaseException.class, () -> BatchInsertUtils.batchInsert(mockService, dataList));
         verify(mockService, times(1)).saveBatch(anyList());
     }
 
@@ -117,9 +114,7 @@ class BatchInsertUtilsTest {
         List<String> dataList = Arrays.asList("item1", "item2", "item3");
         when(mockService.saveBatch(anyList())).thenThrow(new RuntimeException("Database error"));
 
-        int result = BatchInsertUtils.batchInsert(mockService, dataList);
-
-        assertEquals(0, result);
+        assertThrows(DatabaseException.class, () -> BatchInsertUtils.batchInsert(mockService, dataList));
         verify(mockService, times(1)).saveBatch(anyList());
     }
 
@@ -224,9 +219,7 @@ class BatchInsertUtilsTest {
                 .thenReturn(false)
                 .thenReturn(true);
 
-        int result = BatchInsertUtils.batchUpdate(mockService, dataList, 2);
-
-        assertEquals(3, result);
+        assertThrows(DatabaseException.class, () -> BatchInsertUtils.batchUpdate(mockService, dataList, 2));
         verify(mockService, times(3)).updateBatchById(anyList());
     }
 
@@ -236,9 +229,7 @@ class BatchInsertUtilsTest {
         List<String> dataList = Arrays.asList("item1", "item2", "item3");
         when(mockService.updateBatchById(anyList())).thenThrow(new RuntimeException("Database error"));
 
-        int result = BatchInsertUtils.batchUpdate(mockService, dataList);
-
-        assertEquals(0, result);
+        assertThrows(DatabaseException.class, () -> BatchInsertUtils.batchUpdate(mockService, dataList));
         verify(mockService, times(1)).updateBatchById(anyList());
     }
 
@@ -307,9 +298,7 @@ class BatchInsertUtilsTest {
                 .thenReturn(false)
                 .thenReturn(true);
 
-        int result = BatchInsertUtils.batchDelete(mockService, idList, 2);
-
-        assertEquals(3, result);
+        assertThrows(DatabaseException.class, () -> BatchInsertUtils.batchDelete(mockService, idList, 2));
         verify(mockService, times(3)).removeByIds(anyList());
     }
 
@@ -319,9 +308,7 @@ class BatchInsertUtilsTest {
         List<Integer> idList = Arrays.asList(1, 2, 3);
         when(mockService.removeByIds(anyList())).thenThrow(new RuntimeException("Database error"));
 
-        int result = BatchInsertUtils.batchDelete(mockService, idList);
-
-        assertEquals(0, result);
+        assertThrows(DatabaseException.class, () -> BatchInsertUtils.batchDelete(mockService, idList));
         verify(mockService, times(1)).removeByIds(anyList());
     }
 

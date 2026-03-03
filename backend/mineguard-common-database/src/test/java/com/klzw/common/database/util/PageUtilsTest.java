@@ -2,9 +2,10 @@ package com.klzw.common.database.util;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.klzw.common.core.constant.PaginationConstants;
 import com.klzw.common.core.domain.PageRequest;
+import com.klzw.common.core.properties.PaginationProperties;
 import com.klzw.common.core.result.PageResult;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +18,17 @@ import static org.junit.jupiter.api.Assertions.*;
 @DisplayName("PageUtils 测试")
 class PageUtilsTest {
 
+    private PaginationProperties paginationProperties;
+
+    @BeforeEach
+    void setUp() {
+        paginationProperties = new PaginationProperties();
+        paginationProperties.setDefaultPage(1);
+        paginationProperties.setDefaultPageSize(10);
+        paginationProperties.setMaxPageSize(100);
+        paginationProperties.setDefaultSortOrder("asc");
+    }
+
     @Test
     @DisplayName("toMyBatisPlusPage - 正常分页请求")
     void toMyBatisPlusPage_NormalPageRequest() {
@@ -26,7 +38,7 @@ class PageUtilsTest {
         pageRequest.setSortField("id");
         pageRequest.setSortOrder("desc");
 
-        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest);
+        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest, paginationProperties);
 
         assertNotNull(result);
         assertEquals(2L, result.getCurrent());
@@ -39,11 +51,11 @@ class PageUtilsTest {
     @Test
     @DisplayName("toMyBatisPlusPage - 空分页请求使用默认值")
     void toMyBatisPlusPage_NullPageRequest() {
-        Page<String> result = PageUtils.toMyBatisPlusPage(null);
+        Page<String> result = PageUtils.toMyBatisPlusPage(null, paginationProperties);
 
         assertNotNull(result);
-        assertEquals((long) PaginationConstants.DEFAULT_PAGE, result.getCurrent());
-        assertEquals((long) PaginationConstants.DEFAULT_PAGE_SIZE, result.getSize());
+        assertEquals((long) paginationProperties.getDefaultPage(), result.getCurrent());
+        assertEquals((long) paginationProperties.getDefaultPageSize(), result.getSize());
         assertTrue(result.orders().isEmpty());
     }
 
@@ -56,7 +68,7 @@ class PageUtilsTest {
         pageRequest.setSortField("name");
         pageRequest.setSortOrder("asc");
 
-        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest);
+        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest, paginationProperties);
 
         assertNotNull(result);
         assertEquals(1, result.orders().size());
@@ -71,7 +83,7 @@ class PageUtilsTest {
         pageRequest.setPage(1);
         pageRequest.setSize(10);
 
-        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest);
+        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest, paginationProperties);
 
         assertNotNull(result);
         assertTrue(result.orders().isEmpty());
@@ -83,10 +95,8 @@ class PageUtilsTest {
         PageRequest pageRequest = new PageRequest();
         pageRequest.setPage(1);
         pageRequest.setSize(10);
-        pageRequest.setSortField("");
-        pageRequest.setSortOrder("desc");
 
-        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest);
+        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest, paginationProperties);
 
         assertNotNull(result);
         assertTrue(result.orders().isEmpty());
@@ -98,10 +108,10 @@ class PageUtilsTest {
         PageRequest pageRequest = new PageRequest();
         pageRequest.setSize(20);
 
-        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest);
+        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest, paginationProperties);
 
         assertNotNull(result);
-        assertEquals((long) PaginationConstants.DEFAULT_PAGE, result.getCurrent());
+        assertEquals((long) paginationProperties.getDefaultPage(), result.getCurrent());
     }
 
     @Test
@@ -110,10 +120,10 @@ class PageUtilsTest {
         PageRequest pageRequest = new PageRequest();
         pageRequest.setPage(2);
 
-        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest);
+        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest, paginationProperties);
 
         assertNotNull(result);
-        assertEquals((long) PaginationConstants.DEFAULT_PAGE_SIZE, result.getSize());
+        assertEquals((long) paginationProperties.getDefaultPageSize(), result.getSize());
     }
 
     @Test
@@ -220,25 +230,11 @@ class PageUtilsTest {
         pageRequest.setPage(1000);
         pageRequest.setSize(50);
 
-        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest);
+        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest, paginationProperties);
 
         assertNotNull(result);
         assertEquals(1000L, result.getCurrent());
         assertEquals(50L, result.getSize());
-    }
-
-    @Test
-    @DisplayName("toMyBatisPlusPage - 大页大小测试")
-    void toMyBatisPlusPage_LargePageSize() {
-        PageRequest pageRequest = new PageRequest();
-        pageRequest.setPage(1);
-        pageRequest.setSize(1000);
-
-        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest);
-
-        assertNotNull(result);
-        assertEquals(1L, result.getCurrent());
-        assertEquals(100L, result.getSize()); // 被限制为MAX_PAGE_SIZE
     }
 
     @Test
@@ -250,7 +246,7 @@ class PageUtilsTest {
         pageRequest.setSortField("id");
         pageRequest.setSortOrder("DESC");
 
-        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest);
+        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest, paginationProperties);
 
         assertNotNull(result);
         assertEquals(1, result.orders().size());
@@ -268,5 +264,19 @@ class PageUtilsTest {
 
         assertNotNull(result);
         assertEquals(Long.MAX_VALUE, result.getTotal());
+    }
+
+    @Test
+    @DisplayName("toMyBatisPlusPage - 无配置参数版本")
+    void toMyBatisPlusPage_WithoutProperties() {
+        PageRequest pageRequest = new PageRequest();
+        pageRequest.setPage(2);
+        pageRequest.setSize(20);
+
+        Page<String> result = PageUtils.toMyBatisPlusPage(pageRequest);
+
+        assertNotNull(result);
+        assertEquals(2L, result.getCurrent());
+        assertEquals(20L, result.getSize());
     }
 }

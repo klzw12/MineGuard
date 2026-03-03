@@ -13,6 +13,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class TestApplication {
 
     public static void main(String[] args) {
+        // 禁用背景预初始化，防止 Jackson 在后台线程中初始化
+        System.setProperty("spring.backgroundpreinitializer.ignore", "true");
         SpringApplication.run(TestApplication.class, args);
     }
 }

@@ -36,10 +36,13 @@ class MasterSlaveReadWriteIntegrationTest extends AbstractIntegrationTest {
      */
     @Test
     @DisplayName("测试主库插入数据")
-    void testMasterInsertData() {
+    void testMasterInsertData() throws InterruptedException {
         // 插入测试数据
         boolean result = testService.insertData("测试用户", 25);
         assertTrue(result, "数据插入应该成功");
+        
+        // 等待主从同步
+        Thread.sleep(2000);
         
         // 查询所有数据，验证数据已插入
         List<TestEntity> entities = testService.queryAll();
@@ -58,9 +61,12 @@ class MasterSlaveReadWriteIntegrationTest extends AbstractIntegrationTest {
      */
     @Test
     @DisplayName("测试从库读取数据")
-    void testSlaveReadData() {
+    void testSlaveReadData() throws InterruptedException {
         // 先插入一条测试数据
         testService.insertData("读取测试用户", 30);
+        
+        // 等待主从同步
+        Thread.sleep(2000);
         
         // 查询所有数据
         List<TestEntity> entities = testService.queryAll();
@@ -86,10 +92,13 @@ class MasterSlaveReadWriteIntegrationTest extends AbstractIntegrationTest {
      */
     @Test
     @DisplayName("测试读写分离自动切换")
-    void testReadWriteSplitAutoSwitch() {
+    void testReadWriteSplitAutoSwitch() throws InterruptedException {
         // 测试写操作（插入）
         boolean insertResult = testService.insertData("自动切换测试", 35);
         assertTrue(insertResult, "插入操作应该成功");
+        
+        // 等待主从同步
+        Thread.sleep(2000);
         
         // 测试读操作（查询）
         List<TestEntity> entities = testService.queryAll();
@@ -100,6 +109,9 @@ class MasterSlaveReadWriteIntegrationTest extends AbstractIntegrationTest {
         boolean updateResult = testService.updateData(lastEntity.getId(), "更新测试", 40);
         assertTrue(updateResult, "更新操作应该成功");
         
+        // 等待主从同步
+        Thread.sleep(2000);
+        
         // 测试读操作（根据ID查询）
         TestEntity updatedEntity = testService.getById(lastEntity.getId());
         assertNotNull(updatedEntity, "更新后应该能查询到数据");
@@ -109,6 +121,9 @@ class MasterSlaveReadWriteIntegrationTest extends AbstractIntegrationTest {
         // 测试写操作（删除）
         boolean deleteResult = testService.deleteById(lastEntity.getId());
         assertTrue(deleteResult, "删除操作应该成功");
+        
+        // 等待主从同步
+        Thread.sleep(2000);
         
         // 测试读操作（根据ID查询已删除的数据）
         TestEntity deletedEntity = testService.getById(lastEntity.getId());
@@ -122,7 +137,7 @@ class MasterSlaveReadWriteIntegrationTest extends AbstractIntegrationTest {
      */
     @Test
     @DisplayName("测试批量操作")
-    void testBatchOperations() {
+    void testBatchOperations() throws InterruptedException {
         // 准备批量插入的数据
         List<TestEntity> batchEntities = new ArrayList<>();
         for (int i = 1; i <= 5; i++) {
@@ -135,6 +150,9 @@ class MasterSlaveReadWriteIntegrationTest extends AbstractIntegrationTest {
         // 批量插入
         boolean batchInsertResult = testService.saveBatch(batchEntities);
         assertTrue(batchInsertResult, "批量插入应该成功");
+        
+        // 等待主从同步
+        Thread.sleep(2000);
         
         // 查询所有数据，验证批量插入结果
         List<TestEntity> allEntities = testService.queryAll();
@@ -160,6 +178,9 @@ class MasterSlaveReadWriteIntegrationTest extends AbstractIntegrationTest {
         boolean batchUpdateResult = testService.updateBatchById(updateEntities);
         assertTrue(batchUpdateResult, "批量更新应该成功");
         
+        // 等待主从同步
+        Thread.sleep(2000);
+        
         // 查询所有数据，验证批量更新结果
         List<TestEntity> updatedEntities = testService.queryAll();
         long updatedCount = updatedEntities.stream()
@@ -176,6 +197,9 @@ class MasterSlaveReadWriteIntegrationTest extends AbstractIntegrationTest {
         // 批量删除
         boolean batchDeleteResult = testService.removeByIds(deleteIds);
         assertTrue(batchDeleteResult, "批量删除应该成功");
+        
+        // 等待主从同步
+        Thread.sleep(2000);
         
         // 查询所有数据，验证批量删除结果
         List<TestEntity> finalEntities = testService.queryAll();

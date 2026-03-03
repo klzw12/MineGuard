@@ -1,6 +1,7 @@
 package com.klzw.common.database.config;
 
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.klzw.common.core.properties.PaginationProperties;
 import com.klzw.common.database.interceptor.CustomPaginationInnerInterceptor;
 import com.klzw.common.database.properties.DatabaseProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -17,20 +18,15 @@ import org.springframework.context.annotation.Configuration;
  * 3. 统一管理 MyBatis-Plus 相关配置
  */
 @Configuration
-@EnableConfigurationProperties(DatabaseProperties.class)
+@EnableConfigurationProperties({DatabaseProperties.class, PaginationProperties.class})
 public class MybatisPlusConfig {
 
-    /**
-     * 数据库配置属性
-     */
     private final DatabaseProperties databaseProperties;
+    private final PaginationProperties paginationProperties;
 
-    /**
-     * 构造函数
-     * @param databaseProperties 数据库配置属性
-     */
-    public MybatisPlusConfig(DatabaseProperties databaseProperties) {
+    public MybatisPlusConfig(DatabaseProperties databaseProperties, PaginationProperties paginationProperties) {
         this.databaseProperties = databaseProperties;
+        this.paginationProperties = paginationProperties;
     }
 
     /**
@@ -45,8 +41,8 @@ public class MybatisPlusConfig {
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
         
-        // 添加分页插件
-        CustomPaginationInnerInterceptor paginationInterceptor = new CustomPaginationInnerInterceptor(databaseProperties);
+        CustomPaginationInnerInterceptor paginationInterceptor = 
+                new CustomPaginationInnerInterceptor(databaseProperties, paginationProperties);
         interceptor.addInnerInterceptor(paginationInterceptor);
         
         return interceptor;

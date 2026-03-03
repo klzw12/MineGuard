@@ -43,15 +43,10 @@ public class DatabaseProperties {
      * MyBatis-Plus 配置
      * <p>
      * 包含分页插件、Mapper 扫描路径等配置
+     * 注：分页参数（默认页码、页大小、最大值）已移至 common-core 的 PaginationProperties
      */
     @Data
     public static class MybatisPlus {
-        /**
-         * 分页插件最大限制
-         * 与 common-core 中的 PaginationConstants.MAX_PAGE_SIZE 保持一致
-         */
-        private long maxLimit = 100L;
-
         /**
          * 分页插件是否溢出处理
          * true: 当页码超过总页数时，会查询最后一页
@@ -160,7 +155,7 @@ public class DatabaseProperties {
         /**
          * 监控页面访问密码
          */
-        private String statViewPassword = "admin";
+        private String statViewPassword = "";
 
         /**
          * 监控页面访问允许IP
@@ -216,22 +211,22 @@ public class DatabaseProperties {
             /**
              * 数据库URL
              */
-            private String url = "jdbc:mysql://localhost:3306/mineguard?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai";
+            private String url;
 
             /**
              * 数据库用户名
              */
-            private String username = "root";
+            private String username;
 
             /**
              * 数据库密码
              */
-            private String password = "root";
+            private String password;
 
             /**
              * 数据库驱动类名
              */
-            private String driverClassName = "com.mysql.cj.jdbc.Driver";
+            private String driverClassName;
         }
 
         /**
@@ -242,22 +237,22 @@ public class DatabaseProperties {
             /**
              * 数据库URL
              */
-            private String url = "jdbc:mysql://localhost:3306/mineguard?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai";
+            private String url;
 
             /**
              * 数据库用户名
              */
-            private String username = "root";
+            private String username;
 
             /**
              * 数据库密码
              */
-            private String password = "root";
+            private String password;
 
             /**
              * 数据库驱动类名
              */
-            private String driverClassName = "com.mysql.cj.jdbc.Driver";
+            private String driverClassName;
         }
     }
 }

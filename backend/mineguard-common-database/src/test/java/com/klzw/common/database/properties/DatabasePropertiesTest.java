@@ -9,14 +9,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class DatabasePropertiesTest {
 
     @Test
-    @DisplayName("DatabaseProperties - 默认值 - MybatisPlus.maxLimit")
-    void defaultMybatisPlusMaxLimit() {
-        DatabaseProperties properties = new DatabaseProperties();
-
-        assertEquals(100L, properties.getMybatisPlus().getMaxLimit());
-    }
-
-    @Test
     @DisplayName("DatabaseProperties - 默认值 - MybatisPlus.overflow")
     void defaultMybatisPlusOverflow() {
         DatabaseProperties properties = new DatabaseProperties();
@@ -165,7 +157,7 @@ class DatabasePropertiesTest {
     void defaultDruidStatViewPassword() {
         DatabaseProperties properties = new DatabaseProperties();
 
-        assertEquals("admin", properties.getDruid().getStatViewPassword());
+        assertEquals("", properties.getDruid().getStatViewPassword());
     }
 
     @Test
@@ -199,15 +191,6 @@ class DatabasePropertiesTest {
 
         assertNotNull(properties.getDynamic().getSlaves());
         assertEquals(0, properties.getDynamic().getSlaves().length);
-    }
-
-    @Test
-    @DisplayName("DatabaseProperties - 设置MybatisPlus.maxLimit")
-    void setMybatisPlusMaxLimit() {
-        DatabaseProperties properties = new DatabaseProperties();
-        properties.getMybatisPlus().setMaxLimit(200L);
-
-        assertEquals(200L, properties.getMybatisPlus().getMaxLimit());
     }
 
     @Test
@@ -458,19 +441,6 @@ class DatabasePropertiesTest {
 
         assertEquals("", properties.getMybatisPlus().getMapperLocations());
         assertEquals("", properties.getDruid().getValidationQuery());
-    }
-
-    @Test
-    @DisplayName("DatabaseProperties - 多个实例独立")
-    void multipleInstancesIndependent() {
-        DatabaseProperties properties1 = new DatabaseProperties();
-        DatabaseProperties properties2 = new DatabaseProperties();
-
-        properties1.getMybatisPlus().setMaxLimit(200L);
-        properties2.getMybatisPlus().setMaxLimit(300L);
-
-        assertEquals(200L, properties1.getMybatisPlus().getMaxLimit());
-        assertEquals(300L, properties2.getMybatisPlus().getMaxLimit());
     }
 
     @Test

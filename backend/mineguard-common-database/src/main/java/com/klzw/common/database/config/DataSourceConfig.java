@@ -1,7 +1,6 @@
 package com.klzw.common.database.config;
 
 import com.alibaba.druid.pool.DruidDataSource;
-import com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceBuilder;
 import com.klzw.common.database.properties.DatabaseProperties;
 import com.klzw.common.database.util.DruidConfigUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +8,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
 
@@ -50,12 +48,11 @@ public class DataSourceConfig {
      * 
      * @return 主数据源
      */
-    @Primary
     @Bean(name = "masterDataSource")
     public DataSource masterDataSource() {
         log.info("开始配置主数据源");
         
-        DruidDataSource dataSource = DruidDataSourceBuilder.create().build();
+        DruidDataSource dataSource = new DruidDataSource();
         
         // 设置主数据源连接信息
         DatabaseProperties.Datasource.Master masterConfig = databaseProperties.getDatasource().getMaster();
@@ -83,7 +80,7 @@ public class DataSourceConfig {
     public DataSource slaveDataSource() {
         log.info("开始配置从数据源");
         
-        DruidDataSource dataSource = DruidDataSourceBuilder.create().build();
+        DruidDataSource dataSource = new DruidDataSource();
         
         // 设置从数据源连接信息
         DatabaseProperties.Datasource.Slave slaveConfig = databaseProperties.getDatasource().getSlave();
