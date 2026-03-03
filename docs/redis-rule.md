@@ -5,400 +5,349 @@
 ### 1.1 命名格式
 
 ```txt
-mineguard:{module}:{key}:{identifier}
+mineguard:{module}:{id}:{key}:{identifier}
 ```
 
 **命名规则**：
 
 - 前缀：`mineguard`
-- 模块：`user`、`vehicle`、`trip`、`warning`、`statistics`、`cost`
+- 模块：`user`、`vehicle`、`trip`、`warning`、`rate`、`lock`、`cache`
+- ID：具体业务ID（如用户ID、车辆ID）
 - 键名：具体业务键名
-- 标识符：具体ID或参数
+- 标识符：具体参数
 
 ### 1.2 命名示例
 
 | 模块 | Key格式 | 示例 | 说明 |
 | ---- | ------- | ---- | ---- |
-| 用户 | `mineguard:user:{key}:{id}` | `mineguard:user:info:1001` | 用户信息 |
-| 车辆 | `mineguard:vehicle:{key}:{id}` | `mineguard:vehicle:status:1001` | 车辆状态 |
-| 行程 | `mineguard:trip:{key}:{id}` | `mineguard:trip:info:3001` | 行程信息 |
-| 预警 | `mineguard:warning:{key}:{id}` | `mineguard:warning:count:1001` | 预警数量 |
-| 统计 | `mineguard:statistics:{key}:{date}` | `mineguard:statistics:overview:2024-01-15` | 统计概览 |
-| 成本 | `mineguard:cost:{key}:{id}` | `mineguard:cost:summary:1001` | 成本汇总 |
+| 用户 | `mineguard:user:{userId}:{key}:{identifier}` | `mineguard:user:1001:token:abc123` | 用户Token |
+| 用户 | `mineguard:user:{userId}:{key}:{identifier}` | `mineguard:user:1001:permission:perm_001` | 用户权限 |
+| 用户 | `mineguard:user:{userId}:{key}:{identifier}` | `mineguard:user:1001:role:role_001` | 用户角色 |
+| 车辆 | `mineguard:vehicle:{vehicleId}:{key}:{identifier}` | `mineguard:vehicle:2001:status:status_001` | 车辆状态 |
+| 车辆 | `mineguard:vehicle:{vehicleId}:{key}:{identifier}` | `mineguard:vehicle:2001:location:loc_001` | 车辆位置 |
+| 行程 | `mineguard:trip:{tripId}:{key}:{identifier}` | `mineguard:trip:3001:status:status_001` | 行程状态 |
+| 预警 | `mineguard:warning:{warningId}:{key}:{identifier}` | `mineguard:warning:4001:info:info_001` | 预警信息 |
+| 分布式锁 | `mineguard:lock:{lockName}` | `mineguard:lock:order_123` | 分布式锁 |
+| 限流 | `mineguard:rate:limit:{limitName}` | `mineguard:rate:limit:api_user_1001` | API限流 |
+| 缓存刷新 | `mineguard:cache:refresh:{cacheName}` | `mineguard:cache:refresh:user_info` | 缓存刷新锁 |
 
 ---
 
-## 2. 用户模块 (user)
+## 2. 键名格式常量
 
-### 2.1 用户信息
+### 2.1 RedisConstants.java 定义
 
-| Key | 类型 | 过期时间 | 说明 |
-| ---- | ---- | ------- | ---- |
-| `mineguard:user:info:{userId}` | Hash | 30分钟 | 用户基本信息 |
-| `mineguard:user:token:{userId}` | String | 7天 | 用户登录Token |
-| `mineguard:user:permission:{userId}` | Set | 30分钟 | 用户权限集合 |
-| `mineguard:user:role:{userId}` | String | 30分钟 | 用户角色 |
-| `mineguard:user:online:{userId}` | String | 30分钟 | 用户在线状态 |
-
-**数据结构示例**：
-
-```bash
-# 用户信息
-HSET mineguard:user:info:1001 id 1001
-HSET mineguard:user:info:1001 username "admin"
-HSET mineguard:user:info:1001 name "管理员"
-HSET mineguard:user:info:1001 phone "13800138000"
-HSET mineguard:user:info:1001 role "admin"
-EXPIRE mineguard:user:info:1001 1800
-
-# 用户Token
-SET mineguard:user:token:1001 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-EXPIRE mineguard:user:token:1001 604800
-
-# 用户权限
-SADD mineguard:user:permission:1001 "user:view"
-SADD mineguard:user:permission:1001 "user:add"
-SADD mineguard:user:permission:1001 "user:edit"
-EXPIRE mineguard:user:permission:1001 1800
-
-# 用户角色
-SET mineguard:user:role:1001 "admin"
-EXPIRE mineguard:user:role:1001 1800
-
-# 用户在线状态
-SET mineguard:user:online:1001 "online"
-EXPIRE mineguard:user:online:1001 1800
+```java
+public class RedisConstants {
+    
+    // 键前缀
+    public static final String PREFIX = "mineguard:";
+    
+    // 用户Token键: mineguard:user:{userId}:token:{token}
+    public static final String USER_TOKEN_KEY = PREFIX + "user:%d:token:%s";
+    
+    // 用户权限键: mineguard:user:{userId}:permission:{permissionId}
+    public static final String USER_PERMISSION_KEY = PREFIX + "user:%d:permission:%s";
+    
+    // 用户角色键: mineguard:user:{userId}:role:{roleId}
+    public static final String USER_ROLE_KEY = PREFIX + "user:%d:role:%s";
+    
+    // 车辆实时状态键: mineguard:vehicle:{vehicleId}:status:{statusId}
+    public static final String VEHICLE_STATUS_KEY = PREFIX + "vehicle:%d:status:%s";
+    
+    // 车辆位置键: mineguard:vehicle:{vehicleId}:location:{locationId}
+    public static final String VEHICLE_LOCATION_KEY = PREFIX + "vehicle:%d:location:%s";
+    
+    // 行程状态键: mineguard:trip:{tripId}:status:{statusId}
+    public static final String TRIP_STATUS_KEY = PREFIX + "trip:%d:status:%s";
+    
+    // 预警信息键: mineguard:warning:{warningId}:info:{infoId}
+    public static final String WARNING_INFO_KEY = PREFIX + "warning:%d:info:%s";
+    
+    // 分布式锁键: mineguard:lock:{lockName}
+    public static final String DISTRIBUTED_LOCK_KEY = PREFIX + "lock:%s";
+    
+    // 限流键: mineguard:rate:limit:{limitName}
+    public static final String RATE_LIMIT_KEY = PREFIX + "rate:limit:%s";
+    
+    // 缓存刷新锁键: mineguard:cache:refresh:{cacheName}
+    public static final String CACHE_REFRESH_LOCK_KEY = PREFIX + "cache:refresh:%s";
+}
 ```
 
 ---
 
-## 3. 车辆模块 (vehicle)
+## 3. 过期时间常量
 
-### 3.1 车辆状态
+### 3.1 RedisConstants.java 定义
+
+```java
+public class RedisConstants {
+    
+    // 预设过期时间（秒）
+    public static final long EXPIRE_SHORT = 600;      // 10分钟
+    public static final long EXPIRE_DEFAULT = 3600;   // 1小时
+    public static final long EXPIRE_LONG = 86400;     // 1天
+    
+    // 时间常量（秒）
+    public static final long MINUTE_1 = 60;           // 1分钟
+    public static final long MINUTE_5 = 300;          // 5分钟
+    public static final long MINUTE_10 = 600;         // 10分钟
+    public static final long MINUTE_30 = 1800;        // 30分钟
+    public static final long HOUR_1 = 3600;           // 1小时
+    public static final long HOUR_2 = 7200;           // 2小时
+    public static final long HOUR_6 = 21600;          // 6小时
+    public static final long HOUR_12 = 43200;         // 12小时
+    public static final long DAY_1 = 86400;           // 1天
+    public static final long DAY_3 = 259200;          // 3天
+    public static final long DAY_7 = 604800;          // 7天
+    public static final long DAY_30 = 2592000;        // 30天
+}
+```
+
+### 3.2 过期时间使用建议
+
+| 过期时间 | 常量 | 适用场景 |
+| ------- | ---- | ------- |
+| 10分钟 | `EXPIRE_SHORT` | 短期缓存、验证码 |
+| 1小时 | `EXPIRE_DEFAULT` | 默认缓存时间 |
+| 1天 | `EXPIRE_LONG` | 长期缓存 |
+| 7天 | `DAY_7` | 用户Token |
+| 30分钟 | `MINUTE_30` | 用户会话 |
+| 5分钟 | `MINUTE_5` | 在线状态 |
+
+---
+
+## 4. 错误码定义
+
+### 4.1 RedisResultCode.java 定义
+
+错误码范围：**900-999**
+
+| 错误码 | 枚举值 | 描述 |
+| ------ | ------ | ---- |
+| **通用错误** | | |
+| 900 | `REDIS_ERROR` | Redis操作失败 |
+| **缓存操作错误 (901-909)** | | |
+| 901 | `CACHE_MISS` | 缓存未命中 |
+| 902 | `CACHE_OPERATION_FAILED` | 缓存操作失败 |
+| 903 | `CACHE_GET_FAILED` | 缓存获取失败 |
+| 904 | `CACHE_SET_FAILED` | 缓存设置失败 |
+| 905 | `CACHE_DELETE_FAILED` | 缓存删除失败 |
+| 906 | `CACHE_EXPIRE_FAILED` | 缓存过期设置失败 |
+| 907 | `CACHE_CLEAR_FAILED` | 缓存清理失败 |
+| **分布式锁错误 (910-919)** | | |
+| 910 | `LOCK_ACQUIRE_FAILED` | 获取锁失败 |
+| 911 | `LOCK_RELEASE_FAILED` | 释放锁失败 |
+| 912 | `LOCK_EXPIRED` | 锁已过期 |
+| 913 | `LOCK_NOT_OWNER` | 不是锁的所有者 |
+| 914 | `LOCK_TIMEOUT` | 获取锁超时 |
+| **限流错误 (920-929)** | | |
+| 920 | `RATE_LIMIT_EXCEEDED` | 超过限流阈值 |
+| 921 | `RATE_LIMIT_CONFIG_ERROR` | 限流配置错误 |
+| 922 | `RATE_LIMIT_RESET_FAILED` | 限流重置失败 |
+| **连接错误 (930-939)** | | |
+| 930 | `CONNECTION_ERROR` | 连接错误 |
+| 931 | `CONNECTION_TIMEOUT` | 连接超时 |
+| 932 | `CONNECTION_CLOSED` | 连接已关闭 |
+| 933 | `CONNECTION_POOL_EXHAUSTED` | 连接池耗尽 |
+| **序列化错误 (940-949)** | | |
+| 940 | `SERIALIZATION_ERROR` | 序列化错误 |
+| 941 | `DESERIALIZATION_ERROR` | 反序列化错误 |
+| 942 | `SERIALIZER_NOT_FOUND` | 序列化器未找到 |
+| **其他错误 (950-959)** | | |
+| 950 | `COMMAND_EXECUTION_ERROR` | 命令执行错误 |
+| 951 | `KEY_NOT_FOUND` | 键不存在 |
+| 952 | `INVALID_KEY` | 无效的键 |
+| 953 | `INVALID_VALUE` | 无效的值 |
+| 954 | `OPERATION_NOT_SUPPORTED` | 不支持的操作 |
+
+---
+
+## 5. 用户模块 (user)
+
+### 5.1 用户信息
 
 | Key | 类型 | 过期时间 | 说明 |
 | ---- | ---- | ------- | ---- |
-| `mineguard:vehicle:status:{carId}` | Hash | 30秒 | 车辆实时状态 |
-| `mineguard:vehicle:location:{carId}` | String | 30秒 | 车辆最新位置 |
-| `mineguard:vehicle:online:{carId}` | String | 5分钟 | 车辆在线状态 |
-| `mineguard:vehicle:info:{carId}` | Hash | 1小时 | 车辆基本信息 |
-| `mineguard:vehicle:driver:{carId}` | String | 1小时 | 车辆当前司机 |
+| `mineguard:user:{userId}:token:{token}` | String | 7天 | 用户登录Token |
+| `mineguard:user:{userId}:permission:{permissionId}` | Set | 30分钟 | 用户权限集合 |
+| `mineguard:user:{userId}:role:{roleId}` | String | 30分钟 | 用户角色 |
+
+**数据结构示例**：
+
+```bash
+# 用户Token
+SET mineguard:user:1001:token:abc123 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+EXPIRE mineguard:user:1001:token:abc123 604800
+
+# 用户权限
+SADD mineguard:user:1001:permission:perm_001 "user:view"
+SADD mineguard:user:1001:permission:perm_001 "user:add"
+EXPIRE mineguard:user:1001:permission:perm_001 1800
+
+# 用户角色
+SET mineguard:user:1001:role:role_001 "admin"
+EXPIRE mineguard:user:1001:role:role_001 1800
+```
+
+---
+
+## 6. 车辆模块 (vehicle)
+
+### 6.1 车辆状态
+
+| Key | 类型 | 过期时间 | 说明 |
+| ---- | ---- | ------- | ---- |
+| `mineguard:vehicle:{vehicleId}:status:{statusId}` | Hash | 30秒 | 车辆实时状态 |
+| `mineguard:vehicle:{vehicleId}:location:{locationId}` | String | 30秒 | 车辆最新位置 |
 
 **数据结构示例**：
 
 ```bash
 # 车辆实时状态
-HSET mineguard:vehicle:status:1001 carId 1001
-HSET mineguard:vehicle:status:1001 status "running"
-HSET mineguard:vehicle:status:1001 speed 45.5
-HSET mineguard:vehicle:status:1001 fuelLevel 75.2
-HSET mineguard:vehicle:status:1001 direction 180
-EXPIRE mineguard:vehicle:status:1001 30
+HSET mineguard:vehicle:2001:status:status_001 status "running"
+HSET mineguard:vehicle:2001:status:status_001 speed 45.5
+HSET mineguard:vehicle:2001:status:status_001 fuelLevel 75.2
+EXPIRE mineguard:vehicle:2001:status:status_001 30
 
 # 车辆最新位置
-SET mineguard:vehicle:location:1001 "114.123456,30.654321"
-EXPIRE mineguard:vehicle:location:1001 30
-
-# 车辆在线状态
-SET mineguard:vehicle:online:1001 "online"
-EXPIRE mineguard:vehicle:online:1001 300
-
-# 车辆基本信息
-HSET mineguard:vehicle:info:1001 carId 1001
-HSET mineguard:vehicle:info:1001 carNumber "鄂A12345"
-HSET mineguard:vehicle:info:1001 vehicleType "重型卡车"
-HSET mineguard:vehicle:info:1001 model "东风天龙"
-EXPIRE mineguard:vehicle:info:1001 3600
-
-# 车辆当前司机
-SET mineguard:vehicle:driver:1001 "2001"
-EXPIRE mineguard:vehicle:driver:1001 3600
-```
-
-### 3.2 车辆列表
-
-| Key | 类型 | 过期时间 | 说明 |
-| ---- | ---- | ------- | ---- |
-| `mineguard:vehicle:list:all` | Set | 10分钟 | 所有车辆ID集合 |
-| `mineguard:vehicle:list:online` | Set | 5分钟 | 在线车辆ID集合 |
-| `mineguard:vehicle:list:offline` | Set | 5分钟 | 离线车辆ID集合 |
-| `mineguard:vehicle:list:running` | Set | 5分钟 | 运行中车辆ID集合 |
-
-**数据结构示例**：
-
-```bash
-# 所有车辆ID集合
-SADD mineguard:vehicle:list:all 1001 1002 1003 1004
-EXPIRE mineguard:vehicle:list:all 600
-
-# 在线车辆ID集合
-SADD mineguard:vehicle:list:online 1001 1002 1003
-EXPIRE mineguard:vehicle:list:online 300
-
-# 离线车辆ID集合
-SADD mineguard:vehicle:list:offline 1004
-EXPIRE mineguard:vehicle:list:offline 300
-
-# 运行中车辆ID集合
-SADD mineguard:vehicle:list:running 1001 1002
-EXPIRE mineguard:vehicle:list:running 300
+SET mineguard:vehicle:2001:location:loc_001 "114.123456,30.654321"
+EXPIRE mineguard:vehicle:2001:location:loc_001 30
 ```
 
 ---
 
-## 4. 行程模块 (trip)
+## 7. 行程模块 (trip)
 
-### 4.1 行程信息
+### 7.1 行程信息
 
 | Key | 类型 | 过期时间 | 说明 |
 | ---- | ---- | ------- | ---- |
-| `mineguard:trip:info:{tripId}` | Hash | 2小时 | 行程基本信息 |
-| `mineguard:trip:status:{tripId}` | String | 2小时 | 行程状态 |
-| `mineguard:trip:route:{tripId}` | String | 2小时 | 行程路线 |
-| `mineguard:trip:driver:{tripId}` | String | 2小时 | 行程司机 |
+| `mineguard:trip:{tripId}:status:{statusId}` | String | 2小时 | 行程状态 |
 
 **数据结构示例**：
 
 ```bash
-# 行程基本信息
-HSET mineguard:trip:info:3001 tripId 3001
-HSET mineguard:trip:info:3001 carId 1001
-HSET mineguard:trip:info:3001 driverId 2001
-HSET mineguard:trip:info:3001 startPoint "武汉市"
-HSET mineguard:trip:info:3001 endPoint "宜昌市"
-EXPIRE mineguard:trip:info:3001 7200
-
 # 行程状态
-SET mineguard:trip:status:3001 "in_progress"
-EXPIRE mineguard:trip:status:3001 7200
-
-# 行程路线
-SET mineguard:trip:route:3001 "114.123456,30.654321|114.234567,30.7654321"
-EXPIRE mineguard:trip:route:3001 7200
-
-# 行程司机
-SET mineguard:trip:driver:3001 "2001"
-EXPIRE mineguard:trip:driver:3001 7200
+SET mineguard:trip:3001:status:status_001 "in_progress"
+EXPIRE mineguard:trip:3001:status:status_001 7200
 ```
 
 ---
 
-## 5. 预警模块 (warning)
+## 8. 预警模块 (warning)
 
-### 5.1 预警信息
+### 8.1 预警信息
 
 | Key | 类型 | 过期时间 | 说明 |
 | ---- | ---- | ------- | ---- |
-| `mineguard:warning:count:{carId}` | String | 1小时 | 车辆预警数量 |
-| `mineguard:warning:latest:{carId}` | String | 1小时 | 车辆最新预警 |
-| `mineguard:warning:unhandled:count` | String | 10分钟 | 未处理预警总数 |
-| `mineguard:warning:level:{level}` | Set | 10分钟 | 按级别分类预警ID |
+| `mineguard:warning:{warningId}:info:{infoId}` | Hash | 1小时 | 预警详情 |
 
 **数据结构示例**：
 
 ```bash
-# 车辆预警数量
-SET mineguard:warning:count:1001 "5"
-EXPIRE mineguard:warning:count:1001 3600
-
-# 车辆最新预警
-SET mineguard:warning:latest:1001 "speed_exceed"
-EXPIRE mineguard:warning:latest:1001 3600
-
-# 未处理预警总数
-SET mineguard:warning:unhandled:count "12"
-EXPIRE mineguard:warning:unhandled:count 600
-
-# 按级别分类预警ID
-SADD mineguard:warning:level:high 5001 5002 5003
-SADD mineguard:warning:level:medium 5004 5005
-SADD mineguard:warning:level:low 5006 5007
-EXPIRE mineguard:warning:level:high 600
-EXPIRE mineguard:warning:level:medium 600
-EXPIRE mineguard:warning:level:low 600
+# 预警详情
+HSET mineguard:warning:4001:info:info_001 type "speed_exceed"
+HSET mineguard:warning:4001:info:info_001 level "high"
+HSET mineguard:warning:4001:info:info_001 description "车辆速度超过限速值"
+EXPIRE mineguard:warning:4001:info:info_001 3600
 ```
 
 ---
 
-## 6. 统计模块 (statistics)
+## 9. 分布式锁
 
-### 6.1 统计数据
+### 9.1 锁定义
 
 | Key | 类型 | 过期时间 | 说明 |
 | ---- | ---- | ------- | ---- |
-| `mineguard:statistics:overview:{date}` | Hash | 1小时 | 数据概览 |
-| `mineguard:statistics:trip:{date}` | Hash | 1小时 | 行程统计 |
-| `mineguard:statistics:warning:{date}` | Hash | 1小时 | 预警统计 |
-| `mineguard:statistics:cost:{date}` | Hash | 1小时 | 成本统计 |
-| `mineguard:statistics:vehicle:{date}` | Hash | 1小时 | 车辆统计 |
+| `mineguard:lock:{lockName}` | String | 30秒 | 分布式锁 |
 
-**数据结构示例**：
+**使用示例**：
 
-```bash
-# 数据概览
-HSET mineguard:statistics:overview:2024-01-15 vehicleCount 128
-HSET mineguard:statistics:overview:2024-01-15 onlineCount 96
-HSET mineguard:statistics:overview:2024-01-15 offlineCount 32
-HSET mineguard:statistics:overview:2024-01-15 tripCount 45
-EXPIRE mineguard:statistics:overview:2024-01-15 3600
+```java
+// Redisson锁示例
+@Autowired
+private RedissonLockService redissonLockService;
 
-# 行程统计
-HSET mineguard:statistics:trip:2024-01-15 totalTrips 1000
-HSET mineguard:statistics:trip:2024-01-15 completedTrips 950
-HSET mineguard:statistics:trip:2024-01-15 inProgressTrips 45
-HSET mineguard:statistics:trip:2024-01-15 totalDistance 125000
-EXPIRE mineguard:statistics:trip:2024-01-15 3600
-
-# 预警统计
-HSET mineguard:statistics:warning:2024-01-15 totalWarnings 50
-HSET mineguard:statistics:warning:2024-01-15 handledWarnings 45
-HSET mineguard:statistics:warning:2024-01-15 unhandledWarnings 5
-HSET mineguard:statistics:warning:2024-01-15 highLevelWarnings 10
-EXPIRE mineguard:statistics:warning:2024-01-15 3600
-
-# 成本统计
-HSET mineguard:statistics:cost:2024-01-15 totalCost 100000
-HSET mineguard:statistics:cost:2024-01-15 fuelCost 60000
-HSET mineguard:statistics:cost:2024-01-15 maintenanceCost 25000
-HSET mineguard:statistics:cost:2024-01-15 laborCost 15000
-EXPIRE mineguard:statistics:cost:2024-01-15 3600
-
-# 车辆统计
-HSET mineguard:statistics:vehicle:2024-01-15 totalVehicles 128
-HSET mineguard:statistics:vehicle:2024-01-15 activeVehicles 96
-HSET mineguard:statistics:vehicle:2024-01-15 idleVehicles 32
-EXPIRE mineguard:statistics:vehicle:2024-01-15 3600
+public void processOrder(String orderId) {
+    String lockKey = RedisKeyUtil.generateDistributedLockKey("order:" + orderId);
+    boolean locked = redissonLockService.tryLock(lockKey, 5, 30, TimeUnit.SECONDS);
+    if (locked) {
+        try {
+            // 处理订单
+        } finally {
+            redissonLockService.unlock(lockKey);
+        }
+    }
+}
 ```
 
 ---
 
-## 7. 成本模块 (cost)
+## 10. 限流器
 
-### 7.1 成本信息
+### 10.1 限流定义
 
 | Key | 类型 | 过期时间 | 说明 |
 | ---- | ---- | ------- | ---- |
-| `mineguard:cost:summary:{carId}` | Hash | 1天 | 车辆成本汇总 |
-| `mineguard:cost:summary:{tripId}` | Hash | 1天 | 行程成本汇总 |
-| `mineguard:cost:monthly:{carId}:{month}` | Hash | 7天 | 车辆月度成本 |
+| `mineguard:rate:limit:{limitName}` | ZSet | 按窗口 | 滑动窗口限流 |
+| `mineguard:rate:limit:token:{limitName}` | String | 按窗口 | 令牌桶限流 |
 
-**数据结构示例**：
+**使用示例**：
 
-```bash
-# 车辆成本汇总
-HSET mineguard:cost:summary:1001 totalCost 50000
-HSET mineguard:cost:summary:1001 fuelCost 30000
-HSET mineguard:cost:summary:1001 maintenanceCost 15000
-HSET mineguard:cost:summary:1001 otherCost 5000
-EXPIRE mineguard:cost:summary:1001 86400
+```java
+// 声明式限流
+@RateLimit(keyPrefix = "api", keySuffix = "#userId", limit = 10, window = 60)
+public void submitOrder(Long userId, Order order) {
+    // 业务逻辑
+}
 
-# 行程成本汇总
-HSET mineguard:cost:summary:3001 totalCost 500
-HSET mineguard:cost:summary:3001 fuelCost 300
-HSET mineguard:cost:summary:3001 tollCost 150
-HSET mineguard:cost:summary:3001 otherCost 50
-EXPIRE mineguard:cost:summary:3001 86400
+// 编程式限流
+@Autowired
+private RedisRateLimiter redisRateLimiter;
 
-# 车辆月度成本
-HSET mineguard:cost:monthly:1001:2024-01 totalCost 100000
-HSET mineguard:cost:monthly:1001:2024-01 fuelCost 60000
-HSET mineguard:cost:monthly:1001:2024-01 maintenanceCost 30000
-HSET mineguard:cost:monthly:1001:2024-01 otherCost 10000
-EXPIRE mineguard:cost:monthly:1001:2024-01 604800
+public boolean checkRateLimit(String key, int limit, long window) {
+    return redisRateLimiter.tryAcquire(key, limit, window, TimeUnit.SECONDS);
+}
 ```
-
----
-
-## 8. 分布式锁
-
-### 8.1 锁定义
-
-| Key | 类型 | 过期时间 | 说明 |
-| ---- | ---- | ------- | ---- |
-| `mineguard:lock:vehicle:{carId}` | String | 30秒 | 车辆操作锁 |
-| `mineguard:lock:trip:{tripId}` | String | 30秒 | 行程操作锁 |
-| `mineguard:lock:warning:{warningId}` | String | 30秒 | 预警操作锁 |
-| `mineguard:lock:user:{userId}` | String | 30秒 | 用户操作锁 |
-
-**数据结构示例**：
-
-```bash
-# 车辆操作锁
-SET mineguard:lock:vehicle:1001 "locked" NX EX 30
-
-# 行程操作锁
-SET mineguard:lock:trip:3001 "locked" NX EX 30
-
-# 预警操作锁
-SET mineguard:lock:warning:5001 "locked" NX EX 30
-
-# 用户操作锁
-SET mineguard:lock:user:1001 "locked" NX EX 30
-```
-
----
-
-## 9. 限流器
-
-### 9.1 限流定义
-
-| Key | 类型 | 过期时间 | 说明 |
-| ---- | ---- | ------- | ---- |
-| `mineguard:ratelimit:api:{userId}:{endpoint}` | String | 1分钟 | API限流 |
-| `mineguard:ratelimit:login:{ip}` | String | 5分钟 | 登录限流 |
-| `mineguard:ratelimit:sms:{phone}` | String | 1小时 | 短信限流 |
-
-**数据结构示例**：
-
-```bash
-# API限流
-INCR mineguard:ratelimit:api:1001:/api/vehicle/list
-EXPIRE mineguard:ratelimit:api:1001:/api/vehicle/list 60
-
-# 登录限流
-INCR mineguard:ratelimit:login:192.168.1.100
-EXPIRE mineguard:ratelimit:login:192.168.1.100 300
-
-# 短信限流
-INCR mineguard:ratelimit:sms:13800138000
-EXPIRE mineguard:ratelimit:sms:13800138000 3600
-```
-
----
-
-## 10. 消息队列
-
-### 10.1 消息主题
-
-| 主题 | 说明 |
-| ---- | ---- |
-| `mineguard:mq:vehicle:status` | 车辆状态变更 |
-| `mineguard:mq:vehicle:location` | 车辆位置上报 |
-| `mineguard:mq:warning:notification` | 预警通知 |
-| `mineguard:mq:trip:completed` | 行程完成 |
-| `mineguard:mq:trip:updated` | 行程更新 |
-| `mineguard:mq:statistics:update` | 统计数据更新 |
-| `mineguard:mq:cost:update` | 成本数据更新 |
 
 ---
 
 ## 11. 缓存策略
 
-### 11.1 缓存更新策略
+### 11.1 声明式缓存
 
-| 策略 | 说明 | 适用场景 |
-| ---- | ---- | ------- |
-| Cache Aside | 先查缓存，缓存未命中再查数据库，更新数据库后更新缓存 | 读多写少 |
-| Write Through | 写入时同时更新缓存和数据库 | 写入频繁 |
-| Write Behind | 写入时先更新缓存，异步批量写入数据库 | 高并发写入 |
+```java
+// 缓存示例
+@Cacheable(keyPrefix = "user", keySuffix = "#userId", expire = 3600)
+public User getUserById(Long userId) {
+    return userMapper.selectById(userId);
+}
 
-### 11.2 缓存失效策略
+// 清除缓存示例
+@CacheEvict(keyPrefix = "user", keySuffix = "#userId")
+public void updateUser(Long userId, User user) {
+    userMapper.updateById(user);
+}
+```
 
-| 策略 | 说明 | 适用场景 |
-| ---- | ---- | ------- |
-| 主动失效 | 数据变更时主动删除缓存 | 数据一致性要求高 |
-| 被动失效 | 缓存过期后重新加载 | 数据一致性要求一般 |
-| 定时刷新 | 定时任务刷新缓存 | 数据更新频率固定 |
+### 11.2 编程式缓存
+
+```java
+@Autowired
+private RedisCacheService redisCacheService;
+
+// 设置缓存
+redisCacheService.set("user:1001", user, RedisConstants.HOUR_1, TimeUnit.SECONDS);
+
+// 获取缓存
+User user = redisCacheService.get("user:1001", User.class);
+
+// 删除缓存
+redisCacheService.delete("user:1001");
+```
 
 ---
 
@@ -439,7 +388,7 @@ SLOWLOG GET 10
 - 使用冒号分隔层级，提高可读性
 - Key长度控制在100字符以内
 - 避免使用特殊字符
-- 使用统一前缀，便于管理
+- 使用统一前缀`mineguard:`，便于管理
 - 合理设置过期时间，避免内存泄漏
 
 ### 13.2 数据类型选择
@@ -459,3 +408,14 @@ SLOWLOG GET 10
 - 使用Lua脚本保证原子性
 - 避免使用KEYS命令，使用SCAN替代
 - 合理使用数据结构，减少内存占用
+
+---
+
+## 14. 变更记录
+
+| 日期 | 变更内容 |
+| ---- | ------- |
+| 2026-03-04 | 更新键名格式，与RedisConstants.java保持一致 |
+| 2026-03-04 | 添加过期时间常量定义 |
+| 2026-03-04 | 添加错误码定义（900-999范围） |
+| 2026-03-04 | 添加声明式缓存和限流使用示例 |
