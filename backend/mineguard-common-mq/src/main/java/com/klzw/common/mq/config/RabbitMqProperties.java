@@ -17,36 +17,36 @@ public class RabbitMqProperties {
     /**
      * RabbitMQ 主机地址
      */
-    private String host = "localhost";
+    private String host;
 
     /**
      * RabbitMQ 端口
      */
-    private int port = 5672;
+    private Integer port;
 
     /**
      * RabbitMQ 用户名
      */
-    private String username = "guest";
+    private String username;
 
     /**
      * RabbitMQ 密码
      */
-    private String password = "guest";
+    private String password;
 
     /**
      * RabbitMQ 虚拟主机
      */
-    private String virtualHost = "/";
+    private String virtualHost;
 
     /**
      * 连接超时时间（毫秒）
      */
-    private int connectionTimeout = 60000;
+    private Integer connectionTimeout;
 
     /**
      * 通道缓存大小
      */
-    private int channelCacheSize = 25;
+    private Integer channelCacheSize;
 
 }

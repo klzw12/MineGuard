@@ -1,5 +1,6 @@
 package com.klzw.common.mq.config;
 
+import com.klzw.common.mq.constant.MqConstants;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -61,7 +62,7 @@ public class RabbitMqConfig {
      */
     @Bean
     public FanoutExchange deadLetterExchange() {
-        return new FanoutExchange("dead.letter.exchange");
+        return new FanoutExchange(MqConstants.DEAD_LETTER_EXCHANGE);
     }
 
     /**
@@ -69,7 +70,7 @@ public class RabbitMqConfig {
      */
     @Bean
     public Queue deadLetterQueue() {
-        return QueueBuilder.durable("dead.letter.queue").build();
+        return QueueBuilder.durable(MqConstants.DEAD_LETTER_QUEUE).build();
     }
 
     /**
@@ -85,7 +86,7 @@ public class RabbitMqConfig {
      */
     @Bean
     public DirectExchange delayExchange() {
-        return new DirectExchange("delay.exchange");
+        return new DirectExchange(MqConstants.DELAY_EXCHANGE);
     }
 
     /**
@@ -93,8 +94,8 @@ public class RabbitMqConfig {
      */
     @Bean
     public Queue delayQueue() {
-        return QueueBuilder.durable("delay.queue")
-                .withArgument("x-dead-letter-exchange", "dead.letter.exchange")
+        return QueueBuilder.durable(MqConstants.DELAY_QUEUE)
+                .withArgument("x-dead-letter-exchange", MqConstants.DEAD_LETTER_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", "")
                 .build();
     }
@@ -104,7 +105,7 @@ public class RabbitMqConfig {
      */
     @Bean
     public Binding delayBinding() {
-        return BindingBuilder.bind(delayQueue()).to(delayExchange()).with("delay.routing.key");
+        return BindingBuilder.bind(delayQueue()).to(delayExchange()).with(MqConstants.DELAY_ROUTING_KEY);
     }
 
     /**
@@ -112,7 +113,7 @@ public class RabbitMqConfig {
      */
     public Queue createQueueWithDeadLetter(String queueName) {
         return QueueBuilder.durable(queueName)
-                .withArgument("x-dead-letter-exchange", "dead.letter.exchange")
+                .withArgument("x-dead-letter-exchange", MqConstants.DEAD_LETTER_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", "")
                 .build();
     }
@@ -122,7 +123,7 @@ public class RabbitMqConfig {
      */
     public Queue createDelayQueueWithTTL(String queueName, long ttl) {
         return QueueBuilder.durable(queueName)
-                .withArgument("x-dead-letter-exchange", "dead.letter.exchange")
+                .withArgument("x-dead-letter-exchange", MqConstants.DEAD_LETTER_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", "")
                 .withArgument("x-message-ttl", ttl)
                 .build();

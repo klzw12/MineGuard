@@ -10,6 +10,7 @@ public class MqConstants {
      */
     public static final String DEFAULT_EXCHANGE = "default.exchange";
     public static final String DELAY_EXCHANGE = "delay.exchange";
+    public static final String DEAD_LETTER_EXCHANGE = "dead.letter.exchange";
 
     /**
      * 队列名称

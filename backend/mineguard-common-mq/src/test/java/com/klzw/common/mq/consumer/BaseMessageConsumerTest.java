@@ -1,5 +1,6 @@
 package com.klzw.common.mq.consumer;
 
+import com.klzw.common.mq.constant.MqConstants;
 import com.klzw.common.mq.exception.MqException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -77,7 +78,7 @@ class BaseMessageConsumerTest {
         assertEquals(1121, exception.getCode());
         assertEquals("消息重试次数超过限制", exception.getMessage());
         verify(rabbitTemplate, times(1)).send(
-            eq("dead.letter.exchange"),
+            eq(MqConstants.DEAD_LETTER_EXCHANGE),
             eq(""),
             any(Message.class)
         );
@@ -99,7 +100,7 @@ class BaseMessageConsumerTest {
         consumer.consume(message);
 
         verify(rabbitTemplate, times(1)).send(
-            eq("dead.letter.exchange"),
+            eq(MqConstants.DEAD_LETTER_EXCHANGE),
             eq(""),
             any(Message.class)
         );
@@ -128,7 +129,7 @@ class BaseMessageConsumerTest {
 
         doThrow(new AmqpException("Dead letter queue failed"))
             .when(rabbitTemplate).send(
-                eq("dead.letter.exchange"),
+                eq(MqConstants.DEAD_LETTER_EXCHANGE),
                 eq(""),
                 any(Message.class)
             );
@@ -139,7 +140,7 @@ class BaseMessageConsumerTest {
         );
 
         verify(rabbitTemplate, times(1)).send(
-            eq("dead.letter.exchange"),
+            eq(MqConstants.DEAD_LETTER_EXCHANGE),
             eq(""),
             any(Message.class)
         );
@@ -163,16 +164,6 @@ class BaseMessageConsumerTest {
         private boolean consumed = false;
         private int failCount = 0;
         private boolean alwaysFail = false;
-
-        public void setRabbitTemplate(RabbitTemplate rabbitTemplate) {
-            try {
-                java.lang.reflect.Field field = BaseMessageConsumer.class.getDeclaredField("rabbitTemplate");
-                field.setAccessible(true);
-                field.set(this, rabbitTemplate);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
 
         @Override
         protected void doConsume(Message message) throws Exception {

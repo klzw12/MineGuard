@@ -1,4 +1,4 @@
-package com.klzw.common.mq.exception;
+package com.klzw.common.mq.constant;
 
 /**
  * 消息队列错误码枚举

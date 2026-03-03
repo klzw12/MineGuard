@@ -1,6 +1,8 @@
 package com.klzw.common.mq.exception;
 
 import com.klzw.common.core.result.Result;
+import com.klzw.common.mq.constant.MqResultCode;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
