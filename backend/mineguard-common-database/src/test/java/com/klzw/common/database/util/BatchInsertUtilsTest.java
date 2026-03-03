@@ -24,6 +24,7 @@ class BatchInsertUtilsTest {
     @Mock
     private IService<String> mockService;
 
+    @SuppressWarnings("unchecked")
     @BeforeEach
     void setUp() {
         reset(mockService);

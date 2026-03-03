@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,16 +23,18 @@ public class RedisRateLimiterIntegrationTest extends AbstractRedisIntegrationTes
     @Autowired
     private RedisRateLimiter redisRateLimiter;
 
-    private static final String TEST_RATE_LIMIT_KEY = "test:rate:limit";
+    private String testKey;
 
     @BeforeEach
     void setUp() {
-        redisRateLimiter.reset(TEST_RATE_LIMIT_KEY);
+        testKey = "test:rate:limit:" + UUID.randomUUID().toString();
     }
 
     @AfterEach
     void tearDown() {
-        redisRateLimiter.reset(TEST_RATE_LIMIT_KEY);
+        if (testKey != null) {
+            redisRateLimiter.reset(testKey);
+        }
     }
 
     @Test
@@ -41,11 +44,11 @@ public class RedisRateLimiterIntegrationTest extends AbstractRedisIntegrationTes
         long window = 1;
         
         for (int i = 0; i < limit; i++) {
-            boolean acquired = redisRateLimiter.tryAcquire(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.MINUTES);
-            assertTrue(acquired);
+            boolean acquired = redisRateLimiter.tryAcquire(testKey, limit, window, TimeUnit.MINUTES);
+            assertTrue(acquired, "第" + (i + 1) + "次请求应该成功");
         }
         
-        Long count = redisRateLimiter.getCurrentCount(TEST_RATE_LIMIT_KEY);
+        Long count = redisRateLimiter.getCurrentCount(testKey);
         assertEquals(limit, count);
     }
 
@@ -56,12 +59,12 @@ public class RedisRateLimiterIntegrationTest extends AbstractRedisIntegrationTes
         long window = 1;
         
         for (int i = 0; i < limit; i++) {
-            boolean acquired = redisRateLimiter.tryAcquire(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.MINUTES);
-            assertTrue(acquired);
+            boolean acquired = redisRateLimiter.tryAcquire(testKey, limit, window, TimeUnit.MINUTES);
+            assertTrue(acquired, "第" + (i + 1) + "次请求应该成功");
         }
         
-        boolean acquired = redisRateLimiter.tryAcquire(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.MINUTES);
-        assertFalse(acquired);
+        boolean acquired = redisRateLimiter.tryAcquire(testKey, limit, window, TimeUnit.MINUTES);
+        assertFalse(acquired, "超过限制后请求应该失败");
     }
 
     @Test
@@ -71,16 +74,16 @@ public class RedisRateLimiterIntegrationTest extends AbstractRedisIntegrationTes
         long window = 1;
         
         for (int i = 0; i < limit; i++) {
-            redisRateLimiter.tryAcquire(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.SECONDS);
+            redisRateLimiter.tryAcquire(testKey, limit, window, TimeUnit.SECONDS);
         }
         
-        boolean acquired = redisRateLimiter.tryAcquire(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.SECONDS);
-        assertFalse(acquired);
+        boolean acquired = redisRateLimiter.tryAcquire(testKey, limit, window, TimeUnit.SECONDS);
+        assertFalse(acquired, "超过限制后请求应该失败");
         
         Thread.sleep(1100);
         
-        acquired = redisRateLimiter.tryAcquire(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.SECONDS);
-        assertTrue(acquired);
+        acquired = redisRateLimiter.tryAcquire(testKey, limit, window, TimeUnit.SECONDS);
+        assertTrue(acquired, "窗口重置后请求应该成功");
     }
 
     @Test
@@ -90,8 +93,8 @@ public class RedisRateLimiterIntegrationTest extends AbstractRedisIntegrationTes
         long window = 1;
         
         for (int i = 0; i < limit; i++) {
-            boolean acquired = redisRateLimiter.tryAcquireWithTokenBucket(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.MINUTES);
-            assertTrue(acquired);
+            boolean acquired = redisRateLimiter.tryAcquireWithTokenBucket(testKey, limit, window, TimeUnit.MINUTES);
+            assertTrue(acquired, "第" + (i + 1) + "次请求应该成功");
         }
     }
 
@@ -102,12 +105,12 @@ public class RedisRateLimiterIntegrationTest extends AbstractRedisIntegrationTes
         long window = 1;
         
         for (int i = 0; i < limit; i++) {
-            boolean acquired = redisRateLimiter.tryAcquireWithTokenBucket(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.MINUTES);
-            assertTrue(acquired);
+            boolean acquired = redisRateLimiter.tryAcquireWithTokenBucket(testKey, limit, window, TimeUnit.MINUTES);
+            assertTrue(acquired, "第" + (i + 1) + "次请求应该成功");
         }
         
-        boolean acquired = redisRateLimiter.tryAcquireWithTokenBucket(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.MINUTES);
-        assertFalse(acquired);
+        boolean acquired = redisRateLimiter.tryAcquireWithTokenBucket(testKey, limit, window, TimeUnit.MINUTES);
+        assertFalse(acquired, "超过限制后请求应该失败");
     }
 
     @Test
@@ -117,16 +120,16 @@ public class RedisRateLimiterIntegrationTest extends AbstractRedisIntegrationTes
         long window = 1;
         
         for (int i = 0; i < limit; i++) {
-            redisRateLimiter.tryAcquireWithTokenBucket(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.SECONDS);
+            redisRateLimiter.tryAcquireWithTokenBucket(testKey, limit, window, TimeUnit.SECONDS);
         }
         
-        boolean acquired = redisRateLimiter.tryAcquireWithTokenBucket(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.SECONDS);
-        assertFalse(acquired);
+        boolean acquired = redisRateLimiter.tryAcquireWithTokenBucket(testKey, limit, window, TimeUnit.SECONDS);
+        assertFalse(acquired, "超过限制后请求应该失败");
         
         Thread.sleep(600);
         
-        double tokens = redisRateLimiter.getCurrentTokens(TEST_RATE_LIMIT_KEY);
-        assertTrue(tokens >= 0);
+        double tokens = redisRateLimiter.getCurrentTokens(testKey);
+        assertTrue(tokens >= 0, "令牌数应该大于等于0");
     }
 
     @Test
@@ -136,16 +139,16 @@ public class RedisRateLimiterIntegrationTest extends AbstractRedisIntegrationTes
         long window = 1;
         
         for (int i = 0; i < limit; i++) {
-            redisRateLimiter.tryAcquire(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.MINUTES);
+            redisRateLimiter.tryAcquire(testKey, limit, window, TimeUnit.MINUTES);
         }
         
-        Long count = redisRateLimiter.getCurrentCount(TEST_RATE_LIMIT_KEY);
-        assertEquals(limit, count);
+        Long count = redisRateLimiter.getCurrentCount(testKey);
+        assertEquals(limit, count, "重置前计数应该等于limit");
         
-        redisRateLimiter.reset(TEST_RATE_LIMIT_KEY);
+        redisRateLimiter.reset(testKey);
         
-        count = redisRateLimiter.getCurrentCount(TEST_RATE_LIMIT_KEY);
-        assertEquals(0L, count);
+        count = redisRateLimiter.getCurrentCount(testKey);
+        assertEquals(0L, count, "重置后计数应该为0");
     }
 
     @Test
@@ -154,15 +157,15 @@ public class RedisRateLimiterIntegrationTest extends AbstractRedisIntegrationTes
         int limit = 5;
         long window = 1;
         
-        Long count = redisRateLimiter.getCurrentCount(TEST_RATE_LIMIT_KEY);
-        assertEquals(0L, count);
+        Long count = redisRateLimiter.getCurrentCount(testKey);
+        assertEquals(0L, count, "初始计数应该为0");
         
         for (int i = 0; i < 3; i++) {
-            redisRateLimiter.tryAcquire(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.MINUTES);
+            redisRateLimiter.tryAcquire(testKey, limit, window, TimeUnit.MINUTES);
         }
         
-        count = redisRateLimiter.getCurrentCount(TEST_RATE_LIMIT_KEY);
-        assertEquals(3L, count);
+        count = redisRateLimiter.getCurrentCount(testKey);
+        assertEquals(3L, count, "请求3次后计数应该为3");
     }
 
     @Test
@@ -171,12 +174,12 @@ public class RedisRateLimiterIntegrationTest extends AbstractRedisIntegrationTes
         int limit = 5;
         long window = 1;
         
-        double tokens = redisRateLimiter.getCurrentTokens(TEST_RATE_LIMIT_KEY);
-        assertEquals(0.0, tokens, 0.001);
+        double tokens = redisRateLimiter.getCurrentTokens(testKey);
+        assertEquals(0.0, tokens, 0.001, "初始令牌数应该为0");
         
-        redisRateLimiter.tryAcquireWithTokenBucket(TEST_RATE_LIMIT_KEY, limit, window, TimeUnit.MINUTES);
+        redisRateLimiter.tryAcquireWithTokenBucket(testKey, limit, window, TimeUnit.MINUTES);
         
-        tokens = redisRateLimiter.getCurrentTokens(TEST_RATE_LIMIT_KEY);
-        assertTrue(tokens >= 0 && tokens < limit);
+        tokens = redisRateLimiter.getCurrentTokens(testKey);
+        assertTrue(tokens >= 0 && tokens < limit, "请求后令牌数应该在有效范围内");
     }
 }

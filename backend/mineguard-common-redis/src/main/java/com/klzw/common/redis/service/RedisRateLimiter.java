@@ -1,6 +1,6 @@
 package com.klzw.common.redis.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.klzw.common.redis.util.RedisKeyUtil;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -28,7 +28,7 @@ public class RedisRateLimiter {
      * @return 是否通过限流
      */
     public boolean tryAcquire(String key, int limit, long window, TimeUnit timeUnit) {
-        String rateLimitKey = "rate_limit:" + key;
+        String rateLimitKey = RedisKeyUtil.generateRateLimitKey(key);
         long currentTime = System.currentTimeMillis();
         long windowMillis = timeUnit.toMillis(window);
         long windowStart = currentTime - windowMillis;
@@ -58,7 +58,7 @@ public class RedisRateLimiter {
      * @return 是否通过限流
      */
     public boolean tryAcquireWithTokenBucket(String key, int limit, long window, TimeUnit timeUnit) {
-        String rateLimitKey = "rate_limit:token:" + key;
+        String rateLimitKey = RedisKeyUtil.generateRateLimitKey("token:" + key);
         long currentTime = System.currentTimeMillis();
         long windowMillis = timeUnit.toMillis(window);
         double tokensPerMillisecond = (double) limit / windowMillis;
@@ -96,7 +96,7 @@ public class RedisRateLimiter {
      * @return 当前计数
      */
     public Long getCurrentCount(String key) {
-        String rateLimitKey = "rate_limit:" + key;
+        String rateLimitKey = RedisKeyUtil.generateRateLimitKey(key);
         return redisTemplate.opsForZSet().size(rateLimitKey);
     }
 
@@ -105,8 +105,8 @@ public class RedisRateLimiter {
      * @param key 限流键
      */
     public void reset(String key) {
-        String rateLimitKey = "rate_limit:" + key;
-        String tokenBucketKey = "rate_limit:token:" + key;
+        String rateLimitKey = RedisKeyUtil.generateRateLimitKey(key);
+        String tokenBucketKey = RedisKeyUtil.generateRateLimitKey("token:" + key);
         redisTemplate.delete(rateLimitKey);
         redisTemplate.delete(tokenBucketKey);
     }
@@ -117,7 +117,7 @@ public class RedisRateLimiter {
      * @return 当前令牌数
      */
     public double getCurrentTokens(String key) {
-        String rateLimitKey = "rate_limit:token:" + key;
+        String rateLimitKey = RedisKeyUtil.generateRateLimitKey("token:" + key);
         Object value = redisTemplate.opsForValue().get(rateLimitKey);
         if (value != null) {
             String[] parts = value.toString().split(",");

@@ -200,34 +200,39 @@ public class RedisCacheServiceIntegrationTest extends AbstractRedisIntegrationTe
         String key = TEST_KEY_PREFIX + "counter";
         redisCacheService.set(key, 10);
         
+        // 自减1
         Long result1 = redisCacheService.decrement(key);
         assertEquals(9L, result1);
         
-        Long result2 = redisCacheService.decrement(key, 3);
-        assertEquals(6L, result2);
+        // 再次自减1
+        Long result2 = redisCacheService.decrement(key);
+        assertEquals(8L, result2);
     }
 
     @Test
-    @DisplayName("哈希操作")
-    void testHashOperations() {
-        String key = TEST_KEY_PREFIX + "hash";
+    @DisplayName("删除匹配模式的键")
+    void testDeleteByPattern() {
+        // 设置多个测试键
+        redisCacheService.set(TEST_KEY_PREFIX + "pattern:1", "value1");
+        redisCacheService.set(TEST_KEY_PREFIX + "pattern:2", "value2");
+        redisCacheService.set(TEST_KEY_PREFIX + "other", "value3");
         
-        redisCacheService.hSet(key, "field1", "value1");
-        redisCacheService.hSet(key, "field2", "value2");
+        // 验证键存在
+        assertTrue(redisCacheService.exists(TEST_KEY_PREFIX + "pattern:1"));
+        assertTrue(redisCacheService.exists(TEST_KEY_PREFIX + "pattern:2"));
+        assertTrue(redisCacheService.exists(TEST_KEY_PREFIX + "other"));
         
-        assertEquals("value1", redisCacheService.hGet(key, "field1"));
-        assertEquals("value2", redisCacheService.hGet(key, "field2"));
-        
-        Map<String, Object> map = new HashMap<>();
-        map.put("field3", "value3");
-        map.put("field4", "value4");
-        redisCacheService.hSetBatch(key, map);
-        
-        Map<String, String> result = redisCacheService.hGetBatch(key, Arrays.asList("field1", "field3"));
-        assertEquals(2, result.size());
-        
-        Long deleted = redisCacheService.hDelete(key, "field1", "field2");
+        // 删除匹配pattern的键
+        Long deleted = redisCacheService.deleteByPattern(TEST_KEY_PREFIX + "pattern:*");
         assertEquals(2L, deleted);
+        
+        // 验证pattern键被删除，other键仍然存在
+        assertFalse(redisCacheService.exists(TEST_KEY_PREFIX + "pattern:1"));
+        assertFalse(redisCacheService.exists(TEST_KEY_PREFIX + "pattern:2"));
+        assertTrue(redisCacheService.exists(TEST_KEY_PREFIX + "other"));
+        
+        // 清理
+        redisCacheService.delete(TEST_KEY_PREFIX + "other");
     }
 
     @Test

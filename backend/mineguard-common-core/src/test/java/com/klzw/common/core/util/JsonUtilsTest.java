@@ -74,10 +74,21 @@ public class JsonUtilsTest {
     }
 
     @Test
-    @DisplayName("测试JSON转复杂对象")
+    @DisplayName("测试JSON转复杂对象(TypeReference)")
     public void testFromJsonWithTypeReference() {
         String json = "[{\"name\":\"测试1\",\"age\":20,\"active\":true},{\"name\":\"测试2\",\"age\":21,\"active\":false}]";
         List<TestObject> list = JsonUtils.fromJson(json, new TypeReference<List<TestObject>>() {});
+        assertNotNull(list);
+        assertEquals(2, list.size());
+        assertEquals("测试1", list.get(0).getName());
+        assertEquals("测试2", list.get(1).getName());
+    }
+
+    @Test
+    @DisplayName("测试JSON转List")
+    public void testFromJsonToList() {
+        String json = "[{\"name\":\"测试1\",\"age\":20,\"active\":true},{\"name\":\"测试2\",\"age\":21,\"active\":false}]";
+        List<TestObject> list = JsonUtils.fromJsonToList(json, TestObject.class);
         assertNotNull(list);
         assertEquals(2, list.size());
         assertEquals("测试1", list.get(0).getName());

@@ -1,6 +1,12 @@
 package com.klzw.common.redis.service;
 
+import com.klzw.common.redis.constant.RedisResultCode;
+import com.klzw.common.redis.exception.RedisException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -8,7 +14,14 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Redis 缓存服务
+ * <p>
+ * 提供缓存CRUD、批量操作、Pipeline优化等功能
+ * <p>
+ * 异常处理：所有操作异常均使用RedisResultCode定义的错误码
+ *
+ * @see RedisResultCode
  */
+@Slf4j
 @Service
 public class RedisCacheService {
 
@@ -25,9 +38,15 @@ public class RedisCacheService {
      * @param value    缓存值
      * @param expire   过期时间
      * @param timeUnit 时间单位
+     * @throws RedisException 缓存设置失败时抛出
      */
     public void set(String key, Object value, long expire, TimeUnit timeUnit) {
-        redisTemplate.opsForValue().set(key, value, expire, timeUnit);
+        try {
+            redisTemplate.opsForValue().set(key, value, expire, timeUnit);
+        } catch (Exception e) {
+            log.error("Redis缓存设置失败, key: {}, error: {}", key, e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_SET_FAILED, "缓存设置失败: " + key, e);
+        }
     }
 
     /**
@@ -35,9 +54,10 @@ public class RedisCacheService {
      *
      * @param key   缓存键
      * @param value 缓存值
+     * @throws RedisException 缓存设置失败时抛出
      */
     public void set(String key, Object value) {
-        redisTemplate.opsForValue().set(key, value, 1, TimeUnit.HOURS);
+        set(key, value, 1, TimeUnit.HOURS);
     }
 
     /**
@@ -46,15 +66,29 @@ public class RedisCacheService {
      * @param map      键值对映射
      * @param expire   过期时间
      * @param timeUnit 时间单位
+     * @throws RedisException 缓存批量设置失败时抛出
      */
     public void setBatch(Map<String, Object> map, long expire, TimeUnit timeUnit) {
         if (map == null || map.isEmpty()) {
             return;
         }
-        redisTemplate.opsForValue().multiSet(map);
-        // 批量设置过期时间
-        for (String key : map.keySet()) {
-            redisTemplate.expire(key, expire, timeUnit);
+        try {
+            // 使用pipeline批量操作，减少网络请求
+            redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+                RedisSerializer<String> stringSerializer = new StringRedisSerializer();
+                @SuppressWarnings("unchecked")
+                RedisSerializer<Object> valueSerializer = (RedisSerializer<Object>) redisTemplate.getValueSerializer();
+                for (Map.Entry<String, Object> entry : map.entrySet()) {
+                    byte[] keyBytes = stringSerializer.serialize(entry.getKey());
+                    byte[] valueBytes = valueSerializer.serialize(entry.getValue());
+                    connection.set(keyBytes, valueBytes);
+                    connection.expire(keyBytes, timeUnit.toMillis(expire));
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            log.error("Redis缓存批量设置失败, keys数量: {}, error: {}", map.size(), e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_SET_FAILED, "缓存批量设置失败", e);
         }
     }
 
@@ -75,11 +109,17 @@ public class RedisCacheService {
      *
      * @param key 缓存键
      * @param <T> 泛型
-     * @return 缓存值
+     * @return 缓存值，不存在返回null
+     * @throws RedisException 缓存获取失败时抛出
      */
     @SuppressWarnings("unchecked")
     public <T> T get(String key) {
-        return (T) redisTemplate.opsForValue().get(key);
+        try {
+            return (T) redisTemplate.opsForValue().get(key);
+        } catch (Exception e) {
+            log.error("Redis缓存获取失败, key: {}, error: {}", key, e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_GET_FAILED, "缓存获取失败: " + key, e);
+        }
     }
 
     /**
@@ -88,33 +128,45 @@ public class RedisCacheService {
      * @param keys 缓存键列表
      * @param <T>  泛型
      * @return 键值对映射
+     * @throws RedisException 缓存批量获取失败时抛出
      */
     @SuppressWarnings("unchecked")
     public <T> Map<String, T> getBatch(Collection<String> keys) {
         if (keys == null || keys.isEmpty()) {
             return Collections.emptyMap();
         }
-        List<Object> values = redisTemplate.opsForValue().multiGet(keys);
-        Map<String, T> result = new HashMap<>(keys.size());
-        Iterator<String> keyIterator = keys.iterator();
-        Iterator<Object> valueIterator = values.iterator();
-        while (keyIterator.hasNext() && valueIterator.hasNext()) {
-            String key = keyIterator.next();
-            Object value = valueIterator.next();
-            if (value != null) {
-                result.put(key, (T) value);
+        try {
+            List<Object> values = redisTemplate.opsForValue().multiGet(keys);
+            Map<String, T> result = new HashMap<>(keys.size());
+            Iterator<String> keyIterator = keys.iterator();
+            Iterator<Object> valueIterator = values.iterator();
+            while (keyIterator.hasNext() && valueIterator.hasNext()) {
+                String key = keyIterator.next();
+                Object value = valueIterator.next();
+                if (value != null) {
+                    result.put(key, (T) value);
+                }
             }
+            return result;
+        } catch (Exception e) {
+            log.error("Redis缓存批量获取失败, keys数量: {}, error: {}", keys.size(), e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_GET_FAILED, "缓存批量获取失败", e);
         }
-        return result;
     }
 
     /**
      * 删除缓存
      *
      * @param key 缓存键
+     * @throws RedisException 缓存删除失败时抛出
      */
     public void delete(String key) {
-        redisTemplate.delete(key);
+        try {
+            redisTemplate.delete(key);
+        } catch (Exception e) {
+            log.error("Redis缓存删除失败, key: {}, error: {}", key, e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_DELETE_FAILED, "缓存删除失败: " + key, e);
+        }
     }
 
     /**
@@ -122,12 +174,68 @@ public class RedisCacheService {
      *
      * @param keys 缓存键列表
      * @return 删除的数量
+     * @throws RedisException 缓存批量删除失败时抛出
      */
     public Long deleteBatch(Collection<String> keys) {
         if (keys == null || keys.isEmpty()) {
             return 0L;
         }
-        return redisTemplate.delete(keys);
+        try {
+            return redisTemplate.delete(keys);
+        } catch (Exception e) {
+            log.error("Redis缓存批量删除失败, keys数量: {}, error: {}", keys.size(), e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_DELETE_FAILED, "缓存批量删除失败", e);
+        }
+    }
+
+    /**
+     * 根据模式删除缓存
+     *
+     * @param pattern 键模式，如 "user:*"
+     * @return 删除的数量
+     * @throws RedisException 缓存删除失败时抛出
+     */
+    public Long deleteByPattern(String pattern) {
+        try {
+            Set<String> keys = redisTemplate.keys(pattern);
+            if (keys == null || keys.isEmpty()) {
+                return 0L;
+            }
+            return redisTemplate.delete(keys);
+        } catch (Exception e) {
+            log.error("Redis缓存按模式删除失败, pattern: {}, error: {}", pattern, e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_DELETE_FAILED, "缓存按模式删除失败: " + pattern, e);
+        }
+    }
+
+    /**
+     * 批量设置缓存（使用pipeline优化）
+     *
+     * @param map 键值对映射
+     * @throws RedisException 缓存批量设置失败时抛出
+     */
+    public void setBatchWithPipeline(Map<String, Object> map) {
+        if (map == null || map.isEmpty()) {
+            return;
+        }
+        try {
+            // 使用pipeline批量操作，减少网络请求
+            redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+                RedisSerializer<String> stringSerializer = new StringRedisSerializer();
+                @SuppressWarnings("unchecked")
+                RedisSerializer<Object> valueSerializer = (RedisSerializer<Object>) redisTemplate.getValueSerializer();
+                for (Map.Entry<String, Object> entry : map.entrySet()) {
+                    byte[] keyBytes = stringSerializer.serialize(entry.getKey());
+                    byte[] valueBytes = valueSerializer.serialize(entry.getValue());
+                    connection.set(keyBytes, valueBytes);
+                    connection.expire(keyBytes, TimeUnit.HOURS.toMillis(1));
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            log.error("Redis缓存Pipeline批量设置失败, keys数量: {}, error: {}", map.size(), e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_SET_FAILED, "缓存Pipeline批量设置失败", e);
+        }
     }
 
     /**
@@ -135,9 +243,15 @@ public class RedisCacheService {
      *
      * @param key 缓存键
      * @return 是否存在
+     * @throws RedisException 缓存检查失败时抛出
      */
     public Boolean exists(String key) {
-        return redisTemplate.hasKey(key);
+        try {
+            return redisTemplate.hasKey(key);
+        } catch (Exception e) {
+            log.error("Redis缓存存在性检查失败, key: {}, error: {}", key, e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_OPERATION_FAILED, "缓存存在性检查失败: " + key, e);
+        }
     }
 
     /**
@@ -145,16 +259,32 @@ public class RedisCacheService {
      *
      * @param keys 缓存键列表
      * @return 键存在性映射
+     * @throws RedisException 缓存批量检查失败时抛出
      */
     public Map<String, Boolean> existsBatch(Collection<String> keys) {
         if (keys == null || keys.isEmpty()) {
             return Collections.emptyMap();
         }
-        Map<String, Boolean> result = new HashMap<>(keys.size());
-        for (String key : keys) {
-            result.put(key, redisTemplate.hasKey(key));
+        try {
+            Map<String, Boolean> result = new HashMap<>(keys.size());
+            // 使用pipeline批量操作，减少网络请求
+            List<Object> results = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+                RedisSerializer<String> stringSerializer = new StringRedisSerializer();
+                for (String key : keys) {
+                    connection.exists(stringSerializer.serialize(key));
+                }
+                return null;
+            });
+            Iterator<String> keyIterator = keys.iterator();
+            Iterator<Object> valueIterator = results.iterator();
+            while (keyIterator.hasNext() && valueIterator.hasNext()) {
+                result.put(keyIterator.next(), (Boolean) valueIterator.next());
+            }
+            return result;
+        } catch (Exception e) {
+            log.error("Redis缓存批量存在性检查失败, keys数量: {}, error: {}", keys.size(), e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_OPERATION_FAILED, "缓存批量存在性检查失败", e);
         }
-        return result;
     }
 
     /**
@@ -164,9 +294,15 @@ public class RedisCacheService {
      * @param expire   过期时间
      * @param timeUnit 时间单位
      * @return 是否设置成功
+     * @throws RedisException 过期时间设置失败时抛出
      */
     public Boolean expire(String key, long expire, TimeUnit timeUnit) {
-        return redisTemplate.expire(key, expire, timeUnit);
+        try {
+            return redisTemplate.expire(key, expire, timeUnit);
+        } catch (Exception e) {
+            log.error("Redis缓存过期时间设置失败, key: {}, error: {}", key, e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_EXPIRE_FAILED, "缓存过期时间设置失败: " + key, e);
+        }
     }
 
     /**
@@ -176,18 +312,32 @@ public class RedisCacheService {
      * @param expire   过期时间
      * @param timeUnit 时间单位
      * @return 设置成功的键数量
+     * @throws RedisException 过期时间批量设置失败时抛出
      */
     public int expireBatch(Collection<String> keys, long expire, TimeUnit timeUnit) {
         if (keys == null || keys.isEmpty()) {
             return 0;
         }
-        int successCount = 0;
-        for (String key : keys) {
-            if (redisTemplate.expire(key, expire, timeUnit)) {
-                successCount++;
+        try {
+            // 使用pipeline批量操作，减少网络请求
+            List<Object> results = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+                RedisSerializer<String> stringSerializer = new StringRedisSerializer();
+                for (String key : keys) {
+                    connection.expire(stringSerializer.serialize(key), timeUnit.toMillis(expire));
+                }
+                return null;
+            });
+            int successCount = 0;
+            for (Object result : results) {
+                if (Boolean.TRUE.equals(result)) {
+                    successCount++;
+                }
             }
+            return successCount;
+        } catch (Exception e) {
+            log.error("Redis缓存过期时间批量设置失败, keys数量: {}, error: {}", keys.size(), e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_EXPIRE_FAILED, "缓存过期时间批量设置失败", e);
         }
-        return successCount;
     }
 
     /**
@@ -196,9 +346,15 @@ public class RedisCacheService {
      * @param key      缓存键
      * @param timeUnit 时间单位
      * @return 剩余过期时间
+     * @throws RedisException 获取过期时间失败时抛出
      */
     public Long getExpire(String key, TimeUnit timeUnit) {
-        return redisTemplate.getExpire(key, timeUnit);
+        try {
+            return redisTemplate.getExpire(key, timeUnit);
+        } catch (Exception e) {
+            log.error("Redis缓存过期时间获取失败, key: {}, error: {}", key, e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_OPERATION_FAILED, "缓存过期时间获取失败: " + key, e);
+        }
     }
 
     /**
@@ -206,9 +362,15 @@ public class RedisCacheService {
      *
      * @param key 缓存键
      * @return 自增后的值
+     * @throws RedisException 自增操作失败时抛出
      */
     public Long increment(String key) {
-        return redisTemplate.opsForValue().increment(key);
+        try {
+            return redisTemplate.opsForValue().increment(key);
+        } catch (Exception e) {
+            log.error("Redis缓存自增失败, key: {}, error: {}", key, e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_OPERATION_FAILED, "缓存自增失败: " + key, e);
+        }
     }
 
     /**
@@ -217,9 +379,15 @@ public class RedisCacheService {
      * @param key   缓存键
      * @param delta 增量值
      * @return 自增后的值
+     * @throws RedisException 自增操作失败时抛出
      */
     public Long increment(String key, long delta) {
-        return redisTemplate.opsForValue().increment(key, delta);
+        try {
+            return redisTemplate.opsForValue().increment(key, delta);
+        } catch (Exception e) {
+            log.error("Redis缓存自增失败, key: {}, delta: {}, error: {}", key, delta, e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_OPERATION_FAILED, "缓存自增失败: " + key, e);
+        }
     }
 
     /**
@@ -227,95 +395,14 @@ public class RedisCacheService {
      *
      * @param key 缓存键
      * @return 自减后的值
+     * @throws RedisException 自减操作失败时抛出
      */
     public Long decrement(String key) {
-        return redisTemplate.opsForValue().decrement(key);
-    }
-
-    /**
-     * 自减指定值
-     *
-     * @param key   缓存键
-     * @param delta 减量值
-     * @return 自减后的值
-     */
-    public Long decrement(String key, long delta) {
-        return redisTemplate.opsForValue().decrement(key, delta);
-    }
-
-    /**
-     * 哈希设置
-     *
-     * @param key     缓存键
-     * @param hashKey 哈希键
-     * @param value   缓存值
-     */
-    public void hSet(String key, String hashKey, Object value) {
-        redisTemplate.opsForHash().put(key, hashKey, value);
-    }
-
-    /**
-     * 哈希获取
-     *
-     * @param key     缓存键
-     * @param hashKey 哈希键
-     * @param <T>     泛型
-     * @return 缓存值
-     */
-    @SuppressWarnings("unchecked")
-    public <T> T hGet(String key, String hashKey) {
-        return (T) redisTemplate.opsForHash().get(key, hashKey);
-    }
-
-    /**
-     * 哈希批量设置
-     *
-     * @param key 缓存键
-     * @param map 哈希键值对映射
-     */
-    public void hSetBatch(String key, Map<String, Object> map) {
-        if (map == null || map.isEmpty()) {
-            return;
+        try {
+            return redisTemplate.opsForValue().decrement(key);
+        } catch (Exception e) {
+            log.error("Redis缓存自减失败, key: {}, error: {}", key, e.getMessage(), e);
+            throw new RedisException(RedisResultCode.CACHE_OPERATION_FAILED, "缓存自减失败: " + key, e);
         }
-        redisTemplate.opsForHash().putAll(key, map);
-    }
-
-    /**
-     * 哈希批量获取
-     *
-     * @param key      缓存键
-     * @param hashKeys 哈希键列表
-     * @param <T>      泛型
-     * @return 哈希键值对映射
-     */
-    @SuppressWarnings("unchecked")
-    public <T> Map<String, T> hGetBatch(String key, Collection<String> hashKeys) {
-        if (hashKeys == null || hashKeys.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        List<Object> values = redisTemplate.opsForHash().multiGet(key, new ArrayList<>(hashKeys));
-        Map<String, T> result = new HashMap<>(hashKeys.size());
-        Iterator<String> keyIterator = hashKeys.iterator();
-        Iterator<Object> valueIterator = values.iterator();
-        while (keyIterator.hasNext() && valueIterator.hasNext()) {
-            String hashKey = keyIterator.next();
-            Object value = valueIterator.next();
-            if (value != null) {
-                result.put(hashKey, (T) value);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * 哈希删除
-     *
-     * @param key      缓存键
-     * @param hashKeys 哈希键列表
-     * @return 删除的数量
-     */
-    public Long hDelete(String key, Object... hashKeys) {
-        return redisTemplate.opsForHash().delete(key, hashKeys);
     }
 }
-

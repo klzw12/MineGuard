@@ -34,17 +34,17 @@ public class MybatisPlusConfig {
      * <p>
      * 拦截器链配置：
      * 1. 自定义分页拦截器：处理分页逻辑，与 common-core 分页常量保持一致
-     * 
+     *
      * @return MyBatis-Plus 拦截器
      */
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-        
-        CustomPaginationInnerInterceptor paginationInterceptor = 
+
+        CustomPaginationInnerInterceptor paginationInterceptor =
                 new CustomPaginationInnerInterceptor(databaseProperties, paginationProperties);
         interceptor.addInnerInterceptor(paginationInterceptor);
-        
+
         return interceptor;
     }
 

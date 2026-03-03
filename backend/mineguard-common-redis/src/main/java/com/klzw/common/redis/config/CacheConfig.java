@@ -1,6 +1,5 @@
 package com.klzw.common.redis.config;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -9,11 +8,16 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class CacheConfig {
 
-    @Autowired
-    private RedisProperties redisProperties;
+
+    private final RedisProperties redisProperties;
+
+    public CacheConfig(RedisProperties redisProperties) {
+        this.redisProperties = redisProperties;
+    }
 
     /**
      * 获取缓存键前缀
+     *
      * @return 缓存键前缀
      */
     public String getKeyPrefix() {
@@ -22,6 +26,7 @@ public class CacheConfig {
 
     /**
      * 获取默认过期时间
+     *
      * @return 默认过期时间（秒）
      */
     public int getDefaultExpire() {
@@ -30,6 +35,7 @@ public class CacheConfig {
 
     /**
      * 获取分布式锁默认过期时间
+     *
      * @return 分布式锁默认过期时间（秒）
      */
     public int getLockDefaultExpire() {
@@ -38,6 +44,7 @@ public class CacheConfig {
 
     /**
      * 获取分布式锁重试次数
+     *
      * @return 分布式锁重试次数
      */
     public int getLockRetryCount() {
@@ -46,6 +53,7 @@ public class CacheConfig {
 
     /**
      * 获取分布式锁重试间隔
+     *
      * @return 分布式锁重试间隔（毫秒）
      */
     public int getLockRetryInterval() {
@@ -54,6 +62,7 @@ public class CacheConfig {
 
     /**
      * 获取限流默认窗口
+     *
      * @return 限流默认窗口（秒）
      */
     public int getRateLimitDefaultWindow() {
@@ -62,6 +71,7 @@ public class CacheConfig {
 
     /**
      * 获取限流默认次数
+     *
      * @return 限流默认次数
      */
     public int getRateLimitDefaultLimit() {

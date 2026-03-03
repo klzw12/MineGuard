@@ -1,10 +1,22 @@
 package com.klzw.common.redis.exception;
 
 import com.klzw.common.core.exception.BaseException;
+import com.klzw.common.redis.constant.RedisResultCode;
 import lombok.Getter;
 
 /**
  * Redis 异常类
+ * <p>
+ * 用于处理Redis操作相关的异常，包括：
+ * - Redis连接异常
+ * - 缓存操作异常
+ * - 分布式锁异常
+ * - 限流异常
+ * - 序列化异常
+ * <p>
+ * 错误码范围：900-999（统一使用RedisResultCode定义）
+ *
+ * @see RedisResultCode
  */
 @Getter
 public class RedisException extends BaseException {
@@ -14,19 +26,50 @@ public class RedisException extends BaseException {
      */
     private static final String MODULE = "redis";
 
-    // 错误码定义
-    public static final int REDIS_CONNECTION_ERROR = 900; // 连接错误
-    public static final int REDIS_SERIALIZATION_ERROR = 901; // 序列化错误
-    public static final int REDIS_DESERIALIZATION_ERROR = 902; // 反序列化错误
-    public static final int REDIS_LOCK_ACQUIRE_ERROR = 903; // 锁获取错误
-    public static final int REDIS_LOCK_RELEASE_ERROR = 904; // 锁释放错误
-    public static final int REDIS_RATE_LIMIT_ERROR = 905; // 限流错误
-    public static final int REDIS_COMMAND_ERROR = 906; // 命令执行错误
-    public static final int REDIS_TIMEOUT_ERROR = 907; // 超时错误
+    /**
+     * 构造方法 - 使用RedisResultCode
+     *
+     * @param resultCode Redis错误码枚举
+     */
+    public RedisException(RedisResultCode resultCode) {
+        super(resultCode.getCode(), resultCode.getMessage(), MODULE);
+    }
 
     /**
-     * 构造方法
-     * @param code 错误码
+     * 构造方法 - 使用RedisResultCode和自定义消息
+     *
+     * @param resultCode Redis错误码枚举
+     * @param message    自定义错误消息
+     */
+    public RedisException(RedisResultCode resultCode, String message) {
+        super(resultCode.getCode(), message, MODULE);
+    }
+
+    /**
+     * 构造方法 - 使用RedisResultCode和异常原因
+     *
+     * @param resultCode Redis错误码枚举
+     * @param cause      异常原因
+     */
+    public RedisException(RedisResultCode resultCode, Throwable cause) {
+        super(resultCode.getCode(), resultCode.getMessage(), MODULE, cause);
+    }
+
+    /**
+     * 构造方法 - 使用RedisResultCode、自定义消息和异常原因
+     *
+     * @param resultCode Redis错误码枚举
+     * @param message    自定义错误消息
+     * @param cause      异常原因
+     */
+    public RedisException(RedisResultCode resultCode, String message, Throwable cause) {
+        super(resultCode.getCode(), message, MODULE, cause);
+    }
+
+    /**
+     * 构造方法 - 使用错误码和消息（兼容旧代码）
+     *
+     * @param code    错误码
      * @param message 错误消息
      */
     public RedisException(int code, String message) {
@@ -34,181 +77,13 @@ public class RedisException extends BaseException {
     }
 
     /**
-     * 构造方法
-     * @param code 错误码
+     * 构造方法 - 使用错误码、消息和异常原因（兼容旧代码）
+     *
+     * @param code    错误码
      * @param message 错误消息
-     * @param cause 异常原因
+     * @param cause   异常原因
      */
     public RedisException(int code, String message, Throwable cause) {
         super(code, message, MODULE, cause);
-    }
-
-    /**
-     * 构造方法
-     * @param message 错误消息
-     */
-    public RedisException(String message) {
-        super(REDIS_COMMAND_ERROR, message, MODULE);
-    }
-
-    /**
-     * 构造方法
-     * @param message 错误消息
-     * @param cause 异常原因
-     */
-    public RedisException(String message, Throwable cause) {
-        super(REDIS_COMMAND_ERROR, message, MODULE, cause);
-    }
-
-    /**
-     * 创建连接错误异常
-     * @param message 错误消息
-     * @return RedisException
-     */
-    public static RedisException connectionError(String message) {
-        return new RedisException(REDIS_CONNECTION_ERROR, message);
-    }
-
-    /**
-     * 创建连接错误异常
-     * @param message 错误消息
-     * @param cause 异常原因
-     * @return RedisException
-     */
-    public static RedisException connectionError(String message, Throwable cause) {
-        return new RedisException(REDIS_CONNECTION_ERROR, message, cause);
-    }
-
-    /**
-     * 创建序列化错误异常
-     * @param message 错误消息
-     * @return RedisException
-     */
-    public static RedisException serializationError(String message) {
-        return new RedisException(REDIS_SERIALIZATION_ERROR, message);
-    }
-
-    /**
-     * 创建序列化错误异常
-     * @param message 错误消息
-     * @param cause 异常原因
-     * @return RedisException
-     */
-    public static RedisException serializationError(String message, Throwable cause) {
-        return new RedisException(REDIS_SERIALIZATION_ERROR, message, cause);
-    }
-
-    /**
-     * 创建反序列化错误异常
-     * @param message 错误消息
-     * @return RedisException
-     */
-    public static RedisException deserializationError(String message) {
-        return new RedisException(REDIS_DESERIALIZATION_ERROR, message);
-    }
-
-    /**
-     * 创建反序列化错误异常
-     * @param message 错误消息
-     * @param cause 异常原因
-     * @return RedisException
-     */
-    public static RedisException deserializationError(String message, Throwable cause) {
-        return new RedisException(REDIS_DESERIALIZATION_ERROR, message, cause);
-    }
-
-    /**
-     * 创建锁获取错误异常
-     * @param message 错误消息
-     * @return RedisException
-     */
-    public static RedisException lockAcquireError(String message) {
-        return new RedisException(REDIS_LOCK_ACQUIRE_ERROR, message);
-    }
-
-    /**
-     * 创建锁获取错误异常
-     * @param message 错误消息
-     * @param cause 异常原因
-     * @return RedisException
-     */
-    public static RedisException lockAcquireError(String message, Throwable cause) {
-        return new RedisException(REDIS_LOCK_ACQUIRE_ERROR, message, cause);
-    }
-
-    /**
-     * 创建锁释放错误异常
-     * @param message 错误消息
-     * @return RedisException
-     */
-    public static RedisException lockReleaseError(String message) {
-        return new RedisException(REDIS_LOCK_RELEASE_ERROR, message);
-    }
-
-    /**
-     * 创建锁释放错误异常
-     * @param message 错误消息
-     * @param cause 异常原因
-     * @return RedisException
-     */
-    public static RedisException lockReleaseError(String message, Throwable cause) {
-        return new RedisException(REDIS_LOCK_RELEASE_ERROR, message, cause);
-    }
-
-    /**
-     * 创建限流错误异常
-     * @param message 错误消息
-     * @return RedisException
-     */
-    public static RedisException rateLimitError(String message) {
-        return new RedisException(REDIS_RATE_LIMIT_ERROR, message);
-    }
-
-    /**
-     * 创建限流错误异常
-     * @param message 错误消息
-     * @param cause 异常原因
-     * @return RedisException
-     */
-    public static RedisException rateLimitError(String message, Throwable cause) {
-        return new RedisException(REDIS_RATE_LIMIT_ERROR, message, cause);
-    }
-
-    /**
-     * 创建命令执行错误异常
-     * @param message 错误消息
-     * @return RedisException
-     */
-    public static RedisException commandError(String message) {
-        return new RedisException(REDIS_COMMAND_ERROR, message);
-    }
-
-    /**
-     * 创建命令执行错误异常
-     * @param message 错误消息
-     * @param cause 异常原因
-     * @return RedisException
-     */
-    public static RedisException commandError(String message, Throwable cause) {
-        return new RedisException(REDIS_COMMAND_ERROR, message, cause);
-    }
-
-    /**
-     * 创建超时错误异常
-     * @param message 错误消息
-     * @return RedisException
-     */
-    public static RedisException timeoutError(String message) {
-        return new RedisException(REDIS_TIMEOUT_ERROR, message);
-    }
-
-    /**
-     * 创建超时错误异常
-     * @param message 错误消息
-     * @param cause 异常原因
-     * @return RedisException
-     */
-    public static RedisException timeoutError(String message, Throwable cause) {
-        return new RedisException(REDIS_TIMEOUT_ERROR, message, cause);
     }
 }
