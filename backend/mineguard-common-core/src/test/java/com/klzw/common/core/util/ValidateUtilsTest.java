@@ -99,4 +99,33 @@ public class ValidateUtilsTest {
         assertFalse(ValidateUtils.isPositiveInteger("abc"));
         assertFalse(ValidateUtils.isPositiveInteger("0")); // 零
     }
+
+    @Test
+    @DisplayName("测试URL验证")
+    public void testIsUrl() {
+        assertTrue(ValidateUtils.isUrl("http://example.com"));
+        assertTrue(ValidateUtils.isUrl("https://example.com"));
+        assertTrue(ValidateUtils.isUrl("http://example.com/path"));
+        assertTrue(ValidateUtils.isUrl("https://example.com:8080/path?query=value"));
+        assertFalse(ValidateUtils.isUrl(null));
+        assertFalse(ValidateUtils.isUrl(""));
+        assertFalse(ValidateUtils.isUrl("   "));
+        assertFalse(ValidateUtils.isUrl("example.com")); // 缺少协议
+        assertFalse(ValidateUtils.isUrl("ftp://example.com")); // 不支持的协议
+    }
+
+    @Test
+    @DisplayName("测试IP地址验证")
+    public void testIsIp() {
+        assertTrue(ValidateUtils.isIp("192.168.1.1"));
+        assertTrue(ValidateUtils.isIp("0.0.0.0"));
+        assertTrue(ValidateUtils.isIp("255.255.255.255"));
+        assertTrue(ValidateUtils.isIp("10.0.0.1"));
+        assertFalse(ValidateUtils.isIp(null));
+        assertFalse(ValidateUtils.isIp(""));
+        assertFalse(ValidateUtils.isIp("   "));
+        assertFalse(ValidateUtils.isIp("256.1.1.1")); // 超过255
+        assertFalse(ValidateUtils.isIp("192.168.1")); // 段数不足
+        assertFalse(ValidateUtils.isIp("192.168.1.1.1")); // 段数过多
+    }
 }

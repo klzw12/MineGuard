@@ -89,4 +89,28 @@ public class ValidateUtils {
         }
         return str.matches("^[1-9]\\d*$");
     }
+
+    /**
+     * 验证URL地址
+     * @param url URL地址
+     * @return 如果是有效的URL则返回true，否则返回false
+     */
+    public static boolean isUrl(String url) {
+        if (StringUtils.isBlank(url)) {
+            return false;
+        }
+        return url.matches("^https?:\\/\\/[\\w\\-]+(\\.[\\w\\-]+)+([\\w\\-.,@?^=%&:/~+#]*[\\w\\-@?^=%&/~+#])?$");
+    }
+
+    /**
+     * 验证IP地址
+     * @param ip IP地址
+     * @return 如果是有效的IP地址则返回true，否则返回false
+     */
+    public static boolean isIp(String ip) {
+        if (StringUtils.isBlank(ip)) {
+            return false;
+        }
+        return ip.matches("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+    }
 }

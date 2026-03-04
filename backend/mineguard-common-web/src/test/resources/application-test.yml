@@ -1,0 +1,52 @@
+# 测试环境Web配置
+# 用于单元测试和集成测试
+
+spring:
+  security:
+    user:
+      name: test
+      password: test
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 100MB
+  data:
+    redis:
+      host: ${REDIS_HOST:192.168.110.128}
+      port: ${REDIS_PORT:6380}
+      password: ${REDIS_PASSWORD:testpass}
+      database: ${REDIS_DATABASE:0}
+      timeout: ${REDIS_TIMEOUT:60000}
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1
+          max-idle: 8
+          min-idle: 0
+
+# Web 模块自定义配置
+mineguard:
+  web:
+    cors:
+      allowed-origins: "*"
+      allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
+      allowed-headers: "Content-Type,Authorization"
+      allow-credentials: true
+      max-age: 3600
+    file-upload:
+      max-size: 10485760
+      allowed-types: "jpg,jpeg,png,gif,pdf,doc,docx"
+
+# JWT 配置（用于认证拦截器测试）
+jwt:
+  secret: ${JWT_SECRET:testSecretKeyForJwtTokenGeneration12345678901234567890123456789012345678901234567890}
+  expiration: ${JWT_EXPIRATION:86400000}
+  header: ${JWT_HEADER:Authorization}
+  prefix: ${JWT_PREFIX:"Bearer "}
+
+# 日志配置
+logging:
+  level:
+    com.klzw.common.web: DEBUG
+    org.springframework.web: INFO
