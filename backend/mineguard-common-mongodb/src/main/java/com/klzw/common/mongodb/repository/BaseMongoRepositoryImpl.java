@@ -296,7 +296,7 @@ public abstract class BaseMongoRepositoryImpl<T, ID extends Serializable> implem
             if (entities != null && !entities.isEmpty()) {
                 Query query = new Query();
                 List<Object> ids = entities.stream()
-                        .map(entity -> mongoTemplate.getConverter().getMongoMappingData().getId(entity))
+                        .map(mongoTemplate::getId)
                         .filter(Objects::nonNull)
                         .toList();
                 if (!ids.isEmpty()) {
