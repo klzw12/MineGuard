@@ -1,0 +1,9 @@
+# 高德地图配置
+mineguard:
+  map:
+    gaode:
+      api-key: "1df6e350f3e74cba1f7c0b065f62ee2e"
+      api-url: "https://restapi.amap.com/v3"
+      connect-timeout: 5000
+      read-timeout: 10000
+      cache-expire: 3600
