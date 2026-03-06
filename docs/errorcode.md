@@ -187,8 +187,53 @@
 | 通知服务 | 2500-2599 | 通知相关业务 |
 | 其他业务 | 2600-3999 | 预留 |
 
-## 5. 变更记录
+## 5. 错误码使用示例
 
-| 日期 | 变更内容 |
-|------|---------|
-| 2026-03-03 | 创建错误码分配规范文档 |
+### 5.1 抛出异常
+
+```java
+// 使用枚举抛出异常
+throw new BusinessException(ResultCodeEnum.PARAM_ERROR.getCode(), "参数错误");
+
+// 使用带占位符的异常
+throw new AuthException(AuthResultCode.TOKEN_EXPIRED.getCode(), "Token已过期");
+
+// 包装原始异常
+throw new DatabaseException(DatabaseResultCode.CONNECTION_ERROR.getCode(), "数据库连接失败", originalException);
+```
+
+### 5.2 全局异常处理
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    
+    @ExceptionHandler(BaseException.class)
+    public Result<?> handleBaseException(BaseException e) {
+        return Result.fail(e.getCode(), e.getMessage());
+    }
+    
+    @ExceptionHandler(Exception.class)
+    public Result<?> handleException(Exception e) {
+        return Result.fail(ResultCodeEnum.INTERNAL_ERROR.getCode(), "系统内部错误");
+    }
+}
+```
+
+### 5.3 错误码扩展
+
+如需添加新的错误码，请遵循以下步骤：
+
+1. **确定模块**：根据功能确定错误码所属模块
+2. **选择范围**：在模块预留范围内选择未使用的错误码
+3. **创建枚举**：在对应模块创建或更新 `XxxResultCode` 枚举类
+4. **注册策略**：创建对应的异常处理策略类（如需要）
+5. **更新文档**：在本文档中登记新的错误码
+
+## 6. 变更记录
+
+| 日期 | 变更内容 | 变更人 |
+|------|---------|--------|
+| 2026-03-03 | 创建错误码分配规范文档 | - |
+| 2026-03-07 | 添加错误码使用示例章节 | - |
+| 2026-03-07 | 更新文件模块错误码范围为 4001-4018 | - |
