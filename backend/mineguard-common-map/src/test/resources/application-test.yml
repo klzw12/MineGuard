@@ -1,8 +1,10 @@
-# 高德地图配置
+spring:
+  profiles:
+    active: secret
+
 mineguard:
   map:
     gaode:
-      api-key: "1df6e350f3e74cba1f7c0b065f62ee2e"
       api-url: "https://restapi.amap.com/v3"
       connect-timeout: 5000
       read-timeout: 10000

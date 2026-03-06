@@ -3,6 +3,7 @@ package com.klzw.common.mongodb.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -296,7 +297,7 @@ public abstract class BaseMongoRepositoryImpl<T, ID extends Serializable> implem
             if (entities != null && !entities.isEmpty()) {
                 Query query = new Query();
                 List<Object> ids = entities.stream()
-                        .map(mongoTemplate::getId)
+                        .map(this::getEntityId)
                         .filter(Objects::nonNull)
                         .toList();
                 if (!ids.isEmpty()) {
@@ -311,6 +312,21 @@ public abstract class BaseMongoRepositoryImpl<T, ID extends Serializable> implem
                     e
             );
         }
+    }
+
+    /**
+     * 获取实体的ID
+     * @param entity 实体对象
+     * @return 实体ID
+     */
+    private Object getEntityId(T entity) {
+        PersistentEntity<?, ?> persistentEntity = mongoTemplate.getConverter()
+                .getMappingContext()
+                .getPersistentEntity(entityClass);
+        if (persistentEntity != null) {
+            return persistentEntity.getIdentifierAccessor(entity).getIdentifier();
+        }
+        return null;
     }
 
     /**

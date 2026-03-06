@@ -25,4 +25,19 @@ public class MqConstants {
     public static final String DEFAULT_ROUTING_KEY = "default.routing.key";
     public static final String DELAY_ROUTING_KEY = "delay.routing.key";
 
+    /**
+     * 离线消息交换机
+     */
+    public static final String OFFLINE_MESSAGE_EXCHANGE = "offline.message.exchange";
+
+    /**
+     * 离线消息队列前缀
+     */
+    public static final String OFFLINE_MESSAGE_QUEUE_PREFIX = "offline.message.";
+
+    /**
+     * 离线消息路由键前缀
+     */
+    public static final String OFFLINE_MESSAGE_ROUTING_KEY_PREFIX = "offline.";
+
 }

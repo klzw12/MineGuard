@@ -4,18 +4,22 @@
 
 ### 1.1 核心技术栈
 
-- **语言**：Java 17
-- **框架**：Spring Boot 3.0
+- **语言**：Java 24（以 `backend/pom.xml` 的 `java.version` 为准）
+- **框架**：Spring Boot 4.0.3（以 `backend/pom.xml` 为准）
 - **微服务框架**：Spring Cloud Alibaba
 - **关系型数据库**：MySQL 8.0
 - **文档型数据库**：MongoDB 6.0
 - **缓存**：Redis
 - **搜索引擎**：Elasticsearch
-- **消息队列**：RocketMQ
+- **消息队列**：RabbitMQ
 - **实时通讯**：WebSocket
 - **AI框架**：Spring AI
 - **机器学习**：Apache Spark MLlib
 - **IoT协议**：MQTT、CoAP
+- **对象存储**：MinIO, 阿里云OSS
+- **OCR服务**：百度OCR API
+
+> 注意：本文档描述“目标架构与模块边界”。配置（YAML/Nacos）的拆分、加载顺序与“避免重复导致错乱”的硬规则，统一以 `docs/后端拆解-yml-rule.md` 为准，避免多处维护产生冲突。
 
 ### 1.2 技术特性
 
@@ -64,20 +68,23 @@
 | cost-service | 成本服务 | 8006 | 成本核算、费用管理 |
 | ai-service | AI分析服务 | 8007 | 预测分析、智能推荐、自然语言处理 |
 | iot-service | IoT服务 | 8008 | 设备管理、数据采集、实时监控、设备控制 |
+| file-service | 文件服务 | 8009 | 文件上传、存储管理、OCR识别 |
 
 ### 2.3 公共模块拆分
 
 | 模块名称 | 模块说明 | 主要依赖 | 职责描述 |
 | ------- | ------- | ------- | ------- |
-| mineguard-common-core | 核心工具模块 | 无 | 统一异常、统一响应、工具类、常量定义 |
+| mineguard-common-core | 核心工具模块 | 无 | 统一异常、统一响应、工具类、常量定义、枚举类、配置类、领域类 |
 | mineguard-common-web | Web配置模块 | mineguard-common-core | 统一拦截器、跨域配置、日志切面、参数校验 |
 | mineguard-common-database | 数据库模块 | mineguard-common-core | MyBatis-Plus配置、数据源配置、分页插件、多数据源支持 |
 | mineguard-common-redis | Redis模块 | mineguard-common-core | RedisTemplate配置、缓存序列化、分布式锁、限流器 |
-| mineguard-common-mq | 消息队列模块 | mineguard-common-core | RocketMQ配置、消息生产者/消费者模板、事务消息 |
+| mineguard-common-mq | 消息队列模块 | mineguard-common-core | RabbitMQ配置、消息生产者/消费者模板、事务消息 |
 | mineguard-common-auth | 认证授权模块 | mineguard-common-core | JWT工具、权限注解、用户上下文、RBAC工具 |
 | mineguard-common-log | 日志模块 | mineguard-common-core | 日志切面、异步日志、日志脱敏、审计日志 |
 | mineguard-common-mongodb | MongoDB模块 | mineguard-common-core | MongoTemplate配置、地理空间查询、聚合查询、时序数据支持 |
 | mineguard-common-websocket | WebSocket模块 | mineguard-common-core | WebSocket连接管理、消息推送、消息订阅/发布、在线用户管理 |
+| mineguard-common-file | 文件存储模块 | mineguard-common-core | MinIO配置、文件上传下载、OCR识别工具 |
+| mineguard-common-map | 地图服务模块 | mineguard-common-core | 高德地图API集成、地理编码、路径规划、地理围栏、位置搜索 |
 
 **模块依赖关系**：
 
@@ -94,8 +101,10 @@ mineguard-common-core (基础层)
     │   ├── mineguard-common-database
     │   └── mineguard-common-redis
     ├── mineguard-common-mongodb
-    └── mineguard-common-websocket
-        └── mineguard-common-mongodb
+    ├── mineguard-common-websocket
+    │   └── mineguard-common-mongodb
+    ├── mineguard-common-file
+    └── mineguard-common-map
 ```
 
 **设计优势**：
@@ -533,6 +542,17 @@ db.message_history.createIndex({ "timestamp": 1 }, { expireAfterSeconds: 2592000
 | /api/iot/device/control | POST | iot-service | 设备控制 | {"deviceId": "...", "command": "...", ...} | {"code": 200, "message": "success"} |
 | /api/iot/device/data | GET | iot-service | 获取设备数据 | N/A | {"deviceId": "...", "data": {...}, ...} |
 
+### 4.9 文件服务接口
+
+| API路径 | 方法 | 模块 | 功能描述 | 请求体 (JSON) | 成功响应 (200 OK) |
+| ------- | ---- | ---- | -------- | ------------ | ----------------- |
+| /api/file/upload | POST | file-service | 文件上传 | multipart/form-data | {"fileId": "...", "url": "...", "filename": "..."} |
+| /api/file/download/{fileId} | GET | file-service | 文件下载 | N/A | 文件流 |
+| /api/file/delete/{fileId} | DELETE | file-service | 文件删除 | N/A | {"code": 200, "message": "success"} |
+| /api/file/ocr/id-card | POST | file-service | 身份证OCR识别 | {"fileId": "..."} | {"name": "...", "idNumber": "...", "gender": "...", "birthDate": "...", "address": "..."} |
+| /api/file/ocr/driver-license | POST | file-service | 驾驶证OCR识别 | {"fileId": "..."} | {"name": "...", "licenseNumber": "...", "gender": "...", "birthDate": "...", "issueDate": "...", "expiryDate": "..."} |
+| /api/file/ocr/vehicle-license | POST | file-service | 行驶证OCR识别 | {"fileId": "..."} | {"plateNumber": "...", "vehicleType": "...", "owner": "...", "model": "...", "issueDate": "...", "expiryDate": "..."} |
+
 ## 5. 技术实现
 
 ### 5.1 公共模块实现
@@ -541,10 +561,14 @@ db.message_history.createIndex({ "timestamp": 1 }, { expireAfterSeconds: 2592000
 
 **核心功能**：
 
-- 统一异常类：`BusinessException`、`SystemException`
+- 统一异常类：`BaseException`、`BusinessException`、`SystemException`
+- 统一异常处理策略：`ExceptionHandlerStrategy`、`BusinessExceptionHandlerStrategy`、`SystemExceptionHandlerStrategy`、`DefaultExceptionHandlerStrategy`、`ExceptionHandlerRegistry`
 - 统一响应类：`Result<T>`、`PageResult<T>`
-- 通用工具类：`StringUtils`、`DateUtils`、`JsonUtils`
-- 常量定义：`ResultCode`、`Constants`
+- 通用工具类：`StringUtils`、`DateUtils`、`JsonUtils`、`EncryptUtils`、`ValidateUtils`
+- 常量定义：`CacheConstants`、`PaginationConstants`、`RedisKeyConstants`、`StatusConstants`
+- 枚举类：`ResultCodeEnum`、`UserStatusEnum`、`UserTypeEnum`、`VehicleStatusEnum`、`TripStatusEnum`
+- 配置类：`BaseEntityAutoFillConfig`
+- 领域类：`BaseEntity`、`PageRequest`
 
 #### 2. mineguard-common-web 模块
 
@@ -605,6 +629,18 @@ db.message_history.createIndex({ "timestamp": 1 }, { expireAfterSeconds: 2592000
 - 审计日志：`AuditLogService`
 - 日志存储：`LogStorageService`
 
+#### 8. mineguard-common-file 模块
+
+**核心功能**：
+
+- MinIO配置：`MinioConfig`
+- 文件上传：`FileUploadService`
+- 文件下载：`FileDownloadService`
+- 文件管理：`FileManagerService`
+- OCR识别：`OcrService`
+- 文件路径生成：`FilePathGenerator`
+- 文件类型验证：`FileTypeValidator`
+
 ### 5.2 微服务实现
 
 #### 1. 服务注册与发现
@@ -613,31 +649,52 @@ db.message_history.createIndex({ "timestamp": 1 }, { expireAfterSeconds: 2592000
 - **配置**：服务注册到 Nacos 服务器
 - **功能**：服务自动发现、负载均衡
 
-#### 2. 配置中心
+#### 2. 文件服务实现
+
+- **组件**：MinIO、阿里云OSS、Tesseract OCR / 百度OCR API
+- **配置**：
+  - MinIO客户端配置
+  - 阿里云OSS客户端配置
+  - OCR服务配置
+  - 文件存储路径配置
+  - 文件大小限制配置
+  - 容灾备份策略配置
+- **功能**：
+  - 文件上传到MinIO（主存储）
+  - 文件同步到阿里云OSS（容灾备份）
+  - 文件下载与预览（优先从MinIO读取，失败自动切换到阿里云OSS）
+  - 文件管理（删除、重命名，同步到两个存储源）
+  - 身份证OCR识别
+  - 驾驶证OCR识别
+  - 行驶证OCR识别
+  - OCR识别结果缓存
+  - 存储源健康检查和自动切换
+
+#### 3. 配置中心
 
 - **组件**：Nacos Config
 - **配置**：集中管理服务配置
 - **功能**：动态配置更新、配置版本管理
 
-#### 3. 网关
+#### 4. 网关
 
 - **组件**：Spring Cloud Gateway
 - **配置**：路由规则、过滤器
 - **功能**：请求转发、认证授权、限流
 
-#### 4. 服务调用
+#### 5. 服务调用
 
 - **组件**：OpenFeign
 - **配置**：服务接口定义
 - **功能**：声明式服务调用、负载均衡
 
-#### 5. 熔断降级
+#### 6. 熔断降级
 
 - **组件**：Sentinel
 - **配置**：熔断规则、降级策略
 - **功能**：服务保护、故障隔离
 
-#### 6. 分布式事务
+#### 7. 分布式事务
 
 - **组件**：Seata
 - **配置**：事务组、模式
@@ -785,9 +842,11 @@ db.message_history.createIndex({ "timestamp": 1 }, { expireAfterSeconds: 2592000
 | MongoDB | 6.0+ | 4C8G | 文档型数据库 |
 | Redis | 7.0+ | 4C8G | 缓存 |
 | Nacos | 2.0+ | 4C8G | 服务注册与配置 |
-| RocketMQ | 4.9+ | 4C8G | 消息队列 |
+| RabbitMQ | 3.8+ | 4C8G | 消息队列 |
 | Sentinel | 1.8+ | 2C4G | 熔断降级 |
 | Seata | 1.5+ | 2C4G | 分布式事务 |
+| MinIO | 2023.0+ | 4C8G | 对象存储 |
+| Tesseract OCR | 5.0+ | 4C8G | 本地OCR识别 |
 
 ### 6.2 部署方式
 
