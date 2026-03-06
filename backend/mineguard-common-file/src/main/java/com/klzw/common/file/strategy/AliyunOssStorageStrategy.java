@@ -70,7 +70,7 @@ public class AliyunOssStorageStrategy implements StorageStrategy, DisposableBean
                 }
             }
         } catch (Exception e) {
-            throw new FileException(FileResultCode.STORAGE_BUCKET_INIT_FAILED, "阿里云OSS桶初始化失败", e);
+            throw new FileException(FileResultCode.BUCKET_INIT_FAILED, "阿里云OSS桶初始化失败", e);
         }
     }
 
@@ -133,7 +133,7 @@ public class AliyunOssStorageStrategy implements StorageStrategy, DisposableBean
 
             return fileName;
         } catch (Exception e) {
-            throw new FileException(FileResultCode.FILE_UPLOAD_ERROR, "阿里云OSS上传文件失败", e);
+            throw new FileException(FileResultCode.FILE_UPLOAD_FAILED, "阿里云OSS上传文件失败", e);
         }
     }
 
@@ -153,7 +153,7 @@ public class AliyunOssStorageStrategy implements StorageStrategy, DisposableBean
             );
             return ossObject.getObjectContent();
         } catch (Exception e) {
-            throw new FileException(FileResultCode.FILE_DOWNLOAD_ERROR, "阿里云OSS下载文件失败", e);
+            throw new FileException(FileResultCode.FILE_DOWNLOAD_FAILED, "阿里云OSS下载文件失败", e);
         }
     }
 
@@ -173,7 +173,7 @@ public class AliyunOssStorageStrategy implements StorageStrategy, DisposableBean
             );
             return true;
         } catch (Exception e) {
-            throw new FileException(FileResultCode.FILE_DELETE_ERROR, "阿里云OSS删除文件失败", e);
+            throw new FileException(FileResultCode.FILE_DELETE_FAILED, "阿里云OSS删除文件失败", e);
         }
     }
 
@@ -194,7 +194,7 @@ public class AliyunOssStorageStrategy implements StorageStrategy, DisposableBean
                     expiration
             ).toString();
         } catch (Exception e) {
-            throw new FileException(FileResultCode.URL_GENERATE_ERROR, "阿里云OSS获取文件URL失败", e);
+            throw new FileException(FileResultCode.URL_GENERATE_FAILED, "阿里云OSS获取文件URL失败", e);
         }
     }
 

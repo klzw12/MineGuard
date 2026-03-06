@@ -183,7 +183,7 @@ public class DualWriteStorageServiceImpl implements StorageService, Initializing
             fileBytes = bos.toByteArray();
         } catch (Exception e) {
             log.error("读取输入流失败: {}", e.getMessage());
-            throw new FileException(FileResultCode.FILE_UPLOAD_ERROR, "读取输入流失败", e);
+            throw new FileException(FileResultCode.FILE_UPLOAD_FAILED, "读取输入流失败", e);
         } finally {
             try {
                 inputStream.close();
@@ -247,7 +247,7 @@ public class DualWriteStorageServiceImpl implements StorageService, Initializing
         // 检查上传结果
         if (!primaryUploadSuccess && !backupUploadSuccess) {
             // 两者都失败，抛出异常
-            throw new FileException(FileResultCode.FILE_UPLOAD_ERROR, "双写文件上传失败");
+            throw new FileException(FileResultCode.FILE_UPLOAD_FAILED, "双写文件上传失败");
         }
 
         // 返回主存储的文件路径作为统一返回值，如果主存储失败则返回备用存储的
@@ -272,7 +272,7 @@ public class DualWriteStorageServiceImpl implements StorageService, Initializing
             fileBytes = bos.toByteArray();
         } catch (Exception e) {
             log.error("读取输入流失败: {}", e.getMessage());
-            throw new FileException(FileResultCode.FILE_UPLOAD_ERROR, "读取输入流失败", e);
+            throw new FileException(FileResultCode.FILE_UPLOAD_FAILED, "读取输入流失败", e);
         } finally {
             try {
                 inputStream.close();
@@ -280,11 +280,11 @@ public class DualWriteStorageServiceImpl implements StorageService, Initializing
                 log.warn("关闭输入流失败: {}", e.getMessage());
             }
         }
-        
+
         // 先上传到主存储服务
         String primaryFilePath = null;
         boolean primaryUploadSuccess = false;
-        
+
         try (ByteArrayInputStream primaryBais = new ByteArrayInputStream(fileBytes)) {
             if (primaryStorage == PrimaryStorageType.MINIO) {
                 primaryFilePath = minioStorageService.upload(module, folder, primaryBais, originalFileName, contentType);
@@ -310,7 +310,7 @@ public class DualWriteStorageServiceImpl implements StorageService, Initializing
         // 再上传到备用存储服务
         String backupFilePath = null;
         boolean backupUploadSuccess = false;
-        
+
         try (ByteArrayInputStream backupBais = new ByteArrayInputStream(fileBytes)) {
             if (primaryStorage == PrimaryStorageType.MINIO) {
                 // 主存储是MinIO，备用是OSS
@@ -336,7 +336,7 @@ public class DualWriteStorageServiceImpl implements StorageService, Initializing
         // 检查上传结果
         if (!primaryUploadSuccess && !backupUploadSuccess) {
             // 两者都失败，抛出异常
-            throw new FileException(FileResultCode.FILE_UPLOAD_ERROR, "双写文件上传失败");
+            throw new FileException(FileResultCode.FILE_UPLOAD_FAILED, "双写文件上传失败");
         }
 
         // 返回主存储的文件路径作为统一返回值，如果主存储失败则返回备用存储的
@@ -371,7 +371,7 @@ public class DualWriteStorageServiceImpl implements StorageService, Initializing
                 }
             },
             "下载文件",
-            FileResultCode.FILE_DOWNLOAD_ERROR
+            FileResultCode.FILE_DOWNLOAD_FAILED
         );
     }
     
@@ -582,7 +582,7 @@ public class DualWriteStorageServiceImpl implements StorageService, Initializing
                 }
             },
             "获取文件URL",
-            FileResultCode.URL_GENERATE_ERROR
+            FileResultCode.URL_GENERATE_FAILED
         );
     }
 

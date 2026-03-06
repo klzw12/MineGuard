@@ -71,7 +71,7 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
                 }
             }
         } catch (Exception e) {
-            throw new FileException(FileResultCode.STORAGE_BUCKET_INIT_FAILED, "MinIO桶初始化失败", e);
+            throw new FileException(FileResultCode.BUCKET_INIT_FAILED, "MinIO桶初始化失败", e);
         }
     }
 
@@ -167,7 +167,7 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
             if (e instanceof FileException) {
                 throw (FileException) e;
             }
-            throw new FileException(FileResultCode.FILE_UPLOAD_ERROR, "MinIO上传文件失败", e);
+            throw new FileException(FileResultCode.FILE_UPLOAD_FAILED, "MinIO上传文件失败", e);
         }
     }
 
@@ -188,7 +188,7 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
                             .build()
             );
         } catch (Exception e) {
-            throw new FileException(FileResultCode.FILE_DOWNLOAD_ERROR, "MinIO下载文件失败", e);
+            throw new FileException(FileResultCode.FILE_DOWNLOAD_FAILED, "MinIO下载文件失败", e);
         }
     }
 
@@ -210,7 +210,7 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
             );
             return true;
         } catch (Exception e) {
-            throw new FileException(FileResultCode.FILE_DELETE_ERROR, "MinIO删除文件失败", e);
+            throw new FileException(FileResultCode.FILE_DELETE_FAILED, "MinIO删除文件失败", e);
         }
     }
 
@@ -233,7 +233,7 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
                             .build()
             );
         } catch (Exception e) {
-            throw new FileException(FileResultCode.URL_GENERATE_ERROR, "MinIO获取文件URL失败", e);
+            throw new FileException(FileResultCode.URL_GENERATE_FAILED, "MinIO获取文件URL失败", e);
         }
     }
 
