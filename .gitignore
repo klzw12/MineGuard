@@ -52,11 +52,10 @@ node_modules/
 *.cache
 
 docs/modulecheck/
-
+docs/serviceDesign/
+docs/DesignChange/
 # 测试脚本生成的文件
 scripts/output/
 
 # 敏感信息配置文件
-backend/application-secret.yml
 backend/mineguard-common-core/src/main/resources/application-secret.yml
-

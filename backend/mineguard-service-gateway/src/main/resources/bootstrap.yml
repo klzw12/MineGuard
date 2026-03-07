@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: gateway-service
+  profiles:
+    active: @spring.profiles.active@
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${nacos.server-addr:192.168.110.128:8848}
+        namespace: ${nacos.namespace:dev}
+      config:
+        server-addr: ${nacos.server-addr:192.168.110.128:8848}
+        namespace: ${nacos.namespace:dev}
+        group: gateway-service
+        file-extension: yml
+        shared-configs:
+          - data-id: application-common.yml
+            group: DEFAULT_GROUP
+            refresh: true

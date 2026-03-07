@@ -6,7 +6,9 @@ import com.klzw.common.auth.context.UserContext;
 import com.klzw.common.auth.exception.AuthException;
 import com.klzw.common.auth.util.JwtUtils;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import jakarta.servlet.FilterChain;
@@ -14,15 +16,26 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * JWT 认证过滤器
+ * <p>
+ * 支持两种模式：
+ * 1. 网关模式：检测到 X-User-Id 请求头时，信任网关传递的用户信息
+ * 2. 直连模式：无网关请求头时，正常解析验证 Token
  */
+@Slf4j
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
     private final JwtConfig jwtConfig;
+
+    private static final String HEADER_USER_ID = "X-User-Id";
+    private static final String HEADER_USERNAME = "X-Username";
+    private static final String HEADER_ROLES = "X-User-Roles";
 
     public JwtAuthenticationFilter(JwtUtils jwtUtils, JwtConfig jwtConfig) {
         this.jwtUtils = jwtUtils;
@@ -33,26 +46,59 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            String authHeader = request.getHeader(jwtConfig.getHeader());
-            String token = jwtUtils.getTokenFromHeader(authHeader);
+            String gatewayUserId = request.getHeader(HEADER_USER_ID);
             
-            if (token != null) {
-                if (jwtUtils.validateToken(token)) {
-                    Long userId = jwtUtils.getUserIdFromToken(token);
-                    String username = jwtUtils.getUsernameFromToken(token);
-                    
-                    UserContext.setUserId(userId);
-                    UserContext.setUsername(username);
-                } else {
-                    // Token 无效，抛出异常
-                    throw new AuthException(AuthResultCode.TOKEN_INVALID);
-                }
+            if (gatewayUserId != null) {
+                setUserInfoFromHeader(request);
+                log.debug("Gateway mode: userId={}", gatewayUserId);
+            } else {
+                setUserInfoFromToken(request);
             }
             
             filterChain.doFilter(request, response);
         } finally {
-            // 清理ThreadLocal，防止内存泄漏
             UserContext.clear();
+        }
+    }
+
+    /**
+     * 从网关请求头读取用户信息
+     * @param request HTTP请求
+     */
+    private void setUserInfoFromHeader(HttpServletRequest request) {
+        String userId = request.getHeader(HEADER_USER_ID);
+        String username = request.getHeader(HEADER_USERNAME);
+        String roles = request.getHeader(HEADER_ROLES);
+        
+        if (userId != null) {
+            UserContext.setUserId(Long.parseLong(userId));
+            UserContext.setUsername(username);
+            
+            if (StringUtils.hasText(roles)) {
+                List<String> roleList = Arrays.asList(roles.split(","));
+                UserContext.setRoles(roleList);
+            }
+        }
+    }
+
+    /**
+     * 从Token解析用户信息
+     * @param request HTTP请求
+     */
+    private void setUserInfoFromToken(HttpServletRequest request) {
+        String authHeader = request.getHeader(jwtConfig.getHeader());
+        String token = jwtUtils.getTokenFromHeader(authHeader);
+        
+        if (token != null) {
+            if (jwtUtils.validateToken(token)) {
+                Long userId = jwtUtils.getUserIdFromToken(token);
+                String username = jwtUtils.getUsernameFromToken(token);
+                
+                UserContext.setUserId(userId);
+                UserContext.setUsername(username);
+            } else {
+                throw new AuthException(AuthResultCode.TOKEN_INVALID);
+            }
         }
     }
 
