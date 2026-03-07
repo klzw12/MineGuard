@@ -1,0 +1,13 @@
+C:\Users\31783\Desktop\MineGuard\backend\mineguard-common-auth\src\test\java\com\klzw\common\auth\aspect\PermissionAspectTest.java
+C:\Users\31783\Desktop\MineGuard\backend\mineguard-common-auth\src\test\java\com\klzw\common\auth\context\UserContextTest.java
+C:\Users\31783\Desktop\MineGuard\backend\mineguard-common-auth\src\test\java\com\klzw\common\auth\exception\AuthExceptionTest.java
+C:\Users\31783\Desktop\MineGuard\backend\mineguard-common-auth\src\test\java\com\klzw\common\auth\filter\JwtAuthenticationFilterTest.java
+C:\Users\31783\Desktop\MineGuard\backend\mineguard-common-auth\src\test\java\com\klzw\common\auth\handler\AuthExceptionHandlerStrategyTest.java
+C:\Users\31783\Desktop\MineGuard\backend\mineguard-common-auth\src\test\java\com\klzw\common\auth\TestAuthApplication.java
+C:\Users\31783\Desktop\MineGuard\backend\mineguard-common-auth\src\test\java\com\klzw\common\auth\util\JwtUtilsRedisIntegrationTest.java
+C:\Users\31783\Desktop\MineGuard\backend\mineguard-common-auth\src\test\java\com\klzw\common\auth\util\JwtUtilsRedisTest.java
+C:\Users\31783\Desktop\MineGuard\backend\mineguard-common-auth\src\test\java\com\klzw\common\auth\util\JwtUtilsTest.java
+C:\Users\31783\Desktop\MineGuard\backend\mineguard-common-auth\src\test\java\com\klzw\common\auth\util\PasswordUtilsTest.java
+C:\Users\31783\Desktop\MineGuard\backend\mineguard-common-auth\src\test\java\com\klzw\common\auth\util\PermissionUtilsRedisIntegrationTest.java
+C:\Users\31783\Desktop\MineGuard\backend\mineguard-common-auth\src\test\java\com\klzw\common\auth\util\PermissionUtilsRedisTest.java
+C:\Users\31783\Desktop\MineGuard\backend\mineguard-common-auth\src\test\java\com\klzw\common\auth\util\PermissionUtilsTest.java

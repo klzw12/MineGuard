@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.klzw.common.auth.aspect.PermissionAspectTest
+-------------------------------------------------------------------------------
+Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.779 s -- in com.klzw.common.auth.aspect.PermissionAspectTest

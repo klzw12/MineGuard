@@ -1,0 +1,13 @@
+com\klzw\common\auth\util\PermissionUtilsRedisIntegrationTest.class
+com\klzw\common\auth\aspect\PermissionAspectTest.class
+com\klzw\common\auth\util\PermissionUtilsRedisTest.class
+com\klzw\common\auth\util\PasswordUtilsTest.class
+com\klzw\common\auth\filter\JwtAuthenticationFilterTest.class
+com\klzw\common\auth\context\UserContextTest.class
+com\klzw\common\auth\exception\AuthExceptionTest.class
+com\klzw\common\auth\util\PermissionUtilsTest.class
+com\klzw\common\auth\util\JwtUtilsRedisIntegrationTest.class
+com\klzw\common\auth\handler\AuthExceptionHandlerStrategyTest.class
+com\klzw\common\auth\util\JwtUtilsTest.class
+com\klzw\common\auth\util\JwtUtilsRedisTest.class
+com\klzw\common\auth\TestAuthApplication.class
