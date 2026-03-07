@@ -1,0 +1,659 @@
+<template>
+	<view class="admin-container">
+		<AdminSidebar />
+		
+		<view class="admin-content">
+			<view class="header-section">
+				<text class="page-title">用户管理</text>
+			</view>
+			
+			<view class="search-filter-section">
+				<view class="search-bar">
+					<text class="search-icon">🔍</text>
+					<input 
+						type="text" 
+						v-model="searchKeyword" 
+						placeholder="搜索用户名或姓名" 
+						placeholder-style="color: #999"
+						@confirm="handleSearch"
+					/>
+				</view>
+				<view class="filter-buttons">
+					<view 
+						class="filter-btn" 
+						:class="{ active: statusFilter === null }"
+						@click="setStatusFilter(null)"
+					>
+						<text>全部</text>
+					</view>
+					<view 
+						class="filter-btn" 
+						:class="{ active: statusFilter === 1 }"
+						@click="setStatusFilter(1)"
+					>
+						<text>启用</text>
+					</view>
+					<view 
+						class="filter-btn" 
+						:class="{ active: statusFilter === 0 }"
+						@click="setStatusFilter(0)"
+					>
+						<text>禁用</text>
+					</view>
+				</view>
+			</view>
+			
+			<view class="user-list-section">
+				<text class="section-title">用户列表</text>
+				
+				<view v-if="loading" class="loading-container">
+					<text class="loading-text">加载中...</text>
+				</view>
+				
+				<view v-else-if="userList.length === 0" class="empty-container">
+					<text class="empty-text">暂无用户数据</text>
+				</view>
+				
+				<view v-else class="user-list">
+					<view class="user-item" v-for="user in userList" :key="user.id">
+						<view class="user-info">
+							<text class="user-name">{{ user.realName || user.username }}</text>
+							<text class="user-account">账号：{{ user.username }}</text>
+							<text class="user-phone" v-if="user.phone">手机：{{ user.phone }}</text>
+							<text class="user-email" v-if="user.email">邮箱：{{ user.email }}</text>
+						</view>
+						<view class="user-actions">
+							<view 
+								class="user-status" 
+								:class="user.status === 1 ? 'enabled' : 'disabled'"
+							>
+								<text class="status-dot"></text>
+								<text class="status-text">{{ user.status === 1 ? '启用' : '禁用' }}</text>
+							</view>
+							<view class="action-btns">
+								<view class="action-btn" @click="showRoleModal(user)">
+									<text>分配角色</text>
+								</view>
+								<view 
+									class="action-btn" 
+									:class="user.status === 1 ? 'danger' : 'success'"
+									@click="toggleUserStatus(user)"
+								>
+									<text>{{ user.status === 1 ? '禁用' : '启用' }}</text>
+								</view>
+							</view>
+						</view>
+					</view>
+				</view>
+			</view>
+			
+			<view class="pagination" v-if="total > 0">
+				<view class="page-btn" :class="{ disabled: pageNum <= 1 }" @click="prevPage">
+					<text>上一页</text>
+				</view>
+				<text class="page-info">第 {{ pageNum }} / {{ totalPages }} 页</text>
+				<view class="page-btn" :class="{ disabled: pageNum >= totalPages }" @click="nextPage">
+					<text>下一页</text>
+				</view>
+			</view>
+			
+			<view class="action-buttons">
+				<view class="primary-btn" @click="refreshList">
+					<text>刷新列表</text>
+				</view>
+			</view>
+		</view>
+		
+		<view v-if="roleModalVisible" class="modal-overlay" @click="closeRoleModal">
+			<view class="modal-content" @click.stop>
+				<text class="modal-title">分配角色</text>
+				<text class="modal-subtitle">用户：{{ selectedUser?.username }}</text>
+				
+				<view class="role-list">
+					<view 
+						class="role-item" 
+						v-for="role in roleList" 
+						:key="role.id"
+						:class="{ selected: selectedRoleIds.includes(role.id) }"
+						@click="toggleRole(role.id)"
+					>
+						<text class="role-name">{{ role.roleName }}</text>
+						<text class="role-code">{{ role.roleCode }}</text>
+					</view>
+				</view>
+				
+				<view class="modal-actions">
+					<view class="modal-btn cancel" @click="closeRoleModal">
+						<text>取消</text>
+					</view>
+					<view class="modal-btn confirm" @click="confirmAssignRoles">
+						<text>确认</text>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref, computed, onMounted } from 'vue'
+	import AdminSidebar from '../../../components/AdminSidebar.uvue'
+	import { pageUsers, disableUser, enableUser, assignRoles, getUserRoles, getAllRoles } from '@/api/user.uts'
+	import type { UserVO, RoleVO, PageResult } from '@/types/user.uts'
+	
+	const loading = ref(false)
+	const searchKeyword = ref('')
+	const statusFilter = ref<number | null>(null)
+	const pageNum = ref(1)
+	const pageSize = ref(10)
+	const total = ref(0)
+	const userList = ref<UserVO[]>([])
+	
+	const roleModalVisible = ref(false)
+	const selectedUser = ref<UserVO | null>(null)
+	const roleList = ref<RoleVO[]>([])
+	const selectedRoleIds = ref<string[]>([])
+	
+	const totalPages = computed(() => {
+		return Math.ceil(total.value / pageSize.value) || 1
+	})
+	
+	async function loadUsers() {
+		loading.value = true
+		try {
+			const result: PageResult<UserVO> = await pageUsers({
+				pageNum: pageNum.value,
+				pageSize: pageSize.value,
+				username: searchKeyword.value || undefined,
+				status: statusFilter.value ?? undefined
+			})
+			userList.value = result.records
+			total.value = result.total
+		} catch (e: any) {
+			uni.showToast({
+				title: e.message || '加载失败',
+				icon: 'none',
+				position: 'bottom'
+			})
+		} finally {
+			loading.value = false
+		}
+	}
+	
+	async function loadRoles() {
+		try {
+			roleList.value = await getAllRoles()
+		} catch (e) {
+			console.error('加载角色列表失败', e)
+		}
+	}
+	
+	function setStatusFilter(status: number | null) {
+		statusFilter.value = status
+		pageNum.value = 1
+		loadUsers()
+	}
+	
+	function handleSearch() {
+		pageNum.value = 1
+		loadUsers()
+	}
+	
+	function refreshList() {
+		loadUsers()
+	}
+	
+	function prevPage() {
+		if (pageNum.value > 1) {
+			pageNum.value--
+			loadUsers()
+		}
+	}
+	
+	function nextPage() {
+		if (pageNum.value < totalPages.value) {
+			pageNum.value++
+			loadUsers()
+		}
+	}
+	
+	async function toggleUserStatus(user: UserVO) {
+		try {
+			if (user.status === 1) {
+				await disableUser(user.id)
+				uni.showToast({
+					title: '已禁用',
+					icon: 'success',
+					position: 'bottom'
+				})
+			} else {
+				await enableUser(user.id)
+				uni.showToast({
+					title: '已启用',
+					icon: 'success',
+					position: 'bottom'
+				})
+			}
+			loadUsers()
+		} catch (e: any) {
+			uni.showToast({
+				title: e.message || '操作失败',
+				icon: 'none',
+				position: 'bottom'
+			})
+		}
+	}
+	
+	async function showRoleModal(user: UserVO) {
+		selectedUser.value = user
+		roleModalVisible.value = true
+		
+		if (roleList.value.length === 0) {
+			await loadRoles()
+		}
+		
+		try {
+			const userRoles = await getUserRoles(user.id)
+			selectedRoleIds.value = roleList.value
+				.filter((role: RoleVO) => userRoles.includes(role.roleCode))
+				.map((role: RoleVO) => role.id)
+		} catch (e) {
+			selectedRoleIds.value = []
+		}
+	}
+	
+	function closeRoleModal() {
+		roleModalVisible.value = false
+		selectedUser.value = null
+		selectedRoleIds.value = []
+	}
+	
+	function toggleRole(roleId: string) {
+		const index = selectedRoleIds.value.indexOf(roleId)
+		if (index > -1) {
+			selectedRoleIds.value.splice(index, 1)
+		} else {
+			selectedRoleIds.value.push(roleId)
+		}
+	}
+	
+	async function confirmAssignRoles() {
+		if (!selectedUser.value) return
+		
+		try {
+			await assignRoles(selectedUser.value.id, { roleIds: selectedRoleIds.value })
+			uni.showToast({
+				title: '分配成功',
+				icon: 'success',
+				position: 'bottom'
+			})
+			closeRoleModal()
+			loadUsers()
+		} catch (e: any) {
+			uni.showToast({
+				title: e.message || '分配失败',
+				icon: 'none',
+				position: 'bottom'
+			})
+		}
+	}
+	
+	onMounted(() => {
+		loadUsers()
+	})
+</script>
+
+<style lang="scss">
+	.admin-container {
+		display: flex;
+		flex-direction: row;
+		min-height: 100vh;
+		background-color: #f5f5f5;
+	}
+	
+	.admin-content {
+		flex: 1;
+		margin-left: 240rpx;
+		padding: 40rpx;
+		box-sizing: border-box;
+		min-height: 100vh;
+	}
+	
+	.header-section {
+		margin-bottom: 30rpx;
+	}
+	
+	.page-title {
+		font-size: 32rpx;
+		font-weight: bold;
+		color: #0056b3;
+	}
+	
+	.search-filter-section {
+		margin-bottom: 40rpx;
+	}
+	
+	.search-bar {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		background-color: #fff;
+		border-radius: 15rpx;
+		padding: 20rpx;
+		margin-bottom: 20rpx;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+	}
+	
+	.search-icon {
+		margin-right: 15rpx;
+		font-size: 24rpx;
+		color: #999;
+	}
+	
+	.search-bar input {
+		flex: 1;
+		font-size: 28rpx;
+		color: #333;
+	}
+	
+	.filter-buttons {
+		display: flex;
+		flex-direction: row;
+		gap: 15rpx;
+	}
+	
+	.filter-btn {
+		flex: 1;
+		padding: 15rpx;
+		background-color: #fff;
+		border-radius: 15rpx;
+		font-size: 24rpx;
+		color: #666;
+		text-align: center;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+	}
+	
+	.filter-btn.active {
+		background-color: #007AFF;
+		color: #fff;
+	}
+	
+	.user-list-section {
+		margin-bottom: 30rpx;
+	}
+	
+	.section-title {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #0056b3;
+		margin-bottom: 20rpx;
+	}
+	
+	.loading-container,
+	.empty-container {
+		padding: 80rpx;
+		text-align: center;
+		background-color: #fff;
+		border-radius: 20rpx;
+	}
+	
+	.loading-text,
+	.empty-text {
+		font-size: 28rpx;
+		color: #999;
+	}
+	
+	.user-list {
+		background-color: #fff;
+		border-radius: 20rpx;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+	}
+	
+	.user-item {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 30rpx;
+		border-bottom: 1rpx solid #f0f0f0;
+	}
+	
+	.user-item:last-child {
+		border-bottom: none;
+	}
+	
+	.user-info {
+		flex: 1;
+	}
+	
+	.user-name {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #333;
+		margin-bottom: 8rpx;
+		display: block;
+	}
+	
+	.user-account,
+	.user-phone,
+	.user-email {
+		font-size: 22rpx;
+		color: #999;
+		margin-bottom: 4rpx;
+		display: block;
+	}
+	
+	.user-actions {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 15rpx;
+	}
+	
+	.user-status {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 8rpx 20rpx;
+		border-radius: 20rpx;
+	}
+	
+	.user-status.enabled {
+		background-color: #34C759;
+		color: #fff;
+	}
+	
+	.user-status.disabled {
+		background-color: #999;
+		color: #fff;
+	}
+	
+	.status-dot {
+		width: 12rpx;
+		height: 12rpx;
+		border-radius: 50%;
+		background-color: currentColor;
+		margin-right: 8rpx;
+	}
+	
+	.status-text {
+		font-size: 22rpx;
+	}
+	
+	.action-btns {
+		display: flex;
+		flex-direction: row;
+		gap: 15rpx;
+	}
+	
+	.action-btn {
+		padding: 10rpx 20rpx;
+		background-color: #007AFF;
+		color: #fff;
+		font-size: 22rpx;
+		border-radius: 10rpx;
+	}
+	
+	.action-btn.danger {
+		background-color: #FF3B30;
+	}
+	
+	.action-btn.success {
+		background-color: #34C759;
+	}
+	
+	.pagination {
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		gap: 30rpx;
+		margin-bottom: 30rpx;
+	}
+	
+	.page-btn {
+		padding: 15rpx 30rpx;
+		background-color: #fff;
+		border-radius: 10rpx;
+		font-size: 24rpx;
+		color: #007AFF;
+	}
+	
+	.page-btn.disabled {
+		color: #ccc;
+	}
+	
+	.page-info {
+		font-size: 24rpx;
+		color: #666;
+	}
+	
+	.action-buttons {
+		display: flex;
+		flex-direction: row;
+		gap: 20rpx;
+		padding: 30rpx;
+		background-color: #fff;
+		border-radius: 15rpx;
+		box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+	}
+	
+	.primary-btn {
+		flex: 1;
+		padding: 25rpx;
+		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+		color: #fff;
+		font-size: 28rpx;
+		font-weight: bold;
+		border-radius: 15rpx;
+		text-align: center;
+		box-shadow: 0 4rpx 20rpx rgba(0, 122, 255, 0.3);
+	}
+	
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+	}
+	
+	.modal-content {
+		width: 80%;
+		max-width: 600rpx;
+		background-color: #fff;
+		border-radius: 20rpx;
+		padding: 40rpx;
+	}
+	
+	.modal-title {
+		font-size: 32rpx;
+		font-weight: bold;
+		color: #333;
+		margin-bottom: 10rpx;
+		display: block;
+	}
+	
+	.modal-subtitle {
+		font-size: 24rpx;
+		color: #999;
+		margin-bottom: 30rpx;
+		display: block;
+	}
+	
+	.role-list {
+		max-height: 500rpx;
+		overflow-y: auto;
+	}
+	
+	.role-item {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 25rpx;
+		margin-bottom: 15rpx;
+		background-color: #f5f5f5;
+		border-radius: 10rpx;
+		border: 2rpx solid transparent;
+	}
+	
+	.role-item.selected {
+		background-color: rgba(0, 122, 255, 0.1);
+		border-color: #007AFF;
+	}
+	
+	.role-name {
+		font-size: 28rpx;
+		color: #333;
+	}
+	
+	.role-code {
+		font-size: 22rpx;
+		color: #999;
+	}
+	
+	.modal-actions {
+		display: flex;
+		flex-direction: row;
+		gap: 20rpx;
+		margin-top: 30rpx;
+	}
+	
+	.modal-btn {
+		flex: 1;
+		padding: 25rpx;
+		border-radius: 10rpx;
+		text-align: center;
+		font-size: 28rpx;
+	}
+	
+	.modal-btn.cancel {
+		background-color: #f5f5f5;
+		color: #666;
+	}
+	
+	.modal-btn.confirm {
+		background-color: #007AFF;
+		color: #fff;
+	}
+	
+	@media (max-width: 768px) {
+		.admin-content {
+			margin-left: 200rpx;
+			padding: 30rpx;
+		}
+	}
+	
+	@media (min-width: 1024px) {
+		.admin-content {
+			padding: 50rpx;
+		}
+	}
+</style>

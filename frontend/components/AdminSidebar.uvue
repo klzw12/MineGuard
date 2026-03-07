@@ -34,6 +34,14 @@
 			</view>
 			<view 
 				class="sidebar-item" 
+				:class="{ active: currentPath === '/pages/admin/user/index' }" 
+				@click="navigateTo('/pages/admin/user/index')"
+			>
+				<text class="sidebar-icon">👥</text>
+				<text class="sidebar-text">用户管理</text>
+			</view>
+			<view 
+				class="sidebar-item" 
 				:class="{ active: currentPath === '/pages/admin/monitor/index' }" 
 				@click="navigateTo('/pages/admin/monitor/index')"
 			>
@@ -73,7 +81,9 @@
 
 <script setup lang="uts">
 	import { ref, onMounted } from 'vue'
+	import { useUserStore } from '@/stores/user.uts'
 	
+	const userStore = useUserStore()
 	const currentPath = ref('')
 	
 	onMounted(() => {
@@ -104,13 +114,9 @@
 			content: '确定要退出登录吗？',
 			confirmText: '确定',
 			cancelText: '取消',
-			success: (res) => {
+			success: async (res) => {
 				if (res.confirm) {
-					// 清除登录状态
-					uni.removeStorageSync('loginStatus')
-					uni.removeStorageSync('userRole')
-					uni.removeStorageSync('userInfo')
-					// 跳转到登录页面
+					await userStore.logout()
 					uni.redirectTo({
 						url: '/pages/auth/login'
 					})

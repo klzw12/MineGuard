@@ -132,6 +132,7 @@
         <module>mineguard-common-websocket</module>
         <module>mineguard-common-file</module>
         <module>mineguard-common-map</module>
+        <module>mineguard-service-user</module>
     </modules>
 
     <dependencyManagement>

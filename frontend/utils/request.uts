@@ -1,0 +1,111 @@
+const BASE_URL = 'http://localhost:8080'
+
+type RequestOptions = {
+  url: string
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  data?: any
+  header?: Record<string, string>
+  showLoading?: boolean
+  showError?: boolean
+}
+
+type ApiResponse<T = any> = {
+  code: number
+  message: string
+  data: T
+}
+
+function getToken(): string {
+  return uni.getStorageSync('token') || ''
+}
+
+function setToken(token: string): void {
+  uni.setStorageSync('token', token)
+}
+
+function removeToken(): void {
+  uni.removeStorageSync('token')
+}
+
+function request<T = any>(options: RequestOptions): Promise<T> {
+  const { url, method = 'GET', data, header = {}, showLoading = true, showError = true } = options
+  
+  if (showLoading) {
+    uni.showLoading({ title: '加载中...', mask: true })
+  }
+  
+  const token = getToken()
+  if (token) {
+    header['Authorization'] = `Bearer ${token}`
+  }
+  header['Content-Type'] = 'application/json'
+  
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: BASE_URL + url,
+      method,
+      data,
+      header,
+      success: (res) => {
+        if (showLoading) {
+          uni.hideLoading()
+        }
+        
+        const response = res.data as ApiResponse<T>
+        
+        if (response.code === 200) {
+          resolve(response.data)
+        } else if (response.code === 401) {
+          removeToken()
+          uni.removeStorageSync('userInfo')
+          uni.removeStorageSync('loginStatus')
+          uni.removeStorageSync('userRole')
+          uni.navigateTo({ url: '/pages/auth/login' })
+          reject(new Error('登录已过期，请重新登录'))
+        } else {
+          if (showError) {
+            uni.showToast({
+              title: response.message || '请求失败',
+              icon: 'none',
+              position: 'bottom'
+            })
+          }
+          reject(new Error(response.message || '请求失败'))
+        }
+      },
+      fail: (err) => {
+        if (showLoading) {
+          uni.hideLoading()
+        }
+        if (showError) {
+          uni.showToast({
+            title: '网络请求失败',
+            icon: 'none',
+            position: 'bottom'
+          })
+        }
+        reject(err)
+      }
+    })
+  })
+}
+
+export const http = {
+  get<T = any>(url: string, data?: any, options?: Partial<RequestOptions>): Promise<T> {
+    return request<T>({ url, method: 'GET', data, ...options })
+  },
+  
+  post<T = any>(url: string, data?: any, options?: Partial<RequestOptions>): Promise<T> {
+    return request<T>({ url, method: 'POST', data, ...options })
+  },
+  
+  put<T = any>(url: string, data?: any, options?: Partial<RequestOptions>): Promise<T> {
+    return request<T>({ url, method: 'PUT', data, ...options })
+  },
+  
+  delete<T = any>(url: string, data?: any, options?: Partial<RequestOptions>): Promise<T> {
+    return request<T>({ url, method: 'DELETE', data, ...options })
+  }
+}
+
+export { getToken, setToken, removeToken }

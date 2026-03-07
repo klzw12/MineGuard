@@ -1,0 +1,78 @@
+export type UserVO = {
+  id: string
+  username: string
+  realName: string
+  phone: string
+  email: string
+  avatar: string
+  status: number
+  userType: number
+  createTime: string
+  updateTime: string
+  roles: string[]
+}
+
+export type LoginVO = {
+  accessToken: string
+  refreshToken: string
+  tokenType: string
+  expiresIn: number
+  user: UserVO
+}
+
+export type CaptchaVO = {
+  captchaKey: string
+  captchaImage: string
+}
+
+export type UserLoginDTO = {
+  username: string
+  password: string
+  captchaKey?: string
+  captchaCode?: string
+}
+
+export type UserRegisterDTO = {
+  username: string
+  password: string
+  realName: string
+  phone?: string
+  email?: string
+}
+
+export type UserUpdateDTO = {
+  realName?: string
+  phone?: string
+  email?: string
+  avatar?: string
+}
+
+export type PasswordUpdateDTO = {
+  oldPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
+export type RefreshTokenDTO = {
+  refreshToken: string
+}
+
+export type RoleVO = {
+  id: string
+  roleCode: string
+  roleName: string
+  description: string
+  createTime: string
+}
+
+export type AssignRoleDTO = {
+  roleIds: string[]
+}
+
+export type PageResult<T> = {
+  records: T[]
+  total: number
+  size: number
+  current: number
+  pages: number
+}

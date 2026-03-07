@@ -1,0 +1,86 @@
+import { ref } from 'vue'
+import type { UserVO } from '@/types/user.uts'
+import { setToken, removeToken } from '@/utils/request.uts'
+import * as authApi from '@/api/auth.uts'
+import * as userApi from '@/api/user.uts'
+
+const userInfo = ref<UserVO | null>(null)
+const isLoggedIn = ref<boolean>(false)
+const userRole = ref<string>('user')
+
+function setUserInfo(user: UserVO | null) {
+  userInfo.value = user
+  isLoggedIn.value = user !== null
+  
+  if (user && user.roles && user.roles.length > 0) {
+    if (user.roles.includes('ROLE_ADMIN')) {
+      userRole.value = 'admin'
+    } else {
+      userRole.value = 'user'
+    }
+  }
+  
+  if (user) {
+    uni.setStorageSync('userInfo', user)
+    uni.setStorageSync('loginStatus', true)
+    uni.setStorageSync('userRole', userRole.value)
+  } else {
+    uni.removeStorageSync('userInfo')
+    uni.removeStorageSync('loginStatus')
+    uni.removeStorageSync('userRole')
+  }
+}
+
+function loadFromStorage() {
+  const storedUserInfo = uni.getStorageSync('userInfo')
+  const storedLoginStatus = uni.getStorageSync('loginStatus')
+  const storedUserRole = uni.getStorageSync('userRole')
+  
+  if (storedUserInfo && storedLoginStatus) {
+    userInfo.value = storedUserInfo as UserVO
+    isLoggedIn.value = storedLoginStatus as boolean
+    userRole.value = storedUserRole as string || 'user'
+  }
+}
+
+async function login(username: string, password: string): Promise<void> {
+  const loginVO = await authApi.login({ username, password })
+  
+  setToken(loginVO.accessToken)
+  setUserInfo(loginVO.user)
+}
+
+async function logout(): Promise<void> {
+  try {
+    await authApi.logout()
+  } catch (e) {
+    console.error('Logout API failed:', e)
+  } finally {
+    removeToken()
+    setUserInfo(null)
+  }
+}
+
+async function fetchCurrentUser(): Promise<void> {
+  try {
+    const user = await userApi.getCurrentUser()
+    setUserInfo(user)
+  } catch (e) {
+    console.error('Fetch current user failed:', e)
+    removeToken()
+    setUserInfo(null)
+  }
+}
+
+export function useUserStore() {
+  return {
+    userInfo,
+    isLoggedIn,
+    userRole,
+    setUserInfo,
+    loadFromStorage,
+    login,
+    logout,
+    fetchCurrentUser
+  }
+}

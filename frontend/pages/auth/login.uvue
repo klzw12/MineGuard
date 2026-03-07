@@ -66,39 +66,39 @@
 
 <script setup lang="uts">
 	import { ref, reactive } from 'vue'
+	import { useUserStore } from '@/stores/user.uts'
+	
+	const userStore = useUserStore()
 	
 	const username = ref('')
 	const password = ref('')
-	const userType = ref('user') // 默认用户端
+	const userType = ref('user')
 	const isLoading = ref(false)
 	const errors = reactive({
 		username: '',
 		password: ''
 	})
 	
-	function selectUserType(type) {
+	function selectUserType(type: string) {
 		userType.value = type
 	}
 	
-	function clearError(field) {
+	function clearError(field: string) {
 		errors[field] = ''
 	}
 	
-	function validateForm() {
+	function validateForm(): boolean {
 		let isValid = true
 		
-		// 重置错误信息
-		Object.keys(errors).forEach(key => {
+		Object.keys(errors).forEach((key: string) => {
 			errors[key] = ''
 		})
 		
-		// 验证账号
 		if (!username.value.trim()) {
 			errors.username = '请输入账号'
 			isValid = false
 		}
 		
-		// 验证密码
 		if (!password.value.trim()) {
 			errors.password = '请输入密码'
 			isValid = false
@@ -110,53 +110,45 @@
 		return isValid
 	}
 	
-	function handleLogin() {
-		// 表单验证
+	async function handleLogin() {
 		if (!validateForm()) {
 			return
 		}
 		
-		// 显示加载状态
 		isLoading.value = true
 		
-		// 模拟登录请求
-		setTimeout(() => {
-			// 隐藏加载状态
-			isLoading.value = false
+		try {
+			await userStore.login(username.value, password.value)
 			
-			// 显示登录成功提示
 			uni.showToast({
 				title: '登录成功',
 				icon: 'success',
 				position: 'bottom'
 			})
 			
-			// 存储登录状态和用户类型
-			uni.setStorageSync('loginStatus', true)
-			uni.setStorageSync('userRole', userType.value)
-			uni.setStorageSync('userInfo', {
-				name: username.value,
-				role: userType.value === 'admin' ? '管理员' : '司机',
-				id: 'U' + Math.floor(Math.random() * 1000000)
-			})
-			
-			// 根据用户类型跳转到对应首页
 			setTimeout(() => {
-				if (userType.value === 'admin') {
+				if (userStore.userRole.value === 'admin') {
 					uni.redirectTo({
 						url: '/pages/admin/home/index'
 					})
-				} else if (userType.value === 'user') {
+				} else {
 					uni.switchTab({
 						url: '/pages/user/home/index'
 					})
 				}
 			}, 1000)
-		}, 1500)
+		} catch (e: any) {
+			uni.showToast({
+				title: e.message || '登录失败',
+				icon: 'none',
+				position: 'bottom'
+			})
+		} finally {
+			isLoading.value = false
+		}
 	}
 	
 	function forgotPassword() {
-		// 跳转到忘记密码页面
 		uni.navigateTo({
 			url: '/pages/auth/reset-password'
 		})
@@ -211,7 +203,6 @@
 		animation: slideUp 0.8s ease-out forwards;
 	}
 	
-	/* 用户类型选择 */
 	.user-type-section {
 		margin-bottom: 40rpx;
 	}
@@ -338,7 +329,6 @@
 		color: $uni-text-color-grey;
 	}
 	
-	/* 动画效果 */
 	@keyframes fadeIn {
 		from {
 			opacity: 0;
@@ -361,7 +351,6 @@
 		}
 	}
 	
-	/* 响应式设计 */
 	@media (min-width: 768px) {
 		.login-container {
 			max-width: 600rpx;
@@ -382,7 +371,6 @@
 		}
 	}
 	
-	/* 小屏幕设备适配 */
 	@media (max-width: 375px) {
 		.login-container {
 			padding: 60rpx 30rpx 30rpx;

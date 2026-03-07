@@ -45,6 +45,7 @@
 			"pages/admin/home/index",
 			"pages/admin/vehicle/index",
 			"pages/admin/driver/index",
+			"pages/admin/user/index",
 			"pages/admin/monitor/index",
 			"pages/admin/report/index",
 			"pages/admin/profile/index"
@@ -104,6 +105,13 @@
 					"path": "driver/index",
 					"style": {
 						"navigationBarTitleText": "司机管理",
+						"navigationStyle": "default"
+					}
+				},
+				{
+					"path": "user/index",
+					"style": {
+						"navigationBarTitleText": "用户管理",
 						"navigationStyle": "default"
 					}
 				},

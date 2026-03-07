@@ -8,29 +8,90 @@
 		
 		<view class="form-section">
 			<view class="form-item">
-				<text class="label">账号</text>
-				<input class="input" type="text" v-model="username" placeholder="请输入账号" placeholder-style="color: #999" />
+				<text class="label">账号 <text class="required">*</text></text>
+				<input 
+					class="input" 
+					type="text" 
+					v-model="username" 
+					placeholder="请输入账号（4-20位字母或数字）" 
+					placeholder-style="color: #999"
+					@focus="clearError('username')"
+				/>
+				<text v-if="errors.username" class="error-text">{{ errors.username }}</text>
 			</view>
 			
 			<view class="form-item">
-				<text class="label">密码</text>
-				<input class="input" type="password" v-model="password" placeholder="请输入密码" placeholder-style="color: #999" />
+				<text class="label">真实姓名 <text class="required">*</text></text>
+				<input 
+					class="input" 
+					type="text" 
+					v-model="realName" 
+					placeholder="请输入真实姓名" 
+					placeholder-style="color: #999"
+					@focus="clearError('realName')"
+				/>
+				<text v-if="errors.realName" class="error-text">{{ errors.realName }}</text>
 			</view>
 			
 			<view class="form-item">
-				<text class="label">确认密码</text>
-				<input class="input" type="password" v-model="confirmPassword" placeholder="请再次输入密码" placeholder-style="color: #999" />
+				<text class="label">密码 <text class="required">*</text></text>
+				<input 
+					class="input" 
+					type="password" 
+					v-model="password" 
+					placeholder="请输入密码（至少6位）" 
+					placeholder-style="color: #999"
+					@focus="clearError('password')"
+				/>
+				<text v-if="errors.password" class="error-text">{{ errors.password }}</text>
+			</view>
+			
+			<view class="form-item">
+				<text class="label">确认密码 <text class="required">*</text></text>
+				<input 
+					class="input" 
+					type="password" 
+					v-model="confirmPassword" 
+					placeholder="请再次输入密码" 
+					placeholder-style="color: #999"
+					@focus="clearError('confirmPassword')"
+				/>
+				<text v-if="errors.confirmPassword" class="error-text">{{ errors.confirmPassword }}</text>
+			</view>
+			
+			<view class="form-item">
+				<text class="label">手机号</text>
+				<input 
+					class="input" 
+					type="number" 
+					v-model="phone" 
+					placeholder="请输入手机号（选填）" 
+					placeholder-style="color: #999"
+					@focus="clearError('phone')"
+				/>
+				<text v-if="errors.phone" class="error-text">{{ errors.phone }}</text>
 			</view>
 			
 			<view class="form-item">
 				<text class="label">邮箱</text>
-				<input class="input" type="email" v-model="email" placeholder="请输入邮箱" placeholder-style="color: #999" />
+				<input 
+					class="input" 
+					type="email" 
+					v-model="email" 
+					placeholder="请输入邮箱（选填）" 
+					placeholder-style="color: #999"
+					@focus="clearError('email')"
+				/>
+				<text v-if="errors.email" class="error-text">{{ errors.email }}</text>
 			</view>
 			
-			<button class="register-btn" @click="handleRegister">注册</button>
+			<button class="register-btn" @click="handleRegister" :disabled="isLoading">
+				<text v-if="!isLoading">注册</text>
+				<text v-else>注册中...</text>
+			</button>
 			
 			<view class="auth-links">
-				<navigator url="/pages/auth/login" class="link">已有账号？登录</navigator>
+				<navigator url="/pages/auth/login" class="link">已有账号？立即登录</navigator>
 			</view>
 		</view>
 		
@@ -41,87 +102,167 @@
 </template>
 
 <script setup lang="uts">
-	import { ref } from 'vue'
+	import { ref, reactive } from 'vue'
+	import { register } from '@/api/user.uts'
 	
 	const username = ref('')
+	const realName = ref('')
 	const password = ref('')
 	const confirmPassword = ref('')
+	const phone = ref('')
 	const email = ref('')
+	const isLoading = ref(false)
 	
-	function handleRegister() {
-		if (!username.value || !password.value || !confirmPassword.value || !email.value) {
-			uni.showToast({
-				title: '请填写完整信息',
-				icon: 'none',
-				position: 'bottom'
-			})
-			return
-		}
+	const errors = reactive({
+		username: '',
+		realName: '',
+		password: '',
+		confirmPassword: '',
+		phone: '',
+		email: ''
+	})
+	
+	function clearError(field: string) {
+		errors[field] = ''
+	}
+	
+	function validateForm(): boolean {
+		let isValid = true
 		
-		if (password.value !== confirmPassword.value) {
-			uni.showToast({
-				title: '两次输入的密码不一致',
-				icon: 'none',
-				position: 'bottom'
-			})
-			return
-		}
-		
-		// 模拟注册成功
-		uni.showToast({
-			title: '注册成功',
-			icon: 'success',
-			position: 'bottom'
+		Object.keys(errors).forEach((key: string) => {
+			errors[key] = ''
 		})
 		
-		// 跳转到登录页
-		setTimeout(() => {
-			uni.navigateTo({
-				url: '/pages/auth/login'
+		if (!username.value.trim()) {
+			errors.username = '请输入账号'
+			isValid = false
+		} else if (username.value.length < 4 || username.value.length > 20) {
+			errors.username = '账号长度为4-20位'
+			isValid = false
+		} else if (!/^[a-zA-Z0-9]+$/.test(username.value)) {
+			errors.username = '账号只能包含字母和数字'
+			isValid = false
+		}
+		
+		if (!realName.value.trim()) {
+			errors.realName = '请输入真实姓名'
+			isValid = false
+		}
+		
+		if (!password.value) {
+			errors.password = '请输入密码'
+			isValid = false
+		} else if (password.value.length < 6) {
+			errors.password = '密码长度至少6位'
+			isValid = false
+		}
+		
+		if (!confirmPassword.value) {
+			errors.confirmPassword = '请确认密码'
+			isValid = false
+		} else if (password.value !== confirmPassword.value) {
+			errors.confirmPassword = '两次输入的密码不一致'
+			isValid = false
+		}
+		
+		if (phone.value && !/^1[3-9]\d{9}$/.test(phone.value)) {
+			errors.phone = '请输入正确的手机号'
+			isValid = false
+		}
+		
+		if (email.value && !/^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$/.test(email.value)) {
+			errors.email = '请输入正确的邮箱格式'
+			isValid = false
+		}
+		
+		return isValid
+	}
+	
+	async function handleRegister() {
+		if (!validateForm()) {
+			return
+		}
+		
+		isLoading.value = true
+		
+		try {
+			await register({
+				username: username.value,
+				password: password.value,
+				realName: realName.value,
+				phone: phone.value || undefined,
+				email: email.value || undefined
 			})
-		}, 1000)
+			
+			uni.showToast({
+				title: '注册成功',
+				icon: 'success',
+				position: 'bottom'
+			})
+			
+			setTimeout(() => {
+				uni.navigateTo({
+					url: '/pages/auth/login'
+				})
+			}, 1000)
+		} catch (e: any) {
+			uni.showToast({
+				title: e.message || '注册失败',
+				icon: 'none',
+				position: 'bottom'
+			})
+		} finally {
+			isLoading.value = false
+		}
 	}
 </script>
 
-<style>
+<style lang="scss">
 	.register-container {
 		display: flex;
 		flex-direction: column;
 		min-height: 100vh;
-		padding: 80rpx 40rpx 40rpx;
+		padding: 60rpx 40rpx 40rpx;
 		box-sizing: border-box;
-		background-color: #f5f5f5;
+		background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
 	}
 	
 	.logo-section {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		margin-bottom: 60rpx;
+		margin-bottom: 40rpx;
+		animation: fadeIn 0.8s ease-out forwards;
 	}
 	
 	.logo {
 		width: 140rpx;
 		height: 140rpx;
 		margin-bottom: 20rpx;
-		border-radius: 20rpx;
+		border-radius: $uni-border-radius-xxl;
+		box-shadow: $uni-shadow-lg;
 	}
 	
 	.app-name {
 		font-size: 36rpx;
 		font-weight: bold;
-		color: #333;
+		color: $uni-color-primary;
 		margin-bottom: 10rpx;
 	}
 	
 	.slogan {
 		font-size: 24rpx;
-		color: #666;
+		color: $uni-text-color-grey;
 	}
 	
 	.form-section {
 		flex: 1;
 		width: 100%;
+		background-color: $uni-bg-color;
+		border-radius: $uni-border-radius-xxl;
+		padding: 40rpx;
+		box-shadow: $uni-shadow-lg;
+		animation: slideUp 0.8s ease-out forwards;
 	}
 	
 	.form-item {
@@ -131,58 +272,113 @@
 	.label {
 		display: block;
 		font-size: 24rpx;
-		color: #333;
+		color: $uni-text-color;
 		margin-bottom: 10rpx;
+	}
+	
+	.required {
+		color: $uni-color-error;
 	}
 	
 	.input {
 		width: 100%;
 		height: 80rpx;
-		background-color: #fff;
-		border-radius: 10rpx;
+		background-color: $uni-bg-color-grey;
+		border-radius: $uni-border-radius-lg;
 		padding: 0 30rpx;
 		box-sizing: border-box;
 		font-size: 28rpx;
-		border: 1rpx solid #e5e5e5;
+		border: 2rpx solid $uni-border-color;
+		transition: all 0.3s ease;
+	}
+	
+	.input:focus {
+		border-color: $uni-color-primary;
+		box-shadow: 0 0 0 4rpx rgba($uni-color-primary, 0.1);
+		background-color: $uni-bg-color;
+	}
+	
+	.error-text {
+		font-size: 20rpx;
+		color: $uni-color-error;
+		margin-top: 8rpx;
+		margin-left: 10rpx;
 	}
 	
 	.register-btn {
 		width: 100%;
 		height: 88rpx;
-		background-color: #007AFF;
-		color: #fff;
+		background: linear-gradient(135deg, $uni-color-primary 0%, darken($uni-color-primary, 15%) 100%);
+		color: $uni-text-color-inverse;
 		font-size: 32rpx;
 		font-weight: bold;
-		border-radius: 10rpx;
+		border-radius: $uni-border-radius-lg;
 		margin-top: 40rpx;
 		margin-bottom: 20rpx;
+		transition: all 0.3s ease;
+	}
+	
+	.register-btn:active:not(:disabled) {
+		transform: scale(0.98);
+		box-shadow: 0 2rpx 10rpx rgba($uni-color-primary, 0.3);
+	}
+	
+	.register-btn:disabled {
+		opacity: $uni-opacity-disabled;
 	}
 	
 	.auth-links {
-		ttext-align: center;
+		text-align: center;
 		font-size: 24rpx;
+		margin-top: 20rpx;
 	}
 	
 	.link {
-		color: #007AFF;
+		color: $uni-color-primary;
 	}
 	
 	.footer {
 		margin-top: 40rpx;
 		text-align: center;
+		animation: fadeIn 1s ease-out forwards;
 	}
 	
 	.copyright {
 		font-size: 20rpx;
-		color: #999;
+		color: $uni-text-color-grey;
 	}
 	
-	/* 响应式设计 */
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+			transform: translateY(20rpx);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	
+	@keyframes slideUp {
+		from {
+			opacity: 0;
+			transform: translateY(40rpx);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	
 	@media (min-width: 768px) {
 		.register-container {
 			max-width: 600rpx;
 			margin: 0 auto;
-			padding-top: 100rpx;
+			padding-top: 80rpx;
+		}
+		
+		.form-section {
+			padding: 50rpx;
 		}
 		
 		.form-item {
@@ -191,6 +387,31 @@
 		
 		.register-btn {
 			margin-top: 50rpx;
+		}
+	}
+	
+	@media (max-width: 375px) {
+		.register-container {
+			padding: 40rpx 30rpx 30rpx;
+		}
+		
+		.logo {
+			width: 120rpx;
+			height: 120rpx;
+		}
+		
+		.form-section {
+			padding: 30rpx;
+		}
+		
+		.input {
+			height: 70rpx;
+			font-size: 26rpx;
+		}
+		
+		.register-btn {
+			height: 78rpx;
+			font-size: 28rpx;
 		}
 	}
 </style>

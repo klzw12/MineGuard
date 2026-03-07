@@ -1,0 +1,20 @@
+import { http, setToken, removeToken } from '@/utils/request.uts'
+import type { LoginVO, CaptchaVO, UserLoginDTO, RefreshTokenDTO } from '@/types/user.uts'
+
+export function login(data: UserLoginDTO): Promise<LoginVO> {
+  return http.post<LoginVO>('/api/auth/login', data)
+}
+
+export function logout(): Promise<void> {
+  return http.post<void>('/api/auth/logout')
+}
+
+export function refreshToken(data: RefreshTokenDTO): Promise<LoginVO> {
+  return http.post<LoginVO>('/api/auth/refresh', data)
+}
+
+export function getCaptcha(): Promise<CaptchaVO> {
+  return http.get<CaptchaVO>('/api/auth/captcha')
+}
+
+export { setToken, removeToken }

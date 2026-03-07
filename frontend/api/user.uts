@@ -1,0 +1,55 @@
+import { http } from '@/utils/request.uts'
+import type { UserVO, UserRegisterDTO, UserUpdateDTO, PasswordUpdateDTO, PageResult, AssignRoleDTO, RoleVO } from '@/types/user.uts'
+
+export function register(data: UserRegisterDTO): Promise<UserVO> {
+  return http.post<UserVO>('/api/user/register', data)
+}
+
+export function getCurrentUser(): Promise<UserVO> {
+  return http.get<UserVO>('/api/user/current')
+}
+
+export function updateUser(id: string, data: UserUpdateDTO): Promise<UserVO> {
+  return http.put<UserVO>(`/api/user/${id}`, data)
+}
+
+export function updatePassword(data: PasswordUpdateDTO): Promise<void> {
+  return http.put<void>('/api/user/password', data)
+}
+
+export function pageUsers(params: {
+  pageNum?: number
+  pageSize?: number
+  username?: string
+  status?: number
+}): Promise<PageResult<UserVO>> {
+  return http.get<PageResult<UserVO>>('/api/user/page', params)
+}
+
+export function getUserById(id: string): Promise<UserVO> {
+  return http.get<UserVO>(`/api/user/${id}`)
+}
+
+export function disableUser(id: string): Promise<void> {
+  return http.put<void>(`/api/user/${id}/disable`)
+}
+
+export function enableUser(id: string): Promise<void> {
+  return http.put<void>(`/api/user/${id}/enable`)
+}
+
+export function assignRoles(userId: string, data: AssignRoleDTO): Promise<void> {
+  return http.post<void>(`/api/user/${userId}/roles`, data)
+}
+
+export function getUserRoles(userId: string): Promise<string[]> {
+  return http.get<string[]>(`/api/user/${userId}/roles`)
+}
+
+export function getAllRoles(): Promise<RoleVO[]> {
+  return http.get<RoleVO[]>('/api/role/list')
+}
+
+export function getRoleById(id: string): Promise<RoleVO> {
+  return http.get<RoleVO>(`/api/role/${id}`)
+}
