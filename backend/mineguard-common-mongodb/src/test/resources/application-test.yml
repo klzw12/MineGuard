@@ -1,0 +1,18 @@
+# 测试环境 MongoDB 配置
+# 用于单元测试和集成测试
+# 凭据来源: docs/Forenv/compose/docker-compose-test.yml
+
+spring:
+  mongodb:
+    host: ${MONGODB_HOST:192.168.110.128}
+    port: ${MONGODB_PORT:27018}
+    username: ${MONGODB_USERNAME:admin}
+    password: ${MONGODB_PASSWORD:mongodbadmin}
+    database: ${MONGODB_DATABASE:mineguard_test}
+    authentication-database: ${MONGODB_AUTH_DATABASE:admin}
+
+# 日志配置
+logging:
+  level:
+    com.klzw.common.mongodb: DEBUG
+    org.springframework.data.mongodb: INFO

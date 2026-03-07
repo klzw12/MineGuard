@@ -1,0 +1,134 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        # 用户服务
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/user/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: userServiceCircuitBreaker
+                fallbackUri: forward:/fallback
+        # 车辆服务
+        - id: vehicle-service
+          uri: lb://vehicle-service
+          predicates:
+            - Path=/api/vehicle/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: vehicleServiceCircuitBreaker
+                fallbackUri: forward:/fallback
+        # 行程服务
+        - id: trip-service
+          uri: lb://trip-service
+          predicates:
+            - Path=/api/trip/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: tripServiceCircuitBreaker
+                fallbackUri: forward:/fallback
+        # 预警服务
+        - id: warning-service
+          uri: lb://warning-service
+          predicates:
+            - Path=/api/warning/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: warningServiceCircuitBreaker
+                fallbackUri: forward:/fallback
+        # 统计服务
+        - id: statistics-service
+          uri: lb://statistics-service
+          predicates:
+            - Path=/api/statistics/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: statisticsServiceCircuitBreaker
+                fallbackUri: forward:/fallback
+        # 认证服务
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=2
+            - name: CircuitBreaker
+              args:
+                name: authServiceCircuitBreaker
+                fallbackUri: forward:/fallback
+  config:
+    import:
+      - optional:classpath:config/application-security.yml
+      - optional:classpath:config/application-monitor.yml
+
+# API文档配置
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: 用户服务
+        url: /api/user/v3/api-docs
+      - name: 车辆服务
+        url: /api/vehicle/v3/api-docs
+      - name: 行程服务
+        url: /api/trip/v3/api-docs
+      - name: 预警服务
+        url: /api/warning/v3/api-docs
+      - name: 统计服务
+        url: /api/statistics/v3/api-docs
+      - name: 认证服务
+        url: /api/auth/v3/api-docs
+
+# 熔断配置
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slowCallRateThreshold: 80
+        slowCallDurationThreshold: 1s
+    instances:
+      userServiceCircuitBreaker:
+        baseConfig: default
+      vehicleServiceCircuitBreaker:
+        baseConfig: default
+      tripServiceCircuitBreaker:
+        baseConfig: default
+      warningServiceCircuitBreaker:
+        baseConfig: default
+      statisticsServiceCircuitBreaker:
+        baseConfig: default
+      authServiceCircuitBreaker:
+        baseConfig: default
+
+# 网关配置
+mineguard:
+  gateway:
+    enable-rate-limit: ${GATEWAY_ENABLE_RATE_LIMIT:true}
+    enable-circuit-breaker: ${GATEWAY_ENABLE_CIRCUIT_BREAKER:true}
+    rate-limit-count: ${GATEWAY_RATE_LIMIT_COUNT:1000}
+    rate-limit-time: ${GATEWAY_RATE_LIMIT_TIME:60}

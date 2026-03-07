@@ -1,0 +1,249 @@
+package com.klzw.common.file.handler;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 模板OCR解析器
+ * 用于解析通用文字识别API返回的结果
+ */
+@Slf4j
+@Component
+public class TemplateOcrParser implements OcrParser {
+
+    /**
+     * 解析JSON字符串，提取words_result数组
+     * @param ocrResult OCR识别结果
+     * @return words_result数组，解析失败返回null
+     */
+    private JSONArray parseJson(String ocrResult) {
+        try {
+            JSONObject jsonObject = JSONObject.parseObject(ocrResult);
+            return jsonObject.getJSONArray("words_result");
+        } catch (Exception e) {
+            log.error("解析JSON失败: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
+     * 通用解析方法，根据关键字映射解析证件信息，支持不同格式的冒号
+     * @param ocrResult OCR识别结果
+     * @param keywordMap 关键字到结果键的映射
+     * @return 解析结果
+     */
+    private Map<String, String> parseWithKeywordMap(String ocrResult, Map<String, String> keywordMap) {
+        Map<String, String> result = new HashMap<>();
+        JSONArray wordsResult = parseJson(ocrResult);
+        if (wordsResult == null) {
+            return result;
+        }
+        
+        for (int i = 0; i < wordsResult.size(); i++) {
+            try {
+                JSONObject item = wordsResult.getJSONObject(i);
+                String words = item.getString("words");
+                
+                for (Map.Entry<String, String> entry : keywordMap.entrySet()) {
+                    String keyword = entry.getKey();
+                    String key = entry.getValue();
+                    
+                    // 尝试匹配不同格式
+                    String value = extractValue(words, keyword);
+                    if (value != null) {
+                        result.put(key, value);
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                log.error("解析条目失败: {}", e.getMessage(), e);
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * 从文本中提取值，支持不同格式的冒号
+     * @param text 原始文本
+     * @param keyword 关键字
+     * @return 提取的值，未找到返回null
+     */
+    private String extractValue(String text, String keyword) {
+        // 移除冒号后的关键字
+        String keywordWithoutColon = keyword.replaceAll("[：:]", "");
+        
+        // 尝试匹配原始关键字（包含冒号）
+        if (text.contains(keyword)) {
+            return text.replace(keyword, "").trim();
+        }
+        
+        // 尝试匹配英文冒号
+        String keywordWithEnglishColon = keywordWithoutColon + ":";
+        if (text.contains(keywordWithEnglishColon)) {
+            return text.replace(keywordWithEnglishColon, "").trim();
+        }
+        
+        // 尝试匹配无冒号的情况（关键字后面直接跟值）
+        if (text.startsWith(keywordWithoutColon)) {
+            return text.substring(keywordWithoutColon.length()).trim();
+        }
+        
+        return null;
+    }
+
+    @Override
+    public Map<String, String> parseIdCard(String ocrResult) {
+        Map<String, String> keywordMap = new HashMap<>();
+        keywordMap.put("姓名：", "name");
+        keywordMap.put("性别：", "gender");
+        keywordMap.put("民族：", "nation");
+        keywordMap.put("出生日期：", "birth");
+        keywordMap.put("住址：", "address");
+        keywordMap.put("公民身份号码", "idNumber");
+        return parseWithKeywordMap(ocrResult, keywordMap);
+    }
+
+    @Override
+    public Map<String, String> parseDrivingLicense(String ocrResult) {
+        Map<String, String> keywordMap = new HashMap<>();
+        keywordMap.put("姓名：", "name");
+        keywordMap.put("性别：", "gender");
+        keywordMap.put("国籍：", "nationality");
+        keywordMap.put("住址：", "address");
+        keywordMap.put("出生日期：", "birth");
+        keywordMap.put("初次领证日期：", "firstIssueDate");
+        keywordMap.put("准驾车型：", "准驾车型");
+        keywordMap.put("有效期限：", "validPeriod");
+        keywordMap.put("证号：", "licenseNumber");
+        return parseWithKeywordMap(ocrResult, keywordMap);
+    }
+
+    @Override
+    public Map<String, String> parseRepairCert(String ocrResult) {
+        Map<String, String> keywordMap = new HashMap<>();
+        keywordMap.put("证书编号：", "certificateNumber");
+        keywordMap.put("姓名：", "name");
+        keywordMap.put("身份证号：", "idNumber");
+        keywordMap.put("资格等级：", "level");
+        keywordMap.put("维修类别：", "category");
+        keywordMap.put("发证日期：", "issueDate");
+        keywordMap.put("有效期至：", "validUntil");
+        return parseWithKeywordMap(ocrResult, keywordMap);
+    }
+
+    @Override
+    public Map<String, String> parseEmergencyCert(String ocrResult) {
+        Map<String, String> keywordMap = new HashMap<>();
+        keywordMap.put("证书编号：", "certificateNumber");
+        keywordMap.put("持证人姓名：", "name");
+        keywordMap.put("身份证号：", "idNumber");
+        keywordMap.put("培训项目：", "trainingItem");
+        keywordMap.put("有效期：", "validPeriod");
+        return parseWithKeywordMap(ocrResult, keywordMap);
+    }
+
+    @Override
+    public Map<String, String> parseLicensePlate(String ocrResult) {
+        Map<String, String> result = new HashMap<>();
+        JSONArray wordsResult = parseJson(ocrResult);
+        if (wordsResult == null) {
+            return result;
+        }
+        
+        for (int i = 0; i < wordsResult.size(); i++) {
+            try {
+                JSONObject item = wordsResult.getJSONObject(i);
+                String words = item.getString("words");
+                
+                // 提取车牌号码
+                if (words.matches("[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领A-Z0-9]{5,10}")) {
+                    result.put("plateNumber", words.trim());
+                }
+            } catch (Exception e) {
+                log.error("解析车牌条目失败: {}", e.getMessage(), e);
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public Map<String, String> parseVehicleLicenseFront(String ocrResult) {
+        Map<String, String> keywordMap = new HashMap<>();
+        keywordMap.put("号牌号码：", "plateNumber");
+        keywordMap.put("所有人：", "owner");
+        keywordMap.put("住址：", "address");
+        keywordMap.put("品牌型号：", "brandModel");
+        keywordMap.put("车辆型号：", "vehicleModel");
+        keywordMap.put("发动机号：", "engineNumber");
+        keywordMap.put("车辆识别代号：", "vin");
+        keywordMap.put("使用性质：", "useNature");
+        keywordMap.put("注册日期：", "registerDate");
+        keywordMap.put("发证日期：", "issueDate");
+        return parseWithKeywordMap(ocrResult, keywordMap);
+    }
+
+    @Override
+    public Map<String, String> parseVehicleLicenseBack(String ocrResult) {
+        Map<String, String> keywordMap = new HashMap<>();
+        keywordMap.put("核定载人数：", "seatingCapacity");
+        keywordMap.put("总质量：", "totalMass");
+        keywordMap.put("整备质量：", "curbWeight");
+        keywordMap.put("核定载质量：", "ratedLoad");
+        keywordMap.put("外廓尺寸：", "dimensions");
+        keywordMap.put("备注：", "remarks");
+        keywordMap.put("检验记录：", "inspectionRecord");
+        return parseWithKeywordMap(ocrResult, keywordMap);
+    }
+
+    @Override
+    public Map<String, String> parseGeneral(String ocrResult) {
+        Map<String, String> result = new HashMap<>();
+        JSONArray wordsResult = parseJson(ocrResult);
+        if (wordsResult == null) {
+            return result;
+        }
+        
+        try {
+            StringBuilder allText = new StringBuilder();
+            for (int i = 0; i < wordsResult.size(); i++) {
+                JSONObject item = wordsResult.getJSONObject(i);
+                String words = item.getString("words");
+                allText.append(words).append("\n");
+            }
+            result.put("text", allText.toString().trim());
+            result.put("wordCount", String.valueOf(wordsResult.size()));
+        } catch (Exception e) {
+            log.error("解析通用文字识别结果失败: {}", e.getMessage(), e);
+        }
+        return result;
+    }
+
+    @Override
+    public Map<String, String> parse(String ocrResult, String certType) {
+        try {
+            return switch (certType.toLowerCase()) {
+                case "idcard" -> parseIdCard(ocrResult);
+                case "driving" -> parseDrivingLicense(ocrResult);
+                case "repair" -> parseRepairCert(ocrResult);
+                case "emergency" -> parseEmergencyCert(ocrResult);
+                case "licenseplate" -> parseLicensePlate(ocrResult);
+                case "vehiclelicensefront" -> parseVehicleLicenseFront(ocrResult);
+                case "vehiclelicenseback" -> parseVehicleLicenseBack(ocrResult);
+                case "general" -> parseGeneral(ocrResult);
+                default -> {
+                    log.warn("未知的证件类型: {}", certType.toLowerCase());
+                    yield new HashMap<>();
+                }
+            };
+        } catch (Exception e) {
+            log.error("解析识别结果失败: {}", e.getMessage(), e);
+            return new HashMap<>();
+        }
+    }
+
+}

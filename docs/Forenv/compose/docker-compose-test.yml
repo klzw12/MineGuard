@@ -1,0 +1,172 @@
+version: '3.8'
+
+# MineGuard 测试环境容器配置
+# 包含：Redis、MinIO、RabbitMQ、MongoDB
+
+networks:
+  mineguard-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.111.0/24
+          gateway: 192.168.111.1
+
+volumes:
+  # Redis 卷
+  redis-test-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ~/DockerFiles/mineguard_test/mineguard_redis/data
+  redis-test-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ~/DockerFiles/mineguard_test/mineguard_redis/config
+  redis-test-log:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ~/DockerFiles/mineguard_test/mineguard_redis/log
+
+  # MinIO 测试卷
+  minio-test-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ~/DockerFiles/mineguard_test/mineguard_minio/data
+  minio-test-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ~/DockerFiles/mineguard_test/mineguard_minio/config
+  minio-test-log:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ~/DockerFiles/mineguard_test/mineguard_minio/log
+
+  # RabbitMQ 测试卷
+  rabbitmq-test-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ~/DockerFiles/mineguard_test/mineguard_rabbitmq/data
+  rabbitmq-test-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ~/DockerFiles/mineguard_test/mineguard_rabbitmq/config
+  rabbitmq-test-log:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ~/DockerFiles/mineguard_test/mineguard_rabbitmq/log
+
+  # MongoDB 测试卷
+  mongodb-test-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ~/DockerFiles/mineguard_test/mineguard_mongodb/data
+  mongodb-test-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ~/DockerFiles/mineguard_test/mineguard_mongodb/config
+  mongodb-test-log:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ~/DockerFiles/mineguard_test/mineguard_mongodb/log
+
+services:
+  # Redis 测试环境
+  redis-test:
+    image: redis:7.2-alpine
+    container_name: mineguard-redis-test
+    restart: "no"
+    ports:
+      - "6380:6379"
+    networks:
+      mineguard-network:
+        ipv4_address: 192.168.111.133
+    volumes:
+      - redis-test-data:/data
+      - redis-test-config:/usr/local/etc/redis
+      - redis-test-log:/var/log/redis
+    command: sh -c "mkdir -p /var/log/redis && chmod 777 /var/log/redis && redis-server --bind 0.0.0.0 --requirepass testpass --logfile /var/log/redis/redis.log"
+    environment:
+      - TZ=Asia/Shanghai
+
+  # MinIO 测试环境
+  minio-test:
+    image: minio/minio:latest
+    container_name: mineguard-minio-test
+    restart: "no"
+    ports:
+      - "9002:9000"
+      - "9003:9001"
+    networks:
+      mineguard-network:
+        ipv4_address: 192.168.111.134
+    volumes:
+      - minio-test-data:/data
+      - minio-test-config:/root/.minio
+      - minio-test-log:/var/log/minio
+    command: server --console-address ":9001" /data
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=minioadmin
+      - TZ=Asia/Shanghai
+
+  # RabbitMQ 测试环境
+  rabbitmq-test:
+    image: rabbitmq:3-management
+    container_name: mineguard-rabbitmq-test
+    restart: "no"
+    ports:
+      - "5673:5672"  # AMQP 端口
+      - "15673:15672"  # 管理控制台端口
+    networks:
+      mineguard-network:
+        ipv4_address: 192.168.111.135
+    volumes:
+      - rabbitmq-test-data:/var/lib/rabbitmq
+      - rabbitmq-test-config:/etc/rabbitmq
+      - rabbitmq-test-log:/var/log/rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=rabbitmqadmin
+      - TZ=Asia/Shanghai
+
+  # MongoDB 测试环境
+  mongodb-test:
+    image: mongo:latest
+    container_name: mineguard-mongodb-test
+    restart: "no"
+    ports:
+      - "27018:27017"
+    networks:
+      mineguard-network:
+        ipv4_address: 192.168.111.136
+    volumes:
+      - mongodb-test-data:/data/db
+      - mongodb-test-config:/data/configdb
+      - mongodb-test-log:/var/log/mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=mongodbadmin
+      - TZ=Asia/Shanghai

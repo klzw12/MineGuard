@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.klzw</groupId>
+        <artifactId>mineguard-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <artifactId>mineguard-common-websocket</artifactId>
+    <name>mineguard-common-websocket</name>
+    <description>mineguard-common-websocket</description>
+    <url/>
+    <licenses>
+        <license/>
+    </licenses>
+    <developers>
+        <developer/>
+    </developers>
+    <scm>
+        <connection/>
+        <developerConnection/>
+        <tag/>
+        <url/>
+    </scm>
+    <dependencies>
+        <dependency>
+            <groupId>com.klzw</groupId>
+            <artifactId>mineguard-common-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.klzw</groupId>
+            <artifactId>mineguard-common-auth</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.klzw</groupId>
+            <artifactId>mineguard-common-redis</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.klzw</groupId>
+            <artifactId>mineguard-common-mongodb</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.klzw</groupId>
+            <artifactId>mineguard-common-mq</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- 排除集成测试 -->
+                    <excludedGroups>integration</excludedGroups>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>integration-tests</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <!-- 包含集成测试 -->
+                            <excludedGroups combine.self="override"></excludedGroups>
+                            <groups>integration</groups>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>

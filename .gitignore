@@ -10,7 +10,7 @@ backend/target/
 backend/.mvn/
 backend/mvnw
 backend/mvnw.cmd
-
+backend/*/target/
 # IDE文件
 .idea/
 .vscode/
@@ -50,3 +50,12 @@ node_modules/
 # 缓存文件
 .cache/
 *.cache
+
+docs/modulecheck/
+docs/serviceDesign/
+docs/DesignChange/
+# 测试脚本生成的文件
+scripts/output/
+
+# 敏感信息配置文件
+backend/mineguard-common-core/src/main/resources/application-secret.yml
