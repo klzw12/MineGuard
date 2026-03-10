@@ -1,74 +1,83 @@
 package com.klzw.common.auth.util;
 
-import com.klzw.common.auth.config.JwtConfig;
-import com.klzw.common.redis.service.RedisCacheService;
+import com.klzw.common.auth.config.JwtProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class JwtUtilsRedisTest {
 
     @Mock
-    private JwtConfig jwtConfig;
+    private JwtProperties jwtProperties;
 
     @Mock
-    private RedisCacheService redisCacheService;
+    private StringRedisTemplate redisTemplate;
 
-    @InjectMocks
+    @Mock
+    private ValueOperations<String, String> valueOperations;
+
     private JwtUtils jwtUtils;
+
+    private static final String TEST_SECRET = "testSecretKeyForJwtTokenGeneration12345678901234567890123456789012345678901234567890";
+    private static final String TEST_BLACKLIST_PREFIX = "jwt:blacklist:";
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        when(jwtConfig.getSecret()).thenReturn("testSecretKeyForJwtTokenGeneration12345678901234567890123456789012345678901234567890");
-        when(jwtConfig.getExpiration()).thenReturn(3600000L); // 1 hour
-        when(jwtConfig.getPrefix()).thenReturn("Bearer ");
-        when(jwtConfig.getHeader()).thenReturn("Authorization");
+        when(jwtProperties.getSecret()).thenReturn(TEST_SECRET);
+        when(jwtProperties.getExpiration()).thenReturn(3600000L);
+        when(jwtProperties.getPrefix()).thenReturn("Bearer ");
+        when(jwtProperties.getHeader()).thenReturn("Authorization");
+        when(jwtProperties.getEnableBlacklist()).thenReturn(true);
+        when(jwtProperties.getBlacklistPrefix()).thenReturn(TEST_BLACKLIST_PREFIX);
+        when(jwtProperties.getBlacklistExpire()).thenReturn(86400L);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        jwtUtils = new JwtUtils(jwtProperties, redisTemplate);
     }
 
     @Test
     void testAddToBlacklist() {
-        // 生成一个token
         String token = jwtUtils.generateToken(1L, "test-user");
         assertNotNull(token);
 
-        // 测试添加到黑名单
         jwtUtils.addToBlacklist(token);
 
-        // 验证Redis操作
-        verify(redisCacheService, times(1)).set(anyString(), eq("1"), anyLong(), any());
+        verify(valueOperations, times(1)).set(anyString(), eq("1"), anyLong(), any(TimeUnit.class));
     }
 
     @Test
     void testIsInBlacklist() {
         String token = jwtUtils.generateToken(1L, "test-user");
-        String blacklistKey = "auth:token:blacklist:" + token;
+        String blacklistKey = TEST_BLACKLIST_PREFIX + token;
 
-        // 测试token不在黑名单中
-        when(redisCacheService.exists(blacklistKey)).thenReturn(false);
+        when(redisTemplate.hasKey(blacklistKey)).thenReturn(false);
         assertFalse(jwtUtils.isInBlacklist(token));
 
-        // 测试token在黑名单中
-        when(redisCacheService.exists(blacklistKey)).thenReturn(true);
+        when(redisTemplate.hasKey(blacklistKey)).thenReturn(true);
         assertTrue(jwtUtils.isInBlacklist(token));
     }
 
     @Test
     void testValidateTokenWithBlacklist() {
         String token = jwtUtils.generateToken(1L, "test-user");
-        String blacklistKey = "auth:token:blacklist:" + token;
+        String blacklistKey = TEST_BLACKLIST_PREFIX + token;
 
-        // 测试token有效且不在黑名单中
-        when(redisCacheService.exists(blacklistKey)).thenReturn(false);
+        when(redisTemplate.hasKey(blacklistKey)).thenReturn(false);
         assertTrue(jwtUtils.validateToken(token));
 
-        // 测试token在黑名单中
-        when(redisCacheService.exists(blacklistKey)).thenReturn(true);
+        when(redisTemplate.hasKey(blacklistKey)).thenReturn(true);
         assertFalse(jwtUtils.validateToken(token));
     }
 }

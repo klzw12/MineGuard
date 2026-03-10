@@ -34,9 +34,7 @@ class PermissionUtilsRedisTest {
 
         // 测试缓存命中
         when(redisCacheService.get(cacheKey)).thenReturn(expectedPermissions);
-        List<String> permissions = PermissionUtils.hasPermission(userId, new String[] {"user:read"}, true) ? 
-                expectedPermissions : Arrays.asList("user:read");
-        // 这里需要间接测试，因为getUserPermissions是private方法
+        PermissionUtils.hasPermission(userId, new String[] {"user:read"}, true);
 
         // 验证Redis操作
         verify(redisCacheService, times(1)).get(cacheKey);
@@ -50,7 +48,7 @@ class PermissionUtilsRedisTest {
 
         // 测试缓存命中
         when(redisCacheService.get(cacheKey)).thenReturn(expectedRoles);
-        boolean hasRole = PermissionUtils.hasRole(userId, new String[] {"ROLE_USER"}, true);
+        PermissionUtils.hasRole(userId, new String[] {"ROLE_USER"}, true);
 
         // 验证Redis操作
         verify(redisCacheService, times(1)).get(cacheKey);

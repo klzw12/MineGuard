@@ -1,14 +1,13 @@
 package com.klzw.common.auth.util;
 
-import com.klzw.common.auth.config.JwtConfig;
+import com.klzw.common.auth.config.JwtProperties;
 import com.klzw.common.auth.constant.AuthResultCode;
 import com.klzw.common.auth.domain.JwtToken;
 import com.klzw.common.auth.exception.AuthException;
-import com.klzw.common.redis.service.RedisCacheService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.stereotype.Component;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -17,30 +16,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-/**
- * JWT 工具类
- */
-@Component
 public class JwtUtils {
 
-    private final JwtConfig jwtConfig;
-    private final RedisCacheService redisCacheService;
+    private final JwtProperties jwtProperties;
+    private final StringRedisTemplate redisTemplate;
 
-    public JwtUtils(JwtConfig jwtConfig, RedisCacheService redisCacheService) {
-        this.jwtConfig = jwtConfig;
-        this.redisCacheService = redisCacheService;
+    public JwtUtils(JwtProperties jwtProperties, StringRedisTemplate redisTemplate) {
+        this.jwtProperties = jwtProperties;
+        this.redisTemplate = redisTemplate;
     }
+
     private SecretKey getSigningKey() {
-        byte[] keyBytes = jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8);
+        byte[] keyBytes = jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    /**
-     * 生成 Token
-     * @param userId 用户ID
-     * @param username 用户名
-     * @return Token
-     */
     public String generateToken(Long userId, String username) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
@@ -48,15 +38,9 @@ public class JwtUtils {
         return generateToken(claims, username);
     }
 
-    /**
-     * 生成 Token
-     * @param claims 声明
-     * @param subject 主题
-     * @return Token
-     */
     private String generateToken(Map<String, Object> claims, String subject) {
         Date now = new Date();
-        Date expirationDate = new Date(now.getTime() + jwtConfig.getExpiration());
+        Date expirationDate = new Date(now.getTime() + jwtProperties.getExpiration());
 
         return Jwts.builder()
                 .claims(claims)
@@ -67,11 +51,6 @@ public class JwtUtils {
                 .compact();
     }
 
-    /**
-     * 解析 Token
-     * @param token Token
-     * @return 声明
-     */
     public Claims parseToken(String token) {
         try {
             return Jwts.parser()
@@ -94,44 +73,23 @@ public class JwtUtils {
         }
     }
 
-    /**
-     * 从 Token 中获取用户ID
-     * @param token Token
-     * @return 用户ID
-     */
     public Long getUserIdFromToken(String token) {
         Claims claims = parseToken(token);
         return claims.get("userId", Long.class);
     }
 
-    /**
-     * 从 Token 中获取用户名
-     * @param token Token
-     * @return 用户名
-     */
     public String getUsernameFromToken(String token) {
         Claims claims = parseToken(token);
         return claims.getSubject();
     }
 
-
-    /**
-     * 从请求头中获取 Token
-     * @param authHeader 认证头
-     * @return Token
-     */
     public String getTokenFromHeader(String authHeader) {
-        if (authHeader != null && authHeader.startsWith(jwtConfig.getPrefix())) {
-            return authHeader.substring(jwtConfig.getPrefix().length());
+        if (authHeader != null && authHeader.startsWith(jwtProperties.getPrefix())) {
+            return authHeader.substring(jwtProperties.getPrefix().length());
         }
         return null;
     }
 
-    /**
-     * 获取 Token 信息
-     * @param token Token
-     * @return Token 信息
-     */
     public JwtToken getTokenInfo(String token) {
         Claims claims = parseToken(token);
         JwtToken jwtToken = new JwtToken();
@@ -143,64 +101,34 @@ public class JwtUtils {
         return jwtToken;
     }
 
-    /**
-     * 生成token黑名单key
-     * @param token Token
-     * @return 黑名单key
-     */
-    private String generateBlacklistKey(String token) {
-        return "auth:token:blacklist:" + token;
-    }
-
-    /**
-     * 将token加入黑名单
-     * @param token Token
-     */
-    public void addToBlacklist(String token) {
-        try {
-            Claims claims = parseToken(token);
-            Date expiration = claims.getExpiration();
-            long expireTime = expiration.getTime() - System.currentTimeMillis();
-            
-            if (expireTime > 0) {
-                String blacklistKey = generateBlacklistKey(token);
-                redisCacheService.set(blacklistKey, "1", expireTime, TimeUnit.MILLISECONDS);
-            }
-        } catch (Exception e) {
-            // 忽略解析异常，确保即使token无效也能处理
-        }
-    }
-
-    /**
-     * 检查token是否在黑名单中
-     * @param token Token
-     * @return 是否在黑名单中
-     */
-    public boolean isInBlacklist(String token) {
-        try {
-            String blacklistKey = generateBlacklistKey(token);
-            return redisCacheService.exists(blacklistKey);
-        } catch (Exception e) {
-            // 发生异常时默认返回false，避免Redis故障影响正常认证
-            return false;
-        }
-    }
-
-    /**
-     * 验证 Token
-     * @param token Token
-     * @return 是否有效
-     */
     public boolean validateToken(String token) {
         try {
-            // 检查token是否在黑名单中
-            if (isInBlacklist(token)) {
+            parseToken(token);
+            if (jwtProperties.getEnableBlacklist() && isInBlacklist(token)) {
                 return false;
             }
-            parseToken(token);
             return true;
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public void addToBlacklist(String token) {
+        if (jwtProperties.getEnableBlacklist()) {
+            String key = jwtProperties.getBlacklistPrefix() + token;
+            redisTemplate.opsForValue().set(key, "1", jwtProperties.getBlacklistExpire(), TimeUnit.SECONDS);
+        }
+    }
+
+    public boolean isInBlacklist(String token) {
+        if (!jwtProperties.getEnableBlacklist()) {
+            return false;
+        }
+        String key = jwtProperties.getBlacklistPrefix() + token;
+        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+    }
+
+    public JwtProperties getJwtProperties() {
+        return jwtProperties;
     }
 }

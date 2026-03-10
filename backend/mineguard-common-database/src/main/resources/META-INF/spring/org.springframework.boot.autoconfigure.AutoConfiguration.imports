@@ -1,0 +1,2 @@
+com.klzw.common.database.config.DatabaseAutoConfiguration
+com.klzw.common.database.config.DataSourceAutoConfiguration

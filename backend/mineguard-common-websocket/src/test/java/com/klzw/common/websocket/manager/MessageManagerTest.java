@@ -1,6 +1,6 @@
 package com.klzw.common.websocket.manager;
 
-import com.klzw.common.websocket.config.WebSocketProperties;
+import com.klzw.common.websocket.properties.WebSocketProperties;
 import com.klzw.common.websocket.constant.WebSocketResultCode;
 import com.klzw.common.websocket.domain.ConnectionInfo;
 import com.klzw.common.websocket.domain.Message;
@@ -15,8 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;

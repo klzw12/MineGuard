@@ -39,7 +39,7 @@ public class OnlineUserDocument {
     @Field("connectTime")
     private LocalDateTime connectTime;
     
-    @Indexed(expireAfterSeconds = 60)
+    @Indexed
     @Field("lastActiveTime")
     private LocalDateTime lastActiveTime;
 }

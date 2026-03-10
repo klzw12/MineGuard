@@ -1,9 +1,11 @@
 package com.klzw.common.mq;
 
+import com.klzw.common.core.config.DotenvInitializer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 
 /**
  * MQ集成测试基类
@@ -17,6 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
  * 注意：集成测试需要配置正确的RabbitMQ连接
  */
 @SpringBootTest(classes = MineguardCommonMqApplication.class)
+@ContextConfiguration(initializers = DotenvInitializer.class)
 @ActiveProfiles("test")
 @Tag("integration")
 @DisplayName("MQ集成测试")

@@ -1,7 +1,7 @@
 package com.klzw.common.mq.integration;
 
 import com.klzw.common.mq.AbstractMqIntegrationTest;
-import com.klzw.common.mq.config.RabbitMqConfig;
+import com.klzw.common.mq.properties.RabbitMqProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class RabbitMqConfigIntegrationTest extends AbstractMqIntegrationTest {
 
     @Autowired
-    private RabbitMqConfig rabbitMqConfig;
+    private RabbitMqProperties rabbitMqProperties;
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -24,7 +24,11 @@ class RabbitMqConfigIntegrationTest extends AbstractMqIntegrationTest {
     @Tag("integration")
     @DisplayName("集成测试 - RabbitMqProperties注入")
     void rabbitMqProperties_Injected() {
-        assertNotNull(rabbitMqConfig.getRabbitMqProperties());
+        assertNotNull(rabbitMqProperties);
+        assertEquals("192.168.110.128", rabbitMqProperties.getHost());
+        assertEquals(5673, rabbitMqProperties.getPort());
+        assertEquals("admin", rabbitMqProperties.getUsername());
+        assertEquals("rabbitmqadmin", rabbitMqProperties.getPassword());
     }
 
     @Test

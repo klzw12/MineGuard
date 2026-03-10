@@ -51,6 +51,19 @@
             </exclusions>
         </dependency>
 
+        <!-- 环境变量支持 -->
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>${dotenv.version}</version>
+        </dependency>
+
+        <!-- Java 注解 API - 版本从父 POM 继承 -->
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>${javax-annotation-api.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

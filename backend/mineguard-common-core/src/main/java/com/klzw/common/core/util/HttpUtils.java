@@ -6,7 +6,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -22,8 +22,8 @@ public class HttpUtils {
      * @throws Exception 异常
      */
     public static String get(String urlStr) throws Exception {
-        URL url = new URL(urlStr);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        URI uri = new URI(urlStr);
+        HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
         connection.setRequestMethod("GET");
         connection.setConnectTimeout(5000);
         connection.setReadTimeout(5000);
@@ -47,8 +47,8 @@ public class HttpUtils {
      * @throws Exception 异常
      */
     public static String post(String urlStr, Map<String, Object> params) throws Exception {
-        URL url = new URL(urlStr);
-        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        URI uri = new URI(urlStr);
+        HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
         connection.setRequestMethod("POST");
         connection.setConnectTimeout(5000);
         connection.setReadTimeout(5000);

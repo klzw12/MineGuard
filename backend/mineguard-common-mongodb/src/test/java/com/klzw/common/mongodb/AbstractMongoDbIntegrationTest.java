@@ -1,9 +1,11 @@
 package com.klzw.common.mongodb;
 
+import com.klzw.common.core.config.DotenvInitializer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 
 /**
  * MongoDB集成测试基类
@@ -17,9 +19,9 @@ import org.springframework.test.context.ActiveProfiles;
  * 注意：集成测试需要配置正确的MongoDB连接
  */
 @SpringBootTest(classes = MineguardCommonMongodbApplication.class)
+@ContextConfiguration(initializers = DotenvInitializer.class)
 @ActiveProfiles("test")
 @Tag("integration")
 @DisplayName("MongoDB集成测试")
 public abstract class AbstractMongoDbIntegrationTest {
-    // MongoDB集成测试基类，子类继承即可
 }

@@ -23,18 +23,18 @@ public class WebConfigIntegrationTest {
     private ApplicationContext applicationContext;
 
     @Autowired
-    private CorsConfig corsConfig;
+    private WebAutoConfiguration webAutoConfiguration;
 
     @Autowired
     private FileUploadConfig fileUploadConfig;
 
     @Autowired
-    private WebConfig webConfig;
+    private WebMvcConfig webMvcConfig;
 
     @Test
-    @DisplayName("测试CorsConfig Bean加载")
-    public void testCorsConfigBeanLoaded() {
-        assertNotNull(corsConfig);
+    @DisplayName("测试WebAutoConfiguration Bean加载")
+    public void testWebAutoConfigurationBeanLoaded() {
+        assertNotNull(webAutoConfiguration);
         CorsFilter corsFilter = applicationContext.getBean(CorsFilter.class);
         assertNotNull(corsFilter);
     }
@@ -48,8 +48,8 @@ public class WebConfigIntegrationTest {
     }
 
     @Test
-    @DisplayName("测试WebConfig Bean加载")
-    public void testWebConfigBeanLoaded() {
-        assertNotNull(webConfig);
+    @DisplayName("测试WebMvcConfig Bean加载")
+    public void testWebMvcConfigBeanLoaded() {
+        assertNotNull(webMvcConfig);
     }
 }

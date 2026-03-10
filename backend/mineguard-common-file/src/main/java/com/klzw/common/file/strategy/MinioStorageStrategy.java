@@ -31,23 +31,17 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
                 .endpoint(minioProperties.getUrl())
                 .credentials(minioProperties.getAccessKey(), minioProperties.getSecretKey())
                 .build();
-        // 初始化时检查并创建桶
         initializeBuckets();
     }
 
-    /**
-     * 初始化桶，确保所有配置的桶存在
-     */
     private void initializeBuckets() {
         try {
             List<String> bucketNames = new ArrayList<>();
             
-            // 添加默认桶
             if (minioProperties.getDefaultBucket() != null && !minioProperties.getDefaultBucket().isEmpty()) {
                 bucketNames.add(minioProperties.getDefaultBucket());
             }
             
-            // 添加配置的功能桶
             if (minioProperties.getBuckets() != null) {
                 MinioProperties.Buckets buckets = minioProperties.getBuckets();
                 if (buckets.getUser() != null && !buckets.getUser().isEmpty()) {
@@ -64,7 +58,6 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
                 }
             }
             
-            // 检查并创建每个桶
             for (String bucketName : bucketNames) {
                 if (!minioClient.bucketExists(io.minio.BucketExistsArgs.builder().bucket(bucketName).build())) {
                     minioClient.makeBucket(io.minio.MakeBucketArgs.builder().bucket(bucketName).build());
@@ -75,24 +68,16 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
         }
     }
 
-    /**
-     * 确保桶存在
-     */
     private void ensureBucketExists(String bucketName) {
         try {
             if (!minioClient.bucketExists(io.minio.BucketExistsArgs.builder().bucket(bucketName).build())) {
                 minioClient.makeBucket(io.minio.MakeBucketArgs.builder().bucket(bucketName).build());
             }
         } catch (Exception e) {
-            throw new FileException(FileResultCode.STORAGE_BUCKET_INIT_FAILED, "MinIO桶初始化失败", e);
+            throw new FileException(FileResultCode.BUCKET_INIT_FAILED, "MinIO桶初始化失败", e);
         }
     }
     
-    /**
-     * 验证文件路径是否符合目录约束
-     * 格式：业务类型/用户ID/文件名
-     * @param fileName 文件名（包含路径）
-     */
     private void validateFilePath(String fileName) {
         String[] pathParts = fileName.split("/");
         if (pathParts.length < 3) {
@@ -100,7 +85,6 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
         }
         
         String businessType = pathParts[0];
-        // 验证业务类型是否有效
         List<String> validBusinessTypes = List.of(
                 "avatar", "id-card", "driving-license", "vehicle-license", 
                 "vehicle-photo", "chat-image", "other"
@@ -115,49 +99,41 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
         }
     }
 
-    /**
-     * 从文件路径中提取模块名称
-     * @param fileName 文件名（包含路径）
-     * @return 模块名称
-     */
     private String extractModuleFromFilePath(String fileName) {
-        // 根据文件路径的业务类型推断模块
         String[] pathParts = fileName.split("/");
         if (pathParts.length >= 1) {
             String businessType = pathParts[0];
             switch (businessType) {
-                case "avatar", "id-card":
+                case "avatar":
+                case "id-card":
                     return "user";
                 case "chat-image":
                     return "message";
-                case "vehicle-photo", "vehicle-license", "driving-license":
+                case "vehicle-photo":
+                case "vehicle-license":
+                case "driving-license":
                     return "vehicle";
                 default:
                     return "ai";
             }
         }
-        return "user"; // 默认返回用户模块
+        return "user";
     }
 
     @Override
     public String upload(InputStream inputStream, String fileName, String contentType) {
         try {
-            // 验证文件路径
             validateFilePath(fileName);
             
-            // 提取模块名称
             String module = extractModuleFromFilePath(fileName);
-            // 获取对应的桶名称
             String bucketName = minioProperties.getBucketName(module);
-            // 确保桶存在
             ensureBucketExists(bucketName);
             
-            // 上传文件
             minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(bucketName)
                             .object(fileName)
-                            .stream(inputStream, -1, 10485760) // 10MB
+                            .stream(inputStream, -1, 10485760)
                             .contentType(contentType)
                             .build()
             );
@@ -174,11 +150,8 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
     @Override
     public InputStream download(String fileName) {
         try {
-            // 提取模块名称
             String module = extractModuleFromFilePath(fileName);
-            // 获取对应的桶名称
             String bucketName = minioProperties.getBucketName(module);
-            // 确保桶存在
             ensureBucketExists(bucketName);
             
             return minioClient.getObject(
@@ -195,11 +168,8 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
     @Override
     public boolean delete(String fileName) {
         try {
-            // 提取模块名称
             String module = extractModuleFromFilePath(fileName);
-            // 获取对应的桶名称
             String bucketName = minioProperties.getBucketName(module);
-            // 确保桶存在
             ensureBucketExists(bucketName);
             
             minioClient.removeObject(
@@ -215,13 +185,28 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
     }
 
     @Override
-    public String getUrl(String fileName, long expire) {
+    public boolean exists(String fileName) {
         try {
-            // 提取模块名称
             String module = extractModuleFromFilePath(fileName);
-            // 获取对应的桶名称
             String bucketName = minioProperties.getBucketName(module);
-            // 确保桶存在
+            
+            minioClient.statObject(
+                    StatObjectArgs.builder()
+                            .bucket(bucketName)
+                            .object(fileName)
+                            .build()
+            );
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    @Override
+    public String getUrl(String fileName, long expireSeconds) {
+        try {
+            String module = extractModuleFromFilePath(fileName);
+            String bucketName = minioProperties.getBucketName(module);
             ensureBucketExists(bucketName);
             
             return minioClient.getPresignedObjectUrl(
@@ -229,7 +214,7 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
                             .method(Method.GET)
                             .bucket(bucketName)
                             .object(fileName)
-                            .expiry((int) expire, TimeUnit.SECONDS)
+                            .expiry((int) expireSeconds, TimeUnit.SECONDS)
                             .build()
             );
         } catch (Exception e) {
@@ -240,11 +225,8 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
     @Override
     public Map<String, Object> getFileInfo(String fileName) {
         try {
-            // 提取模块名称
             String module = extractModuleFromFilePath(fileName);
-            // 获取对应的桶名称
             String bucketName = minioProperties.getBucketName(module);
-            // 确保桶存在
             ensureBucketExists(bucketName);
             
             var stat = minioClient.statObject(
@@ -272,13 +254,9 @@ public class MinioStorageStrategy implements StorageStrategy, DisposableBean {
         }
     }
 
-    /**
-     * 健康检查
-     * @return 存储服务是否健康
-     */
+    @Override
     public boolean isHealthy() {
         try {
-            // 检查默认桶是否存在
             String bucketName = minioProperties.getBucketName("user");
             return minioClient.bucketExists(io.minio.BucketExistsArgs.builder()
                     .bucket(bucketName)

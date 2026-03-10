@@ -1,11 +1,13 @@
-spring:
-  rabbitmq:
-    host: 192.168.110.128
-    port: 5673
-    username: admin
-    password: rabbitmqadmin
-    virtual-host: /
-    connection-timeout: 60000
-    cache:
-      channel:
-        size: 25
+mineguard:
+  mq:
+    rabbit:
+      enabled: true
+      host: "192.168.110.128"
+      port: 5673
+      username: "admin"
+      password: "rabbitmqadmin"
+      virtual-host: "/"
+
+logging:
+  level:
+    com.klzw: DEBUG

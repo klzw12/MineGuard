@@ -47,16 +47,41 @@
             <artifactId>druid</artifactId>
         </dependency>
 
-        <!-- 多数据源依赖 -->
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>dynamic-datasource-spring-boot4-starter</artifactId>
-        </dependency>
-
         <!-- AOP 依赖 -->
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
+        </dependency>
+
+        <!-- Spring Web 可选依赖 - 用于 Web 拦截器 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <optional>true</optional>
+            <exclusions>
+                <!-- 排除 Jackson 依赖，使用 FastJSON -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-jackson</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>tools.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>tools.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>tools.jackson.core</groupId>
+                    <artifactId>jackson-annotations</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.2</version>
         </dependency>
 
         <!-- Spring Boot Test -->
@@ -84,11 +109,14 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <!-- 环境变量支持 - 已通过 Core 模块间接依赖 -->
+        <!-- 移除重复依赖 -->
+
         <!-- Spring Boot JDBC for testing (Druid compatibility) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
-            <scope>test</scope>
             <exclusions>
                 <!-- 排除 Jackson 依赖，使用 FastJSON -->
                 <exclusion>

@@ -1,6 +1,6 @@
 package com.klzw.common.auth.filter;
 
-import com.klzw.common.auth.config.JwtConfig;
+import com.klzw.common.auth.config.JwtProperties;
 import com.klzw.common.auth.context.UserContext;
 import com.klzw.common.auth.util.JwtUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -33,7 +33,7 @@ class JwtAuthenticationFilterTest {
     private JwtUtils jwtUtils;
 
     @Mock
-    private JwtConfig jwtConfig;
+    private JwtProperties jwtProperties;
 
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -46,9 +46,9 @@ class JwtAuthenticationFilterTest {
 
     @BeforeEach
     void setUp() {
-        when(jwtConfig.getHeader()).thenReturn(TEST_HEADER);
-        when(jwtConfig.getPrefix()).thenReturn(TEST_PREFIX);
-        jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtUtils, jwtConfig);
+        when(jwtProperties.getHeader()).thenReturn(TEST_HEADER);
+        when(jwtProperties.getPrefix()).thenReturn(TEST_PREFIX);
+        jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtUtils, jwtProperties);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
     }
@@ -71,7 +71,6 @@ class JwtAuthenticationFilterTest {
         when(jwtUtils.getUserIdFromToken(TEST_TOKEN)).thenReturn(userId);
         when(jwtUtils.getUsernameFromToken(TEST_TOKEN)).thenReturn(username);
 
-        // 使用自定义的FilterChain来捕获UserContext的值
         AtomicReference<Long> capturedUserId = new AtomicReference<>();
         AtomicReference<String> capturedUsername = new AtomicReference<>();
         FilterChain filterChain = (req, res) -> {
@@ -106,7 +105,6 @@ class JwtAuthenticationFilterTest {
 
         FilterChain filterChain = mock(FilterChain.class);
 
-        // 当token无效时，应该抛出AuthException
         assertThrows(com.klzw.common.auth.exception.AuthException.class, () -> {
             jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
         });
@@ -145,7 +143,6 @@ class JwtAuthenticationFilterTest {
 
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
 
-        // 在过滤器执行后，上下文应该被清除
         verify(filterChain).doFilter(request, response);
         assertNull(UserContext.getUserId());
         assertNull(UserContext.getUsername());

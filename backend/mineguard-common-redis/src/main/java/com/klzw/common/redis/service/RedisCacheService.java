@@ -245,6 +245,7 @@ public class RedisCacheService {
      * @return 是否存在
      * @throws RedisException 缓存检查失败时抛出
      */
+    @SuppressWarnings("deprecation")
     public Boolean exists(String key) {
         try {
             return redisTemplate.hasKey(key);

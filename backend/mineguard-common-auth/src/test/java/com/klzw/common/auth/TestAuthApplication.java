@@ -7,7 +7,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication(scanBasePackages = {
     "com.klzw.common.auth",
-    "com.klzw.common.redis"
+    "com.klzw.common.redis",
+    "com.klzw.common.core"
 })
 public class TestAuthApplication {
 }

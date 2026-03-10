@@ -177,7 +177,7 @@ public class BaiduOcrUtils {
     public String recognizeIdCard(byte[] imageData, String idCardSide) {
         Map<String, Object> params = new HashMap<>();
         params.put("id_card_side", idCardSide);
-        return recognize(imageData, baiduAIProperties.getIdcardUrl(), params, "开始身份证识别, 正反面: " + idCardSide);
+        return recognize(imageData, baiduAIProperties.getIdCardUrl(), params, "开始身份证识别, 正反面: " + idCardSide);
     }
 
     /**
@@ -189,7 +189,7 @@ public class BaiduOcrUtils {
     public String recognizeIdCard(File file, String idCardSide) {
         Map<String, Object> params = new HashMap<>();
         params.put("id_card_side", idCardSide);
-        return recognize(file, baiduAIProperties.getIdcardUrl(), params, "开始身份证识别, 正反面: " + idCardSide);
+        return recognize(file, baiduAIProperties.getIdCardUrl(), params, "开始身份证识别, 正反面: " + idCardSide);
     }
 
     /**
@@ -201,7 +201,7 @@ public class BaiduOcrUtils {
     public String recognizeIdCard(MultipartFile file, String idCardSide) {
         Map<String, Object> params = new HashMap<>();
         params.put("id_card_side", idCardSide);
-        return recognize(file, baiduAIProperties.getIdcardUrl(), params, "开始身份证识别, 正反面: " + idCardSide);
+        return recognize(file, baiduAIProperties.getIdCardUrl(), params, "开始身份证识别, 正反面: " + idCardSide);
     }
 
     /**

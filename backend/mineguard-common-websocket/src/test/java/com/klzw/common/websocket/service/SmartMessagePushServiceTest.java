@@ -1,8 +1,7 @@
 package com.klzw.common.websocket.service;
 
-import com.klzw.common.mq.constant.MqConstants;
 import com.klzw.common.mq.producer.IMessageProducer;
-import com.klzw.common.websocket.config.WebSocketProperties;
+import com.klzw.common.websocket.properties.WebSocketProperties;
 import com.klzw.common.websocket.domain.Message;
 import com.klzw.common.websocket.domain.MessageHistory;
 import com.klzw.common.websocket.enums.MessageTypeEnum;

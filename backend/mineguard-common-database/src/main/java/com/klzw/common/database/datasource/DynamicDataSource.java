@@ -2,6 +2,9 @@ package com.klzw.common.database.datasource;
 
 import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
 
+import javax.sql.DataSource;
+import java.util.Map;
+
 /**
  * 动态数据源类
  * 用于管理主从数据源的切换
@@ -22,6 +25,15 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
      * 从数据源类型
      */
     public static final String SLAVE = "slave";
+
+    /**
+     * 构造函数，设置默认数据源和目标数据源
+     */
+    public DynamicDataSource(DataSource defaultDataSource, Map<Object, Object> targetDataSources) {
+        super.setDefaultTargetDataSource(defaultDataSource);
+        super.setTargetDataSources(targetDataSources);
+        super.afterPropertiesSet();
+    }
 
     /**
      * 确定当前线程使用的数据源类型

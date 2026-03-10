@@ -1,125 +1,54 @@
-# 测试环境数据库配置
-# 用于单元测试和集成测试
+mineguard:
+  database:
+    enabled: true
+    mybatis-plus:
+      overflow: true
+      mapper-locations: "classpath*:mapper/**/*.xml"
+      type-aliases-package: "com.klzw.**.domain"
+    druid:
+      initial-size: 2
+      min-idle: 2
+      max-active: 10
+      max-wait: 60000
+      validation-query: "SELECT 1"
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+    dynamic:
+      enabled: true
+      primary: "master"
+      slaves: ["slave"]
+    datasource:
+      master:
+        url: "jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT_MASTER:3306}/mineguard_test?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+        username: "${MYSQL_USERNAME:root}"
+        password: "${MYSQL_PASSWORD:wrong_password}"
+        driver-class-name: "com.mysql.cj.jdbc.Driver"
+      slave:
+        url: "jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT_SLAVE:3306}/mineguard_test?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+        username: "${MYSQL_USERNAME:root}"
+        password: "${MYSQL_PASSWORD:wrong_password}"
+        driver-class-name: "com.mysql.cj.jdbc.Driver"
 
-# Spring 数据源配置（MyBatis-Plus自动配置需要）
 spring:
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/mineguard_test?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: root
-    password: 1.qwklz5
-    type: com.alibaba.druid.pool.DruidDataSource
-    druid:
-      initial-size: 2
-      min-idle: 2
-      max-active: 10
-  # 禁用背景预初始化，防止 Jackson 在后台线程中初始化
-  preinitialize:
-    enabled: false
+    driver-class-name: "com.mysql.cj.jdbc.Driver"
+    url: "jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT_MASTER:3306}/mineguard_test?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+    username: "${MYSQL_USERNAME:root}"
+    password: "${MYSQL_PASSWORD:wrong_password}"
 
-# MineGuard 数据库相关配置
-mineguard:
-  # 分页配置（来自 common-core）
-  pagination:
-    default-page: 1
-    default-page-size: 10
-    max-page-size: 100
-    default-sort-order: asc
-  
-  database:
-    # MyBatis-Plus 配置
-    mybatis-plus:
-      # 分页插件是否溢出处理
-      overflow: true
-      # Mapper 扫描路径
-      mapper-locations: classpath*:mapper/**/*.xml
-      # 类型别名包路径
-      type-aliases-package: com.klzw.**.domain
-    
-    # Druid 连接池配置
-    druid:
-      # 初始连接数
-      initial-size: 2
-      # 最小空闲连接数
-      min-idle: 2
-      # 最大连接数
-      max-active: 10
-      # 获取连接超时时间
-      max-wait: 60000
-      # 连接有效性检查时间间隔
-      time-between-eviction-runs-millis: 60000
-      # 连接最大空闲时间
-      min-evictable-idle-time-millis: 300000
-      # 连接有效性检查 SQL
-      validation-query: SELECT 1 FROM DUAL
-      # 是否在空闲时检查连接有效性
-      test-while-idle: true
-      # 是否在获取连接时检查有效性
-      test-on-borrow: false
-      # 是否在归还连接时检查有效性
-      test-on-return: false
-      # 是否开启池化连接
-      pool-prepared-statements: true
-      # 池化连接最大数量
-      max-pool-prepared-statement-per-connection-size: 20
-      # 过滤器
-      filters: stat,wall,slf4j
-      # 连接属性
-      connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
-      # 监控页面访问账号
-      stat-view-username: admin
-      # 监控页面访问密码
-      stat-view-password: admin123
-      # 监控页面访问允许IP（空表示允许所有）
-      stat-view-allow: ""
-    
-    # 动态数据源配置
-    dynamic:
-      # 是否启用
-      enabled: true
-      # 主数据源名称
-      primary: master
-      # 从数据源名称列表
-      slaves:
-        - slave
-    
-    # 数据源连接信息
-    datasource:
-      # 主数据源配置
-      master:
-        url: jdbc:mysql://localhost:3306/mineguard_test?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
-        username: root
-        password: 1.qwklz5
-        driver-class-name: com.mysql.cj.jdbc.Driver
-      
-      # 从数据源配置（测试环境可以与主数据源相同）
-      slave:
-        url: jdbc:mysql://localhost:3307/mineguard_test?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
-        username: root
-        password: 1.qwklz5
-        driver-class-name: com.mysql.cj.jdbc.Driver
-
-# MyBatis-Plus 配置
 mybatis-plus:
-  # Mapper 扫描路径
-  mapper-locations: ${mineguard.database.mybatis-plus.mapper-locations}
-  # 类型别名包路径
-  type-aliases-package: ${mineguard.database.mybatis-plus.type-aliases-package}
-  # 全局配置
-  global-config:
-    # 数据库相关配置
-    db-config:
-      # 主键类型
-      id-type: AUTO
-      # 逻辑删除字段名
-      logic-delete-field: deleted
-      # 逻辑删除值
-      logic-delete-value: 1
-      # 逻辑未删除值
-      logic-not-delete-value: 0
-  # 配置
   configuration:
-    # 驼峰命名转换
-    map-underscore-to-camel-case: true
-    # 日志实现
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: "org.apache.ibatis.logging.stdout.StdOutImpl"
+  mapper-locations: "classpath*:mapper/**/*.xml"
+  type-aliases-package: "com.klzw.**.domain"
+
+logging:
+  level:
+    "[org.springframework,com.klzw]": DEBUG 
+  charset:
+    console: UTF-8
+    file: UTF-8
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

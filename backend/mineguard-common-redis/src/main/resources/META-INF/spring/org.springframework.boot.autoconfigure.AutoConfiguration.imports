@@ -1,0 +1,2 @@
+com.klzw.common.redis.config.RedisAutoConfiguration
+com.klzw.common.redis.config.RedissonAutoConfiguration

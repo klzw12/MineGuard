@@ -1,64 +1,16 @@
-# 测试环境 Redis 配置
-# 用于单元测试和集成测试
+mineguard:
+  redis:
+    enabled: true
+    default-expire: 3600
 
 spring:
   data:
     redis:
-      host: ${REDIS_HOST:192.168.110.128}
-      port: ${REDIS_PORT:6380}
-      password: ${REDIS_PASSWORD:testpass}
-      database: ${REDIS_DATABASE:0}
-      timeout: ${REDIS_TIMEOUT:60000}
-      lettuce:
-        pool:
-          max-active: 8
-          max-wait: -1
-          max-idle: 8
-          min-idle: 0
+      host: 192.168.110.128
+      port: 6380
+      password: testpass
+      database: 0
 
-# Redisson 配置
-redisson:
-  retry-attempts: 3
-  retry-interval: 1000
-  connect-timeout: 30000
-  so-timeout: 30000
-
-# Redis 模块自定义配置
-mineguard:
-  redis:
-    # Redis连接配置（与spring.data.redis同步）
-    host: ${REDIS_HOST:192.168.110.128}
-    port: ${REDIS_PORT:6380}
-    password: ${REDIS_PASSWORD:testpass}
-    database: ${REDIS_DATABASE:0}
-    timeout: ${REDIS_TIMEOUT:60000}
-    # 连接池配置
-    pool:
-      max-active: 8
-      max-wait: -1
-      max-idle: 8
-      min-idle: 0
-    # 缓存键前缀
-    key-prefix: "mineguard:test:"
-    # 默认过期时间（秒）
-    default-expire: 3600
-    # 分布式锁配置
-    lock:
-      # 默认过期时间（秒）
-      default-expire: 30
-      # 重试次数
-      retry-count: 3
-      # 重试间隔（毫秒）
-      retry-interval: 100
-    # 限流配置
-    rate-limit:
-      # 默认限流窗口（秒）
-      default-window: 60
-      # 默认限流次数
-      default-limit: 100
-
-# 日志配置
 logging:
   level:
-    com.klzw.common.redis: DEBUG
-    org.springframework.data.redis: INFO
+    com.klzw: DEBUG

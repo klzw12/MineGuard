@@ -1,6 +1,6 @@
 package com.klzw.common.websocket.task;
 
-import com.klzw.common.websocket.config.WebSocketProperties;
+import com.klzw.common.websocket.properties.WebSocketProperties;
 import com.klzw.common.websocket.domain.ConnectionInfo;
 import com.klzw.common.websocket.manager.ConnectionManager;
 import lombok.extern.slf4j.Slf4j;

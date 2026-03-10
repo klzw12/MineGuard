@@ -1,0 +1,28 @@
+mineguard:
+  file:
+    enabled: true
+    storage:
+      dual-write:
+        enabled: true
+        primary: minio
+      minio:
+        enabled: true
+        url: "http://192.168.110.128:9002"
+        access-key: "admin"
+        secret-key: "minioadmin"
+        default-bucket: "test-bucket"
+      aliyun-oss:
+        enabled: true
+        endpoint: "oss-cn-beijing.aliyuncs.com"
+        access-key-id: "${ALIYUN_ACCESS_KEY_ID:}"
+        access-key-secret: "${ALIYUN_ACCESS_KEY_SECRET:}"
+        default-bucket: "mineguard-connectivity-test-oss"
+    ocr:
+      baidu:
+        enabled: true
+        api-key: "${BAIDU_API_KEY:}"
+        secret-key: "${BAIDU_SECRET_KEY:}"
+
+logging:
+  level:
+    com.klzw: DEBUG

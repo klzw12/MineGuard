@@ -22,9 +22,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-/**
- * 文件上传服务单元测试
- */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("文件上传服务单元测试")
 @Tag("unit")
@@ -45,6 +42,7 @@ class FileUploadServiceTest {
     void setUp() {
         testFile = new MockMultipartFile("test.png", "test.png", "image/png", "test image content".getBytes());
         when(fileStorageProperties.getMaxFileSize()).thenReturn(10 * 1024 * 1024L);
+        when(fileStorageProperties.getAllowedExtensions()).thenReturn("jpg,jpeg,png,gif,bmp,pdf,doc,docx,xls,xlsx");
     }
 
     @Test

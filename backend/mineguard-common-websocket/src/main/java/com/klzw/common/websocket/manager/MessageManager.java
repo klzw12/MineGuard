@@ -2,7 +2,7 @@ package com.klzw.common.websocket.manager;
 
 import com.alibaba.fastjson.JSON;
 import com.klzw.common.core.util.EncryptUtils;
-import com.klzw.common.websocket.config.WebSocketProperties;
+import com.klzw.common.websocket.properties.WebSocketProperties;
 import com.klzw.common.websocket.constant.WebSocketResultCode;
 import com.klzw.common.websocket.domain.ConnectionInfo;
 import com.klzw.common.websocket.domain.Message;

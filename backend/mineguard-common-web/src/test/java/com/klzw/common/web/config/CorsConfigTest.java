@@ -7,10 +7,7 @@ import org.springframework.web.filter.CorsFilter;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-/**
- * CorsConfig 测试类
- */
-@DisplayName("CorsConfig 测试")
+@DisplayName("WebAutoConfiguration CORS 测试")
 public class CorsConfigTest {
     
     @Test
@@ -19,13 +16,13 @@ public class CorsConfigTest {
         WebProperties webProperties = new WebProperties();
         WebProperties.Cors cors = webProperties.getCors();
         cors.setAllowedOrigins("*");
-        cors.setAllowedMethods("*");
+        cors.setAllowedMethods("GET,POST,PUT,DELETE,OPTIONS");
         cors.setAllowedHeaders("*");
         cors.setAllowCredentials(true);
         cors.setMaxAge(3600L);
         
-        CorsConfig corsConfig = new CorsConfig(webProperties);
-        CorsFilter corsFilter = corsConfig.corsFilter();
+        WebAutoConfiguration webAutoConfiguration = new WebAutoConfiguration(webProperties);
+        CorsFilter corsFilter = webAutoConfiguration.corsFilter();
         assertNotNull(corsFilter);
     }
     

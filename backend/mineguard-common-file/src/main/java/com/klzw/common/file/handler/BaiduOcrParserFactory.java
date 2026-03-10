@@ -16,6 +16,7 @@ import java.util.Map;
 public class BaiduOcrParserFactory {
 
     private final TemplateOcrParser templateOcrParser;
+    @SuppressWarnings("unused")
     private final BaiduAIProperties baiduAIProperties;
 
     public BaiduOcrParserFactory(TemplateOcrParser templateOcrParser, BaiduAIProperties baiduAIProperties) {

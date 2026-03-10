@@ -1,90 +1,51 @@
-# WebSocket模块测试环境配置
-# 用于单元测试和集成测试
-# 凭据来源: docs/Forenv/compose/docker-compose-test.yml
+mineguard:
+  auth:
+    enabled: true
+    jwt:
+      secret: ${JWT_SECRET:testjwtformineguardmineguard1bcdefghijklmnopqrstuvwxyz1234567890}
+      expiration: 3600000
+      enable-blacklist: true
+      blacklist-prefix: "jwt:blacklist:"
+      blacklist-expire: 86400
+  redis:
+    enabled: true
+    default-expire: 3600
+  mongodb:
+    enabled: true
+    host: "192.168.110.128"
+    port: 27018
+    database: "mineguard_test"
+    username: "admin"
+    password: "mongodbadmin"
+    authentication-database: "admin"
+    connect-timeout: 10000
+    read-timeout: 10000
+    max-connections: 50
+    min-connections-per-host: 5
+  websocket:
+    enabled: true
+    heartbeat-interval: 30000
+    heartbeat-timeout: 60000
+    max-connections: 100
+    max-topics-per-user: 10
+    max-messages-per-minute: 50
+    reconnect-max-retries: 3
+    offline-message-expire-days: 1
+    use-encryption: false
+    enable-message-persistence: false
+    allowed-origins:
+      - "*"
 
 spring:
   data:
     redis:
-      host: ${REDIS_HOST:192.168.110.128}
-      port: ${REDIS_PORT:6380}
-      password: ${REDIS_PASSWORD:testpass}
-      database: ${REDIS_DATABASE:0}
-      timeout: ${REDIS_TIMEOUT:60000}
-      lettuce:
-        pool:
-          max-active: 8
-          max-wait: -1
-          max-idle: 8
-          min-idle: 0
+      host: 192.168.110.128
+      port: 6380
+      password: testpass
+      database: 0
+    mongodb:
+      uri: mongodb://admin:mongodbadmin@192.168.110.128:27018/mineguard_test?authSource=admin
 
-  mongodb:
-    host: ${MONGODB_HOST:192.168.110.128}
-    port: ${MONGODB_PORT:27018}
-    username: ${MONGODB_USERNAME:admin}
-    password: ${MONGODB_PASSWORD:mongodbadmin}
-    database: ${MONGODB_DATABASE:mineguard_test}
-    authentication-database: ${MONGODB_AUTH_DATABASE:admin}
-
-  rabbitmq:
-    host: ${RABBITMQ_HOST:192.168.110.128}
-    port: ${RABBITMQ_PORT:5673}
-    username: ${RABBITMQ_USERNAME:admin}
-    password: ${RABBITMQ_PASSWORD:rabbitmqadmin}
-    virtual-host: ${RABBITMQ_VHOST:/}
-    connection-timeout: 60000
-    cache:
-      channel:
-        size: 25
-
-# Redis模块自定义配置 (对应 RedisProperties)
-# 注：RedisProperties前缀为mineguard.redis，需要同步配置
-mineguard:
-  redis:
-    host: ${REDIS_HOST:192.168.110.128}
-    port: ${REDIS_PORT:6380}
-    password: ${REDIS_PASSWORD:testpass}
-    database: ${REDIS_DATABASE:0}
-    timeout: ${REDIS_TIMEOUT:60000}
-    key-prefix: "mineguard:test:"
-    default-expire: 3600
-    pool:
-      max-active: 8
-      max-wait: -1
-      max-idle: 8
-      min-idle: 0
-    lock:
-      default-expire: 30
-      retry-count: 3
-      retry-interval: 100
-    rate-limit:
-      default-window: 60
-      default-limit: 100
-
-# JWT配置
-jwt:
-  secret: test-secret-key-for-websocket-module-testing-purpose-only-256-bits
-  expiration: 86400000
-  header: Authorization
-  prefix: "Bearer "
-
-# WebSocket配置
-websocket:
-  enabled: true
-  heartbeat-interval: 30000
-  heartbeat-timeout: 60000
-  max-connections: 100
-  max-topics-per-user: 10
-  max-messages-per-minute: 100
-  reconnect-max-retries: 3
-  offline-message-expire-days: 7
-  use-encryption: false
-  enable-message-persistence: false
-  allowed-origins: "*"
-  encryption-key: "test-key-16bytes"
-
-# 日志配置
 logging:
   level:
-    com.klzw.common.websocket: DEBUG
-    org.springframework.web.socket: DEBUG
-    org.springframework.data.redis: INFO
+    com.klzw: DEBUG

@@ -4,6 +4,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import com.klzw.common.core.config.DotenvInitializer;
 
 /**
  * File模块集成测试基类
@@ -17,7 +19,8 @@ import org.springframework.test.context.ActiveProfiles;
  * 注意：集成测试需要配置正确的MinIO/OSS连接和百度AI API
  */
 @SpringBootTest(classes = MineguardCommonFileApplication.class)
-@ActiveProfiles({"test", "secret"})
+@ActiveProfiles("test")
+@ContextConfiguration(initializers = DotenvInitializer.class)
 @Tag("integration")
 @DisplayName("File模块集成测试")
 public abstract class AbstractFileIntegrationTest {

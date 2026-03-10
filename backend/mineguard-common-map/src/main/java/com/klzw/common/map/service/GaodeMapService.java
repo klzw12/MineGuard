@@ -13,6 +13,8 @@ import com.klzw.common.map.util.GeoUtils;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +36,7 @@ public class GaodeMapService implements GeoCodingService, RoutePlanningService, 
                 .expireAfterWrite(properties.getCacheExpire(), TimeUnit.SECONDS)
                 .build(new CacheLoader<String, GeoFence>() {
                     @Override
-                    public GeoFence load(String key) {
+                    public GeoFence load(@NonNull String key) {
                         return null;
                     }
                 });

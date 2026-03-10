@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.klzw.common.auth.exception.AuthException;
 import com.klzw.common.auth.util.JwtUtils;
 import com.klzw.common.core.util.EncryptUtils;
-import com.klzw.common.websocket.config.WebSocketProperties;
+import com.klzw.common.websocket.properties.WebSocketProperties;
 import com.klzw.common.websocket.constant.WebSocketResultCode;
 import com.klzw.common.websocket.domain.Message;
 import com.klzw.common.websocket.enums.MessageTypeEnum;

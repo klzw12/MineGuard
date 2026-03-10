@@ -4,7 +4,6 @@ import com.klzw.common.database.datasource.DynamicDataSource;
 import com.klzw.common.database.properties.DatabaseProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,20 +22,16 @@ import java.util.Map;
 @Slf4j
 @Configuration
 @EnableConfigurationProperties(DatabaseProperties.class)
-@ConditionalOnBean(name = {"masterDataSource", "slaveDataSource"})
 public class DynamicDataSourceConfig {
 
     private final DataSource masterDataSource;
     private final DataSource slaveDataSource;
-    private final DatabaseProperties databaseProperties;
 
     public DynamicDataSourceConfig(
             @Qualifier("masterDataSource") DataSource masterDataSource,
-            @Qualifier("slaveDataSource") DataSource slaveDataSource,
-            DatabaseProperties databaseProperties) {
+            @Qualifier("slaveDataSource") DataSource slaveDataSource) {
         this.masterDataSource = masterDataSource;
         this.slaveDataSource = slaveDataSource;
-        this.databaseProperties = databaseProperties;
     }
 
     /**
@@ -49,14 +44,11 @@ public class DynamicDataSourceConfig {
     public DataSource dynamicDataSource() {
         log.info("开始配置动态数据源");
 
-        DynamicDataSource dynamicDataSource = new DynamicDataSource();
-
         Map<Object, Object> targetDataSources = new HashMap<>();
         targetDataSources.put(DynamicDataSource.MASTER, masterDataSource);
         targetDataSources.put(DynamicDataSource.SLAVE, slaveDataSource);
 
-        dynamicDataSource.setTargetDataSources(targetDataSources);
-        dynamicDataSource.setDefaultTargetDataSource(masterDataSource);
+        DynamicDataSource dynamicDataSource = new DynamicDataSource(masterDataSource, targetDataSources);
 
         log.info("动态数据源配置完成，主数据源: {}, 从数据源: {}",
                 DynamicDataSource.MASTER, DynamicDataSource.SLAVE);

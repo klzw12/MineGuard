@@ -1,11 +1,13 @@
-spring:
-  profiles:
-    active: secret
-
 mineguard:
   map:
     gaode:
+      enabled: true
+      api-key: "${GAODE_API_KEY:}"
       api-url: "https://restapi.amap.com/v3"
       connect-timeout: 5000
       read-timeout: 10000
       cache-expire: 3600
+
+logging:
+  level:
+    com.klzw: DEBUG

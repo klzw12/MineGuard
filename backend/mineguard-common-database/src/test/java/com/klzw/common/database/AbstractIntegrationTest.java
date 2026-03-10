@@ -1,5 +1,6 @@
 package com.klzw.common.database;
 
+import com.klzw.common.core.config.DotenvInitializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -7,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
 
 import javax.sql.DataSource;
 
@@ -24,6 +26,7 @@ import javax.sql.DataSource;
  * 注意：集成测试需要配置正确的数据库连接
  */
 @SpringBootTest(classes = TestApplication.class)
+@ContextConfiguration(initializers = DotenvInitializer.class)
 @ActiveProfiles("test")
 @Tag("integration")
 @DisplayName("集成测试")
@@ -33,6 +36,7 @@ public abstract class AbstractIntegrationTest {
     private JdbcTemplate jdbcTemplate;
     
     @Autowired
+    @SuppressWarnings("unused")
     private DataSource dataSource;
     
     /**

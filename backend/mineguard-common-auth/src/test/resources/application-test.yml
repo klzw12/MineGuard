@@ -1,56 +1,24 @@
-# 测试环境认证配置
-# 用于单元测试和集成测试
-
-spring:
-  security:
-    user:
-      name: test
-      password: test
-  data:
-    redis:
-      host: ${REDIS_HOST:192.168.110.128}
-      port: ${REDIS_PORT:6380}
-      password: ${REDIS_PASSWORD:testpass}
-      database: ${REDIS_DATABASE:0}
-      timeout: ${REDIS_TIMEOUT:60000}
-      lettuce:
-        pool:
-          max-active: 8
-          max-wait: -1
-          max-idle: 8
-          min-idle: 0
-
-# JWT 配置
-jwt:
-  secret: ${JWT_SECRET:testSecretKeyForJwtTokenGeneration12345678901234567890123456789012345678901234567890}
-  expiration: ${JWT_EXPIRATION:86400000}
-  header: ${JWT_HEADER:Authorization}
-  prefix: ${JWT_PREFIX:"Bearer "}
-
-# Redis 模块自定义配置
 mineguard:
+  auth:
+    enabled: true
+    jwt:
+      secret: ${JWT_SECRET:testjwtformineguardmineguard1bcdefghijklmnopqrstuvwxyz1234567890}
+      expiration: 3600000
+      enable-blacklist: true
+      blacklist-prefix: "jwt:blacklist:"
+      blacklist-expire: 86400
   redis:
-    # Redis连接配置（与spring.data.redis同步）
-    host: ${REDIS_HOST:192.168.110.128}
-    port: ${REDIS_PORT:6380}
-    password: ${REDIS_PASSWORD:testpass}
-    database: ${REDIS_DATABASE:0}
-    timeout: ${REDIS_TIMEOUT:60000}
-    # 连接池配置
-    pool:
-      max-active: 8
-      max-wait: -1
-      max-idle: 8
-      min-idle: 0
-    # 缓存键前缀
-    key-prefix: "mineguard:test:"
-    # 默认过期时间（秒）
+    enabled: true
     default-expire: 3600
 
-# 日志配置
+spring:
+  data:
+    redis:
+      host: 192.168.110.128
+      port: 6380
+      password: testpass
+      database: 0
+
 logging:
   level:
-    com.klzw.common.auth: DEBUG
-    com.klzw.common.redis: DEBUG
-    org.springframework.security: INFO
-    org.springframework.data.redis: INFO
+    com.klzw: DEBUG

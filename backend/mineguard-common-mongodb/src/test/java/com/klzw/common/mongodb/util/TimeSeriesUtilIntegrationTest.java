@@ -56,7 +56,8 @@ class TimeSeriesUtilIntegrationTest extends AbstractMongoDbIntegrationTest {
 
         Query query = TimeSeriesUtil.buildDeviceDataQuery(DEVICE_ID, startTime, endTime);
         
-        List<Map> results = mongoTemplate.find(query, Map.class, TEST_COLLECTION);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> results = (List<Map<String, Object>>) (List<?>) mongoTemplate.find(query, Map.class, TEST_COLLECTION);
         
         assertNotNull(results);
         assertEquals(5, results.size());
@@ -138,7 +139,8 @@ class TimeSeriesUtilIntegrationTest extends AbstractMongoDbIntegrationTest {
 
         assertTrue(deletedCount >= 3);
 
-        List<Map> remaining = mongoTemplate.findAll(Map.class, TEST_COLLECTION);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> remaining = (List<Map<String, Object>>) (List<?>) mongoTemplate.findAll(Map.class, TEST_COLLECTION);
         assertEquals(2, remaining.size());
     }
 

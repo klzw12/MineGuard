@@ -1,10 +1,9 @@
 package com.klzw.common.auth.util;
 
-import com.klzw.common.auth.config.JwtConfig;
+import com.klzw.common.auth.config.JwtProperties;
 import com.klzw.common.auth.constant.AuthResultCode;
 import com.klzw.common.auth.domain.JwtToken;
 import com.klzw.common.auth.exception.AuthException;
-import com.klzw.common.redis.service.RedisCacheService;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +12,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -25,10 +28,13 @@ import static org.mockito.Mockito.*;
 class JwtUtilsTest {
 
     @Mock
-    private JwtConfig jwtConfig;
+    private JwtProperties jwtProperties;
 
     @Mock
-    private RedisCacheService redisCacheService;
+    private StringRedisTemplate redisTemplate;
+
+    @Mock
+    private ValueOperations<String, String> valueOperations;
 
     private JwtUtils jwtUtils;
 
@@ -36,14 +42,20 @@ class JwtUtilsTest {
     private static final Long TEST_EXPIRATION = 86400000L;
     private static final String TEST_PREFIX = "Bearer ";
     private static final String TEST_HEADER = "Authorization";
+    private static final String TEST_BLACKLIST_PREFIX = "jwt:blacklist:";
+    private static final Long TEST_BLACKLIST_EXPIRE = 86400L;
 
     @BeforeEach
     void setUp() {
-        when(jwtConfig.getSecret()).thenReturn(TEST_SECRET);
-        when(jwtConfig.getExpiration()).thenReturn(TEST_EXPIRATION);
-        when(jwtConfig.getPrefix()).thenReturn(TEST_PREFIX);
-        when(jwtConfig.getHeader()).thenReturn(TEST_HEADER);
-        jwtUtils = new JwtUtils(jwtConfig, redisCacheService);
+        when(jwtProperties.getSecret()).thenReturn(TEST_SECRET);
+        when(jwtProperties.getExpiration()).thenReturn(TEST_EXPIRATION);
+        when(jwtProperties.getPrefix()).thenReturn(TEST_PREFIX);
+        when(jwtProperties.getHeader()).thenReturn(TEST_HEADER);
+        when(jwtProperties.getEnableBlacklist()).thenReturn(true);
+        when(jwtProperties.getBlacklistPrefix()).thenReturn(TEST_BLACKLIST_PREFIX);
+        when(jwtProperties.getBlacklistExpire()).thenReturn(TEST_BLACKLIST_EXPIRE);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        jwtUtils = new JwtUtils(jwtProperties, redisTemplate);
     }
 
     @Test
@@ -72,7 +84,7 @@ class JwtUtilsTest {
 
     @Test
     void parseToken_shouldThrowException_whenTokenExpired() {
-        when(jwtConfig.getExpiration()).thenReturn(-1000L);
+        when(jwtProperties.getExpiration()).thenReturn(-1000L);
         Long userId = 1L;
         String username = "testUser";
         String token = jwtUtils.generateToken(userId, username);
@@ -123,7 +135,7 @@ class JwtUtilsTest {
         String username = "testUser";
         String token = jwtUtils.generateToken(userId, username);
 
-        when(redisCacheService.exists(anyString())).thenReturn(false);
+        when(redisTemplate.hasKey(anyString())).thenReturn(false);
         boolean result = jwtUtils.validateToken(token);
 
         assertTrue(result);
@@ -144,7 +156,7 @@ class JwtUtilsTest {
         String username = "testUser";
         String token = jwtUtils.generateToken(userId, username);
 
-        when(redisCacheService.exists(anyString())).thenReturn(true);
+        when(redisTemplate.hasKey(anyString())).thenReturn(true);
         boolean result = jwtUtils.validateToken(token);
 
         assertFalse(result);
@@ -200,15 +212,14 @@ class JwtUtilsTest {
 
         jwtUtils.addToBlacklist(token);
 
-        verify(redisCacheService, times(1)).set(anyString(), eq("1"), anyLong(), any());
+        verify(valueOperations, times(1)).set(anyString(), eq("1"), anyLong(), any(TimeUnit.class));
     }
 
     @Test
     void isInBlacklist_shouldReturnTrue_whenTokenInRedis() {
         String token = "testToken123";
-        String blacklistKey = "auth:token:blacklist:" + token;
 
-        when(redisCacheService.exists(blacklistKey)).thenReturn(true);
+        when(redisTemplate.hasKey(TEST_BLACKLIST_PREFIX + token)).thenReturn(true);
         boolean result = jwtUtils.isInBlacklist(token);
 
         assertTrue(result);
@@ -217,9 +228,8 @@ class JwtUtilsTest {
     @Test
     void isInBlacklist_shouldReturnFalse_whenTokenNotInRedis() {
         String token = "testToken123";
-        String blacklistKey = "auth:token:blacklist:" + token;
 
-        when(redisCacheService.exists(blacklistKey)).thenReturn(false);
+        when(redisTemplate.hasKey(TEST_BLACKLIST_PREFIX + token)).thenReturn(false);
         boolean result = jwtUtils.isInBlacklist(token);
 
         assertFalse(result);

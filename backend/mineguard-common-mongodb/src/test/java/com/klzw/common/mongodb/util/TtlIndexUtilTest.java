@@ -1,13 +1,10 @@
 package com.klzw.common.mongodb.util;
 
 import com.klzw.common.mongodb.constant.MongoDbConstants;
-import com.klzw.common.mongodb.exception.MongoDbException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;

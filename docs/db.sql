@@ -8,7 +8,9 @@
 -- =====================================================
 -- 1. 用户域 (user-service)
 -- =====================================================
+CREATE DATABASE IF NOT EXISTS `MineGuard` ;
 
+USE `MineGuard`;
 -- 1.1 用户表
 CREATE TABLE IF NOT EXISTS `user` (
     `id` VARCHAR(36) PRIMARY KEY COMMENT '主键UUID',
@@ -349,7 +351,7 @@ CREATE TABLE IF NOT EXISTS `trip` (
 
 -- 3.3 行程轨迹表（按时间分区）
 CREATE TABLE IF NOT EXISTS `trip_track` (
-    `id` VARCHAR(36) PRIMARY KEY COMMENT '主键UUID',
+    `id` VARCHAR(36) NOT NULL COMMENT '主键UUID',
     `trip_id` VARCHAR(36) NOT NULL COMMENT '行程ID',
     `vehicle_id` VARCHAR(36) NOT NULL COMMENT '车辆ID',
     `longitude` DOUBLE NOT NULL COMMENT '经度',
@@ -359,6 +361,7 @@ CREATE TABLE IF NOT EXISTS `trip_track` (
     `altitude` DECIMAL(8,2) COMMENT '海拔（米）',
     `record_time` DATETIME NOT NULL COMMENT '记录时间',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`, `record_time`),
     INDEX `idx_trip_id` (`trip_id`),
     INDEX `idx_vehicle_id` (`vehicle_id`),
     INDEX `idx_record_time` (`record_time`)
@@ -419,7 +422,7 @@ CREATE TABLE IF NOT EXISTS `warning_rule` (
 
 -- 4.2 预警记录表（按时间分区）
 CREATE TABLE IF NOT EXISTS `warning_record` (
-    `id` VARCHAR(36) PRIMARY KEY COMMENT '主键UUID',
+    `id` VARCHAR(36) NOT NULL COMMENT '主键UUID',
     `warning_no` VARCHAR(50) NOT NULL COMMENT '预警编号',
     `rule_id` VARCHAR(36) COMMENT '规则ID',
     `warning_type` TINYINT NOT NULL COMMENT '预警类型：1-超速，2-偏离路线，3-盗卸，4-疲劳驾驶，5-停留超时',
@@ -438,7 +441,8 @@ CREATE TABLE IF NOT EXISTS `warning_record` (
     `handle_result` VARCHAR(500) COMMENT '处理结果',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    UNIQUE KEY `uk_warning_no` (`warning_no`),
+    PRIMARY KEY (`id`, `warning_time`),
+    UNIQUE KEY `uk_warning_no` (`warning_no`, `warning_time`),
     INDEX `idx_rule_id` (`rule_id`),
     INDEX `idx_warning_type` (`warning_type`),
     INDEX `idx_vehicle_id` (`vehicle_id`),
@@ -617,7 +621,7 @@ CREATE TABLE IF NOT EXISTS `system_config` (
 
 -- 8.2 操作日志表（按时间分区）
 CREATE TABLE IF NOT EXISTS `operation_log` (
-    `id` VARCHAR(36) PRIMARY KEY COMMENT '主键UUID',
+    `id` VARCHAR(36) NOT NULL COMMENT '主键UUID',
     `user_id` VARCHAR(36) COMMENT '用户ID',
     `username` VARCHAR(50) COMMENT '用户名',
     `operation_type` VARCHAR(50) COMMENT '操作类型',
@@ -632,6 +636,7 @@ CREATE TABLE IF NOT EXISTS `operation_log` (
     `status` TINYINT DEFAULT 1 COMMENT '状态：1-成功，2-失败',
     `error_msg` VARCHAR(500) COMMENT '错误信息',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`, `create_time`),
     INDEX `idx_user_id` (`user_id`),
     INDEX `idx_operation_type` (`operation_type`),
     INDEX `idx_create_time` (`create_time`),
@@ -651,13 +656,6 @@ PARTITION BY RANGE (YEAR(create_time)) (
 -- 初始化数据
 -- =====================================================
 
--- 初始化角色数据
-INSERT INTO `role` (`id`, `role_name`, `role_code`, `description`) VALUES
-(UUID(), '超级管理员', 'ROLE_ADMIN', '系统超级管理员，拥有所有权限'),
-(UUID(), '普通管理员', 'ROLE_MANAGER', '普通管理员，拥有大部分管理权限'),
-(UUID(), '司机', 'ROLE_DRIVER', '司机角色'),
-(UUID(), '安全员', 'ROLE_SAFETY', '安全员角色'),
-(UUID(), '维修员', 'ROLE_REPAIR', '维修员角色');
 
 -- 初始化预警规则数据
 INSERT INTO `warning_rule` (`id`, `rule_name`, `rule_code`, `warning_type`, `warning_level`, `threshold_value`, `description`) VALUES
@@ -675,3 +673,13 @@ INSERT INTO `system_config` (`id`, `config_key`, `config_value`, `config_type`, 
 (UUID(), 'vehicle.fatigue_hours', '4', 'int', '疲劳驾驶阈值（小时）'),
 (UUID(), 'vehicle.stop_timeout', '30', 'int', '停留超时阈值（分钟）'),
 (UUID(), 'map.default_zoom', '12', 'int', '地图默认缩放级别');
+
+-- 注意：管理员用户初始化
+-- 请通过系统的初始化脚本或管理界面创建管理员用户
+-- 避免在数据库文件中直接存储密码哈希值
+-- 推荐使用系统提供的密码设置功能，确保与系统加密逻辑一致
+
+-- 系统启动后，可通过以下方式初始化管理员：
+-- 1. 运行系统提供的初始化脚本
+-- 2. 通过管理界面的用户管理功能创建管理员
+-- 3. 使用系统API创建管理员账号

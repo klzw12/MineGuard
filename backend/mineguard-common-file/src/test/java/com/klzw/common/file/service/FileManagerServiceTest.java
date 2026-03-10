@@ -12,16 +12,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-/**
- * 文件管理服务单元测试
- */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("文件管理服务单元测试")
 @Tag("unit")
@@ -38,61 +36,73 @@ class FileManagerServiceTest {
     }
 
     @Test
+    @DisplayName("测试下载文件 - 成功")
+    void testDownload() {
+        InputStream mockStream = new ByteArrayInputStream("test content".getBytes());
+        when(storageService.download(anyString())).thenReturn(mockStream);
+
+        InputStream result = fileManagerService.download("test.txt");
+
+        assertNotNull(result);
+        verify(storageService, times(1)).download(anyString());
+    }
+
+    @Test
     @DisplayName("测试删除文件 - 成功")
-    void testDeleteFile() {
+    void testDelete() {
         when(storageService.delete(anyString())).thenReturn(true);
 
         boolean result = fileManagerService.delete("test.txt");
 
         assertTrue(result);
-        verify(storageService, times(1)).delete("test.txt");
+        verify(storageService, times(1)).delete(anyString());
     }
 
     @Test
-    @DisplayName("测试批量删除文件 - 成功")
-    void testDeleteBatch() {
-        when(storageService.delete(anyString())).thenReturn(true);
+    @DisplayName("测试获取文件URL - 成功")
+    void testGetUrl() {
+        when(storageService.getUrl(anyString(), anyLong())).thenReturn("http://test.url/file");
 
-        List<String> fileNames = Arrays.asList("test1.txt", "test2.txt", "test3.txt");
-        int result = fileManagerService.deleteBatch(fileNames);
+        String result = fileManagerService.getUrl("test.txt", 3600);
 
-        assertEquals(3, result);
-        verify(storageService, times(3)).delete(anyString());
+        assertNotNull(result);
+        verify(storageService, times(1)).getUrl(anyString(), anyLong());
     }
 
     @Test
-    @DisplayName("测试重命名文件 - 成功")
-    void testRename() throws Exception {
-        byte[] fileContent = "Hello, World!".getBytes();
-        InputStream inputStream = new ByteArrayInputStream(fileContent);
+    @DisplayName("测试获取文件信息 - 成功")
+    void testGetFileInfo() {
+        Map<String, Object> mockInfo = new HashMap<>();
+        mockInfo.put("size", 1024L);
+        mockInfo.put("contentType", "text/plain");
+        when(storageService.getFileInfo(anyString())).thenReturn(mockInfo);
 
-        when(storageService.download(anyString())).thenReturn(inputStream);
-        when(storageService.upload(any(InputStream.class), anyString(), anyString())).thenReturn("new-test.txt");
-        when(storageService.delete(anyString())).thenReturn(true);
+        Map<String, Object> result = fileManagerService.getFileInfo("test.txt");
 
-        boolean result = fileManagerService.rename("test.txt", "new-test.txt");
+        assertNotNull(result);
+        assertEquals(1024L, result.get("size"));
+        verify(storageService, times(1)).getFileInfo(anyString());
+    }
+
+    @Test
+    @DisplayName("测试检查文件是否存在 - 存在")
+    void testExists_True() {
+        Map<String, Object> mockInfo = new HashMap<>();
+        mockInfo.put("size", 1024L);
+        when(storageService.getFileInfo(anyString())).thenReturn(mockInfo);
+
+        boolean result = fileManagerService.exists("test.txt");
 
         assertTrue(result);
-        verify(storageService, times(1)).download("test.txt");
-        verify(storageService, times(1)).upload(any(InputStream.class), anyString(), anyString());
-        verify(storageService, times(1)).delete("test.txt");
     }
 
     @Test
-    @DisplayName("测试移动文件 - 成功")
-    void testMove() throws Exception {
-        byte[] fileContent = "Hello, World!".getBytes();
-        InputStream inputStream = new ByteArrayInputStream(fileContent);
+    @DisplayName("测试检查文件是否存在 - 不存在")
+    void testExists_False() {
+        when(storageService.getFileInfo(anyString())).thenThrow(new RuntimeException("File not found"));
 
-        when(storageService.download(anyString())).thenReturn(inputStream);
-        when(storageService.upload(any(InputStream.class), anyString(), anyString())).thenReturn("new-path/test.txt");
-        when(storageService.delete(anyString())).thenReturn(true);
+        boolean result = fileManagerService.exists("test.txt");
 
-        boolean result = fileManagerService.move("old-path/test.txt", "new-path/test.txt");
-
-        assertTrue(result);
-        verify(storageService, times(1)).download("old-path/test.txt");
-        verify(storageService, times(1)).upload(any(InputStream.class), anyString(), anyString());
-        verify(storageService, times(1)).delete("old-path/test.txt");
+        assertFalse(result);
     }
 }

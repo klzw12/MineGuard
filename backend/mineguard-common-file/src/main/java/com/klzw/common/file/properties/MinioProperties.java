@@ -1,36 +1,32 @@
 package com.klzw.common.file.properties;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@Getter
-@Setter
-@ConfigurationProperties(prefix = "minio")
+@Data
+@ConfigurationProperties(prefix = "mineguard.file.storage.minio")
 public class MinioProperties {
+    private boolean enabled = false;
     private String url;
     private String accessKey;
     private String secretKey;
-    private boolean secure = false;
     private String defaultBucket;
     private Buckets buckets;
     private int defaultExpireTime = 3600;
     private String defaultFolder = "";
-    private boolean enabled = false;
-    
-    @Getter
-    @Setter
+
+    @Data
     public static class Buckets {
         private String user;
         private String message;
         private String ai;
         private String vehicle;
     }
-    
+
     public String getEndpoint() {
         return url;
     }
-    
+
     public String getBucketName(String module) {
         if (buckets == null) {
             return defaultBucket;

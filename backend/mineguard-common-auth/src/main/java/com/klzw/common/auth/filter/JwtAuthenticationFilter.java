@@ -1,6 +1,6 @@
 package com.klzw.common.auth.filter;
 
-import com.klzw.common.auth.config.JwtConfig;
+import com.klzw.common.auth.config.JwtProperties;
 import com.klzw.common.auth.constant.AuthResultCode;
 import com.klzw.common.auth.context.UserContext;
 import com.klzw.common.auth.exception.AuthException;
@@ -31,15 +31,15 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
-    private final JwtConfig jwtConfig;
+    private final JwtProperties jwtProperties;
 
     private static final String HEADER_USER_ID = "X-User-Id";
     private static final String HEADER_USERNAME = "X-Username";
     private static final String HEADER_ROLES = "X-User-Roles";
 
-    public JwtAuthenticationFilter(JwtUtils jwtUtils, JwtConfig jwtConfig) {
+    public JwtAuthenticationFilter(JwtUtils jwtUtils, JwtProperties jwtProperties) {
         this.jwtUtils = jwtUtils;
-        this.jwtConfig = jwtConfig;
+        this.jwtProperties = jwtProperties;
     }
 
     @Override
@@ -86,7 +86,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * @param request HTTP请求
      */
     private void setUserInfoFromToken(HttpServletRequest request) {
-        String authHeader = request.getHeader(jwtConfig.getHeader());
+        String authHeader = request.getHeader(jwtProperties.getHeader());
         String token = jwtUtils.getTokenFromHeader(authHeader);
         
         if (token != null) {

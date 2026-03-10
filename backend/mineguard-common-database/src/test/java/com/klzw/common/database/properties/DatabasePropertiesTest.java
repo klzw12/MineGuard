@@ -37,7 +37,7 @@ class DatabasePropertiesTest {
     void defaultDruidInitialSize() {
         DatabaseProperties properties = new DatabaseProperties();
 
-        assertEquals(5, properties.getDruid().getInitialSize());
+        assertEquals(3, properties.getDruid().getInitialSize());
     }
 
     @Test
@@ -45,7 +45,7 @@ class DatabasePropertiesTest {
     void defaultDruidMinIdle() {
         DatabaseProperties properties = new DatabaseProperties();
 
-        assertEquals(5, properties.getDruid().getMinIdle());
+        assertEquals(3, properties.getDruid().getMinIdle());
     }
 
     @Test
@@ -53,7 +53,7 @@ class DatabasePropertiesTest {
     void defaultDruidMaxActive() {
         DatabaseProperties properties = new DatabaseProperties();
 
-        assertEquals(20, properties.getDruid().getMaxActive());
+        assertEquals(10, properties.getDruid().getMaxActive());
     }
 
     @Test
@@ -133,7 +133,7 @@ class DatabasePropertiesTest {
     void defaultDruidFilters() {
         DatabaseProperties properties = new DatabaseProperties();
 
-        assertEquals("stat,wall,log4j", properties.getDruid().getFilters());
+        assertEquals("stat,wall,slf4j", properties.getDruid().getFilters());
     }
 
     @Test
