@@ -21,7 +21,7 @@ class RedisResultCodeTest {
     void testEnumSize() {
         // 验证所有错误码都被定义
         RedisResultCode[] codes = RedisResultCode.values();
-        assertEquals(28, codes.length, "RedisResultCode应该包含28个错误码");
+        assertEquals(29, codes.length, "RedisResultCode应该包含29个错误码");
     }
 
     @ParameterizedTest
@@ -73,7 +73,8 @@ class RedisResultCodeTest {
             "KEY_NOT_FOUND, 951, 键不存在",
             "INVALID_KEY, 952, 无效的键",
             "INVALID_VALUE, 953, 无效的值",
-            "OPERATION_NOT_SUPPORTED, 954, 不支持的操作"
+            "OPERATION_NOT_SUPPORTED, 954, 不支持的操作",
+            "PARAMETER_ERROR, 955, 参数错误"
     })
     @DisplayName("测试特定错误码的值")
     void testSpecificErrorCode(String enumName, int expectedCode, String expectedMessage) {

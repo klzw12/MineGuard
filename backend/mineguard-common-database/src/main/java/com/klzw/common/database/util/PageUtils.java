@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.klzw.common.core.domain.PageRequest;
 import com.klzw.common.core.properties.PaginationProperties;
 import com.klzw.common.core.result.PageResult;
+import com.klzw.common.database.constant.DatabaseResultCode;
+import com.klzw.common.database.exception.DatabaseException;
 
 import java.util.Collections;
 import java.util.List;
@@ -23,27 +25,32 @@ public class PageUtils {
      * @param properties  分页配置属性
      * @param <T>         数据类型
      * @return MyBatis-Plus 分页对象
+     * @throws DatabaseException 当分页参数转换失败时抛出
      */
     public static <T> Page<T> toMyBatisPlusPage(PageRequest pageRequest, PaginationProperties properties) {
         if (pageRequest == null) {
             return new Page<>(properties.getDefaultPage(), properties.getDefaultPageSize());
         }
 
-        long pageNum = pageRequest.getPage();
-        long pageSize = pageRequest.getSize();
+        try {
+            long pageNum = pageRequest.getPage();
+            long pageSize = pageRequest.getSize();
 
-        Page<T> mpPage = new Page<>(pageNum, pageSize);
+            Page<T> mpPage = new Page<>(pageNum, pageSize);
 
-        if (pageRequest.getSortField() != null && !pageRequest.getSortField().isEmpty()) {
-            boolean isDesc = "desc".equalsIgnoreCase(pageRequest.getSortOrder());
-            if (isDesc) {
-                mpPage.addOrder(OrderItem.desc(pageRequest.getSortField()));
-            } else {
-                mpPage.addOrder(OrderItem.asc(pageRequest.getSortField()));
+            if (pageRequest.getSortField() != null && !pageRequest.getSortField().isEmpty()) {
+                boolean isDesc = "desc".equalsIgnoreCase(pageRequest.getSortOrder());
+                if (isDesc) {
+                    mpPage.addOrder(OrderItem.desc(pageRequest.getSortField()));
+                } else {
+                    mpPage.addOrder(OrderItem.asc(pageRequest.getSortField()));
+                }
             }
-        }
 
-        return mpPage;
+            return mpPage;
+        } catch (Exception e) {
+            throw new DatabaseException(DatabaseResultCode.PAGINATION_ERROR, e);
+        }
     }
 
     /**
@@ -52,27 +59,32 @@ public class PageUtils {
      * @param pageRequest common-core 分页请求对象
      * @param <T>         数据类型
      * @return MyBatis-Plus 分页对象
+     * @throws DatabaseException 当分页参数转换失败时抛出
      */
     public static <T> Page<T> toMyBatisPlusPage(PageRequest pageRequest) {
         if (pageRequest == null) {
             return new Page<>(1, 10);
         }
 
-        long pageNum = pageRequest.getPage();
-        long pageSize = pageRequest.getSize();
+        try {
+            long pageNum = pageRequest.getPage();
+            long pageSize = pageRequest.getSize();
 
-        Page<T> mpPage = new Page<>(pageNum, pageSize);
+            Page<T> mpPage = new Page<>(pageNum, pageSize);
 
-        if (pageRequest.getSortField() != null && !pageRequest.getSortField().isEmpty()) {
-            boolean isDesc = "desc".equalsIgnoreCase(pageRequest.getSortOrder());
-            if (isDesc) {
-                mpPage.addOrder(OrderItem.desc(pageRequest.getSortField()));
-            } else {
-                mpPage.addOrder(OrderItem.asc(pageRequest.getSortField()));
+            if (pageRequest.getSortField() != null && !pageRequest.getSortField().isEmpty()) {
+                boolean isDesc = "desc".equalsIgnoreCase(pageRequest.getSortOrder());
+                if (isDesc) {
+                    mpPage.addOrder(OrderItem.desc(pageRequest.getSortField()));
+                } else {
+                    mpPage.addOrder(OrderItem.asc(pageRequest.getSortField()));
+                }
             }
-        }
 
-        return mpPage;
+            return mpPage;
+        } catch (Exception e) {
+            throw new DatabaseException(DatabaseResultCode.PAGINATION_ERROR, e);
+        }
     }
 
     /**

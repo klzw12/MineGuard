@@ -10,18 +10,6 @@ mineguard:
   redis:
     enabled: true
     default-expire: 3600
-  mongodb:
-    enabled: true
-    host: "192.168.110.128"
-    port: 27018
-    database: "mineguard_test"
-    username: "admin"
-    password: "mongodbadmin"
-    authentication-database: "admin"
-    connect-timeout: 10000
-    read-timeout: 10000
-    max-connections: 50
-    min-connections-per-host: 5
   websocket:
     enabled: true
     heartbeat-interval: 30000
@@ -35,6 +23,26 @@ mineguard:
     enable-message-persistence: false
     allowed-origins:
       - "*"
+  mongodb:
+    enabled: true
+    host: "192.168.110.128"
+    port: 27018
+    database: "mineguard_test"
+    username: "admin"
+    password: "mongodbadmin"
+    authentication-database: "admin"
+    connect-timeout: 10000
+    read-timeout: 10000
+    max-connections: 50
+    min-connections-per-host: 5
+  mq:
+    rabbit:
+      enabled: true
+      host: "192.168.110.128"
+      port: 5673
+      username: "admin"
+      password: "rabbitmqadmin"
+      virtual-host: "/"
 
 spring:
   data:
@@ -43,8 +51,6 @@ spring:
       port: 6380
       password: testpass
       database: 0
-    mongodb:
-      uri: mongodb://admin:mongodbadmin@192.168.110.128:27018/mineguard_test?authSource=admin
 
 logging:
   level:

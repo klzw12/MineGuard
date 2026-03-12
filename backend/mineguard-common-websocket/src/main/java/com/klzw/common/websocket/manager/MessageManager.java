@@ -1,7 +1,7 @@
 package com.klzw.common.websocket.manager;
 
-import com.alibaba.fastjson.JSON;
 import com.klzw.common.core.util.EncryptUtils;
+import com.klzw.common.core.util.JsonUtils;
 import com.klzw.common.websocket.properties.WebSocketProperties;
 import com.klzw.common.websocket.constant.WebSocketResultCode;
 import com.klzw.common.websocket.domain.ConnectionInfo;
@@ -38,7 +38,7 @@ public class MessageManager {
         }
 
         try {
-            String messageJson = JSON.toJSONString(message);
+            String messageJson = JsonUtils.toJson(message);
             
             // 检查是否需要加密消息
             if (webSocketProperties.isUseEncryption() && !messageJson.isEmpty()) {

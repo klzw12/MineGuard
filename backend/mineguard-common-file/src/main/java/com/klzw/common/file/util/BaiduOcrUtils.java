@@ -1,6 +1,6 @@
 package com.klzw.common.file.util;
 
-import com.alibaba.fastjson.JSONObject;
+import com.klzw.common.core.util.JsonUtils;
 import com.klzw.common.file.properties.BaiduAIProperties;
 import com.klzw.common.file.exception.FileException;
 import com.klzw.common.file.constant.FileResultCode;
@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
+import tools.jackson.core.type.TypeReference;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -57,8 +58,8 @@ public class BaiduOcrUtils {
                 String responseBody = response.body().string();
                 log.debug("百度云API响应: {}", responseBody);
 
-                JSONObject jsonObject = JSONObject.parseObject(responseBody);
-                String accessToken = jsonObject.getString("access_token");
+                Map<String, Object> jsonObject = JsonUtils.fromJson(responseBody, new TypeReference<Map<String, Object>>() {});
+                String accessToken = (String) jsonObject.get("access_token");
                 if (accessToken == null) {
                     log.error("获取百度OCR AK失败");
                     throw new FileException(FileResultCode.FILE_OPERATION_FAILED, "百度云API访问令牌为空");
@@ -335,7 +336,7 @@ public class BaiduOcrUtils {
      */
     public String imageConvert(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("上传的文件不能为空");
+            throw new FileException(FileResultCode.FILE_OPERATION_FAILED, "上传的文件不能为空");
         }
         byte[] imageBytes = file.getBytes();
         validateImageData(imageBytes);
@@ -350,15 +351,15 @@ public class BaiduOcrUtils {
      */
     public String imageConvert(String filePath) throws IOException {
         if (filePath == null || filePath.trim().isEmpty()) {
-            throw new IllegalArgumentException("文件路径不能为空");
+            throw new FileException(FileResultCode.FILE_OPERATION_FAILED, "文件路径不能为空");
         }
 
         File file = new File(filePath);
         if (!file.exists()) {
-            throw new IllegalArgumentException("文件不存在: " + filePath);
+            throw new FileException(FileResultCode.FILE_NOT_FOUND, "文件不存在: " + filePath);
         }
         if (!file.isFile()) {
-            throw new IllegalArgumentException("路径不是文件: " + filePath);
+            throw new FileException(FileResultCode.FILE_OPERATION_FAILED, "路径不是文件: " + filePath);
         }
 
         try (FileInputStream fis = new FileInputStream(file)) {
@@ -376,7 +377,7 @@ public class BaiduOcrUtils {
      */
     public String imageConvert(byte[] imageData) throws IOException {
         if (imageData == null || imageData.length == 0) {
-            throw new IllegalArgumentException("图片数据不能为空");
+            throw new FileException(FileResultCode.FILE_OPERATION_FAILED, "图片数据不能为空");
         }
 
         validateImageData(imageData);
@@ -391,18 +392,18 @@ public class BaiduOcrUtils {
      */
     private void validateImageData(byte[] imageData) throws IOException {
         if (imageData == null || imageData.length == 0) {
-            throw new IllegalArgumentException("图片数据不能为空");
+            throw new FileException(FileResultCode.FILE_OPERATION_FAILED, "图片数据不能为空");
         }
 
         long maxSize = 8 * 1024 * 1024;
         if (imageData.length > maxSize) {
-            throw new IllegalArgumentException("图片大小不能超过8MB，当前大小: " + (imageData.length / 1024.0 / 1024) + "MB");
+            throw new FileException(FileResultCode.FILE_SIZE_EXCEEDED, "图片大小不能超过8MB，当前大小: " + (imageData.length / 1024.0 / 1024) + "MB");
         }
 
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageData));
             if (image == null) {
-                throw new IllegalArgumentException("图片格式不支持或文件已损坏");
+                throw new FileException(FileResultCode.FILE_TYPE_NOT_ALLOWED, "图片格式不支持或文件已损坏");
             }
             int width = image.getWidth();
             int height = image.getHeight();
@@ -410,15 +411,15 @@ public class BaiduOcrUtils {
             int maxSizeDimension = 4096;
             
             if (width < minSize || height < minSize) {
-                throw new IllegalArgumentException("图片最短边至少" + minSize + "px，当前尺寸: " + width + "x" + height);
+                throw new FileException(FileResultCode.FILE_OPERATION_FAILED, "图片最短边至少" + minSize + "px，当前尺寸: " + width + "x" + height);
             }
             if (width > maxSizeDimension || height > maxSizeDimension) {
-                throw new IllegalArgumentException("图片最长边最大" + maxSizeDimension + "px，当前尺寸: " + width + "x" + height);
+                throw new FileException(FileResultCode.FILE_OPERATION_FAILED, "图片最长边最大" + maxSizeDimension + "px，当前尺寸: " + width + "x" + height);
             }
 
             String formatName = getImageFormatName(imageData);
             if (!isValidImageFormat(formatName)) {
-                throw new IllegalArgumentException("仅支持jpg/jpeg/png/bmp格式的图片，当前格式: " + formatName);
+                throw new FileException(FileResultCode.FILE_TYPE_NOT_ALLOWED, "仅支持jpg/jpeg/png/bmp格式的图片，当前格式: " + formatName);
             }
         } catch (IOException e) {
             throw new IOException("图片验证失败: " + e.getMessage(), e);

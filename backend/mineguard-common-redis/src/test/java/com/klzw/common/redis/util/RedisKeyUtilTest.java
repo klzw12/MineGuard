@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.klzw.common.redis.exception.RedisException;
+
 /**
  * Redis 键工具类单元测试
  */
@@ -99,11 +101,14 @@ public class RedisKeyUtilTest {
     }
 
     @Test
-    @DisplayName("空值处理测试")
-    void testNullAndEmptyValues() {
-        assertNotNull(RedisKeyUtil.generateUserTokenKey(0L,""));
-        assertNotNull(RedisKeyUtil.generateUserTokenKey(null,null));
-        assertNotNull(RedisKeyUtil.generateLockKey(""));
-        assertNotNull(RedisKeyUtil.generateLockKey(null));
+    @DisplayName("参数验证测试")
+    void testParameterValidation() {
+        // 测试userId参数验证
+        assertThrows(RedisException.class, () -> RedisKeyUtil.generateUserTokenKey(0L, "test"));
+        assertThrows(RedisException.class, () -> RedisKeyUtil.generateUserTokenKey(null, "test"));
+        
+        // 测试lockKey参数验证
+        assertThrows(RedisException.class, () -> RedisKeyUtil.generateLockKey(""));
+        assertThrows(RedisException.class, () -> RedisKeyUtil.generateLockKey(null));
     }
 }

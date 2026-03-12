@@ -64,25 +64,4 @@ public class FileException extends BaseException {
     public FileException(FileResultCode resultCode, String message, Throwable cause) {
         super(resultCode.getCode(), message, MODULE, cause);
     }
-
-    /**
-     * 构造方法 - 使用错误码和消息（兼容旧代码）
-     *
-     * @param code    错误码
-     * @param message 错误消息
-     */
-    public FileException(int code, String message) {
-        super(code, message, MODULE);
-    }
-
-    /**
-     * 构造方法 - 使用错误码、消息和异常原因（兼容旧代码）
-     *
-     * @param code    错误码
-     * @param message 错误消息
-     * @param cause   异常原因
-     */
-    public FileException(int code, String message, Throwable cause) {
-        super(code, message, MODULE, cause);
-    }
 }

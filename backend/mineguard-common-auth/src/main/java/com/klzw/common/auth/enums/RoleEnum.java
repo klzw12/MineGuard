@@ -1,34 +1,54 @@
 package com.klzw.common.auth.enums;
 
-import lombok.Getter;
-
 /**
  * 角色枚举
- * 与db.sql中role表的数据保持一致
  */
-@Getter
 public enum RoleEnum {
 
-    ADMIN("ROLE_ADMIN", "管理员"),
-    MANAGER("ROLE_MANAGER", "普通管理员"),
-    DRIVER("ROLE_DRIVER", "司机"),
-    SAFETY("ROLE_SAFETY", "安全员"),
-    REPAIR("ROLE_REPAIR", "维修员");
+    /**
+     * 管理员角色
+     */
+    ADMIN("ROLE_ADMIN"),
 
-    private final String code;
-    private final String desc;
+    /**
+     * 普通管理员角色
+     */
+    MANAGER("ROLE_MANAGER"),
 
-    RoleEnum(String code, String desc) {
-        this.code = code;
-        this.desc = desc;
+    /**
+     * 司机角色
+     */
+    DRIVER("ROLE_DRIVER"),
+
+    /**
+     * 安全员角色
+     */
+    SAFETY("ROLE_SAFETY"),
+
+    /**
+     * 维修员角色
+     */
+    REPAIR("ROLE_REPAIR");
+
+    private final String value;
+
+    RoleEnum(String value) {
+        this.value = value;
     }
 
-    public static RoleEnum fromCode(String code) {
-        for (RoleEnum roleEnum : values()) {
-            if (roleEnum.getCode().equals(code)) {
-                return roleEnum;
+    public String getValue() {
+        return value;
+    }
+
+    /**
+     * 根据值获取枚举
+     */
+    public static RoleEnum fromValue(String value) {
+        for (RoleEnum role : values()) {
+            if (role.value.equals(value)) {
+                return role;
             }
         }
-        return null;
+        throw new IllegalArgumentException("Invalid role value: " + value);
     }
 }

@@ -1,6 +1,6 @@
 package com.klzw.common.websocket.consumer;
 
-import com.alibaba.fastjson.JSON;
+import com.klzw.common.core.util.JsonUtils;
 import com.klzw.common.mq.constant.MqConstants;
 import com.klzw.common.websocket.manager.OnlineUserManager;
 import com.klzw.common.websocket.service.MessagePushService;
@@ -32,7 +32,7 @@ public class OfflineMessageConsumer {
         try {
             String messageBody = new String(amqpMessage.getBody());
             com.klzw.common.websocket.domain.Message message = 
-                    JSON.parseObject(messageBody, com.klzw.common.websocket.domain.Message.class);
+                    JsonUtils.fromJson(messageBody, com.klzw.common.websocket.domain.Message.class);
             
             String routingKey = amqpMessage.getMessageProperties().getReceivedRoutingKey();
             String userId = extractUserIdFromRoutingKey(routingKey);

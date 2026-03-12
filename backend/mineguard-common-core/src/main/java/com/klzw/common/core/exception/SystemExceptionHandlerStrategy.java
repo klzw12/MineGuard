@@ -13,7 +13,11 @@ public class SystemExceptionHandlerStrategy implements ExceptionHandlerStrategy 
     @Override
     public Result<?> handle(Throwable throwable) {
         SystemException ex = (SystemException) throwable;
-        log.error("系统异常: code={}, message={}", ex.getCode(), ex.getMessage(), ex);
+        if (ex.getCause() != null) {
+            log.error("系统异常: code={}, message={}, caused by: {}", ex.getCode(), ex.getMessage(), ex.getCause().getMessage(), ex.getCause());
+        } else {
+            log.error("系统异常: code={}, message={}", ex.getCode(), ex.getMessage());
+        }
         return Result.fail(ex.getCode(), ex.getMessage());
     }
 }

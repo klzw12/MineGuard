@@ -7,19 +7,15 @@ import io.swagger.v3.oas.models.OpenAPI;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-/**
- * Knife4jConfig 测试类
- */
 @SpringJUnitConfig
-@DisplayName("Knife4jConfig 测试")
-public class Knife4jConfigTest {
+@DisplayName("OpenApiConfig 测试")
+public class OpenApiConfigTest {
     
     @Test
     @DisplayName("测试 OpenAPI 初始化")
     public void testOpenAPIInitialization() {
-        Knife4jConfig knife4jConfig = new Knife4jConfig();
-        OpenAPI openAPI = knife4jConfig.openAPI();
+        OpenApiConfig openApiConfig = new OpenApiConfig();
+        OpenAPI openAPI = openApiConfig.openAPI();
         assertNotNull(openAPI);
-    }
-    
+    }    
 }

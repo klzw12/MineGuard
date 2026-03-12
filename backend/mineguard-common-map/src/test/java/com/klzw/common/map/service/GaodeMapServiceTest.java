@@ -1,6 +1,5 @@
 package com.klzw.common.map.service;
 
-import com.alibaba.fastjson.JSONObject;
 import com.klzw.common.map.client.GaodeMapClient;
 import com.klzw.common.map.domain.GeoFence;
 import com.klzw.common.map.domain.GeoPoint;
@@ -52,13 +51,13 @@ class GaodeMapServiceTest {
         params.put("address", "北京市朝阳区");
         params.put("output", "json");
 
-        JSONObject mockResult = new JSONObject();
+        Map<String, Object> mockResult = new HashMap<>();
         mockResult.put("status", "1");
         
-        JSONObject geocode = new JSONObject();
+        Map<String, Object> geocode = new HashMap<>();
         geocode.put("location", "116.4074,39.9042");
         
-        List<JSONObject> geocodes = new ArrayList<>();
+        List<Map<String, Object>> geocodes = new ArrayList<>();
         geocodes.add(geocode);
         mockResult.put("geocodes", geocodes);
 
@@ -83,10 +82,10 @@ class GaodeMapServiceTest {
         params.put("location", "116.4074,39.9042");
         params.put("output", "json");
 
-        JSONObject mockResult = new JSONObject();
+        Map<String, Object> mockResult = new HashMap<>();
         mockResult.put("status", "1");
         
-        JSONObject regeocode = new JSONObject();
+        Map<String, Object> regeocode = new HashMap<>();
         regeocode.put("formatted_address", "北京市朝阳区");
         mockResult.put("regeocode", regeocode);
 
@@ -108,10 +107,10 @@ class GaodeMapServiceTest {
         params.put("page", "1");
         params.put("offset", "20");
 
-        JSONObject mockResult = new JSONObject();
+        Map<String, Object> mockResult = new HashMap<>();
         mockResult.put("status", "1");
         
-        JSONObject poiJson = new JSONObject();
+        Map<String, Object> poiJson = new HashMap<>();
         poiJson.put("id", "1");
         poiJson.put("name", "测试餐厅");
         poiJson.put("address", "北京市朝阳区");
@@ -119,7 +118,7 @@ class GaodeMapServiceTest {
         poiJson.put("distance", 100);
         poiJson.put("location", "116.4074,39.9042");
         
-        List<JSONObject> pois = new ArrayList<>();
+        List<Map<String, Object>> pois = new ArrayList<>();
         pois.add(poiJson);
         mockResult.put("pois", pois);
 
@@ -138,17 +137,17 @@ class GaodeMapServiceTest {
         GeoPoint destination = new GeoPoint(116.4810, 39.9965);
 
         // 使用any()匹配参数
-        JSONObject mockResult = new JSONObject();
+        Map<String, Object> mockResult = new HashMap<>();
         mockResult.put("status", "1");
         
-        JSONObject route = new JSONObject();
+        Map<String, Object> route = new HashMap<>();
         
-        JSONObject path = new JSONObject();
+        Map<String, Object> path = new HashMap<>();
         path.put("distance", 15000);
         path.put("duration", 3000);
         path.put("polyline", "116.4074,39.9042;116.4810,39.9965");
         
-        List<JSONObject> paths = new ArrayList<>();
+        List<Map<String, Object>> paths = new ArrayList<>();
         paths.add(path);
         route.put("paths", paths);
         mockResult.put("route", route);

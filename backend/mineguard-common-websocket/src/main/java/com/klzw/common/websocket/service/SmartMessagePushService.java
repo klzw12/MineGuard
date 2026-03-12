@@ -1,7 +1,6 @@
 package com.klzw.common.websocket.service;
 
 import com.klzw.common.websocket.domain.Message;
-import com.klzw.common.websocket.enums.MessageTypeEnum;
 
 import java.util.List;
 import java.util.Map;

@@ -5,12 +5,8 @@ import org.springframework.context.annotation.Configuration;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 
-/**
- * Knife4j 配置类
- * 用于配置 API 接口文档
- */
 @Configuration
-public class Knife4jConfig {
+public class OpenApiConfig {
     
     @Bean
     public OpenAPI openAPI() {

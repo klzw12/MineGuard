@@ -7,6 +7,7 @@ import com.klzw.common.core.result.Result;
 import com.klzw.common.web.TestWebApplication;
 import com.klzw.common.web.constant.WebResultCode;
 import com.klzw.common.web.exception.WebException;
+import com.klzw.common.core.handler.GlobalExceptionHandler;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;

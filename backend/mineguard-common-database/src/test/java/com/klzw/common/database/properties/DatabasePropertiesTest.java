@@ -85,7 +85,7 @@ class DatabasePropertiesTest {
     void defaultDruidValidationQuery() {
         DatabaseProperties properties = new DatabaseProperties();
 
-        assertEquals("SELECT 1 FROM DUAL", properties.getDruid().getValidationQuery());
+        assertEquals("SELECT 1", properties.getDruid().getValidationQuery());
     }
 
     @Test

@@ -1,7 +1,6 @@
 package com.klzw.common.web.config;
 
-import com.klzw.common.core.exception.ExceptionHandlerRegistry;
-import com.klzw.common.core.exception.ExceptionHandlerStrategy;
+
 import com.klzw.common.web.properties.WebProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -13,11 +12,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.util.List;
+
 
 @Slf4j
 @AutoConfiguration
@@ -26,22 +24,17 @@ import java.util.List;
 @EnableConfigurationProperties(WebProperties.class)
 public class WebAutoConfiguration implements WebMvcConfigurer {
 
+    static {
+        log.info("WebAutoConfiguration initialized");
+    }
+
     private final WebProperties webProperties;
 
     public WebAutoConfiguration(WebProperties webProperties) {
         this.webProperties = webProperties;
     }
 
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-        WebProperties.Cors cors = webProperties.getCors();
-        registry.addMapping("/**")
-                .allowedOriginPatterns(cors.getAllowedOrigins() != null ? cors.getAllowedOrigins().split(",") : new String[]{"*"})
-                .allowedMethods(cors.getAllowedMethods().split(","))
-                .allowedHeaders(cors.getAllowedHeaders().split(","))
-                .allowCredentials(cors.isAllowCredentials())
-                .maxAge(cors.getMaxAge());
-    }
+    // 注意：CORS配置优先在网关处理，此处保留corsFilter作为备份
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -71,10 +64,5 @@ public class WebAutoConfiguration implements WebMvcConfigurer {
         return new CorsFilter(source);
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public ExceptionHandlerRegistry exceptionHandlerRegistry(List<ExceptionHandlerStrategy> strategies) {
-        log.info("初始化 ExceptionHandlerRegistry，已发现异常处理策略数量={}", strategies.size());
-        return new ExceptionHandlerRegistry(strategies);
-    }
+
 }

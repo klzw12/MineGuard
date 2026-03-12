@@ -29,11 +29,9 @@ public class DatabaseExceptionHandlerStrategy implements ExceptionHandlerStrateg
     public Result<?> handle(Throwable throwable) {
         DatabaseException exception = (DatabaseException) throwable;
         
-        log.error("数据库异常: code={}, message={}, module={}", 
+        log.error("数据库异常: code={}, message={}", 
                 exception.getCode(), 
-                exception.getMessage(), 
-                exception.getModule(), 
-                exception);
+                exception.getMessage());
         
         return Result.fail(exception.getCode(), exception.getMessage());
     }

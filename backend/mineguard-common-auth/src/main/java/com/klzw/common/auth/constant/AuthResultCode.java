@@ -24,16 +24,17 @@ public enum AuthResultCode {
      * 认证通用错误
      */
     AUTH_ERROR(800, "认证操作失败"),
+    PARAMETER_ERROR(801, "参数错误"),
 
     /**
      * Token相关错误
      */
-    TOKEN_EXPIRED(801, "Token已过期"),
-    TOKEN_INVALID(802, "Token无效"),
-    TOKEN_MISSING(803, "Token缺失"),
-    TOKEN_SIGNATURE_ERROR(804, "Token签名错误"),
-    TOKEN_PARSE_ERROR(805, "Token解析错误"),
-    TOKEN_REVOKED(806, "Token已被撤销"),
+    TOKEN_EXPIRED(802, "Token已过期"),
+    TOKEN_INVALID(803, "Token无效"),
+    TOKEN_MISSING(804, "Token缺失"),
+    TOKEN_SIGNATURE_ERROR(805, "Token签名错误"),
+    TOKEN_PARSE_ERROR(806, "Token解析错误"),
+    TOKEN_REVOKED(807, "Token已被撤销"),
 
     /**
      * 权限相关错误

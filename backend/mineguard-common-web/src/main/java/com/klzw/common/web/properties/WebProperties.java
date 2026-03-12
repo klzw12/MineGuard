@@ -7,25 +7,82 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "mineguard.web")
 public class WebProperties {
 
+    /**
+     * 是否启用Web配置
+     */
     private boolean enabled = true;
 
-    private final Cors cors = new Cors();
+    /**
+     * CORS配置（作为网关的备选项）
+     */
+    private Cors cors = new Cors();
 
-    private final FileUpload fileUpload = new FileUpload();
+    /**
+     * 资源配置
+     */
+    private Resources resources = new Resources();
+
+    /**
+     * 文件上传配置
+     */
+    private FileUpload fileUpload = new FileUpload();
 
     @Data
     public static class Cors {
-        private String allowedOrigins;
+        /**
+         * 允许的来源
+         */
+        private String allowedOrigins = "*";
+
+        /**
+         * 允许的方法
+         */
         private String allowedMethods = "GET,POST,PUT,DELETE,OPTIONS";
-        private String allowedHeaders = "Content-Type,Authorization";
+
+        /**
+         * 允许的头部
+         */
+        private String allowedHeaders = "*";
+
+        /**
+         * 是否允许凭证
+         */
         private boolean allowCredentials = true;
+
+        /**
+         * 预检请求的有效期
+         */
         private long maxAge = 3600;
     }
 
     @Data
+    public static class Resources {
+        /**
+         * 静态资源位置
+         */
+        private String staticLocations = "classpath:/static/";
+
+        /**
+         * 缓存周期
+         */
+        private int cachePeriod = 3600;
+    }
+
+    @Data
     public static class FileUpload {
-        private String maxFileSize = "50MB";
-        private String maxRequestSize = "100MB";
+        /**
+         * 上传位置
+         */
         private String location = "${java.io.tmpdir}";
+
+        /**
+         * 最大文件大小
+         */
+        private String maxFileSize = "10MB";
+
+        /**
+         * 最大请求大小
+         */
+        private String maxRequestSize = "100MB";
     }
 }

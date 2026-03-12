@@ -74,7 +74,8 @@ public enum RedisResultCode {
     KEY_NOT_FOUND(951, "键不存在"),
     INVALID_KEY(952, "无效的键"),
     INVALID_VALUE(953, "无效的值"),
-    OPERATION_NOT_SUPPORTED(954, "不支持的操作");
+    OPERATION_NOT_SUPPORTED(954, "不支持的操作"),
+    PARAMETER_ERROR(955, "参数错误");
 
     private final int code;
     private final String message;

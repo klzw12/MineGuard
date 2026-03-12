@@ -4,7 +4,6 @@ import com.klzw.common.file.service.OcrService;
 import com.klzw.common.file.util.BaiduOcrUtils;
 import com.klzw.common.file.handler.BaiduOcrParserFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,7 +19,6 @@ public class OcrServiceImpl implements OcrService {
     private final BaiduOcrUtils baiduOcrUtils;
     private final BaiduOcrParserFactory baiduOcrParserFactory;
 
-    @Autowired
     public OcrServiceImpl(BaiduOcrUtils baiduOcrUtils, BaiduOcrParserFactory baiduOcrParserFactory) {
         this.baiduOcrUtils = baiduOcrUtils;
         this.baiduOcrParserFactory = baiduOcrParserFactory;

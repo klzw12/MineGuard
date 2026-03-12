@@ -1,6 +1,7 @@
 package com.klzw.common.database.exception;
 
 import com.klzw.common.core.exception.BaseException;
+import com.klzw.common.database.constant.DatabaseResultCode;
 import lombok.Getter;
 
 /**
@@ -37,5 +38,13 @@ public class DatabaseException extends BaseException {
 
     public DatabaseException(String message, Throwable cause) {
         super(1000, message, MODULE, cause);
+    }
+
+    public DatabaseException(DatabaseResultCode resultCode) {
+        super(resultCode.getCode(), resultCode.getMessage(), MODULE);
+    }
+
+    public DatabaseException(DatabaseResultCode resultCode, Throwable cause) {
+        super(resultCode.getCode(), resultCode.getMessage(), MODULE, cause);
     }
 }

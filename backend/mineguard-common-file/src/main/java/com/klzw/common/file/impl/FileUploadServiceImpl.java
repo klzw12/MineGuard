@@ -1,6 +1,8 @@
 package com.klzw.common.file.impl;
 
+import com.klzw.common.file.constant.FileResultCode;
 import com.klzw.common.file.enums.FileBusinessTypeEnum;
+import com.klzw.common.file.exception.FileException;
 import com.klzw.common.file.properties.FileStorageProperties;
 import com.klzw.common.file.service.StorageService;
 import org.springframework.stereotype.Service;
@@ -54,11 +56,11 @@ public class FileUploadServiceImpl {
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("文件不能为空");
+            throw new FileException(FileResultCode.FILE_OPERATION_FAILED, "文件不能为空");
         }
         
         if (file.getSize() > fileStorageProperties.getMaxFileSize()) {
-            throw new IllegalArgumentException("文件大小超出限制");
+            throw new FileException(FileResultCode.FILE_SIZE_EXCEEDED, "文件大小超出限制");
         }
         
         String originalFilename = file.getOriginalFilename();
@@ -68,7 +70,7 @@ public class FileUploadServiceImpl {
                     fileStorageProperties.getAllowedExtensions().split(",")
             );
             if (!allowedExtensions.contains(extension.toLowerCase())) {
-                throw new IllegalArgumentException("文件类型不允许");
+                throw new FileException(FileResultCode.FILE_TYPE_NOT_ALLOWED, "文件类型不允许");
             }
         }
     }

@@ -13,6 +13,7 @@ public class JwtToken {
     private String token;
     private Long userId;
     private String username;
+    private String role;
     private Date issuedAt;
     private Date expiration;
 }

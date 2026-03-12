@@ -51,7 +51,7 @@ public class AuthInterceptor implements HandlerInterceptor {
     
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-        UserContext.clear();
+        // 注意：UserContext.clear()已在JwtAuthenticationFilter中处理，避免重复清理
         log.info("AuthInterceptor afterCompletion: {}", request.getRequestURL());
     }
 }

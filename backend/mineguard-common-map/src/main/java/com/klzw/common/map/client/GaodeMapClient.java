@@ -1,7 +1,6 @@
 package com.klzw.common.map.client;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.klzw.common.core.util.JsonUtils;
 import com.klzw.common.map.exception.MapException;
 import com.klzw.common.map.properties.GaodeMapProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +24,7 @@ public class GaodeMapClient {
         this.restTemplate = restTemplate;
     }
 
-    public JSONObject request(String path, Map<String, String> params) {
+    public Map<String, Object> request(String path, Map<String, String> params) {
         int maxRetries = 3;
         int retryCount = 0;
         
@@ -42,15 +41,15 @@ public class GaodeMapClient {
                         url, HttpMethod.POST, entity, String.class);
                 
                 String body = response.getBody();
-                JSONObject result = JSON.parseObject(body);
+                Map<String, Object> result = JsonUtils.toMap(body);
                 
                 if (result == null) {
                     throw new MapException("API response is null");
                 }
                 
-                String status = result.getString("status");
+                String status = (String) result.get("status");
                 if (!"1".equals(status)) {
-                    String info = result.getString("info");
+                    String info = (String) result.get("info");
                     throw new MapException("API error: " + info);
                 }
                 

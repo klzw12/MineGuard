@@ -110,7 +110,10 @@ public class AliyunOssStorageStrategy implements StorageStrategy, DisposableBean
                     fileName,
                     inputStream
             );
-            putObjectRequest.getMetadata().setContentType(contentType);
+            // 创建并设置metadata
+            com.aliyun.oss.model.ObjectMetadata metadata = new com.aliyun.oss.model.ObjectMetadata();
+            metadata.setContentType(contentType);
+            putObjectRequest.setMetadata(metadata);
             ossClient.putObject(putObjectRequest);
 
             return fileName;

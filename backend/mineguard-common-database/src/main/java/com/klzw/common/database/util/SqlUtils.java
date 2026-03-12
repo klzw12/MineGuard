@@ -1,5 +1,7 @@
 package com.klzw.common.database.util;
 
+import com.klzw.common.database.constant.DatabaseResultCode;
+import com.klzw.common.database.exception.DatabaseException;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -52,26 +54,31 @@ public class SqlUtils {
      * 构建 ORDER BY 子句
      * @param orderBy 排序字段和方向，如 {"id": "desc", "name": "asc"}
      * @return ORDER BY 子句
+     * @throws DatabaseException 当构建 ORDER BY 子句失败时抛出
      */
     public static String buildOrderByClause(Map<String, String> orderBy) {
         if (orderBy == null || orderBy.isEmpty()) {
             return "";
         }
         
-        StringJoiner joiner = new StringJoiner(", ", "ORDER BY ", "");
-        for (Map.Entry<String, String> entry : orderBy.entrySet()) {
-            String field = entry.getKey();
-            String direction = entry.getValue().toUpperCase();
-            // 验证排序方向是否合法
-            if ("ASC".equals(direction) || "DESC".equals(direction)) {
-                // 验证字段名是否合法，只允许字母、数字、下划线
-                if (field.matches("^[a-zA-Z0-9_]+$")) {
-                    joiner.add(field + " " + direction);
+        try {
+            StringJoiner joiner = new StringJoiner(", ", "ORDER BY ", "");
+            for (Map.Entry<String, String> entry : orderBy.entrySet()) {
+                String field = entry.getKey();
+                String direction = entry.getValue().toUpperCase();
+                // 验证排序方向是否合法
+                if ("ASC".equals(direction) || "DESC".equals(direction)) {
+                    // 验证字段名是否合法，只允许字母、数字、下划线
+                    if (field.matches("^[a-zA-Z0-9_]+$")) {
+                        joiner.add(field + " " + direction);
+                    }
                 }
             }
+            
+            return joiner.toString();
+        } catch (Exception e) {
+            throw new DatabaseException(DatabaseResultCode.SQL_SYNTAX_ERROR, e);
         }
-        
-        return joiner.toString();
     }
 
     /**

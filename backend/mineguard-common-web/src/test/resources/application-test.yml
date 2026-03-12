@@ -25,6 +25,12 @@ mineguard:
     enabled: true
     default-expire: 3600
 
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 spring:
   data:
     redis:

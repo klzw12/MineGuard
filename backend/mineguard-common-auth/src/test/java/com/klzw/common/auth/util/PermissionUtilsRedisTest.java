@@ -9,6 +9,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.*;
 
+
 class PermissionUtilsRedisTest {
 
     private RedisCacheService redisCacheService;

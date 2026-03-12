@@ -32,7 +32,7 @@ public class DatabaseProperties {
         private long maxWait = 60000L;
         private long timeBetweenEvictionRunsMillis = 60000L;
         private long minEvictableIdleTimeMillis = 300000L;
-        private String validationQuery = "SELECT 1 FROM DUAL";
+        private String validationQuery = "SELECT 1";
         private boolean testWhileIdle = true;
         private boolean testOnBorrow = false;
         private boolean testOnReturn = false;

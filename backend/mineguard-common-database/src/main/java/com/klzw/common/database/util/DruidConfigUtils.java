@@ -46,7 +46,7 @@ public class DruidConfigUtils {
             dataSource.setConnectionProperties(druidConfig.getConnectionProperties());
         } catch (Exception e) {
             log.error("配置Druid数据源失败: {}", e.getMessage(), e);
-            throw new DatabaseException(DatabaseResultCode.DATA_SOURCE_ERROR.getCode(), "Druid数据源配置失败", e);
+            throw new DatabaseException(DatabaseResultCode.DATA_SOURCE_ERROR, e);
         }
     }
 }

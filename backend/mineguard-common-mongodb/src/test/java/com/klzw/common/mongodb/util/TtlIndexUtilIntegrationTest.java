@@ -4,6 +4,7 @@ import com.klzw.common.mongodb.AbstractMongoDbIntegrationTest;
 import com.klzw.common.mongodb.constant.MongoDbConstants;
 import org.bson.Document;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -16,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * TtlIndexUtil 集成测试
  */
 @DisplayName("TtlIndexUtil集成测试")
+@Tag("integration")
 class TtlIndexUtilIntegrationTest extends AbstractMongoDbIntegrationTest {
 
     @Autowired

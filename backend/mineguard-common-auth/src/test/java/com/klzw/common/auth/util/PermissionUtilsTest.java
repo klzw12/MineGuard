@@ -14,6 +14,7 @@ import static org.mockito.Mockito.*;
 /**
  * 权限工具类单元测试
  */
+
 class PermissionUtilsTest {
 
     private RedisCacheService redisCacheService;

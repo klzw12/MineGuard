@@ -1,5 +1,6 @@
 package com.klzw.common.auth.util;
 
+import com.klzw.common.auth.exception.AuthException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -94,5 +95,57 @@ class PasswordUtilsTest {
         for (char c : password.toCharArray()) {
             assertTrue(validChars.indexOf(c) >= 0, "Password contains invalid character: " + c);
         }
+    }
+
+    @Test
+    void encode_shouldThrowException_whenPasswordIsNull() {
+        assertThrows(AuthException.class, () -> passwordUtils.encode(null));
+    }
+
+    @Test
+    void encode_shouldThrowException_whenPasswordIsEmpty() {
+        assertThrows(AuthException.class, () -> passwordUtils.encode(""));
+    }
+
+    @Test
+    void encode_shouldThrowException_whenPasswordIsBlank() {
+        assertThrows(AuthException.class, () -> passwordUtils.encode("   "));
+    }
+
+    @Test
+    void matches_shouldThrowException_whenRawPasswordIsNull() {
+        String encodedPassword = "encodedPassword123";
+        assertThrows(AuthException.class, () -> passwordUtils.matches(null, encodedPassword));
+    }
+
+    @Test
+    void matches_shouldThrowException_whenRawPasswordIsEmpty() {
+        String encodedPassword = "encodedPassword123";
+        assertThrows(AuthException.class, () -> passwordUtils.matches("", encodedPassword));
+    }
+
+    @Test
+    void matches_shouldThrowException_whenEncodedPasswordIsNull() {
+        String rawPassword = "password123";
+        assertThrows(AuthException.class, () -> passwordUtils.matches(rawPassword, null));
+    }
+
+    @Test
+    void matches_shouldThrowException_whenEncodedPasswordIsEmpty() {
+        String rawPassword = "password123";
+        assertThrows(AuthException.class, () -> passwordUtils.matches(rawPassword, ""));
+    }
+
+    @Test
+    void generateRandomPassword_shouldThrowException_whenLengthLessThan8() {
+        assertThrows(AuthException.class, () -> passwordUtils.generateRandomPassword(7));
+        assertThrows(AuthException.class, () -> passwordUtils.generateRandomPassword(0));
+        assertThrows(AuthException.class, () -> passwordUtils.generateRandomPassword(-1));
+    }
+
+    @Test
+    void generateRandomPassword_shouldThrowException_whenLengthGreaterThan128() {
+        assertThrows(AuthException.class, () -> passwordUtils.generateRandomPassword(129));
+        assertThrows(AuthException.class, () -> passwordUtils.generateRandomPassword(1000));
     }
 }

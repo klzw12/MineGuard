@@ -9,7 +9,7 @@ public class JwtProperties {
 
     private boolean enabled = true;
 
-    private String secret = "defaultSecretKeyForJwtTokenGeneration12345678901234567890";
+    private String secret;
 
     private Long expiration = 86400000L;
 

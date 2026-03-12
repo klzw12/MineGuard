@@ -2,15 +2,6 @@ mineguard:
   file:
     enabled: true
     storage:
-      dual-write:
-        enabled: true
-        primary: minio
-      minio:
-        enabled: true
-        url: "http://192.168.110.128:9002"
-        access-key: "admin"
-        secret-key: "minioadmin"
-        default-bucket: "test-bucket"
       aliyun-oss:
         enabled: true
         endpoint: "oss-cn-beijing.aliyuncs.com"

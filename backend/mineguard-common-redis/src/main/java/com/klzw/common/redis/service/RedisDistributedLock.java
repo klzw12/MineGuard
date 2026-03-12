@@ -1,5 +1,7 @@
 package com.klzw.common.redis.service;
 
+import com.klzw.common.redis.constant.RedisResultCode;
+import com.klzw.common.redis.exception.RedisException;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -10,12 +12,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-/**
- * Redis 分布式锁服务
- */
 @Service
 public class RedisDistributedLock {
-
 
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -23,49 +21,31 @@ public class RedisDistributedLock {
         this.redisTemplate = redisTemplate;
     }
 
-    // 本地重入锁，用于实现可重入性
     private final Lock localLock = new ReentrantLock();
-    // 线程本地存储，存储当前线程持有的锁信息
     private final ThreadLocal<LockInfo> threadLocalLockInfo = new ThreadLocal<>();
 
-    /**
-     * 尝试获取锁
-     *
-     * @param lockKey    锁键
-     * @param expireTime 过期时间
-     * @param timeUnit   时间单位
-     * @return 是否获取成功
-     */
     public boolean tryLock(String lockKey, long expireTime, TimeUnit timeUnit) {
-        // 生成唯一的锁所有者ID
         String lockValue = generateLockValue();
         return tryLock(lockKey, lockValue, expireTime, timeUnit);
     }
 
-    /**
-     * 尝试获取锁
-     *
-     * @param lockKey    锁键
-     * @param value      锁值
-     * @param expireTime 过期时间
-     * @param timeUnit   时间单位
-     * @return 是否获取成功
-     */
+    public void tryLockOrThrow(String lockKey, long expireTime, TimeUnit timeUnit) {
+        if (!tryLock(lockKey, expireTime, timeUnit)) {
+            throw new RedisException(RedisResultCode.LOCK_ACQUIRE_FAILED, "获取锁失败: " + lockKey);
+        }
+    }
+
     public boolean tryLock(String lockKey, Object value, long expireTime, TimeUnit timeUnit) {
         localLock.lock();
         try {
-            // 检查是否已经持有该锁
             LockInfo currentLockInfo = threadLocalLockInfo.get();
             if (currentLockInfo != null && currentLockInfo.getLockKey().equals(lockKey)) {
-                // 已持有锁，增加重入计数
                 currentLockInfo.incrementCount();
                 return true;
             }
 
-            // 尝试获取锁
             boolean acquired = redisTemplate.opsForValue().setIfAbsent(lockKey, value, expireTime, timeUnit);
             if (acquired) {
-                // 记录锁信息
                 threadLocalLockInfo.set(new LockInfo(lockKey, value.toString(), 1));
             }
             return acquired;
@@ -74,32 +54,27 @@ public class RedisDistributedLock {
         }
     }
 
-    /**
-     * 释放锁
-     *
-     * @param lockKey 锁键
-     * @return 是否释放成功
-     */
+    public void tryLockOrThrow(String lockKey, Object value, long expireTime, TimeUnit timeUnit) {
+        if (!tryLock(lockKey, value, expireTime, timeUnit)) {
+            throw new RedisException(RedisResultCode.LOCK_ACQUIRE_FAILED, "获取锁失败: " + lockKey);
+        }
+    }
+
     public boolean unlock(String lockKey) {
         localLock.lock();
         try {
             LockInfo currentLockInfo = threadLocalLockInfo.get();
             if (currentLockInfo == null || !currentLockInfo.getLockKey().equals(lockKey)) {
-                // 没有持有该锁，无法释放
                 return false;
             }
 
-            // 减少重入计数
             int count = currentLockInfo.decrementCount();
             if (count > 0) {
-                // 还有重入，不释放锁
                 return true;
             }
 
-            // 检查锁是否存在且所有者匹配
             Object currentValue = redisTemplate.opsForValue().get(lockKey);
             if (currentValue != null && currentValue.toString().equals(currentLockInfo.getLockValue())) {
-                // 所有者匹配，释放锁
                 redisTemplate.delete(lockKey);
                 threadLocalLockInfo.remove();
                 return true;
@@ -110,11 +85,35 @@ public class RedisDistributedLock {
         }
     }
 
-    /**
-     * 强制释放锁（不检查所有者）
-     *
-     * @param lockKey 锁键
-     */
+    public void unlockOrThrow(String lockKey) {
+        localLock.lock();
+        try {
+            LockInfo currentLockInfo = threadLocalLockInfo.get();
+            if (currentLockInfo == null || !currentLockInfo.getLockKey().equals(lockKey)) {
+                throw new RedisException(RedisResultCode.LOCK_NOT_OWNER, "不是锁的所有者: " + lockKey);
+            }
+
+            int count = currentLockInfo.decrementCount();
+            if (count > 0) {
+                return;
+            }
+
+            Object currentValue = redisTemplate.opsForValue().get(lockKey);
+            if (currentValue == null) {
+                threadLocalLockInfo.remove();
+                throw new RedisException(RedisResultCode.LOCK_EXPIRED, "锁已过期: " + lockKey);
+            }
+            if (!currentValue.toString().equals(currentLockInfo.getLockValue())) {
+                threadLocalLockInfo.remove();
+                throw new RedisException(RedisResultCode.LOCK_NOT_OWNER, "不是锁的所有者: " + lockKey);
+            }
+            redisTemplate.delete(lockKey);
+            threadLocalLockInfo.remove();
+        } finally {
+            localLock.unlock();
+        }
+    }
+
     public void forceUnlock(String lockKey) {
         redisTemplate.delete(lockKey);
         LockInfo currentLockInfo = threadLocalLockInfo.get();
@@ -123,39 +122,19 @@ public class RedisDistributedLock {
         }
     }
 
-    /**
-     * 检查锁是否存在
-     *
-     * @param lockKey 锁键
-     * @return 是否存在
-     */
     public boolean isLocked(String lockKey) {
         return redisTemplate.hasKey(lockKey);
     }
 
-    /**
-     * 检查锁是否被当前线程持有
-     *
-     * @param lockKey 锁键
-     * @return 是否被当前线程持有
-     */
     public boolean isHeldByCurrentThread(String lockKey) {
         LockInfo currentLockInfo = threadLocalLockInfo.get();
         return currentLockInfo != null && currentLockInfo.getLockKey().equals(lockKey);
     }
 
-    /**
-     * 生成唯一的锁值
-     *
-     * @return 锁值
-     */
     private String generateLockValue() {
         return UUID.randomUUID().toString();
     }
 
-    /**
-     * 锁信息类
-     */
     @Getter
     private static class LockInfo {
         private final String lockKey;
@@ -177,4 +156,3 @@ public class RedisDistributedLock {
         }
     }
 }
-

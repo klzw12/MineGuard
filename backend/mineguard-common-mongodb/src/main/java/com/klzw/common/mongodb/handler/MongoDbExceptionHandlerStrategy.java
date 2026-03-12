@@ -38,8 +38,7 @@ public class MongoDbExceptionHandlerStrategy implements ExceptionHandlerStrategy
         
         log.error("MongoDB异常: code={}, message={}", 
                 exception.getCode(), 
-                exception.getMessage(), 
-                exception);
+                exception.getMessage());
         
         return Result.fail(exception.getCode(), exception.getMessage());
     }

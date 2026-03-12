@@ -1,21 +1,20 @@
 package com.klzw.common.websocket.handler;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.klzw.common.auth.exception.AuthException;
 import com.klzw.common.auth.util.JwtUtils;
 import com.klzw.common.core.util.EncryptUtils;
+import com.klzw.common.core.util.JsonUtils;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.core.type.TypeReference;
 import com.klzw.common.websocket.properties.WebSocketProperties;
-import com.klzw.common.websocket.constant.WebSocketResultCode;
 import com.klzw.common.websocket.domain.Message;
 import com.klzw.common.websocket.enums.MessageTypeEnum;
-import com.klzw.common.websocket.exception.WebSocketException;
 import com.klzw.common.websocket.manager.ConnectionManager;
 import com.klzw.common.websocket.manager.MessageManager;
 import com.klzw.common.websocket.manager.OnlineUserManager;
 import com.klzw.common.websocket.service.MessageHistoryService;
 import com.klzw.common.websocket.service.SmartMessagePushService;
-import io.jsonwebtoken.Claims;
+import com.nimbusds.jwt.JWTClaimsSet;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -110,10 +109,10 @@ public class WebSocketHandler extends TextWebSocketHandler {
                 }
             }
 
-            JSONObject jsonMessage = JSON.parseObject(payload);
-            String messageType = jsonMessage.getString("messageType");
+            JsonNode jsonMessage = JsonUtils.getObjectMapper().readTree(payload);
+            String messageType = jsonMessage.path("messageType").asText();
 
-            if (messageType == null) {
+            if (messageType == null || messageType.isEmpty()) {
                 sendErrorMessage(session, "MESSAGE_TYPE_UNKNOWN", "消息类型缺失");
                 return;
             }
@@ -167,9 +166,9 @@ public class WebSocketHandler extends TextWebSocketHandler {
         log.error("WebSocket传输错误: sessionId={}", session.getId(), exception);
     }
 
-    private void handleHeartbeat(WebSocketSession session, JSONObject jsonMessage) {
-        JSONObject content = jsonMessage.getJSONObject("content");
-        if (content != null && "PING".equals(content.getString("type"))) {
+    private void handleHeartbeat(WebSocketSession session, JsonNode jsonMessage) {
+        JsonNode content = jsonMessage.path("content");
+        if (content != null && "PING".equals(content.path("type").asText())) {
             Map<String, Object> responseContent = new HashMap<>();
             responseContent.put("type", "PONG");
 
@@ -185,15 +184,15 @@ public class WebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void handleSubscribe(WebSocketSession session, JSONObject jsonMessage) {
-        JSONObject content = jsonMessage.getJSONObject("content");
-        if (content == null) {
+    private void handleSubscribe(WebSocketSession session, JsonNode jsonMessage) {
+        JsonNode content = jsonMessage.path("content");
+        if (content == null || content.isNull()) {
             sendErrorMessage(session, "SUBSCRIBE_FAILED", "订阅内容缺失");
             return;
         }
 
-        String action = content.getString("action");
-        List<String> topics = content.getJSONArray("topics").toJavaList(String.class);
+        String action = content.path("action").asText();
+        List<String> topics = JsonUtils.fromJson(content.path("topics").toString(), new TypeReference<List<String>>() {});
 
         if ("SUBSCRIBE".equals(action)) {
             for (String topic : topics) {
@@ -208,25 +207,25 @@ public class WebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void handleAuth(WebSocketSession session, JSONObject jsonMessage) {
+    private void handleAuth(WebSocketSession session, JsonNode jsonMessage) {
         // 认证已在连接建立时处理
         log.debug("收到认证消息: sessionId={}", session.getId());
     }
 
-    private void handleAck(WebSocketSession session, JSONObject jsonMessage) {
-        JSONObject content = jsonMessage.getJSONObject("content");
-        if (content != null) {
-            String originalMessageId = content.getString("originalMessageId");
-            String status = content.getString("status");
+    private void handleAck(WebSocketSession session, JsonNode jsonMessage) {
+        JsonNode content = jsonMessage.path("content");
+        if (content != null && !content.isNull()) {
+            String originalMessageId = content.path("originalMessageId").asText();
+            String status = content.path("status").asText();
             log.info("收到消息确认: sessionId={}, originalMessageId={}, status={}", 
                     session.getId(), originalMessageId, status);
         }
     }
 
-    private void handleOnlineStatus(WebSocketSession session, JSONObject jsonMessage) {
-        JSONObject content = jsonMessage.getJSONObject("content");
-        if (content != null && "QUERY".equals(content.getString("action"))) {
-            List<String> userIds = content.getJSONArray("userIds").toJavaList(String.class);
+    private void handleOnlineStatus(WebSocketSession session, JsonNode jsonMessage) {
+        JsonNode content = jsonMessage.path("content");
+        if (content != null && !content.isNull() && "QUERY".equals(content.path("action").asText())) {
+            List<String> userIds = JsonUtils.fromJson(content.path("userIds").toString(), new TypeReference<List<String>>() {});
             Map<String, Object> result = onlineUserManager.getOnlineUserStatus(userIds);
 
             Message response = Message.builder()
@@ -241,7 +240,7 @@ public class WebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void handleMessage(WebSocketSession session, JSONObject jsonMessage, MessageTypeEnum typeEnum) {
+    private void handleMessage(WebSocketSession session, JsonNode jsonMessage, MessageTypeEnum typeEnum) {
         // 处理其他类型的消息
         log.info("处理消息: sessionId={}, type={}", session.getId(), typeEnum.getCode());
     }
@@ -261,14 +260,20 @@ public class WebSocketHandler extends TextWebSocketHandler {
 
     private Map<String, String> validateToken(String token) {
         try {
-            Claims claims = jwtUtils.parseToken(token);
-            Long userId = claims.get("userId", Long.class);
+            JWTClaimsSet claims = jwtUtils.parseToken(token);
+            Object userIdObject = claims.getClaim("userId");
+            Long userId = userIdObject instanceof Number ? ((Number) userIdObject).longValue() : null;
             String username = claims.getSubject();
             
             Map<String, String> userInfo = new HashMap<>();
-            userInfo.put("userId", String.valueOf(userId));
+            userInfo.put("userId", userId != null ? String.valueOf(userId) : "");
             userInfo.put("username", username);
-            userInfo.put("role", claims.get("role", String.class) != null ? claims.get("role", String.class) : "USER");
+            try {
+                String role = claims.getStringClaim("role");
+                userInfo.put("role", role != null ? role : "USER");
+            } catch (Exception e) {
+                userInfo.put("role", "USER");
+            }
             return userInfo;
         } catch (AuthException e) {
             log.error("Token验证失败: {}", e.getMessage());

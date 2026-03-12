@@ -70,8 +70,7 @@ public class BatchInsertUtils {
                 } else {
                     log.error("第 {} 批插入失败，插入条数：{}", i + 1, batchList.size());
                     exceptions.add(new DatabaseException(
-                            DatabaseResultCode.BATCH_EXECUTION_ERROR.getCode(),
-                            String.format("第 %d 批插入失败", i + 1)
+                            DatabaseResultCode.BATCH_EXECUTION_ERROR
                     ));
                 }
             } catch (Exception e) {
@@ -82,8 +81,7 @@ public class BatchInsertUtils {
 
         if (!exceptions.isEmpty()) {
             throw new DatabaseException(
-                    DatabaseResultCode.BATCH_EXECUTION_ERROR.getCode(),
-                    String.format("批量插入部分失败，成功：%d，失败批次：%d", totalCount, exceptions.size()),
+                    DatabaseResultCode.BATCH_EXECUTION_ERROR,
                     exceptions.getFirst()
             );
         }
@@ -138,8 +136,7 @@ public class BatchInsertUtils {
                 } else {
                     log.error("第 {} 批更新失败，更新条数：{}", i + 1, batchList.size());
                     exceptions.add(new DatabaseException(
-                            DatabaseResultCode.BATCH_EXECUTION_ERROR.getCode(),
-                            String.format("第 %d 批更新失败", i + 1)
+                            DatabaseResultCode.BATCH_EXECUTION_ERROR
                     ));
                 }
             } catch (Exception e) {
@@ -150,8 +147,7 @@ public class BatchInsertUtils {
 
         if (!exceptions.isEmpty()) {
             throw new DatabaseException(
-                    DatabaseResultCode.BATCH_EXECUTION_ERROR.getCode(),
-                    String.format("批量更新部分失败，成功：%d，失败批次：%d", totalCount, exceptions.size()),
+                    DatabaseResultCode.BATCH_EXECUTION_ERROR,
                     exceptions.getFirst()
             );
         }
@@ -206,8 +202,7 @@ public class BatchInsertUtils {
                 } else {
                     log.error("第 {} 批删除失败，删除条数：{}", i + 1, batchList.size());
                     exceptions.add(new DatabaseException(
-                            DatabaseResultCode.BATCH_EXECUTION_ERROR.getCode(),
-                            String.format("第 %d 批删除失败", i + 1)
+                            DatabaseResultCode.BATCH_EXECUTION_ERROR
                     ));
                 }
             } catch (Exception e) {
@@ -218,8 +213,7 @@ public class BatchInsertUtils {
 
         if (!exceptions.isEmpty()) {
             throw new DatabaseException(
-                    DatabaseResultCode.BATCH_EXECUTION_ERROR.getCode(),
-                    String.format("批量删除部分失败，成功：%d，失败批次：%d", totalCount, exceptions.size()),
+                    DatabaseResultCode.BATCH_EXECUTION_ERROR,
                     exceptions.getFirst()
             );
         }

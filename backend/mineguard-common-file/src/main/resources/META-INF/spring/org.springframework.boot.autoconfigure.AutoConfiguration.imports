@@ -1,3 +1,2 @@
 com.klzw.common.file.config.FileAutoConfiguration
-com.klzw.common.file.config.MinioAutoConfiguration
 com.klzw.common.file.config.AliyunOssAutoConfiguration

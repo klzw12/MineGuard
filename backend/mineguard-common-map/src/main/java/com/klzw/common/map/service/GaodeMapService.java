@@ -1,7 +1,5 @@
 package com.klzw.common.map.service;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
 import com.klzw.common.map.client.GaodeMapClient;
 import com.klzw.common.map.domain.GeoFence;
 import com.klzw.common.map.domain.GeoPoint;
@@ -14,7 +12,8 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
-import lombok.NonNull;
+
+import javax.annotation.Nonnull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -36,8 +35,8 @@ public class GaodeMapService implements GeoCodingService, RoutePlanningService, 
                 .expireAfterWrite(properties.getCacheExpire(), TimeUnit.SECONDS)
                 .build(new CacheLoader<String, GeoFence>() {
                     @Override
-                    public GeoFence load(@NonNull String key) {
-                        return null;
+                    public GeoFence load(@Nonnull String key) {
+                        throw new MapException("GeoFence not found for key: " + key);
                     }
                 });
     }
@@ -52,15 +51,22 @@ public class GaodeMapService implements GeoCodingService, RoutePlanningService, 
         params.put("address", address);
         params.put("output", "json");
 
-        JSONObject result = client.request("/geocode/geo", params);
-        JSONArray geocodes = result.getJSONArray("geocodes");
+        Map<String, Object> result = client.request("/geocode/geo", params);
+        Object geocodesObj = result.get("geocodes");
+        if (!(geocodesObj instanceof List)) {
+            throw new MapException("Invalid geocodes format");
+        }
+        List<Map<String, Object>> geocodes = (List<Map<String, Object>>) geocodesObj;
         
         if (geocodes == null || geocodes.isEmpty()) {
             throw new MapException("No geocoding result found");
         }
 
-        JSONObject geocode = geocodes.getJSONObject(0);
-        String location = geocode.getString("location");
+        Map<String, Object> geocode = geocodes.get(0);
+        String location = (String) geocode.get("location");
+        if (location == null) {
+            throw new MapException("Location not found in geocode result");
+        }
         String[] coords = location.split(",");
         double longitude = Double.parseDouble(coords[0]);
         double latitude = Double.parseDouble(coords[1]);
@@ -76,14 +82,18 @@ public class GaodeMapService implements GeoCodingService, RoutePlanningService, 
         params.put("location", longitude + "," + latitude);
         params.put("output", "json");
 
-        JSONObject result = client.request("/geocode/regeo", params);
-        JSONObject regeocode = result.getJSONObject("regeocode");
-        
-        if (regeocode == null) {
-            throw new MapException("No reverse geocoding result found");
+        Map<String, Object> result = client.request("/geocode/regeo", params);
+        Object regeocodeObj = result.get("regeocode");
+        if (!(regeocodeObj instanceof Map)) {
+            throw new MapException("Invalid regeocode format");
         }
+        Map<String, Object> regeocode = (Map<String, Object>) regeocodeObj;
 
-        return regeocode.getString("formatted_address");
+        String formattedAddress = (String) regeocode.get("formatted_address");
+        if (formattedAddress == null) {
+            throw new MapException("Formatted address not found in regeocode result");
+        }
+        return formattedAddress;
     }
 
     @Override
@@ -105,26 +115,42 @@ public class GaodeMapService implements GeoCodingService, RoutePlanningService, 
         params.put("page", "1");
         params.put("offset", "20");
 
-        JSONObject result = client.request("/place/text", params);
-        JSONArray pois = result.getJSONArray("pois");
+        Map<String, Object> result = client.request("/place/text", params);
+        Object poisObj = result.get("pois");
         List<Poi> poiList = new ArrayList<>();
 
-        if (pois != null) {
-            for (int i = 0; i < pois.size(); i++) {
-                JSONObject poiJson = pois.getJSONObject(i);
+        if (poisObj instanceof List) {
+            List<Map<String, Object>> pois = (List<Map<String, Object>>) poisObj;
+            for (Map<String, Object> poiJson : pois) {
                 Poi poi = new Poi();
-                poi.setId(poiJson.getString("id"));
-                poi.setName(poiJson.getString("name"));
-                poi.setAddress(poiJson.getString("address"));
-                poi.setType(poiJson.getString("type"));
-                poi.setDistance(poiJson.getDoubleValue("distance"));
+                poi.setId((String) poiJson.get("id"));
+                poi.setName((String) poiJson.get("name"));
+                poi.setAddress((String) poiJson.get("address"));
+                poi.setType((String) poiJson.get("type"));
+                
+                Object distanceObj = poiJson.get("distance");
+                if (distanceObj != null) {
+                    try {
+                        poi.setDistance(Double.parseDouble(distanceObj.toString()));
+                    } catch (NumberFormatException e) {
+                        poi.setDistance(0.0);
+                    }
+                } else {
+                    poi.setDistance(0.0);
+                }
 
-                String location = poiJson.getString("location");
+                String location = (String) poiJson.get("location");
                 if (location != null) {
                     String[] coords = location.split(",");
-                    double poiLon = Double.parseDouble(coords[0]);
-                    double poiLat = Double.parseDouble(coords[1]);
-                    poi.setLocation(new GeoPoint(poiLon, poiLat));
+                    if (coords.length == 2) {
+                        try {
+                            double poiLon = Double.parseDouble(coords[0]);
+                            double poiLat = Double.parseDouble(coords[1]);
+                            poi.setLocation(new GeoPoint(poiLon, poiLat));
+                        } catch (NumberFormatException e) {
+                            // 坐标解析失败，不设置位置
+                        }
+                    }
                 }
 
                 poiList.add(poi);
@@ -163,27 +189,51 @@ public class GaodeMapService implements GeoCodingService, RoutePlanningService, 
         params.put("strategy", "0");
 
         String path = "/direction/" + mode;
-        JSONObject result = client.request(path, params);
-        JSONObject route = result.getJSONObject("route");
-        
-        if (route == null) {
-            throw new MapException("No route found");
+        Map<String, Object> result = client.request(path, params);
+        Object routeObj = result.get("route");
+        if (!(routeObj instanceof Map)) {
+            throw new MapException("Invalid route format");
         }
+        Map<String, Object> route = (Map<String, Object>) routeObj;
 
-        JSONArray paths = route.getJSONArray("paths");
+        Object pathsObj = route.get("paths");
+        if (!(pathsObj instanceof List)) {
+            throw new MapException("Invalid paths format");
+        }
+        List<Map<String, Object>> paths = (List<Map<String, Object>>) pathsObj;
         if (paths == null || paths.isEmpty()) {
             throw new MapException("No path found");
         }
 
-        JSONObject pathObj = paths.getJSONObject(0);
+        Map<String, Object> pathObj = paths.get(0);
         Route routeResult = new Route();
         routeResult.setOrigin(params.get("origin"));
         routeResult.setDestination(params.get("destination"));
-        routeResult.setDistance(pathObj.getDoubleValue("distance"));
-        routeResult.setDuration(pathObj.getIntValue("duration"));
+        
+        Object distanceObj = pathObj.get("distance");
+        if (distanceObj != null) {
+            try {
+                routeResult.setDistance(Double.parseDouble(distanceObj.toString()));
+            } catch (NumberFormatException e) {
+                routeResult.setDistance(0.0);
+            }
+        } else {
+            routeResult.setDistance(0.0);
+        }
+        
+        Object durationObj = pathObj.get("duration");
+        if (durationObj != null) {
+            try {
+                routeResult.setDuration(Integer.parseInt(durationObj.toString()));
+            } catch (NumberFormatException e) {
+                routeResult.setDuration(0);
+            }
+        } else {
+            routeResult.setDuration(0);
+        }
 
         // 解析路径坐标
-        String polyline = pathObj.getString("polyline");
+        String polyline = (String) pathObj.get("polyline");
         List<GeoPoint> pathPoints = parsePolyline(polyline);
         routeResult.setPath(pathPoints);
 

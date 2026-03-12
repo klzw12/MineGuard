@@ -16,7 +16,7 @@ import com.klzw.common.core.config.DotenvInitializer;
  * <p>
  * 子类只需继承此类即可进行集成测试
  * <p>
- * 注意：集成测试需要配置正确的MinIO/OSS连接和百度AI API
+ * 注意：集成测试需要配置正确的OSS连接和百度AI API
  */
 @SpringBootTest(classes = MineguardCommonFileApplication.class)
 @ActiveProfiles("test")

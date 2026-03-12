@@ -1,4 +1,4 @@
-package com.klzw.common.web.handler;
+package com.klzw.common.core.handler;
 
 import com.klzw.common.core.exception.ExceptionHandlerRegistry;
 import com.klzw.common.core.exception.ExceptionHandlerStrategy;

@@ -2,6 +2,7 @@ package com.klzw.common.web.handler;
 
 import com.klzw.common.core.exception.BusinessException;
 import com.klzw.common.core.exception.ExceptionHandlerRegistry;
+import com.klzw.common.core.handler.GlobalExceptionHandler;
 import com.klzw.common.core.exception.SystemException;
 import com.klzw.common.core.result.Result;
 import org.junit.jupiter.api.Test;

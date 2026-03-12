@@ -1,6 +1,6 @@
 package com.klzw.common.redis.config;
 
-import com.klzw.common.redis.serializer.Jackson2JsonRedisSerializer;
+import com.klzw.common.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -33,8 +33,8 @@ public class RedisAutoConfiguration {
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
         
-        template.setValueSerializer(new Jackson2JsonRedisSerializer<>(Object.class));
-        template.setHashValueSerializer(new Jackson2JsonRedisSerializer<>(Object.class));
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        template.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
         
         template.afterPropertiesSet();
         return template;

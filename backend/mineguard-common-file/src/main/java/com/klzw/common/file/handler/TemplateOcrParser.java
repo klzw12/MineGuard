@@ -1,11 +1,12 @@
 package com.klzw.common.file.handler;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
+import com.klzw.common.core.util.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.type.TypeReference;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -17,18 +18,20 @@ import java.util.Map;
 public class TemplateOcrParser implements OcrParser {
 
     /**
-     * 解析JSON字符串，提取words_result数组
+     * 安全解析JSON字符串，提取words_result数组
      * @param ocrResult OCR识别结果
-     * @return words_result数组，解析失败返回null
+     * @return words_result数组，解析失败返回空列表
      */
-    private JSONArray parseJson(String ocrResult) {
+    private List<Map<String, Object>> safeParseJson(String ocrResult) {
         try {
-            JSONObject jsonObject = JSONObject.parseObject(ocrResult);
-            return jsonObject.getJSONArray("words_result");
+            Map<String, Object> jsonObject = JsonUtils.fromJson(ocrResult, new TypeReference<Map<String, Object>>() {});
+            if (jsonObject != null && jsonObject.containsKey("words_result")) {
+                return JsonUtils.fromJson(JsonUtils.toJson(jsonObject.get("words_result")), new TypeReference<List<Map<String, Object>>>() {});
+            }
         } catch (Exception e) {
             log.error("解析JSON失败: {}", e.getMessage(), e);
-            return null;
         }
+        return List.of();
     }
 
     /**
@@ -39,32 +42,38 @@ public class TemplateOcrParser implements OcrParser {
      */
     private Map<String, String> parseWithKeywordMap(String ocrResult, Map<String, String> keywordMap) {
         Map<String, String> result = new HashMap<>();
-        JSONArray wordsResult = parseJson(ocrResult);
-        if (wordsResult == null) {
-            return result;
-        }
+        List<Map<String, Object>> wordsResult = safeParseJson(ocrResult);
         
-        for (int i = 0; i < wordsResult.size(); i++) {
-            try {
-                JSONObject item = wordsResult.getJSONObject(i);
-                String words = item.getString("words");
-                
-                for (Map.Entry<String, String> entry : keywordMap.entrySet()) {
-                    String keyword = entry.getKey();
-                    String key = entry.getValue();
-                    
-                    // 尝试匹配不同格式
-                    String value = extractValue(words, keyword);
-                    if (value != null) {
-                        result.put(key, value);
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                log.error("解析条目失败: {}", e.getMessage(), e);
-            }
+        for (Map<String, Object> wordItem : wordsResult) {
+            safeProcessWordItem(wordItem, keywordMap, result);
         }
         return result;
+    }
+    
+    /**
+     * 安全处理单个单词条目
+     */
+    private void safeProcessWordItem(Map<String, Object> wordItem, Map<String, String> keywordMap, Map<String, String> result) {
+        try {
+            String words = (String) wordItem.get("words");
+            if (words == null) {
+                return;
+            }
+            
+            for (Map.Entry<String, String> entry : keywordMap.entrySet()) {
+                String keyword = entry.getKey();
+                String key = entry.getValue();
+                
+                // 尝试匹配不同格式
+                String value = extractValue(words, keyword);
+                if (value != null) {
+                    result.put(key, value);
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            log.error("解析条目失败: {}", e.getMessage(), e);
+        }
     }
     
     /**
@@ -150,25 +159,31 @@ public class TemplateOcrParser implements OcrParser {
     @Override
     public Map<String, String> parseLicensePlate(String ocrResult) {
         Map<String, String> result = new HashMap<>();
-        JSONArray wordsResult = parseJson(ocrResult);
-        if (wordsResult == null) {
-            return result;
-        }
+        List<Map<String, Object>> wordsResult = safeParseJson(ocrResult);
         
-        for (int i = 0; i < wordsResult.size(); i++) {
-            try {
-                JSONObject item = wordsResult.getJSONObject(i);
-                String words = item.getString("words");
-                
-                // 提取车牌号码
-                if (words.matches("[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领A-Z0-9]{5,10}")) {
-                    result.put("plateNumber", words.trim());
-                }
-            } catch (Exception e) {
-                log.error("解析车牌条目失败: {}", e.getMessage(), e);
-            }
+        for (Map<String, Object> wordItem : wordsResult) {
+            safeProcessLicensePlateItem(wordItem, result);
         }
         return result;
+    }
+    
+    /**
+     * 安全处理车牌识别条目
+     */
+    private void safeProcessLicensePlateItem(Map<String, Object> wordItem, Map<String, String> result) {
+        try {
+            String words = (String) wordItem.get("words");
+            if (words == null) {
+                return;
+            }
+            
+            // 提取车牌号码
+            if (words.matches("[京津沪渝冀豫云辽黑湘皖鲁新苏浙赣鄂桂甘晋蒙陕吉闽贵粤青藏川宁琼使领A-Z0-9]{5,10}")) {
+                result.put("plateNumber", words.trim());
+            }
+        } catch (Exception e) {
+            log.error("解析车牌条目失败: {}", e.getMessage(), e);
+        }
     }
 
     @Override
@@ -203,17 +218,15 @@ public class TemplateOcrParser implements OcrParser {
     @Override
     public Map<String, String> parseGeneral(String ocrResult) {
         Map<String, String> result = new HashMap<>();
-        JSONArray wordsResult = parseJson(ocrResult);
-        if (wordsResult == null) {
-            return result;
-        }
+        List<Map<String, Object>> wordsResult = safeParseJson(ocrResult);
         
         try {
             StringBuilder allText = new StringBuilder();
-            for (int i = 0; i < wordsResult.size(); i++) {
-                JSONObject item = wordsResult.getJSONObject(i);
-                String words = item.getString("words");
-                allText.append(words).append("\n");
+            for (Map<String, Object> wordItem : wordsResult) {
+                String words = (String) wordItem.get("words");
+                if (words != null) {
+                    allText.append(words).append("\n");
+                }
             }
             result.put("text", allText.toString().trim());
             result.put("wordCount", String.valueOf(wordsResult.size()));
@@ -245,5 +258,4 @@ public class TemplateOcrParser implements OcrParser {
             return new HashMap<>();
         }
     }
-
 }

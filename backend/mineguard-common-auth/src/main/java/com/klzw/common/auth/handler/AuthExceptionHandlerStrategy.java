@@ -32,8 +32,7 @@ public class AuthExceptionHandlerStrategy implements ExceptionHandlerStrategy {
         log.error("认证异常: code={}, message={}, module={}", 
                 exception.getCode(), 
                 exception.getMessage(), 
-                exception.getModule(), 
-                exception);
+                exception.getModule());
         
         return Result.fail(exception.getCode(), exception.getMessage());
     }

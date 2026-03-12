@@ -5,7 +5,6 @@ import com.klzw.common.web.constant.WebResultCode;
 import com.klzw.common.web.exception.WebException;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -44,7 +43,6 @@ public class FileUploadService {
             "exe", "bat", "cmd", "sh", "ps1", "vbs", "js", "jar", "class"
     );
 
-    @Autowired
     public FileUploadService(WebProperties webProperties) {
         this.webProperties = webProperties;
         initUploadDirectory();
