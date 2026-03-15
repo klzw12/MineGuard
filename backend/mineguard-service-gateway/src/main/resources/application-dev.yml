@@ -1,77 +1,18 @@
-# 开发环境配置
-# 本地开发环境，使用本地服务
-
-# Nacos配置中心
-nacos:
-  server-addr: 192.168.111.132:8848
-  namespace: dev
-  group: gateway-service
-
-# Redis配置（本地Redis）
-redis:
-  host: localhost
-  port: 6379
-  password: 
-  database: 0
-  timeout: 3000
-
-# JWT配置
-jwt:
-  secret: mineguardjwtsecretkey1234abcdefjhigklmn1234klzwsecretkey
-  expiration: 86400000
-  header: Authorization
-  prefix: "Bearer "
-
-# 网关配置
-mineguard:
-  gateway:
-    # 限流配置（开发环境关闭限流）
-    enable-rate-limit: false
-    rate-limit-count: 100
-    rate-limit-time: 60
-    # 熔断配置（开发环境关闭熔断）
-    enable-circuit-breaker: false
-    # CORS配置
-    cors:
-      allowed-origins: "*"
-      allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
-      allowed-headers: "Content-Type,Authorization,X-Trace-Id,X-User-Id,X-Username,X-User-Roles"
-      allow-credentials: true
-      max-age: 3600
-    # 忽略认证路径
-    ignore-auth:
-      paths:
-        - /api/auth/login
-        - /api/auth/register
-        - /api/auth/captcha
-        - /api/auth/refresh
-        - /swagger-ui
-        - /v3/api-docs
-        - /webjars
-        - /doc.html
-        - /favicon.ico
-        - /actuator/health
-        - /actuator/**
-
-# 日志配置
-logging:
-  level:
-    com.klzw.service.gateway: DEBUG
-    org.springframework.cloud.gateway: DEBUG
-    com.klzw.common.auth: DEBUG
-    org.springframework.web: DEBUG
-  file:
-    name: logs/gateway-service-dev.log
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-
-# 监控配置
-management:
-  endpoints:
-    web:
-      exposure:
-        include: "*"
-  endpoint:
-    health:
-      show-details: always
+spring:
+  cloud:
+    nacos:
+      server-addr: ${SERVER_IP:192.168.110.128}:8848
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
+      discovery:
+        namespace: ${NACOS_NAMESPACE:dev}
+        group: Service_Dev
+      config:
+        namespace: ${NACOS_NAMESPACE:dev}
+        group: Service_Dev  
+  config:
+    import:
+      - nacos:gateway-service.yml?group=Service_Dev&refresh=true
+      - nacos:common-core.yml?group=Shared_Dev&refresh=true
+      - nacos:common-auth.yml?group=Shared_Dev&refresh=true
+      - nacos:common-redis.yml?group=Shared_Dev&refresh=true

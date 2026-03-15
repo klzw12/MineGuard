@@ -62,14 +62,16 @@ class JwtAuthenticationFilterTest {
     void doFilterInternal_shouldSetUserContext_whenValidToken() throws ServletException, IOException {
         Long userId = 1L;
         String username = "testUser";
+        String userIdString = "1";
         String authHeader = TEST_PREFIX + TEST_TOKEN;
 
         request.addHeader(TEST_HEADER, authHeader);
 
         when(jwtUtils.getTokenFromHeader(authHeader)).thenReturn(TEST_TOKEN);
         when(jwtUtils.validateToken(TEST_TOKEN)).thenReturn(true);
-        when(jwtUtils.getUserIdFromToken(TEST_TOKEN)).thenReturn(userId);
+        when(jwtUtils.getUserIdStringFromToken(TEST_TOKEN)).thenReturn(userIdString);
         when(jwtUtils.getUsernameFromToken(TEST_TOKEN)).thenReturn(username);
+        when(jwtUtils.getRoleFromToken(TEST_TOKEN)).thenReturn("ROLE_USER");
 
         AtomicReference<Long> capturedUserId = new AtomicReference<>();
         AtomicReference<String> capturedUsername = new AtomicReference<>();
@@ -130,14 +132,16 @@ class JwtAuthenticationFilterTest {
     void doFilterInternal_shouldClearUserContext_afterFilterChain() throws ServletException, IOException {
         Long userId = 1L;
         String username = "testUser";
+        String userIdString = "1";
         String authHeader = TEST_PREFIX + TEST_TOKEN;
 
         request.addHeader(TEST_HEADER, authHeader);
 
         when(jwtUtils.getTokenFromHeader(authHeader)).thenReturn(TEST_TOKEN);
         when(jwtUtils.validateToken(TEST_TOKEN)).thenReturn(true);
-        when(jwtUtils.getUserIdFromToken(TEST_TOKEN)).thenReturn(userId);
+        when(jwtUtils.getUserIdStringFromToken(TEST_TOKEN)).thenReturn(userIdString);
         when(jwtUtils.getUsernameFromToken(TEST_TOKEN)).thenReturn(username);
+        when(jwtUtils.getRoleFromToken(TEST_TOKEN)).thenReturn("ROLE_USER");
 
         FilterChain filterChain = mock(FilterChain.class);
 

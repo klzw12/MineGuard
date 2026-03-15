@@ -79,7 +79,16 @@ public enum AuthResultCode {
     LOGOUT_FAILED(851, "登出失败"),
     REGISTER_FAILED(852, "注册失败"),
     VERIFICATION_FAILED(853, "验证失败"),
-    SESSION_EXPIRED(854, "会话已过期");
+    SESSION_EXPIRED(854, "会话已过期"),
+    
+    /**
+     * 短信相关错误
+     */
+    SMS_SEND_FAILED(860, "短信发送失败"),
+    SMS_CODE_ERROR(861, "验证码错误"),
+    SMS_CODE_EXPIRED(862, "验证码已过期"),
+    SMS_SEND_FREQUENCY_ERROR(863, "短信发送频率过高");
+
 
     private final int code;
     private final String message;

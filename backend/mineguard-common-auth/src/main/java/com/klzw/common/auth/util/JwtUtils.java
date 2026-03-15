@@ -60,12 +60,34 @@ public class JwtUtils {
         return generateToken(claims, username);
     }
     
+    public String generateToken(String userId, String username, String role) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userId);
+        claims.put("username", username);
+        if (role != null && !role.isEmpty()) {
+            claims.put("role", role);
+        }
+        return generateToken(claims, username);
+    }
+    
     public String generateToken(Long userId, String username, RoleEnum role) {
         return generateToken(userId, username, role != null ? role.getValue() : null);
     }
     
     public String generateToken(Long userId, String username) {
         return generateToken(userId, username, (String) null);
+    }
+    
+    public String generateToken(String userId, String username) {
+        return generateToken(userId, username, (String) null);
+    }
+    
+    public String generateRefreshToken(String userId, String username) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", userId);
+        claims.put("username", username);
+        claims.put("type", "refresh");
+        return generateToken(claims, username + ":refresh");
     }
 
     private String generateToken(Map<String, Object> claims, String subject) {
@@ -121,10 +143,22 @@ public class JwtUtils {
     public Long getUserIdFromToken(String token) {
         JWTClaimsSet claimsSet = parseToken(token);
         Object userIdObject = claimsSet.getClaim("userId");
+        if (userIdObject == null) {
+            throw new AuthException(AuthResultCode.TOKEN_INVALID, "用户ID缺失");
+        }
         if (userIdObject instanceof Number) {
             return ((Number) userIdObject).longValue();
         }
-        return null;
+        throw new AuthException(AuthResultCode.TOKEN_INVALID, "用户ID格式错误");
+    }
+    
+    public String getUserIdStringFromToken(String token) {
+        JWTClaimsSet claimsSet = parseToken(token);
+        Object userIdObject = claimsSet.getClaim("userId");
+        if (userIdObject == null) {
+            throw new AuthException(AuthResultCode.TOKEN_INVALID, "用户ID缺失");
+        }
+        return userIdObject.toString();
     }
 
     public String getUsernameFromToken(String token) {

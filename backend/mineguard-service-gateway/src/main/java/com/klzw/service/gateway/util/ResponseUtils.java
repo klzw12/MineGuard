@@ -1,7 +1,6 @@
 package com.klzw.service.gateway.util;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.klzw.common.core.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -34,7 +33,7 @@ public class ResponseUtils {
             byte[] bytes = OBJECT_MAPPER.writeValueAsBytes(result);
             DataBuffer buffer = response.bufferFactory().wrap(bytes);
             return response.writeWith(Mono.just(buffer));
-        } catch (JsonProcessingException e) {
+        } catch (Exception e) {
             log.error("JSON序列化失败", e);
             String errorJson = "{\"code\":500,\"message\":\"Internal Server Error\",\"data\":null}";
             DataBuffer buffer = response.bufferFactory().wrap(errorJson.getBytes(StandardCharsets.UTF_8));

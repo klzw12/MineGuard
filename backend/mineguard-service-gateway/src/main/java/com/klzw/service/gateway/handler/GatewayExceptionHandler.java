@@ -3,7 +3,7 @@ package com.klzw.service.gateway.handler;
 import com.klzw.common.core.result.Result;
 import com.klzw.service.gateway.util.ResponseUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler;
+import org.springframework.web.server.WebExceptionHandler;
 import org.springframework.cloud.gateway.support.NotFoundException;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -17,11 +17,11 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Component
 @Order(-1)
-public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
+public class GatewayExceptionHandler implements WebExceptionHandler {
 
     private final WebFluxExceptionHandlerStrategy exceptionStrategy;
 
-    public GlobalExceptionHandler(WebFluxExceptionHandlerStrategy exceptionStrategy) {
+    public GatewayExceptionHandler(WebFluxExceptionHandlerStrategy exceptionStrategy) {
         this.exceptionStrategy = exceptionStrategy;
     }
 

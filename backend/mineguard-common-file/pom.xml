@@ -76,6 +76,37 @@
 
     <build>
         <plugins>
+            <!-- 配置模块禁止使用 com.fasterxml.jackson -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.6.2</version>
+                <executions>
+                    <execution>
+                        <id>enforce-no-fasterxml-jackson</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <excludes>
+                                        <exclude>com.fasterxml.jackson.core:*</exclude>
+                                        <exclude>com.fasterxml.jackson.dataformat:*</exclude>
+                                        <exclude>com.fasterxml.jackson.datatype:*</exclude>
+                                        <exclude>com.fasterxml.jackson.module:*</exclude>
+                                    </excludes>
+                                    <includes>
+                                        <!-- 注解包是允许的 -->
+                                        <include>com.fasterxml.jackson.core:jackson-annotations</include>
+                                    </includes>
+                                    <message>配置模块（common-*）严格禁止使用 com.fasterxml.jackson，必须使用 tools.jackson</message>
+                                </bannedDependencies>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>

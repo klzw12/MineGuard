@@ -9,11 +9,12 @@ import java.util.List;
 public class UserContext {
 
     private static final ThreadLocal<Long> USER_ID = new ThreadLocal<>();
+    private static final ThreadLocal<String> USER_ID_STRING = new ThreadLocal<>();
     private static final ThreadLocal<String> USERNAME = new ThreadLocal<>();
     private static final ThreadLocal<List<String>> ROLES = new ThreadLocal<>();
 
     /**
-     * 设置用户ID
+     * 设置用户ID（Long类型）
      * @param userId 用户ID
      */
     public static void setUserId(Long userId) {
@@ -21,11 +22,27 @@ public class UserContext {
     }
 
     /**
-     * 获取用户ID
+     * 获取用户ID（Long类型）
      * @return 用户ID
      */
     public static Long getUserId() {
         return USER_ID.get();
+    }
+    
+    /**
+     * 设置用户ID（String类型）
+     * @param userId 用户ID
+     */
+    public static void setUserIdString(String userId) {
+        USER_ID_STRING.set(userId);
+    }
+
+    /**
+     * 获取用户ID（String类型）
+     * @return 用户ID
+     */
+    public static String getUserIdString() {
+        return USER_ID_STRING.get();
     }
 
     /**
@@ -76,6 +93,7 @@ public class UserContext {
      */
     public static void clear() {
         USER_ID.remove();
+        USER_ID_STRING.remove();
         USERNAME.remove();
         ROLES.remove();
     }

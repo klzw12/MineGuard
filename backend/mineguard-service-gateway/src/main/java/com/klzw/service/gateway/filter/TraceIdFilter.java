@@ -22,16 +22,23 @@ public class TraceIdFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String traceId = exchange.getRequest().getHeaders().getFirst(GatewayConstant.HEADER_TRACE_ID);
+        final String finalTraceId;
         
         if (traceId == null || traceId.isEmpty()) {
-            traceId = UUID.randomUUID().toString().replace("-", "");
+            finalTraceId = UUID.randomUUID().toString().replace("-", "");
+        } else {
+            finalTraceId = traceId;
         }
         
         ServerHttpRequest request = exchange.getRequest().mutate()
-                .header(GatewayConstant.HEADER_TRACE_ID, traceId)
+                .header(GatewayConstant.HEADER_TRACE_ID, finalTraceId)
                 .build();
         
-        log.debug("TraceId: {}", traceId);
+        if (exchange.getResponse() != null) {
+            exchange.getResponse().getHeaders().add(GatewayConstant.HEADER_TRACE_ID, finalTraceId);
+        }
+        
+        log.debug("TraceId: {}", finalTraceId);
         
         return chain.filter(exchange.mutate().request(request).build());
     }

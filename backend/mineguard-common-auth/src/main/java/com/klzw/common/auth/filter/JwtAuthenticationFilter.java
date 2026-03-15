@@ -71,7 +71,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String roles = request.getHeader(HEADER_ROLES);
         
         if (userId != null) {
-            UserContext.setUserId(Long.parseLong(userId));
+            // 支持String类型的userId
+            try {
+                UserContext.setUserId(Long.parseLong(userId));
+            } catch (NumberFormatException e) {
+                // 如果userId不是数字，使用hashCode作为Long类型的userId
+                UserContext.setUserId((long) userId.hashCode());
+            }
+            UserContext.setUserIdString(userId);
             UserContext.setUsername(username);
             
             if (StringUtils.hasText(roles)) {
@@ -91,11 +98,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         if (token != null) {
             if (jwtUtils.validateToken(token)) {
-                Long userId = jwtUtils.getUserIdFromToken(token);
+                // 尝试获取String类型的userId
+                String userIdString = jwtUtils.getUserIdStringFromToken(token);
                 String username = jwtUtils.getUsernameFromToken(token);
+                String role = jwtUtils.getRoleFromToken(token);
                 
-                UserContext.setUserId(userId);
+                // 设置String类型的userId
+                UserContext.setUserIdString(userIdString);
+                
+                // 尝试转换为Long类型
+                try {
+                    Long userId = Long.parseLong(userIdString);
+                    UserContext.setUserId(userId);
+                } catch (NumberFormatException e) {
+                    // 如果userId不是数字，使用hashCode作为Long类型的userId
+                    UserContext.setUserId((long) userIdString.hashCode());
+                }
+                
                 UserContext.setUsername(username);
+                
+                // 设置角色
+                if (role != null && !role.isEmpty()) {
+                    UserContext.setRoles(Arrays.asList(role));
+                }
             } else {
                 throw new AuthException(AuthResultCode.TOKEN_INVALID);
             }
@@ -105,6 +130,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.contains("/login") || path.contains("/register") || path.contains("/captcha");
+        return path.contains("/login") || path.contains("/register") || path.contains("/captcha") || path.contains("/reset-password");
     }
 }

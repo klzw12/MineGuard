@@ -1,10 +1,10 @@
 package com.klzw.service.gateway.filter;
 
+import com.klzw.common.auth.exception.AuthException;
 import com.klzw.common.auth.util.JwtUtils;
 import com.klzw.service.gateway.constant.GatewayConstant;
 import com.klzw.service.gateway.properties.GatewayProperties;
 import com.klzw.service.gateway.util.ResponseUtils;
-import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -14,8 +14,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
 
 @Slf4j
 @Component
@@ -47,27 +45,28 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             return ResponseUtils.unauthorized(exchange.getResponse(), "Token缺失");
         }
         
-        Claims claims;
-        try {
-            claims = jwtUtils.parseToken(token);
-        } catch (Exception e) {
-            log.warn("Token invalid for path: {}, error: {}", path, e.getMessage());
+        if (!jwtUtils.validateToken(token)) {
+            log.warn("Token invalid or in blacklist for path: {}", path);
             return ResponseUtils.unauthorized(exchange.getResponse(), "Token无效或已过期");
         }
         
-        Long userId = jwtUtils.getUserIdFromToken(token);
-        String username = jwtUtils.getUsernameFromToken(token);
-        List<String> roles = jwtUtils.getRolesFromToken(token);
+        Long userId;
+        String username; 
+        String role;
         
-        if (userId == null || username == null) {
-            log.warn("Token missing user info for path: {}", path);
-            return ResponseUtils.unauthorized(exchange.getResponse(), "Token信息不完整");
+        try {
+            userId = jwtUtils.getUserIdFromToken(token);
+            username = jwtUtils.getUsernameFromToken(token);
+            role = jwtUtils.getRoleFromToken(token);
+        } catch (AuthException e) {
+            log.warn("Token invalid for path: {}, error: {}", path, e.getMessage());
+            return ResponseUtils.unauthorized(exchange.getResponse(), e.getMessage());
         }
         
         ServerHttpRequest newRequest = request.mutate()
                 .header(GatewayConstant.HEADER_USER_ID, String.valueOf(userId))
                 .header(GatewayConstant.HEADER_USERNAME, username)
-                .header(GatewayConstant.HEADER_ROLES, roles != null ? String.join(",", roles) : "")
+                .header(GatewayConstant.HEADER_ROLES, role != null ? role : "")
                 .build();
         
         log.debug("Auth success: userId={}, username={}", userId, username);

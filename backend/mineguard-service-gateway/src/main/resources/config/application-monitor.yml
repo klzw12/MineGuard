@@ -1,5 +1,0 @@
-# 日志配置
-logging:
-  level:
-    com.klzw.service.gateway: ${logging.level:DEBUG}
-    org.springframework.cloud.gateway: ${logging.level:DEBUG}

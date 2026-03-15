@@ -1,0 +1,43 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service-test
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_IP:192.168.110.128}:8848
+      username: tester
+      password: testpass
+      discovery:
+        namespace: test
+        group: Service_Test
+      config:
+        namespace: test
+        group: Service_Test
+  config:
+    import:
+      - nacos:gateway-service.yml?group=Service_Test&refresh=true
+      - nacos:common-core.yml?group=Shared_Test&refresh=true
+      - nacos:common-auth.yml?group=Shared_Test&refresh=true
+      - nacos:common-redis.yml?group=Shared_Test&refresh=true
+
+mineguard:
+  gateway:
+    routes:
+      - id: user-service
+        path: /api/user/**
+        uri: lb://user-service
+        strip-prefix: 1
+      - id: user-service-auth
+        path: /api/auth/**
+        uri: lb://user-service
+        strip-prefix: 1
+      - id: vehicle-service
+        path: /api/vehicle/**
+        uri: lb://vehicle-service
+        strip-prefix: 2
+      - id: order-service
+        path: /api/order/**
+        uri: lb://order-service
+        strip-prefix: 2
