@@ -50,11 +50,26 @@ public class WebAutoConfiguration implements WebMvcConfigurer {
         CorsConfiguration config = new CorsConfiguration();
 
         if (cors.getAllowedOrigins() != null && !cors.getAllowedOrigins().isEmpty()) {
-            config.addAllowedOriginPattern(cors.getAllowedOrigins());
+            // 处理逗号分隔的多个源
+            for (String origin : cors.getAllowedOrigins().split(",")) {
+                config.addAllowedOriginPattern(origin.trim());
+            }
         }
 
-        config.addAllowedMethod(cors.getAllowedMethods());
-        config.addAllowedHeader(cors.getAllowedHeaders());
+        // 处理逗号分隔的多个方法
+        if (cors.getAllowedMethods() != null && !cors.getAllowedMethods().isEmpty()) {
+            for (String method : cors.getAllowedMethods().split(",")) {
+                config.addAllowedMethod(method.trim());
+            }
+        }
+
+        // 处理逗号分隔的多个头部
+        if (cors.getAllowedHeaders() != null && !cors.getAllowedHeaders().isEmpty()) {
+            for (String header : cors.getAllowedHeaders().split(",")) {
+                config.addAllowedHeader(header.trim());
+            }
+        }
+
         config.setAllowCredentials(cors.isAllowCredentials());
         config.setMaxAge(cors.getMaxAge());
 
