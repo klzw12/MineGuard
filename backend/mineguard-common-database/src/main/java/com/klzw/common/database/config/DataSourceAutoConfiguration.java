@@ -4,7 +4,6 @@ import com.alibaba.druid.pool.DruidDataSource;
 import com.klzw.common.database.properties.DatabaseProperties;
 import com.klzw.common.database.util.DruidConfigUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -18,7 +17,7 @@ import javax.sql.DataSource;
 @Slf4j
 @AutoConfiguration
 @ConditionalOnClass(name = "com.alibaba.druid.pool.DruidDataSource")
-@ConditionalOnProperty(prefix = "mineguard.database.datasource.master", name = "url")
+@ConditionalOnProperty(prefix = "mineguard.database", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(DatabaseProperties.class)
 public class DataSourceAutoConfiguration {
 
@@ -43,13 +42,13 @@ public class DataSourceAutoConfiguration {
         
         DruidConfigUtils.configureDruidDataSource(dataSource, databaseProperties);
         
-        log.info("主数据源配置完成");
+        log.info("主数据源配置完成，URL: {}", masterConfig.getUrl());
         return dataSource;
     }
 
     @Bean(name = "slaveDataSource")
     @ConditionalOnMissingBean(name = "slaveDataSource")
-    @ConditionalOnProperty(prefix = "mineguard.database.datasource", name = "slave.url")
+    @ConditionalOnProperty(prefix = "mineguard.database.datasource.slave", name = "url")
     public DataSource slaveDataSource() {
         log.info("开始配置从数据源");
         
@@ -63,14 +62,14 @@ public class DataSourceAutoConfiguration {
         
         DruidConfigUtils.configureDruidDataSource(dataSource, databaseProperties);
         
-        log.info("从数据源配置完成");
+        log.info("从数据源配置完成，URL: {}", slaveConfig.getUrl());
         return dataSource;
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public JdbcTemplate jdbcTemplate(@Qualifier("dynamicDataSource") DataSource dataSource) {
-        log.info("开始配置JdbcTemplate");
+    public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+        log.info("开始配置 JdbcTemplate");
         return new JdbcTemplate(dataSource);
     }
 }

@@ -42,11 +42,19 @@
 			</view>
 			<view 
 				class="sidebar-item" 
+				:class="{ active: currentPath === '/pages/admin/role-change/index' }" 
+				@click="navigateTo('/pages/admin/role-change/index')"
+			>
+				<text class="sidebar-icon">🔄</text>
+				<text class="sidebar-text">角色变更</text>
+			</view>
+			<view 
+				class="sidebar-item" 
 				:class="{ active: currentPath === '/pages/admin/monitor/index' }" 
 				@click="navigateTo('/pages/admin/monitor/index')"
 			>
 				<text class="sidebar-icon">📺</text>
-				<text class="sidebar-text">实时监控</text>
+				<text class="sidebar-text">安全监控</text>
 			</view>
 			<view 
 				class="sidebar-item" 
@@ -87,19 +95,17 @@
 	const currentPath = ref('')
 	
 	onMounted(() => {
-		// 获取当前页面路径
 		const pages = getCurrentPages()
 		if (pages.length > 0) {
 			currentPath.value = pages[pages.length - 1].route
 		}
-		
-		// 监听页面显示事件，更新当前路径
-		uni.onShow(() => {
-			const pages = getCurrentPages()
-			if (pages.length > 0) {
-				currentPath.value = pages[pages.length - 1].route
-			}
-		})
+	})
+	
+	uni.onShow(() => {
+		const pages = getCurrentPages()
+		if (pages.length > 0) {
+			currentPath.value = pages[pages.length - 1].route
+		}
 	})
 	
 	function navigateTo(url) {

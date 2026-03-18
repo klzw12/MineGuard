@@ -371,4 +371,9 @@ public class WebSocketHandler extends TextWebSocketHandler {
             log.error("关闭WebSocket会话失败: sessionId={}", session.getId(), e);
         }
     }
+    
+    // 提供访问connectionManager的方法
+    protected ConnectionManager getConnectionManager() {
+        return connectionManager;
+    }
 }

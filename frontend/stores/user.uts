@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import type { UserVO } from '@/types/user.uts'
+import type { UserVO, LoginVO } from '@/types/user.uts'
 import { setToken, removeToken } from '@/utils/request.uts'
 import * as authApi from '@/api/auth.uts'
 import * as userApi from '@/api/user.uts'
@@ -12,8 +12,8 @@ function setUserInfo(user: UserVO | null) {
   userInfo.value = user
   isLoggedIn.value = user !== null
   
-  if (user && user.roles && user.roles.length > 0) {
-    if (user.roles.includes('ROLE_ADMIN')) {
+  if (user && user.roleCode) {
+    if (user.roleCode === 'ROLE_ADMIN') {
       userRole.value = 'admin'
     } else {
       userRole.value = 'user'
@@ -43,11 +43,61 @@ function loadFromStorage() {
   }
 }
 
+function handleLoginRedirect(user: UserVO) {
+  if (user.roleCode === 'ROLE_ADMIN' && user.status === 0) {
+    uni.redirectTo({
+      url: '/pages/admin/verify/index'
+    })
+    return
+  }
+  
+  if (user.status === 0) {
+    uni.showToast({
+      title: '账号已被禁用，请提交申诉',
+      icon: 'none',
+      duration: 2000
+    })
+    setTimeout(() => {
+      uni.redirectTo({
+        url: '/pages/user/appeal/index'
+      })
+    }, 2000)
+    return
+  }
+  
+  if (userRole.value === 'admin') {
+    uni.redirectTo({
+      url: '/pages/admin/home/index'
+    })
+  } else {
+    uni.switchTab({
+      url: '/pages/user/home/index'
+    })
+  }
+}
+
 async function login(username: string, password: string): Promise<void> {
   const loginVO = await authApi.login({ username, password })
   
-  setToken(loginVO.accessToken)
-  setUserInfo(loginVO.user)
+  setToken(loginVO.token)
+  
+  const user: UserVO = {
+    id: loginVO.id,
+    username: loginVO.username,
+    realName: loginVO.realName,
+    phone: loginVO.phone,
+    email: loginVO.email,
+    avatarUrl: loginVO.avatarUrl,
+    status: loginVO.status,
+    roleId: loginVO.roleId,
+    roleCode: loginVO.roleCode,
+    roleName: loginVO.roleName,
+    createTime: loginVO.createTime?.toString() || '',
+    updateTime: loginVO.updateTime?.toString() || ''
+  }
+  
+  setUserInfo(user)
+  handleLoginRedirect(user)
 }
 
 async function logout(): Promise<void> {
@@ -72,6 +122,34 @@ async function fetchCurrentUser(): Promise<void> {
   }
 }
 
+async function verifyAdmin(userId: number, realName: string, phone: string, idCardFrontBase64: string): Promise<void> {
+  const loginVO = await authApi.verifyAdmin({
+    userId,
+    realName,
+    phone,
+    idCardFrontBase64
+  })
+  
+  setToken(loginVO.token)
+  
+  const user: UserVO = {
+    id: loginVO.id,
+    username: loginVO.username,
+    realName: loginVO.realName,
+    phone: loginVO.phone,
+    email: loginVO.email,
+    avatarUrl: loginVO.avatarUrl,
+    status: loginVO.status,
+    roleId: loginVO.roleId,
+    roleCode: loginVO.roleCode,
+    roleName: loginVO.roleName,
+    createTime: loginVO.createTime?.toString() || '',
+    updateTime: loginVO.updateTime?.toString() || ''
+  }
+  
+  setUserInfo(user)
+}
+
 export function useUserStore() {
   return {
     userInfo,
@@ -81,6 +159,8 @@ export function useUserStore() {
     loadFromStorage,
     login,
     logout,
-    fetchCurrentUser
+    fetchCurrentUser,
+    verifyAdmin,
+    handleLoginRedirect
   }
 }

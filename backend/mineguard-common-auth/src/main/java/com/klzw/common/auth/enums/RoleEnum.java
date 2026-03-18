@@ -8,27 +8,27 @@ public enum RoleEnum {
     /**
      * 管理员角色
      */
-    ADMIN("ROLE_ADMIN"),
-
-    /**
-     * 普通管理员角色
-     */
-    MANAGER("ROLE_MANAGER"),
+    ADMIN("ADMIN"),
 
     /**
      * 司机角色
      */
-    DRIVER("ROLE_DRIVER"),
+    DRIVER("DRIVER"),
 
     /**
-     * 安全员角色
+     * 运营人员角色
      */
-    SAFETY("ROLE_SAFETY"),
+    OPERATOR("OPERATOR"),
 
     /**
      * 维修员角色
      */
-    REPAIR("ROLE_REPAIR");
+    REPAIRMAN("REPAIRMAN"),
+
+    /**
+     * 安全员角色
+     */
+    SAFETY_OFFICER("SAFETY_OFFICER");
 
     private final String value;
 

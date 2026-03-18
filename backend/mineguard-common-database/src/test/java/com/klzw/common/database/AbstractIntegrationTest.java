@@ -11,6 +11,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
 
 
 /**
@@ -43,16 +44,11 @@ public abstract class AbstractIntegrationTest {
      * 测试前清理数据，确保测试环境干净
      */
     @BeforeEach
-    void setUp() throws InterruptedException {
+    void setUp() {
         try {
-            // 清理主数据源数据
-            jdbcTemplate.execute("DELETE FROM test_table");
-            
-            // 等待主从同步完成
-            Thread.sleep(1000);
+            jdbcTemplate.execute("DELETE FROM test_table WHERE 1=1");
         } catch (Exception e) {
-            // 忽略清理失败的情况，确保测试能够继续执行
-            e.printStackTrace();
+            // 忽略清理失败
         }
     }
 }

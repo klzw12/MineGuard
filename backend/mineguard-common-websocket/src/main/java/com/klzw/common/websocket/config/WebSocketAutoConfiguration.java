@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
@@ -17,24 +18,41 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 @EnableWebSocket
 public class WebSocketAutoConfiguration implements WebSocketConfigurer {
 
-    private final WebSocketHandler webSocketHandler;
     private final WebSocketProperties webSocketProperties;
 
-    public WebSocketAutoConfiguration(WebSocketHandler webSocketHandler, WebSocketProperties webSocketProperties) {
-        this.webSocketHandler = webSocketHandler;
+    public WebSocketAutoConfiguration(WebSocketProperties webSocketProperties) {
         this.webSocketProperties = webSocketProperties;
+    }
+
+    @Bean
+    public WebSocketHandler webSocketHandler(
+            com.klzw.common.websocket.manager.ConnectionManager connectionManager,
+            com.klzw.common.websocket.manager.OnlineUserManager onlineUserManager,
+            com.klzw.common.websocket.manager.MessageManager messageManager,
+            com.klzw.common.auth.util.JwtUtils jwtUtils,
+            com.klzw.common.websocket.service.MessageHistoryService messageHistoryService,
+            com.klzw.common.websocket.service.SmartMessagePushService smartMessagePushService) {
+        return new WebSocketHandler(
+            connectionManager,
+            onlineUserManager,
+            messageManager,
+            jwtUtils,
+            webSocketProperties,
+            messageHistoryService,
+            smartMessagePushService
+        );
     }
 
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         String[] allowedOrigins = webSocketProperties.getAllowedOrigins();
 
-        registry.addHandler(webSocketHandler, "/ws")
-                .addHandler(webSocketHandler, "/ws/message")
-                .addHandler(webSocketHandler, "/ws/vehicle")
-                .addHandler(webSocketHandler, "/ws/warning")
-                .addHandler(webSocketHandler, "/ws/trip")
-                .addHandler(webSocketHandler, "/ws/system")
+        registry.addHandler(webSocketHandler(null, null, null, null, null, null), "/ws")
+                .addHandler(webSocketHandler(null, null, null, null, null, null), "/ws/message")
+                .addHandler(webSocketHandler(null, null, null, null, null, null), "/ws/vehicle")
+                .addHandler(webSocketHandler(null, null, null, null, null, null), "/ws/warning")
+                .addHandler(webSocketHandler(null, null, null, null, null, null), "/ws/trip")
+                .addHandler(webSocketHandler(null, null, null, null, null, null), "/ws/system")
                 .setAllowedOrigins(allowedOrigins != null ? allowedOrigins : new String[0]);
     }
 }

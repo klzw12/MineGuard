@@ -24,18 +24,31 @@ public class RequestLogFilter implements GlobalFilter, Ordered {
         String method = request.getMethod().name();
         String path = request.getPath().value();
         String clientIp = getClientIp(request);
+        String uri = request.getURI().toString();
         
         long startTime = System.currentTimeMillis();
         
-        log.info("[{}] {} {} from {}", traceId, method, path, clientIp);
+        log.info("[{}] RequestLogFilter START - {} {} from {} URI: {}", traceId, method, path, clientIp, uri);
         
-        return chain.filter(exchange).then(Mono.fromRunnable(() -> {
+        // 添加debug日志，打印请求头信息
+        log.debug("[{}] Request headers: {}", traceId, request.getHeaders());
+        
+        return chain.filter(exchange).doOnSuccess(void_ -> {
             long duration = System.currentTimeMillis() - startTime;
             int statusCode = exchange.getResponse().getStatusCode() != null 
                     ? exchange.getResponse().getStatusCode().value() 
                     : 0;
-            log.info("[{}] {} {} - {} ({}ms)", traceId, method, path, statusCode, duration);
-        }));
+            String contentType = exchange.getResponse().getHeaders().getFirst("Content-Type");
+            
+            // 添加debug日志，打印响应头信息
+            log.debug("[{}] Response headers: {}", traceId, exchange.getResponse().getHeaders());
+            
+            log.info("[{}] RequestLogFilter SUCCESS - {} {} - {} ({}ms) Content-Type: {}", 
+                     traceId, method, path, statusCode, duration, contentType);
+        }).doOnError(error -> {
+            long duration = System.currentTimeMillis() - startTime;
+            log.error("[{}] RequestLogFilter ERROR - {} {} - error: {} ({}ms)", traceId, method, path, error.getMessage(), duration);
+        });
     }
 
     private String getClientIp(ServerHttpRequest request) {

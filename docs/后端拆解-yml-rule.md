@@ -10,48 +10,78 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                   Nacos 配置中心 (public)                     │
 ├─────────────────────────────────────────────────────────────┤
-│  Group: shared-dev / shared-test / shared-prod               │
+│  Group: Shared_Dev / Shared_Test / Shared_Prod               │
 │                                                              │
-│  公共配置（common-*）：                                        │
-│  ├── common-database.yml   # MySQL 数据库配置                 │
-│  ├── common-redis.yml      # Redis 缓存配置                   │
-│  ├── common-rocketmq.yml   # RocketMQ 消息队列配置             │
-│  └── common-monitor.yml    # 监控配置                         │
+│  公共配置（common-*）：10个模块对应20个配置文件                │
+│  ├── common-core.yml (Dev/Test)    # 核心配置               │
+│  ├── common-database.yml (Dev/Test) # MySQL 数据库配置       │
+│  ├── common-auth.yml (Dev/Test)    # 认证授权配置            │
+│  ├── common-redis.yml (Dev/Test)   # Redis 缓存配置          │
+│  ├── common-mq.yml (Dev/Test)     # RabbitMQ 消息队列配置    │
+│  ├── common-mongodb.yml (Dev/Test) # MongoDB 配置            │
+│  ├── common-web.yml (Dev/Test)     # Web 配置                │
+│  ├── common-websocket.yml (Dev/Test)# WebSocket 配置         │
+│  ├── common-file.yml (Dev/Test)    # 文件存储配置            │
+│  └── common-map.yml (Dev/Test)     # 地图服务配置            │
 ├─────────────────────────────────────────────────────────────┤
-│  Group: service-dev / service-test / service-prod            │
+│  Group: Service_Dev / Service_Test / Service_Prod             │
 │                                                              │
 │  服务配置：                                                   │
-│  ├── user-service.yml      # 用户服务配置                     │
-│  ├── vehicle-service.yml   # 车辆服务配置                     │
-│  ├── gateway-service.yml   # 网关服务配置                     │
+│  ├── user-service.yml      # 用户服务配置                   │
+│  ├── vehicle-service.yml   # 车辆服务配置                   │
+│  ├── gateway-service.yml   # 网关服务配置                   │
 │  └── ...                                                     │
-└─────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ### 1.2 配置命名规则
 
 | 配置类型 | Data ID 格式 | Group 格式 | 示例 |
 | - | - | - | - |
-| 公共配置 | `common-{模块名}.yml` | `shared-{环境}` | Data ID: `common-database.yml`, Group: `shared-dev` |
-| 服务配置 | `{服务名}.yml` | `service-{环境}` | Data ID: `user-service.yml`, Group: `service-dev` |
+| 公共配置 | `common-{模块名}.yml` | `Shared_{环境}` | Data ID: `common-core.yml`, Group: `Shared_Dev` |
+| 服务配置 | `{服务名}.yml` | `Service_{环境}` | Data ID: `user-service.yml`, Group: `Service_Dev` |
 
 | 环境类型 | 公共配置 Group | 服务配置 Group |
 | - | - | - |
-| 开发环境 | `shared-dev` | `service-dev` |
-| 测试环境 | `shared-test` | `service-test` |
-| 生产环境 | `shared-prod` | `service-prod` |
+| 开发环境 | `Shared_Dev` | `Service_Dev` |
+| 测试环境 | `Shared_Test` | `Service_Test` |
+| 生产环境 | `Shared_Prod` | `Service_Prod` |
 
-### 1.3 配置管理原则
+### 1.3 配置数量统计
+
+| 环境 | 公共配置数量 | 服务配置数量 | 合计 |
+| - | - | - | - |
+| 开发 | 10 | - | 10 |
+| 测试 | 10 | - | 10 |
+| 生产 | 10 | - | 10 |
+| 总计 | 30 | - | 30 |
+
+**10个公共模块对应的 Data ID：**
+
+| Data ID | 说明 | 所属模块 |
+| - | - | - |
+| `common-core.yml` | 核心配置（环境变量加载等） | mineguard-common-core |
+| `common-database.yml` | MySQL 数据库配置 | mineguard-common-database |
+| `common-auth.yml` | 认证授权配置 | mineguard-common-auth |
+| `common-redis.yml` | Redis 缓存配置 | mineguard-common-redis |
+| `common-mq.yml` | RabbitMQ 消息队列配置 | mineguard-common-mq |
+| `common-mongodb.yml` | MongoDB 配置 | mineguard-common-mongodb |
+| `common-web.yml` | Web 配置（CORS等） | mineguard-common-web |
+| `common-websocket.yml` | WebSocket 配置 | mineguard-common-websocket |
+| `common-file.yml` | 文件存储配置 | mineguard-common-file |
+| `common-map.yml` | 地图服务配置 | mineguard-common-map |
+
+### 1.4 配置管理原则
 
 | 原则 | 说明 |
 | - | - |
 | 集中管理 | 所有配置通过 Nacos 集中管理，本地只保留引导配置 |
 | 环境隔离 | 通过 Group 区分不同环境（dev/test/prod） |
-| 分层管理 | 公共配置（shared-*）+ 服务配置（service-*） |
+| 分层管理 | 公共配置（Shared_*）+ 服务配置（Service_*） |
 | 安全存储 | 敏感配置通过 Nacos 加密存储，不提交到代码仓库 |
 | 版本追溯 | Nacos 提供配置版本管理和回滚能力 |
 
-### 1.4 配置归属规则（必须遵守）
+### 1.5 配置归属规则（必须遵守）
 
 #### 1) 服务模块（唯一配置持有者）
 
@@ -95,18 +125,27 @@
 
 | Group | 说明 | 包含配置 |
 | - | - | - |
-| `shared-dev` | 开发环境公共配置 | common-*.yml |
-| `shared-test` | 测试环境公共配置 | common-*.yml |
-| `shared-prod` | 生产环境公共配置 | common-*.yml |
-| `service-dev` | 开发环境服务配置 | {服务名}.yml |
-| `service-test` | 测试环境服务配置 | {服务名}.yml |
-| `service-prod` | 生产环境服务配置 | {服务名}.yml |
+| `Shared_Dev` | 开发环境公共配置 | common-*.yml (Dev) |
+| `Shared_Test` | 测试环境公共配置 | common-*.yml (Test) |
+| `Shared_Prod` | 生产环境公共配置 | common-*.yml (Prod) |
+| `Service_Dev` | 开发环境服务配置 | {服务名}.yml |
+| `Service_Test` | 测试环境服务配置 | {服务名}.yml |
+| `Service_Prod` | 生产环境服务配置 | {服务名}.yml |
 
 ### 2.3 公共配置文件（common-*.yml）
 
-以下配置放在 `shared-{环境}` 分组中：
+以下配置放在 `Shared_{环境}` 分组中，每个环境10个配置文件：
 
-#### common-database.yml
+#### 2.3.1 common-core.yml（Shared_Dev / Shared_Test）
+
+```yaml
+mineguard:
+  core:
+    env-file: ".env"
+    enabled: true
+```
+
+#### 2.3.2 common-database.yml（Shared_Dev / Shared_Test）
 
 ```yaml
 spring:
@@ -135,68 +174,157 @@ mybatis-plus:
       logic-not-delete-value: 0
 ```
 
-#### common-redis.yml
+#### 2.3.3 common-auth.yml（Shared_Dev / Shared_Test）
+
+```yaml
+mineguard:
+  auth:
+    enabled: true
+    jwt:
+      secret: ${JWT_SECRET:default-jwt-secret-key}
+      expiration: 3600000
+      enable-blacklist: true
+      blacklist-prefix: "jwt:blacklist:"
+      blacklist-expire: 86400
+```
+
+#### 2.3.4 common-redis.yml（Shared_Dev / Shared_Test）
 
 ```yaml
 spring:
-  redis:
-    host: ${redis.host}
-    port: ${redis.port}
-    password: ${redis.password}
-    database: ${redis.database:0}
-    timeout: 3000
-    lettuce:
-      pool:
-        max-active: 8
-        max-wait: -1
-        max-idle: 8
-        min-idle: 0
+  data:
+    redis:
+      host: ${redis.host}
+      port: ${redis.port}
+      password: ${redis.password}
+      database: ${redis.database:0}
+      timeout: 3000
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1
+          max-idle: 8
+          min-idle: 0
 
 mineguard:
   redis:
-    cache:
-      default-expire: 3600
-      key-prefix: "mineguard:"
-    lock:
-      wait-time: 3000
-      lease-time: 30000
+    enabled: true
+    default-expire: 3600
 ```
 
-#### common-rocketmq.yml
+#### 2.3.5 common-mq.yml（Shared_Dev / Shared_Test）
 
 ```yaml
-rocketmq:
-  name-server: ${rocketmq.namesrvAddr}
-  producer:
-    group: ${rocketmq.producer.group}
-    send-message-timeout: 3000
-    retry-times-when-send-failed: 2
-  consumer:
-    group: ${rocketmq.consumer.group}
-    consume-thread-min: 20
-    consume-thread-max: 64
+spring:
+  rabbitmq:
+    host: ${rabbitmq.host}
+    port: ${rabbitmq.port}
+    username: ${rabbitmq.username}
+    password: ${rabbitmq.password}
+    virtual-host: ${rabbitmq.virtual-host:/}
+    publisher-confirm-type: correlated
+    publisher-returns: true
 ```
 
-#### common-monitor.yml
+#### 2.3.6 common-mongodb.yml（Shared_Dev / Shared_Test）
 
 ```yaml
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  endpoint:
-    health:
-      show-details: always
-  metrics:
-    tags:
-      application: ${spring.application.name}
+spring:
+  data:
+    mongodb:
+      host: ${mongodb.host}
+      port: ${mongodb.port}
+      database: ${mongodb.database}
+      username: ${mongodb.username}
+      password: ${mongodb.password}
+      authentication-database: ${mongodb.authentication-database:admin}
 
-logging:
-  level:
-    com.klzw: ${logging.level:INFO}
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+mineguard:
+  mongodb:
+    enabled: true
+    host: ${mongodb.host}
+    port: ${mongodb.port}
+    database: ${mongodb.database}
+    username: ${mongodb.username}
+    password: ${mongodb.password}
+    authentication-database: ${mongodb.authentication-database:admin}
+```
+
+#### 2.3.7 common-web.yml（Shared_Dev / Shared_Test）
+
+```yaml
+mineguard:
+  web:
+    enabled: true
+    cors:
+      allowed-origins: "*"
+      allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
+      allowed-headers: "*"
+      allow-credentials: true
+      max-age: 3600
+    resources:
+      static-locations: "classpath:/static/"
+      cache-period: 3600
+    file-upload:
+      max-file-size: "10MB"
+      max-request-size: "100MB"
+```
+
+#### 2.3.8 common-websocket.yml（Shared_Dev / Shared_Test）
+
+```yaml
+mineguard:
+  websocket:
+    enabled: true
+    heartbeat-interval: 30000
+    heartbeat-timeout: 60000
+    max-connections: 10000
+    max-topics-per-user: 50
+    max-messages-per-minute: 100
+    reconnect-max-retries: 5
+    offline-message-expire-days: 7
+    use-encryption: false
+    enable-message-persistence: false
+    allowed-origins:
+      - "*"
+```
+
+#### 2.3.9 common-file.yml（Shared_Dev / Shared_Test）
+
+```yaml
+mineguard:
+  file:
+    storage:
+      enabled: true
+      max-file-size: 104857600
+      allowed-extensions: "jpg,jpeg,png,gif,bmp,pdf,doc,docx,xls,xlsx"
+      default-module: "user"
+      dual-write:
+        enabled: false
+        primary: "minio"
+    minio:
+      enabled: true
+      endpoint: ${minio.endpoint:http://localhost:9000}
+      access-key: ${minio.access-key:minioadmin}
+      secret-key: ${minio.secret-key:minioadmin}
+      bucket-name: ${minio.bucket-name:mineguard}
+    aliyun:
+      enabled: false
+      endpoint: ${aliyun.oss.endpoint:}
+      access-key-id: ${aliyun.oss.access-key-id:}
+      access-key-secret: ${aliyun.oss.access-key-secret:}
+      bucket-name: ${aliyun.oss.bucket-name:}
+```
+
+#### 2.3.10 common-map.yml（Shared_Dev / Shared_Test）
+
+```yaml
+mineguard:
+  map:
+    gaode:
+      enabled: true
+      key: ${gaode.map.key:}
+      security-key: ${gaode.map.security-key:}
 ```
 
 ## 3. 服务模块配置模板
@@ -216,30 +344,89 @@ spring:
       password: ${nacos.password:nacos}
       discovery:
         namespace: public
-        group: service-${nacos.env:dev}
+        group: Service_${nacos.env:dev}
       config:
         namespace: public
-        group: service-${nacos.env:dev}
+        group: Service_${nacos.env:dev}
         file-extension: yml
         shared-configs:
+          - data-id: common-core.yml
+            group: Shared_${nacos.env:dev}
+            refresh: true
           - data-id: common-database.yml
-            group: shared-${nacos.env:dev}
+            group: Shared_${nacos.env:dev}
             refresh: true
           - data-id: common-redis.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-monitor.yml
-            group: shared-${nacos.env:dev}
+            group: Shared_${nacos.env:dev}
             refresh: true
 ```
 
 **关键点：**
 - `nacos.env` 环境变量控制当前环境（dev/test/prod）
-- 服务配置 Group：`service-{环境}`
-- 公共配置 Group：`shared-{环境}`
+- 服务配置 Group：`Service_{环境}`
+- 公共配置 Group：`Shared_{环境}`
 - Data ID 不含环境名，通过 Group 区分环境
 
-### 3.2 user-service 配置
+### 3.2 服务模块公共配置依赖关系
+
+不同服务模块需要导入不同的公共配置文件：
+
+| 服务模块 | 必需导入的公共配置 |
+| - | - |
+| user-service | common-core, common-database, common-auth, common-redis |
+| vehicle-service | common-core, common-database, common-redis, common-mq, common-map |
+| trip-service | common-core, common-database, common-redis, common-mq |
+| warning-service | common-core, common-database, common-redis, common-mq, common-websocket |
+| statistics-service | common-core, common-database, common-redis |
+| cost-service | common-core, common-database, common-redis |
+| ai-service | common-core, common-database, common-redis |
+| iot-service | common-core, common-database, common-redis, common-mq, common-websocket |
+| gateway-service | common-core, common-redis, common-auth |
+| file-service | common-core, common-redis, common-file |
+
+### 3.3 web-service 配置示例
+
+#### bootstrap.yml
+
+```yaml
+spring:
+  application:
+    name: web-service
+  cloud:
+    nacos:
+      server-addr: ${nacos.server-addr:localhost:8848}
+      username: ${nacos.username:nacos}
+      password: ${nacos.password:nacos}
+      discovery:
+        namespace: public
+        group: Service_${nacos.env:dev}
+      config:
+        namespace: public
+        group: Service_${nacos.env:dev}
+        file-extension: yml
+        shared-configs:
+          - data-id: common-core.yml
+            group: Shared_${nacos.env:dev}
+            refresh: true
+          - data-id: common-auth.yml
+            group: Shared_${nacos.env:dev}
+            refresh: true
+          - data-id: common-redis.yml
+            group: Shared_${nacos.env:dev}
+            refresh: true
+          - data-id: common-web.yml
+            group: Shared_${nacos.env:dev}
+            refresh: true
+```
+
+#### Nacos 配置：web-service.yml（Group: Service_Dev）
+
+```yaml
+server:
+  port: 8080
+```
+
+### 3.4 user-service 配置
 
 #### bootstrap.yml
 
@@ -254,43 +441,39 @@ spring:
       password: ${nacos.password:nacos}
       discovery:
         namespace: public
-        group: service-${nacos.env:dev}
+        group: Service_${nacos.env:dev}
       config:
         namespace: public
-        group: service-${nacos.env:dev}
+        group: Service_${nacos.env:dev}
         file-extension: yml
         shared-configs:
+          - data-id: common-core.yml
+            group: Shared_${nacos.env:dev}
+            refresh: true
           - data-id: common-database.yml
-            group: shared-${nacos.env:dev}
+            group: Shared_${nacos.env:dev}
+            refresh: true
+          - data-id: common-auth.yml
+            group: Shared_${nacos.env:dev}
             refresh: true
           - data-id: common-redis.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-monitor.yml
-            group: shared-${nacos.env:dev}
+            group: Shared_${nacos.env:dev}
             refresh: true
 ```
 
-#### Nacos 配置：user-service.yml（Group: service-dev）
+#### Nacos 配置：user-service.yml（Group: Service_Dev）
 
 ```yaml
 server:
   port: 8001
 
 mineguard:
-  auth:
-    jwt:
-      secret: ${jwt.secret:mineguard-jwt-secret-key-2024}
-      expire-time: 7200
-      refresh-time: 604800
-    permission:
-      super-admin-role: admin
   user:
     enable-cache: true
     cache-expire: 3600
 ```
 
-### 3.3 vehicle-service 配置
+### 3.5 vehicle-service 配置
 
 #### bootstrap.yml
 
@@ -305,27 +488,30 @@ spring:
       password: ${nacos.password:nacos}
       discovery:
         namespace: public
-        group: service-${nacos.env:dev}
+        group: Service_${nacos.env:dev}
       config:
         namespace: public
-        group: service-${nacos.env:dev}
+        group: Service_${nacos.env:dev}
         file-extension: yml
         shared-configs:
+          - data-id: common-core.yml
+            group: Shared_${nacos.env:dev}
+            refresh: true
           - data-id: common-database.yml
-            group: shared-${nacos.env:dev}
+            group: Shared_${nacos.env:dev}
             refresh: true
           - data-id: common-redis.yml
-            group: shared-${nacos.env:dev}
+            group: Shared_${nacos.env:dev}
             refresh: true
-          - data-id: common-rocketmq.yml
-            group: shared-${nacos.env:dev}
+          - data-id: common-mq.yml
+            group: Shared_${nacos.env:dev}
             refresh: true
-          - data-id: common-monitor.yml
-            group: shared-${nacos.env:dev}
+          - data-id: common-map.yml
+            group: Shared_${nacos.env:dev}
             refresh: true
 ```
 
-#### Nacos 配置：vehicle-service.yml（Group: service-dev）
+#### Nacos 配置：vehicle-service.yml（Group: Service_Dev）
 
 ```yaml
 server:
@@ -341,304 +527,7 @@ mineguard:
       offline-threshold: 300000
 ```
 
-### 3.4 trip-service 配置
-
-#### bootstrap.yml
-
-```yaml
-spring:
-  application:
-    name: trip-service
-  cloud:
-    nacos:
-      server-addr: ${nacos.server-addr:localhost:8848}
-      username: ${nacos.username:nacos}
-      password: ${nacos.password:nacos}
-      discovery:
-        namespace: public
-        group: service-${nacos.env:dev}
-      config:
-        namespace: public
-        group: service-${nacos.env:dev}
-        file-extension: yml
-        shared-configs:
-          - data-id: common-database.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-redis.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-rocketmq.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-monitor.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-```
-
-#### Nacos 配置：trip-service.yml（Group: service-dev）
-
-```yaml
-server:
-  port: 8003
-
-mineguard:
-  trip:
-    route:
-      cache-time: 300000
-      max-points: 10000
-    history:
-      retention-days: 90
-```
-
-### 3.5 warning-service 配置
-
-#### bootstrap.yml
-
-```yaml
-spring:
-  application:
-    name: warning-service
-  cloud:
-    nacos:
-      server-addr: ${nacos.server-addr:localhost:8848}
-      username: ${nacos.username:nacos}
-      password: ${nacos.password:nacos}
-      discovery:
-        namespace: public
-        group: service-${nacos.env:dev}
-      config:
-        namespace: public
-        group: service-${nacos.env:dev}
-        file-extension: yml
-        shared-configs:
-          - data-id: common-database.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-redis.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-rocketmq.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-monitor.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-```
-
-#### Nacos 配置：warning-service.yml（Group: service-dev）
-
-```yaml
-server:
-  port: 8004
-
-mineguard:
-  warning:
-    detection:
-      interval: 5000
-      enabled: true
-    notification:
-      enabled: true
-      channels: ["sms", "push", "websocket"]
-    rule:
-      cache-expire: 600
-```
-
-### 3.6 statistics-service 配置
-
-#### bootstrap.yml
-
-```yaml
-spring:
-  application:
-    name: statistics-service
-  cloud:
-    nacos:
-      server-addr: ${nacos.server-addr:localhost:8848}
-      username: ${nacos.username:nacos}
-      password: ${nacos.password:nacos}
-      discovery:
-        namespace: public
-        group: service-${nacos.env:dev}
-      config:
-        namespace: public
-        group: service-${nacos.env:dev}
-        file-extension: yml
-        shared-configs:
-          - data-id: common-database.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-redis.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-monitor.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-```
-
-#### Nacos 配置：statistics-service.yml（Group: service-dev）
-
-```yaml
-server:
-  port: 8005
-
-mineguard:
-  statistics:
-    cache:
-      expire-time: 3600000
-    export:
-      enabled: true
-      max-rows: 100000
-```
-
-### 3.7 cost-service 配置
-
-#### bootstrap.yml
-
-```yaml
-spring:
-  application:
-    name: cost-service
-  cloud:
-    nacos:
-      server-addr: ${nacos.server-addr:localhost:8848}
-      username: ${nacos.username:nacos}
-      password: ${nacos.password:nacos}
-      discovery:
-        namespace: public
-        group: service-${nacos.env:dev}
-      config:
-        namespace: public
-        group: service-${nacos.env:dev}
-        file-extension: yml
-        shared-configs:
-          - data-id: common-database.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-redis.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-monitor.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-```
-
-#### Nacos 配置：cost-service.yml（Group: service-dev）
-
-```yaml
-server:
-  port: 8006
-
-mineguard:
-  cost:
-    budget:
-      alert-threshold: 0.8
-    analysis:
-      enabled: true
-      cache-expire: 1800
-```
-
-### 3.8 ai-service 配置
-
-#### bootstrap.yml
-
-```yaml
-spring:
-  application:
-    name: ai-service
-  cloud:
-    nacos:
-      server-addr: ${nacos.server-addr:localhost:8848}
-      username: ${nacos.username:nacos}
-      password: ${nacos.password:nacos}
-      discovery:
-        namespace: public
-        group: service-${nacos.env:dev}
-      config:
-        namespace: public
-        group: service-${nacos.env:dev}
-        file-extension: yml
-        shared-configs:
-          - data-id: common-database.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-redis.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-monitor.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-```
-
-#### Nacos 配置：ai-service.yml（Group: service-dev）
-
-```yaml
-server:
-  port: 8007
-
-mineguard:
-  ai:
-    prediction:
-      enabled: true
-      model-cache-size: 10
-    recommendation:
-      enabled: true
-      cache-expire: 600
-```
-
-### 3.9 iot-service 配置
-
-#### bootstrap.yml
-
-```yaml
-spring:
-  application:
-    name: iot-service
-  cloud:
-    nacos:
-      server-addr: ${nacos.server-addr:localhost:8848}
-      username: ${nacos.username:nacos}
-      password: ${nacos.password:nacos}
-      discovery:
-        namespace: public
-        group: service-${nacos.env:dev}
-      config:
-        namespace: public
-        group: service-${nacos.env:dev}
-        file-extension: yml
-        shared-configs:
-          - data-id: common-database.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-redis.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-rocketmq.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-monitor.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-```
-
-#### Nacos 配置：iot-service.yml（Group: service-dev）
-
-```yaml
-server:
-  port: 8008
-
-mineguard:
-  iot:
-    mqtt:
-      broker: ${mqtt.broker:tcp://localhost:1883}
-      client-id-prefix: mineguard-iot
-      qos: 1
-    websocket:
-      path: /ws/device
-      heartbeat-interval: 30000
-```
-
-### 3.10 gateway-service 配置
+### 3.6 gateway-service 配置
 
 #### bootstrap.yml
 
@@ -653,21 +542,24 @@ spring:
       password: ${nacos.password:nacos}
       discovery:
         namespace: public
-        group: service-${nacos.env:dev}
+        group: Service_${nacos.env:dev}
       config:
         namespace: public
-        group: service-${nacos.env:dev}
+        group: Service_${nacos.env:dev}
         file-extension: yml
         shared-configs:
-          - data-id: common-redis.yml
-            group: shared-${nacos.env:dev}
+          - data-id: common-core.yml
+            group: Shared_${nacos.env:dev}
             refresh: true
-          - data-id: common-monitor.yml
-            group: shared-${nacos.env:dev}
+          - data-id: common-redis.yml
+            group: Shared_${nacos.env:dev}
+            refresh: true
+          - data-id: common-auth.yml
+            group: Shared_${nacos.env:dev}
             refresh: true
 ```
 
-#### Nacos 配置：gateway-service.yml（Group: service-dev）
+#### Nacos 配置：gateway-service.yml（Group: Service_Dev）
 
 ```yaml
 server:
@@ -689,30 +581,6 @@ spring:
           uri: lb://vehicle-service
           predicates:
             - Path=/api/vehicle/**
-        - id: trip-service
-          uri: lb://trip-service
-          predicates:
-            - Path=/api/trip/**
-        - id: warning-service
-          uri: lb://warning-service
-          predicates:
-            - Path=/api/warning/**
-        - id: statistics-service
-          uri: lb://statistics-service
-          predicates:
-            - Path=/api/statistics/**
-        - id: cost-service
-          uri: lb://cost-service
-          predicates:
-            - Path=/api/cost/**
-        - id: ai-service
-          uri: lb://ai-service
-          predicates:
-            - Path=/api/ai/**
-        - id: iot-service
-          uri: lb://iot-service
-          predicates:
-            - Path=/api/iot/**
 
 mineguard:
   gateway:
@@ -727,333 +595,99 @@ mineguard:
       white-list:
         - /api/auth/login
         - /api/auth/register
-        - /api/auth/captcha
         - /doc.html
         - /webjars/**
         - /swagger-resources/**
         - /v3/api-docs/**
 ```
 
-### 3.11 file-service 配置
+## 4. 环境变量说明
 
-#### bootstrap.yml
+### 4.1 必需的环境变量
 
-```yaml
-spring:
-  application:
-    name: file-service
-  cloud:
-    nacos:
-      server-addr: ${nacos.server-addr:localhost:8848}
-      username: ${nacos.username:nacos}
-      password: ${nacos.password:nacos}
-      discovery:
-        namespace: public
-        group: service-${nacos.env:dev}
-      config:
-        namespace: public
-        group: service-${nacos.env:dev}
-        file-extension: yml
-        shared-configs:
-          - data-id: common-redis.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-          - data-id: common-monitor.yml
-            group: shared-${nacos.env:dev}
-            refresh: true
-```
+所有服务模块都需要以下环境变量：
 
-#### Nacos 配置：file-service.yml（Group: service-dev）
-
-```yaml
-server:
-  port: 8009
-
-mineguard:
-  file:
-    storage:
-      minio:
-        enabled: true
-        endpoint: ${minio.endpoint:http://localhost:9000}
-        access-key: ${minio.access-key:minioadmin}
-        secret-key: ${minio.secret-key:minioadmin}
-        bucket-name: ${minio.bucket-name:mineguard}
-        secure: false
-      aliyun-oss:
-        enabled: false
-        endpoint: ${aliyun.oss.endpoint}
-        access-key-id: ${aliyun.oss.access-key-id}
-        access-key-secret: ${aliyun.oss.access-key-secret}
-        bucket-name: ${aliyun.oss.bucket-name}
-        region: ${aliyun.oss.region}
-    config:
-      max-file-size: 104857600
-      max-request-size: 104857600
-      allowed-file-types:
-        - image/jpeg
-        - image/png
-        - image/gif
-        - application/pdf
-      storage-path: files
-    ocr:
-      enabled: true
-      type: baidu
-      baidu:
-        app-id: ${baidu.ocr.app-id}
-        api-key: ${baidu.ocr.api-key}
-        secret-key: ${baidu.ocr.secret-key}
-    disaster-recovery:
-      enabled: true
-      sync-strategy: realtime
-```
-
-## 4. 公共模块配置说明
-
-### 4.1 配置原则
-
-公共模块（`mineguard-common-*`）**不携带任何配置文件**，所有配置通过以下方式提供：
-
-1. **默认值**：在 `@ConfigurationProperties` 类中定义
-2. **Nacos 配置**：由公共配置（common-*.yml）或服务配置提供实际值
-
-### 4.2 公共模块配置属性清单
-
-| 模块 | 配置前缀 | 主要属性 | 配置位置 |
-| - | - | - | - |
-| mineguard-common-web | `mineguard.web` | cors.*, file-upload.* | 服务配置 |
-| mineguard-common-auth | `mineguard.auth` | jwt.*, permission.* | user-service.yml |
-| mineguard-common-redis | `mineguard.redis` | cache.*, lock.* | common-redis.yml |
-| mineguard-common-file | `mineguard.file` | storage.*, ocr.* | file-service.yml |
-| mineguard-common-map | `mineguard.map` | gaode.*, cache.* | 服务配置 |
-| mineguard-common-log | `mineguard.log` | async.*, audit.* | common-monitor.yml |
-
-### 4.3 配置属性类示例
-
-```java
-@ConfigurationProperties(prefix = "mineguard.auth.jwt")
-public class JwtProperties {
-    private String secret = "default-secret-key";
-    private Long expireTime = 7200L;
-    private Long refreshTime = 604800L;
-}
-```
-
-## 5. 测试配置管理
-
-### 5.1 测试配置原则
-
-| 原则 | 说明 |
-| - | - |
-| 独立性 | 测试不依赖外部服务（Nacos） |
-| 可重复性 | 测试结果可重复验证 |
-| 隔离性 | 测试配置不污染 Nacos 配置 |
-| 快速性 | 无需网络请求，快速启动 |
-
-### 5.2 测试配置文件
-
-公共模块的集成测试使用本地 `application-test.yml`：
-
-```
-mineguard-common-database/
-└── src/
-    └── test/
-        └── resources/
-            └── application-test.yml    # 测试配置（本地）
-```
-
-### 5.3 测试配置示例
-
-#### application-test.yml（公共模块测试配置）
-
-```yaml
-spring:
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/mineguard_test?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: root
-    password: test_password
-  redis:
-    host: localhost
-    port: 6379
-    database: 1
-
-mybatis-plus:
-  configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-
-logging:
-  level:
-    com.klzw: DEBUG
-```
-
-### 5.4 测试配置最佳实践
-
-| 场景 | 配置方式 |
-| - | - |
-| 单元测试 | Mock 依赖，无需配置文件 |
-| 集成测试 | 本地 `application-test.yml` |
-| 测试容器（Testcontainers） | 使用 Docker 容器启动依赖服务 |
-
-### 5.5 测试容器示例
-
-```java
-@SpringBootTest
-@Testcontainers
-class DatabaseIntegrationTest {
-    
-    @Container
-    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
-        .withDatabaseName("mineguard_test");
-    
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", mysql::getJdbcUrl);
-        registry.add("spring.datasource.username", mysql::getUsername);
-        registry.add("spring.datasource.password", mysql::getPassword);
-    }
-}
-```
-
-## 6. 环境变量配置
-
-### 6.1 必需的环境变量
-
-| 变量名 | 说明 | 示例 |
+| 环境变量 | 说明 | 默认值 |
 | - | - | - |
-| `nacos.server-addr` | Nacos 服务地址 | `localhost:8848` |
-| `nacos.username` | Nacos 用户名 | `nacos` |
-| `nacos.password` | Nacos 密码 | `nacos` |
-| `nacos.env` | 环境标识 | `dev` / `test` / `prod` |
-| `mysql.host` | MySQL 主机 | `localhost` |
-| `mysql.port` | MySQL 端口 | `3306` |
-| `mysql.database` | 数据库名 | `mineguard` |
-| `mysql.username` | 数据库用户名 | `root` |
-| `mysql.password` | 数据库密码 | `password` |
-| `redis.host` | Redis 主机 | `localhost` |
-| `redis.port` | Redis 端口 | `6379` |
-| `redis.password` | Redis 密码 | `password` |
+| `nacos.server-addr` | Nacos 服务地址 | localhost:8848 |
+| `nacos.username` | Nacos 用户名 | nacos |
+| `nacos.password` | Nacos 密码 | nacos |
+| `nacos.env` | 运行环境 | dev |
 
-### 6.2 可选的环境变量
+### 4.2 数据库相关环境变量
 
-| 变量名 | 说明 | 默认值 |
+| 环境变量 | 说明 | 默认值 |
 | - | - | - |
-| `jwt.secret` | JWT 密钥 | `mineguard-jwt-secret-key-2024` |
-| `minio.endpoint` | MinIO 端点 | `http://localhost:9000` |
-| `minio.access-key` | MinIO 访问密钥 | `minioadmin` |
-| `minio.secret-key` | MinIO 密钥 | `minioadmin` |
-| `rocketmq.namesrvAddr` | RocketMQ 地址 | `localhost:9876` |
+| `mysql.host` | MySQL 主机 | localhost |
+| `mysql.port` | MySQL 端口 | 3306 |
+| `mysql.database` | 数据库名称 | mineguard |
+| `mysql.username` | 数据库用户名 | root |
+| `mysql.password` | 数据库密码 | - |
 
-### 6.3 启动命令示例
+### 4.3 Redis 相关环境变量
 
-```bash
-java -jar user-service.jar \
-  -Dnacos.server-addr=localhost:8848 \
-  -Dnacos.env=dev \
-  -Dmysql.host=localhost \
-  -Dmysql.password=your_password
-```
+| 环境变量 | 说明 | 默认值 |
+| - | - | - |
+| `redis.host` | Redis 主机 | localhost |
+| `redis.port` | Redis 端口 | 6379 |
+| `redis.password` | Redis 密码 | - |
+| `redis.database` | Redis 数据库编号 | 0 |
 
-## 7. Nacos 配置初始化
+### 4.4 RabbitMQ 相关环境变量
 
-### 7.1 创建配置列表
+| 环境变量 | 说明 | 默认值 |
+| - | - | - |
+| `rabbitmq.host` | RabbitMQ 主机 | localhost |
+| `rabbitmq.port` | RabbitMQ 端口 | 5672 |
+| `rabbitmq.username` | RabbitMQ 用户名 | guest |
+| `rabbitmq.password` | RabbitMQ 密码 | guest |
+| `rabbitmq.virtual-host` | 虚拟主机 | / |
 
-在 Nacos 控制台创建以下配置：
+### 4.5 MongoDB 相关环境变量
 
-**Group: shared-dev（开发环境公共配置）**
+| 环境变量 | 说明 | 默认值 |
+| - | - | - |
+| `mongodb.host` | MongoDB 主机 | localhost |
+| `mongodb.port` | MongoDB 端口 | 27017 |
+| `mongodb.database` | 数据库名称 | mineguard |
+| `mongodb.username` | 数据库用户名 | - |
+| `mongodb.password` | 数据库密码 | - |
+| `mongodb.authentication-database` | 认证数据库 | admin |
 
-| Data ID | 说明 |
-| - | - |
-| common-database.yml | MySQL 数据库配置 |
-| common-redis.yml | Redis 缓存配置 |
-| common-rocketmq.yml | RocketMQ 消息队列配置 |
-| common-monitor.yml | 监控配置 |
+### 4.6 文件存储相关环境变量
 
-**Group: service-dev（开发环境服务配置）**
+| 环境变量 | 说明 | 默认值 |
+| - | - | - |
+| `minio.endpoint` | MinIO 端点 | http://localhost:9000 |
+| `minio.access-key` | MinIO AccessKey | minioadmin |
+| `minio.secret-key` | MinIO SecretKey | minioadmin |
+| `minio.bucket-name` | MinIO 桶名称 | mineguard |
+| `aliyun.oss.endpoint` | 阿里云 OSS 端点 | - |
+| `aliyun.oss.access-key-id` | 阿里云 AccessKeyId | - |
+| `aliyun.oss.access-key-secret` | 阿里云 AccessKeySecret | - |
+| `aliyun.oss.bucket-name` | 阿里云 OSS 桶名称 | - |
 
-| Data ID | 说明 |
-| - | - |
-| user-service.yml | 用户服务配置 |
-| vehicle-service.yml | 车辆服务配置 |
-| gateway-service.yml | 网关服务配置 |
-| ... | 其他服务配置 |
+### 4.7 地图服务相关环境变量
 
-**Group: shared-test / service-test（测试环境）**
+| 环境变量 | 说明 | 默认值 |
+| - | - | - |
+| `gaode.map.key` | 高德地图 Web服务密钥 | - |
+| `gaode.map.security-key` | 高德地图安全密钥 | - |
 
-同上结构，配置值不同。
+### 4.8 JWT 相关环境变量
 
-**Group: shared-prod / service-prod（生产环境）**
+| 环境变量 | 说明 | 默认值 |
+| - | - | - |
+| `JWT_SECRET` | JWT 密钥 | - |
 
-同上结构，配置值不同。
+## 5. 配置文件优先级
 
-### 7.2 环境切换
+当服务启动时，配置加载优先级如下（从高到低）：
 
-切换环境只需修改 `nacos.env` 环境变量：
+1. **服务自身配置**（{服务名}.yml，Group: Service_{环境}）
+2. **公共配置**（common-*.yml，Group: Shared_{环境}）
+3. **bootstrap.yml**（本地引导配置）
+4. **环境变量**
+5. **代码默认值**（@ConfigurationProperties）
 
-```bash
-export nacos.env=test
-```
-
-服务会自动加载：
-- `shared-test` 分组的公共配置
-- `service-test` 分组的服务配置
-
-## 8. 配置最佳实践
-
-### 8.1 敏感配置处理
-
-```yaml
-spring:
-  datasource:
-    password: ${mysql.password}
-```
-
-- 敏感配置通过环境变量注入
-- 不在 Nacos 中存储明文密码
-- 生产环境使用 Nacos 加密配置功能
-
-### 8.2 配置变更流程
-
-1. 在 Nacos 控制台修改配置
-2. 发布配置（支持灰度发布）
-3. 服务自动刷新配置（`refresh: true`）
-4. 查看配置历史和回滚
-
-### 8.3 配置验证
-
-启动服务时检查配置是否正确加载：
-
-```bash
-curl http://localhost:8001/actuator/health
-```
-
-## 9. 迁移指南
-
-### 9.1 清理公共模块配置
-
-需要从以下公共模块中移除配置文件：
-
-- `mineguard-common-auth/src/main/resources/`
-- `mineguard-common-redis/src/main/resources/`
-- `mineguard-common-web/src/main/resources/`
-
-**注意**：保留 `src/test/resources/application-test.yml` 用于测试。
-
-### 9.2 迁移步骤
-
-1. 在 Nacos 创建公共配置（Group: shared-dev）
-   - common-database.yml
-   - common-redis.yml
-   - common-rocketmq.yml
-   - common-monitor.yml
-2. 在 Nacos 创建服务配置（Group: service-dev）
-   - user-service.yml
-   - vehicle-service.yml
-   - ...
-3. 删除公共模块 `src/main/resources/` 中的配置文件
-4. 删除服务模块中的 `application.yml`（只保留 `bootstrap.yml`）
-5. 保留测试配置 `src/test/resources/application-test.yml`
-6. 验证服务启动正常
-
----
-
-通过遵循这些规则，可以实现配置的集中管理、环境隔离和安全存储，为系统的稳定运行和快速部署提供保障。
+**注意**：公共配置的加载顺序由 shared-configs 列表中的顺序决定，后加载的配置会覆盖先加载的同名配置。

@@ -1,0 +1,30 @@
+import { http } from '@/utils/request.uts'
+import type { UserAppealVO, UserAppealDTO, HandleAppealDTO } from '@/types/user.uts'
+
+export function submitAppeal(data: UserAppealDTO): Promise<UserAppealVO> {
+  return http.post<UserAppealVO>('/api/user/appeal', data)
+}
+
+export function getMyAppeals(): Promise<UserAppealVO[]> {
+  return http.get<UserAppealVO[]>('/api/user/appeal/my')
+}
+
+export function getPendingCheckAppeals(): Promise<UserAppealVO[]> {
+  return http.get<UserAppealVO[]>('/api/user/appeal/pending/check')
+}
+
+export function getAdminPendingAppeals(): Promise<UserAppealVO[]> {
+  return http.get<UserAppealVO[]>('/api/user/appeal/admin/pending')
+}
+
+export function getAdminAllAppeals(): Promise<UserAppealVO[]> {
+  return http.get<UserAppealVO[]>('/api/user/appeal/admin/list')
+}
+
+export function handleAppeal(id: string, data: HandleAppealDTO): Promise<void> {
+  return http.put<void>(`/api/user/appeal/admin/${id}/handle`, data)
+}
+
+export function getUserAppeals(userId: string): Promise<UserAppealVO[]> {
+  return http.get<UserAppealVO[]>(`/api/user/appeal/admin/user/${userId}`)
+}

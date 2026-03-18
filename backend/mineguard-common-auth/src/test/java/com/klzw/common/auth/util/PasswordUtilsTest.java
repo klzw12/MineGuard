@@ -20,11 +20,14 @@ class PasswordUtilsTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private AESUtil aesUtil;
+
     private PasswordUtils passwordUtils;
 
     @BeforeEach
     void setUp() {
-        passwordUtils = new PasswordUtils(passwordEncoder);
+        passwordUtils = new PasswordUtils(passwordEncoder, aesUtil);
     }
 
     @Test
@@ -147,5 +150,31 @@ class PasswordUtilsTest {
     void generateRandomPassword_shouldThrowException_whenLengthGreaterThan128() {
         assertThrows(AuthException.class, () -> passwordUtils.generateRandomPassword(129));
         assertThrows(AuthException.class, () -> passwordUtils.generateRandomPassword(1000));
+    }
+
+    @Test
+    void encodeIdCard_shouldReturnEncryptedIdCard() {
+        String idCard = "110101199001011234";
+        String encryptedIdCard = "encryptedIdCard123";
+        when(aesUtil.encrypt(idCard)).thenReturn(encryptedIdCard);
+
+        String result = passwordUtils.encodeIdCard(idCard);
+
+        assertEquals(encryptedIdCard, result);
+    }
+
+    @Test
+    void encodeIdCard_shouldThrowException_whenIdCardIsNull() {
+        assertThrows(AuthException.class, () -> passwordUtils.encodeIdCard(null));
+    }
+
+    @Test
+    void encodeIdCard_shouldThrowException_whenIdCardIsEmpty() {
+        assertThrows(AuthException.class, () -> passwordUtils.encodeIdCard(""));
+    }
+
+    @Test
+    void encodeIdCard_shouldThrowException_whenIdCardIsBlank() {
+        assertThrows(AuthException.class, () -> passwordUtils.encodeIdCard("   "));
     }
 }

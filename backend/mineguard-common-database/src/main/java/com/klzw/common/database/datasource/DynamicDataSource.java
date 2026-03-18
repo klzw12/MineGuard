@@ -65,4 +65,11 @@ public class DynamicDataSource extends AbstractRoutingDataSource {
         DATASOURCE_CONTEXT.remove();
     }
 
+    /**
+     * 获取当前数据源上下文
+     */
+    public static String getCurrentDataSourceContext() {
+        return DATASOURCE_CONTEXT.get();
+    }
+
 }

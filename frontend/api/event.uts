@@ -1,0 +1,304 @@
+import { http } from '@/utils/request.uts'
+
+// 事件相关类型定义
+export interface EventData {
+  id: number
+  eventType: string
+  eventContent: string
+  vehicleId?: number
+  driverId?: number
+  tripId?: number
+  timestamp: string
+  status: string
+}
+
+// 模拟WebSocket连接（实际项目中应使用真实的WebSocket）
+class EventWebSocket {
+  private socket: WebSocket | null = null
+  private listeners: Map<string, Function[]> = new Map()
+  private isConnected: boolean = false
+  private reconnectAttempts: number = 0
+  private maxReconnectAttempts: number = 5
+  private reconnectInterval: number = 3000
+
+  connect(url: string = 'ws://localhost:8080/api/ws/events') {
+    try {
+      this.socket = new WebSocket(url)
+      
+      this.socket.onopen = () => {
+        console.log('WebSocket连接成功')
+        this.isConnected = true
+        this.reconnectAttempts = 0
+        this.emit('connect')
+      }
+
+      this.socket.onmessage = (event) => {
+        try {
+          const eventData = JSON.parse(event.data) as EventData
+          this.emit('event', eventData)
+        } catch (error) {
+          console.error('解析事件数据失败:', error)
+        }
+      }
+
+      this.socket.onclose = () => {
+        console.log('WebSocket连接关闭')
+        this.isConnected = false
+        this.emit('disconnect')
+        this.attemptReconnect()
+      }
+
+      this.socket.onerror = (error) => {
+        console.error('WebSocket错误:', error)
+        this.emit('error', error)
+      }
+    } catch (error) {
+      console.error('WebSocket连接失败:', error)
+      this.attemptReconnect()
+    }
+  }
+
+  private attemptReconnect() {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++
+      console.log(`尝试重连... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`)
+      setTimeout(() => {
+        this.connect()
+      }, this.reconnectInterval)
+    } else {
+      console.error('WebSocket重连失败，已达到最大尝试次数')
+    }
+  }
+
+  on(event: string, callback: Function) {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, [])
+    }
+    this.listeners.get(event)?.push(callback)
+  }
+
+  off(event: string, callback: Function) {
+    if (this.listeners.has(event)) {
+      const callbacks = this.listeners.get(event)
+      if (callbacks) {
+        const index = callbacks.indexOf(callback)
+        if (index > -1) {
+          callbacks.splice(index, 1)
+        }
+      }
+    }
+  }
+
+  private emit(event: string, data?: any) {
+    if (this.listeners.has(event)) {
+      const callbacks = this.listeners.get(event)
+      if (callbacks) {
+        callbacks.forEach(callback => {
+          try {
+            callback(data)
+          } catch (error) {
+            console.error(`事件处理错误 (${event}):`, error)
+          }
+        })
+      }
+    }
+  }
+
+  disconnect() {
+    if (this.socket) {
+      this.socket.close()
+      this.socket = null
+      this.isConnected = false
+      this.listeners.clear()
+    }
+  }
+
+  send(data: any) {
+    if (this.socket && this.isConnected) {
+      this.socket.send(JSON.stringify(data))
+    }
+  }
+}
+
+// 事件轮询服务（备用方案）
+class EventPollingService {
+  private intervalId: number | null = null
+  private listeners: Map<string, Function[]> = new Map()
+  private pollingInterval: number = 5000 // 5秒轮询一次
+
+  start() {
+    this.stop() // 先停止之前的轮询
+    this.intervalId = setInterval(() => {
+      this.fetchEvents()
+    }, this.pollingInterval) as unknown as number
+    console.log('事件轮询服务已启动')
+  }
+
+  stop() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId)
+      this.intervalId = null
+      console.log('事件轮询服务已停止')
+    }
+  }
+
+  private async fetchEvents() {
+    try {
+      // 这里应该调用后端的事件查询接口
+      // 实际项目中应该根据时间戳或ID进行增量查询
+      const events = await http.get<EventData[]>('/api/event/latest')
+      events.forEach(event => {
+        this.emit('event', event)
+      })
+    } catch (error) {
+      console.error('获取事件失败:', error)
+    }
+  }
+
+  on(event: string, callback: Function) {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, [])
+    }
+    this.listeners.get(event)?.push(callback)
+  }
+
+  off(event: string, callback: Function) {
+    if (this.listeners.has(event)) {
+      const callbacks = this.listeners.get(event)
+      if (callbacks) {
+        const index = callbacks.indexOf(callback)
+        if (index > -1) {
+          callbacks.splice(index, 1)
+        }
+      }
+    }
+  }
+
+  private emit(event: string, data?: any) {
+    if (this.listeners.has(event)) {
+      const callbacks = this.listeners.get(event)
+      if (callbacks) {
+        callbacks.forEach(callback => {
+          try {
+            callback(data)
+          } catch (error) {
+            console.error(`事件处理错误 (${event}):`, error)
+          }
+        })
+      }
+    }
+  }
+}
+
+// 导出事件服务实例
+const eventWebSocket = new EventWebSocket()
+const eventPollingService = new EventPollingService()
+
+// 事件处理服务
+export const eventService = {
+  // 启动事件监听（优先使用WebSocket）
+  startListening() {
+    try {
+      eventWebSocket.connect()
+    } catch (error) {
+      console.warn('WebSocket连接失败，切换到轮询模式:', error)
+      eventPollingService.start()
+    }
+  },
+
+  // 停止事件监听
+  stopListening() {
+    eventWebSocket.disconnect()
+    eventPollingService.stop()
+  },
+
+  // 监听事件
+  on(event: string, callback: Function) {
+    eventWebSocket.on(event, callback)
+    eventPollingService.on(event, callback)
+  },
+
+  // 移除事件监听
+  off(event: string, callback: Function) {
+    eventWebSocket.off(event, callback)
+    eventPollingService.off(event, callback)
+  },
+
+  // 模拟事件（用于测试）
+  simulateEvent(event: EventData) {
+    eventWebSocket.emit('event', event)
+    eventPollingService.emit('event', event)
+  }
+}
+
+// 事件处理工具函数
+export function handleEvent(event: EventData) {
+  console.log('处理事件:', event)
+  
+  // 根据事件类型进行不同的处理
+  switch (event.eventType) {
+    case 'trip_started':
+      handleTripStarted(event)
+      break
+    case 'trip_ended':
+      handleTripEnded(event)
+      break
+    case 'warning':
+      handleWarning(event)
+      break
+    case 'vehicle_fault':
+      handleVehicleFault(event)
+      break
+    default:
+      handleUnknownEvent(event)
+      break
+  }
+}
+
+// 处理行程开始事件
+function handleTripStarted(event: EventData) {
+  uni.showToast({
+    title: `行程开始: ${event.eventContent}`,
+    icon: 'success',
+    position: 'bottom'
+  })
+  // 可以在这里更新UI状态，例如更新行程列表或地图标记
+}
+
+// 处理行程结束事件
+function handleTripEnded(event: EventData) {
+  uni.showToast({
+    title: `行程结束: ${event.eventContent}`,
+    icon: 'success',
+    position: 'bottom'
+  })
+  // 可以在这里更新UI状态，例如更新行程状态或显示行程统计
+}
+
+// 处理警告事件
+function handleWarning(event: EventData) {
+  uni.showModal({
+    title: '警告',
+    content: event.eventContent,
+    showCancel: false,
+    confirmText: '确定'
+  })
+  // 可以在这里显示警告通知或更新警告列表
+}
+
+// 处理车辆故障事件
+function handleVehicleFault(event: EventData) {
+  uni.showModal({
+    title: '车辆故障',
+    content: event.eventContent,
+    showCancel: false,
+    confirmText: '确定'
+  })
+  // 可以在这里显示故障通知或更新故障列表
+}
+
+// 处理未知事件
+function handleUnknownEvent(event: EventData) {
+  console.log('未知事件类型:', event.eventType)
+  // 可以在这里显示通用通知
+}

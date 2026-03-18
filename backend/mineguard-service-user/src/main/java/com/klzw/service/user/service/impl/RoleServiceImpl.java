@@ -29,7 +29,7 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public RoleVO getRoleById(String id) {
+    public RoleVO getRoleById(Long id) {
         Role role = roleMapper.selectById(id);
         if (role == null) {
             return null;
@@ -48,9 +48,38 @@ public class RoleServiceImpl implements RoleService {
         return convertToRoleVO(role);
     }
 
+    @Override
+    public RoleVO createRole(RoleVO roleVO) {
+        Role role = new Role();
+        BeanUtils.copyProperties(roleVO, role);
+        role.setCreateTime(java.time.LocalDateTime.now());
+        role.setUpdateTime(java.time.LocalDateTime.now());
+        roleMapper.insert(role);
+        return convertToRoleVO(role);
+    }
+
+    @Override
+    public RoleVO updateRole(Long id, RoleVO roleVO) {
+        Role role = roleMapper.selectById(id);
+        if (role == null) {
+            return null;
+        }
+        BeanUtils.copyProperties(roleVO, role);
+        role.setId(id);
+        role.setUpdateTime(java.time.LocalDateTime.now());
+        roleMapper.updateById(role);
+        return convertToRoleVO(role);
+    }
+
+    @Override
+    public boolean deleteRole(Long id) {
+        return roleMapper.deleteById(id) > 0;
+    }
+
     private RoleVO convertToRoleVO(Role role) {
         RoleVO vo = new RoleVO();
         BeanUtils.copyProperties(role, vo);
+        vo.setId(String.valueOf(role.getId()));
         return vo;
     }
 }

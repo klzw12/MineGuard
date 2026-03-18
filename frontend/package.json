@@ -3,19 +3,17 @@
   "version": "1.0.0",
   "description": "矿山安全智能监控系统前端",
   "scripts": {
-    "dev:mp-weixin": "uni-app-cli dev:mp-weixin",
-    "build:mp-weixin": "uni-app-cli build:mp-weixin",
-    "dev:app-plus": "uni-app-cli dev:app-plus",
-    "build:app-plus": "uni-app-cli build:app-plus",
-    "dev:h5": "uni-app-cli dev:h5",
-    "build:h5": "uni-app-cli build:h5"
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build"
   },
   "dependencies": {
     "@dcloudio/uni-app": "^2.0.0",
-    "@dcloudio/uni-ui": "^1.4.0"
+    "@dcloudio/uni-ui": "^1.4.0",
+    "vue": "^2.6.11"
   },
   "devDependencies": {
-    "@dcloudio/uni-app-cli": "^2.0.0"
+    "@vue/cli-service": "^4.5.15",
+    "@dcloudio/vue-cli-plugin-uni": "^2.0.0"
   },
   "engines": {
     "node": ">=14.0.0"

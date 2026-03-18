@@ -14,7 +14,7 @@
 - **实时通讯**：WebSocket
 - **AI框架**：Spring AI
 - **IoT协议**：MQTT、CoAP
-- **对象存储**：MinIO, 阿里云OSS
+- **对象存储**：阿里云OSS
 - **OCR服务**：百度OCR API
 - **地图服务**：高德地图API
 
@@ -82,7 +82,7 @@
 | mineguard-common-log | 日志模块 | mineguard-common-core | 日志切面、异步日志、日志脱敏、审计日志 |
 | mineguard-common-mongodb | MongoDB模块 | mineguard-common-core | MongoTemplate配置、地理空间查询、聚合查询、时序数据支持 |
 | mineguard-common-websocket | WebSocket模块 | mineguard-common-core | WebSocket连接管理、消息推送、消息订阅/发布、在线用户管理 |
-| mineguard-common-file | 文件存储模块 | mineguard-common-core | MinIO配置、文件上传下载、OCR识别工具 |
+| mineguard-common-file | 文件存储模块 | mineguard-common-core | 阿里云OSS配置、文件上传下载、OCR识别工具 |
 | mineguard-common-map | 地图服务模块 | mineguard-common-core | 高德地图API集成、地理编码、路径规划、地理围栏、位置搜索 |
 
 **模块依赖关系**：

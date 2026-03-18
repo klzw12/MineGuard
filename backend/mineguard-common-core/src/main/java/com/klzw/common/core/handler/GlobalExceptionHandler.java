@@ -18,7 +18,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Throwable.class)
     public Result<?> handleException(Throwable throwable) {
-        log.error("Exception occurred:", throwable);
+        // 根据日志级别决定是否抛出堆栈
+        if (log.isDebugEnabled()) {
+            log.error("Exception occurred:", throwable);
+        } else {
+            log.error("Exception occurred: {}", throwable.getMessage());
+        }
         
         ExceptionHandlerStrategy strategy = registry.getStrategy(throwable);
         return strategy.handle(throwable);

@@ -3,7 +3,6 @@ package com.klzw.service.user.vo;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 public class UserVO {
@@ -22,11 +21,19 @@ public class UserVO {
 
     private Integer status;
 
-    private Integer userType;
+    private String roleId;
 
-    private List<String> roles;
+    private String roleCode;
+
+    private String roleName;
 
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
+
+    private String token;
+
+    private String refreshToken;
+
+    private Long expiresIn;
 }

@@ -7,7 +7,7 @@
 | core | 200, 400-605 | `ResultCodeEnum` |
 | web | 701-727 | `WebResultCode` |
 | auth | 800-854 | `AuthResultCode` |
-| redis | 900-954 | `RedisResultCode` |
+| redis | 900-955 | `RedisResultCode` |
 | database | 1000-1064 | `DatabaseResultCode` |
 | file | 1200-1219 | `FileResultCode` |
 | mq | 1100-1151 | `MqResultCode` |
@@ -77,12 +77,13 @@
 | 错误码 | 常量名 | 说明 |
 |--------|--------|------|
 | 800 | AUTH_ERROR | 认证操作失败 |
-| 801 | TOKEN_EXPIRED | Token已过期 |
-| 802 | TOKEN_INVALID | Token无效 |
-| 803 | TOKEN_MISSING | Token缺失 |
-| 804 | TOKEN_SIGNATURE_ERROR | Token签名错误 |
-| 805 | TOKEN_PARSE_ERROR | Token解析错误 |
-| 806 | TOKEN_REVOKED | Token已被撤销 |
+| 801 | PARAMETER_ERROR | 参数错误 |
+| 802 | TOKEN_EXPIRED | Token已过期 |
+| 803 | TOKEN_INVALID | Token无效 |
+| 804 | TOKEN_MISSING | Token缺失 |
+| 805 | TOKEN_SIGNATURE_ERROR | Token签名错误 |
+| 806 | TOKEN_PARSE_ERROR | Token解析错误 |
+| 807 | TOKEN_REVOKED | Token已被撤销 |
 | 810 | PERMISSION_DENIED | 权限不足 |
 | 811 | PERMISSION_NOT_FOUND | 权限不存在 |
 | 812 | PERMISSION_EXPIRED | 权限已过期 |
@@ -141,6 +142,7 @@
 | 952 | INVALID_KEY | 无效的键 |
 | 953 | INVALID_VALUE | 无效的值 |
 | 954 | OPERATION_NOT_SUPPORTED | 不支持的操作 |
+| 955 | PARAMETER_ERROR | 参数错误 |
 
 ### 3.5 Database 数据库模块 (DatabaseResultCode)
 
@@ -305,3 +307,5 @@
 | 2026-03-07 | 将文件模块错误码从 4001-4018 调整为 1200-1218 |
 | 2026-03-07 | 统一错误码常量命名风格，单码对应单错误 |
 | 2026-03-07 | 简化文档结构，与代码完全同步 |
+| 2026-03-12 | Redis模块增加PARAMETER_ERROR(955)错误码 |
+| 2026-03-12 | Auth模块增加PARAMETER_ERROR(801)错误码 |

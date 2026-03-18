@@ -27,8 +27,8 @@ function removeToken(): void {
   uni.removeStorageSync('token')
 }
 
-function request<T = any>(options: RequestOptions): Promise<T> {
-  const { url, method = 'GET', data, header = {}, showLoading = true, showError = true } = options
+function request<T = any>(options: RequestOptions): Promise<T | null> {
+  const { url, method = 'GET', data, header = {} as Record<string, string>, showLoading = true, showError = true } = options
   
   if (showLoading) {
     uni.showLoading({ title: '加载中...', mask: true })
@@ -45,7 +45,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
       url: BASE_URL + url,
       method,
       data,
-      header,
+      header: header as UTSJSONObject,
       success: (res) => {
         if (showLoading) {
           uni.hideLoading()
@@ -91,19 +91,19 @@ function request<T = any>(options: RequestOptions): Promise<T> {
 }
 
 export const http = {
-  get<T = any>(url: string, data?: any, options?: Partial<RequestOptions>): Promise<T> {
+  get<T = any>(url: string, data?: any, options?: Partial<RequestOptions>): Promise<T | null> {
     return request<T>({ url, method: 'GET', data, ...options })
   },
   
-  post<T = any>(url: string, data?: any, options?: Partial<RequestOptions>): Promise<T> {
+  post<T = any>(url: string, data?: any, options?: Partial<RequestOptions>): Promise<T | null> {
     return request<T>({ url, method: 'POST', data, ...options })
   },
   
-  put<T = any>(url: string, data?: any, options?: Partial<RequestOptions>): Promise<T> {
+  put<T = any>(url: string, data?: any, options?: Partial<RequestOptions>): Promise<T | null> {
     return request<T>({ url, method: 'PUT', data, ...options })
   },
   
-  delete<T = any>(url: string, data?: any, options?: Partial<RequestOptions>): Promise<T> {
+  delete<T = any>(url: string, data?: any, options?: Partial<RequestOptions>): Promise<T | null> {
     return request<T>({ url, method: 'DELETE', data, ...options })
   }
 }

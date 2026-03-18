@@ -72,7 +72,7 @@
 						<view class="card-icon">
 							<image src="/static/svgs/locate.svg" mode="aspectFit"></image>
 						</view>
-						<text class="card-title">实时监控</text>
+						<text class="card-title">安全预警</text>
 					</view>
 					<view class="feature-card" @click="navigateToReport">
 						<view class="card-icon">

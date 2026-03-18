@@ -129,6 +129,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
+        // 处理OPTIONS请求（CORS预检）
+        if ("OPTIONS".equals(request.getMethod())) {
+            return true;
+        }
+        
         String path = request.getRequestURI();
         return path.contains("/login") || path.contains("/register") || path.contains("/captcha") || path.contains("/reset-password");
     }

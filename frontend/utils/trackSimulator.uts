@@ -1,0 +1,113 @@
+// 轨迹点模拟工具类
+
+/**
+ * 生成模拟轨迹点
+ * @param tripId 行程ID
+ * @param startPoint 起点坐标 {latitude, longitude}
+ * @param endPoint 终点坐标 {latitude, longitude}
+ * @param step 步长（米）
+ * @returns 轨迹点数组
+ */
+export function generateTrackPoints(tripId, startPoint, endPoint, step = 50) {
+  const points = [];
+  const distance = calculateDistance(startPoint.latitude, startPoint.longitude, endPoint.latitude, endPoint.longitude);
+  const steps = Math.ceil(distance / step);
+  
+  for (let i = 0; i <= steps; i++) {
+    const ratio = i / steps;
+    const latitude = startPoint.latitude + (endPoint.latitude - startPoint.latitude) * ratio;
+    const longitude = startPoint.longitude + (endPoint.longitude - startPoint.longitude) * ratio;
+    
+    points.push({
+      tripId,
+      longitude,
+      latitude,
+      speed: 40 + Math.random() * 20, // 40-60 km/h
+      direction: Math.random() * 360, // 0-360度
+      altitude: 1000 + Math.random() * 100, // 1000-1100米
+      recordTime: Date.now() + i * 1000 // 每秒一个点
+    });
+  }
+  
+  return points;
+}
+
+/**
+ * 计算两点之间的距离（米）
+ * @param lat1 第一个点的纬度
+ * @param lon1 第一个点的经度
+ * @param lat2 第二个点的纬度
+ * @param lon2 第二个点的经度
+ * @returns 距离（米）
+ */
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // 地球半径（米）
+  const lat1Rad = Math.PI * lat1 / 180;
+  const lon1Rad = Math.PI * lon1 / 180;
+  const lat2Rad = Math.PI * lat2 / 180;
+  const lon2Rad = Math.PI * lon2 / 180;
+  
+  const dLat = lat2Rad - lat1Rad;
+  const dLon = lon2Rad - lon1Rad;
+  
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  
+  return R * c;
+}
+
+/**
+ * 模拟轨迹点发送
+ * @param ws WebSocket连接
+ * @param points 轨迹点数组
+ * @param interval 发送间隔（毫秒）
+ */
+export function simulateTrackSend(ws, points, interval = 1000) {
+  let index = 0;
+  
+  const sendInterval = setInterval(() => {
+    if (index < points.length) {
+      const point = points[index];
+      const message = {
+        type: 'track',
+        data: point
+      };
+      
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+        console.log('发送轨迹点:', point);
+      }
+      
+      index++;
+    } else {
+      clearInterval(sendInterval);
+      console.log('轨迹点发送完成');
+    }
+  }, interval);
+  
+  return sendInterval;
+}
+
+/**
+ * 生成随机事件触发
+ * @param tripId 行程ID
+ * @param latitude 纬度
+ * @param longitude 经度
+ * @returns 事件对象
+ */
+export function generateRandomEvent(tripId, latitude, longitude, vehicleId = 1, driverId = 1) {
+  const eventTypes = ['vehicle_failure', 'theft', 'danger'];
+  const randomType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
+  
+  return {
+    tripId,
+    eventType: randomType,
+    longitude,
+    latitude,
+    vehicleId,
+    driverId,
+    timestamp: Date.now()
+  };
+}

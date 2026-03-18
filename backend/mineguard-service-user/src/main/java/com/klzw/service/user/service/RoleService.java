@@ -8,7 +8,13 @@ public interface RoleService {
 
     List<RoleVO> getAllRoles();
 
-    RoleVO getRoleById(String id);
+    RoleVO getRoleById(Long id);
 
     RoleVO getRoleByCode(String code);
+    
+    RoleVO createRole(RoleVO roleVO);
+    
+    RoleVO updateRole(Long id, RoleVO roleVO);
+    
+    boolean deleteRole(Long id);
 }

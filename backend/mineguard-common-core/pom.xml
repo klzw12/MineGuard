@@ -57,11 +57,6 @@
             <version>${javax-annotation-api.version}</version>
         </dependency>
 
-        <!-- Hutool工具类 -->
-        <dependency>
-            <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
-        </dependency>
     </dependencies>
 
     <build>

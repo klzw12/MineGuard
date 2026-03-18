@@ -32,12 +32,25 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().value();
         
-        if (gatewayProperties.getIgnoreAuth().isIgnored(path)) {
-            log.debug("Path {} is ignored for auth", path);
+        log.debug("AuthGlobalFilter processing path: {}, method: {}, URI: {}", path, request.getMethod(), request.getURI());
+        
+        // 处理OPTIONS请求（CORS预检）
+        if ("OPTIONS".equals(request.getMethod().name())) {
+            log.debug("OPTIONS request detected, passing to next filter", path);
             return chain.filter(exchange);
         }
         
+        if (gatewayProperties.getIgnoreAuth().isIgnored(path)) {
+            log.debug("Path {} is ignored for auth, passing to next filter", path);
+            log.debug("当前响应状态吗：{}", exchange.getResponse().getStatusCode());
+            return chain.filter(exchange);
+        }
+        
+        log.debug("Path {} requires auth, checking token", path);
+        
         String authHeader = request.getHeaders().getFirst(GatewayConstant.AUTHORIZATION_HEADER);
+        log.debug("Auth header: {}", authHeader != null ? "present" : "null");
+        
         String token = getTokenFromHeader(authHeader);
         
         if (token == null) {
@@ -69,7 +82,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
                 .header(GatewayConstant.HEADER_ROLES, role != null ? role : "")
                 .build();
         
-        log.debug("Auth success: userId={}, username={}", userId, username);
+        log.debug("Auth success: userId={}, username={}, routing to: {}", userId, username, newRequest.getURI());
         
         return chain.filter(exchange.mutate().request(newRequest).build());
     }

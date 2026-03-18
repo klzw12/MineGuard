@@ -68,7 +68,13 @@ public class ReadWriteSplitAspect {
         DataSource classDataSourceAnnotation = method.getDeclaringClass().getAnnotation(DataSource.class);
         
         if (dataSourceAnnotation != null || classDataSourceAnnotation != null) {
-            log.debug("方法上有@DataSource注解，跳过自动读写分离: {}", method.getName());
+            log.debug("方法上有@DataSource注解，使用注解指定的数据源: {}", method.getName());
+            return point.proceed();
+        }
+        
+        String currentContext = DynamicDataSource.getCurrentDataSourceContext();
+        if (currentContext != null) {
+            log.debug("已有数据源上下文: {}, 保持当前数据源, 方法: {}", currentContext, method.getName());
             return point.proceed();
         }
         

@@ -1,0 +1,9 @@
+mineguard:
+  auth:
+    enabled: true
+    jwt:
+      secret: ${JWT_SECRET:testjwtformineguardmineguard1bcdefghijklmnopqrstuvwxyz1234567890}
+      expiration: 3600000
+      enable-blacklist: true
+      blacklist-prefix: "jwt:blacklist:"
+      blacklist-expire: 86400

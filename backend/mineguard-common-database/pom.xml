@@ -26,6 +26,14 @@
             <version>${mineguard.version}</version>
         </dependency>
 
+        <!-- 认证模块依赖 - 用于获取当前用户信息 -->
+        <dependency>
+            <groupId>com.klzw</groupId>
+            <artifactId>mineguard-common-auth</artifactId>
+            <version>${mineguard.version}</version>
+            <optional>true</optional>
+        </dependency>
+
         <!-- MyBatis-Plus 依赖 -->
         <dependency>
             <groupId>com.baomidou</groupId>

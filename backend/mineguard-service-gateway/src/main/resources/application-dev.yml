@@ -13,6 +13,6 @@ spring:
   config:
     import:
       - nacos:gateway-service.yml?group=Service_Dev&refresh=true
-      - nacos:common-core.yml?group=Shared_Dev&refresh=true
-      - nacos:common-auth.yml?group=Shared_Dev&refresh=true
-      - nacos:common-redis.yml?group=Shared_Dev&refresh=true
+      - nacos:common-core.yml?group=Shared_Dev&namespace=dev&refresh=true
+      - nacos:common-auth.yml?group=Shared_Dev&namespace=dev&refresh=true
+      - nacos:common-redis.yml?group=Shared_Dev&namespace=dev&refresh=true

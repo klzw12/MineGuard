@@ -6,8 +6,9 @@ import lombok.Getter;
 public enum UserTypeEnum {
     ADMIN(1, "管理员"),
     DRIVER(2, "司机"),
-    MAINTENANCE(3, "维修员"),
-    SAFETY(4, "安全员");
+    OPERATOR(3, "运营人员"),
+    REPAIRMAN(4, "维修员"),
+    SECURITY(5, "安全员");
 
     private final int value;
     private final String label;

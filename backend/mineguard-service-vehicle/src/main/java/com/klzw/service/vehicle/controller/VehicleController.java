@@ -1,0 +1,120 @@
+package com.klzw.service.vehicle.controller;
+
+import com.klzw.common.core.result.Result;
+import com.klzw.service.vehicle.entity.Vehicle;
+import com.klzw.service.vehicle.service.VehicleService;
+import com.klzw.service.vehicle.vo.VehicleVO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+
+@Tag(name = "车辆管理", description = "车辆管理接口")
+@RestController
+@RequestMapping("/api/vehicle")
+@RequiredArgsConstructor
+public class VehicleController {
+    
+    private final VehicleService vehicleService;
+    
+    @Operation(summary = "创建车辆")
+    @PostMapping
+    public Result<Vehicle> createVehicle(@RequestBody Vehicle vehicle) {
+        Vehicle createdVehicle = vehicleService.createVehicle(vehicle);
+        return Result.success(createdVehicle);
+    }
+    
+    @Operation(summary = "更新车辆")
+    @PutMapping("/{id}")
+    public Result<Vehicle> updateVehicle(@PathVariable Long id, @RequestBody Vehicle vehicle) {
+        Vehicle updatedVehicle = vehicleService.updateVehicle(id, vehicle);
+        return Result.success(updatedVehicle);
+    }
+    
+    @Operation(summary = "删除车辆")
+    @DeleteMapping("/{id}")
+    public Result<Boolean> deleteVehicle(@PathVariable Long id) {
+        boolean result = vehicleService.deleteVehicle(id);
+        return Result.success(result);
+    }
+    
+    @Operation(summary = "获取车辆详情")
+    @GetMapping("/{id}")
+    public Result<VehicleVO> getVehicleById(@PathVariable Long id) {
+        VehicleVO vehicleVO = vehicleService.getVehicleById(id);
+        return Result.success(vehicleVO);
+    }
+    
+    @Operation(summary = "分页查询车辆")
+    @GetMapping("/page")
+    public Result<List<VehicleVO>> getVehiclePage(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String vehicleNo,
+            @RequestParam(required = false) Integer status) {
+        List<VehicleVO> vehicles = vehicleService.getVehiclePage(page, size, vehicleNo, status);
+        return Result.success(vehicles);
+    }
+    
+    @Operation(summary = "绑定用户")
+    @PostMapping("/{id}/bind")
+    public Result<Boolean> bindUser(@PathVariable Long id, @RequestParam Long userId) {
+        boolean result = vehicleService.bindUser(id, userId);
+        return Result.success(result);
+    }
+    
+    @Operation(summary = "解绑用户")
+    @PostMapping("/{id}/unbind")
+    public Result<Boolean> unbindUser(@PathVariable Long id) {
+        boolean result = vehicleService.unbindUser(id);
+        return Result.success(result);
+    }
+    
+    @Operation(summary = "上传车辆照片")
+    @PostMapping("/{id}/photo")
+    public Result<String> uploadVehiclePhoto(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        String photoUrl = vehicleService.uploadVehiclePhoto(id, file);
+        return Result.success(photoUrl);
+    }
+    
+    @Operation(summary = "上传行驶证并进行OCR识别")
+    @PostMapping("/{id}/license")
+    public Result<Vehicle> uploadLicenseAndOCR(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        Vehicle vehicle = vehicleService.uploadLicenseAndOCR(id, file);
+        return Result.success(vehicle);
+    }
+    
+    @Operation(summary = "上传行驶证正面并进行OCR识别")
+    @PostMapping("/{id}/license/front")
+    public Result<Vehicle> uploadLicenseFrontAndOCR(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        Vehicle vehicle = vehicleService.uploadLicenseFrontAndOCR(id, file);
+        return Result.success(vehicle);
+    }
+    
+    @Operation(summary = "上传行驶证反面")
+    @PostMapping("/{id}/license/back")
+    public Result<Vehicle> uploadLicenseBack(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        Vehicle vehicle = vehicleService.uploadLicenseBack(id, file);
+        return Result.success(vehicle);
+    }
+    
+    @Operation(summary = "上传车辆保险信息")
+    @PostMapping("/{id}/insurance")
+    public Result<Vehicle> uploadInsuranceInfo(@PathVariable Long id, @RequestParam String insuranceCompany, 
+                                             @RequestParam String policyNo, @RequestParam String startDate, 
+                                             @RequestParam String endDate) {
+        Vehicle vehicle = vehicleService.uploadInsuranceInfo(id, insuranceCompany, policyNo, startDate, endDate);
+        return Result.success(vehicle);
+    }
+    
+    @Operation(summary = "更新车辆维修状态")
+    @PutMapping("/{id}/maintenance")
+    public Result<Vehicle> updateMaintenanceStatus(@PathVariable Long id, @RequestParam Integer maintenanceStatus) {
+        Vehicle vehicle = vehicleService.updateMaintenanceStatus(id, maintenanceStatus);
+        return Result.success(vehicle);
+    }
+    
+}

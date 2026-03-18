@@ -87,7 +87,12 @@ public enum AuthResultCode {
     SMS_SEND_FAILED(860, "短信发送失败"),
     SMS_CODE_ERROR(861, "验证码错误"),
     SMS_CODE_EXPIRED(862, "验证码已过期"),
-    SMS_SEND_FREQUENCY_ERROR(863, "短信发送频率过高");
+    SMS_SEND_FREQUENCY_ERROR(863, "短信发送频率过高"),
+
+    /**
+     * 系统错误
+     */
+    SYSTEM_ERROR(899, "系统错误");
 
 
     private final int code;

@@ -7,9 +7,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class PasswordUtils {
 
     private final PasswordEncoder passwordEncoder;
+    private final AESUtil aesUtil;
 
-    public PasswordUtils(PasswordEncoder passwordEncoder) {
+    public PasswordUtils(PasswordEncoder passwordEncoder, AESUtil aesUtil) {
         this.passwordEncoder = passwordEncoder;
+        this.aesUtil = aesUtil;
     }
 
     public String encode(String password) {
@@ -43,5 +45,12 @@ public class PasswordUtils {
             password.append(chars.charAt(index));
         }
         return password.toString();
+    }
+
+    public String encodeIdCard(String idCard) {
+        if (idCard == null || idCard.trim().isEmpty()) {
+            throw new AuthException(AuthResultCode.PARAMETER_ERROR, "身份证号不能为空");
+        }
+        return aesUtil.encrypt(idCard);
     }
 }

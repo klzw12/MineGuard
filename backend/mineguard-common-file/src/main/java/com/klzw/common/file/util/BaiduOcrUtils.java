@@ -301,7 +301,12 @@ public class BaiduOcrUtils {
      * @return 识别结果
      */
     public String recognizeLicensePlate(byte[] imageData) {
-        return recognize(imageData, baiduAIProperties.getLicensePlateUrl(), null, "开始车牌识别");
+        try {
+            String encodedImage = imageConvert(imageData);
+            return recognize(baiduAIProperties.getLicensePlateUrl(), encodedImage, null);
+        } catch (IOException e) {
+            throw new FileException(FileResultCode.FILE_OPERATION_FAILED, "图片处理失败: " + e.getMessage());
+        }
     }
 
     /**
@@ -310,7 +315,12 @@ public class BaiduOcrUtils {
      * @return 识别结果
      */
     public String recognizeLicensePlate(File file) {
-        return recognize(file, baiduAIProperties.getLicensePlateUrl(), null, "开始车牌识别");
+        try {
+            String encodedImage = imageConvert(file.getAbsolutePath());
+            return recognize(baiduAIProperties.getLicensePlateUrl(), encodedImage, null);
+        } catch (IOException e) {
+            throw new FileException(FileResultCode.FILE_OPERATION_FAILED, "图片处理失败: " + e.getMessage());
+        }
     }
 
     /**
@@ -319,13 +329,12 @@ public class BaiduOcrUtils {
      * @return 识别结果
      */
     public String recognizeLicensePlate(MultipartFile file) {
-        log.info("useSpecialUrl: {}, licensePlateUrl: {}, generalUrl: {}", 
-                baiduAIProperties.isUseSpecialUrl(), 
-                baiduAIProperties.getLicensePlateUrl(), 
-                baiduAIProperties.getGeneralUrl());
-        String result = recognize(file, baiduAIProperties.getLicensePlateUrl(), null, "开始车牌识别");
-        log.info("实际使用的URL: {}", baiduAIProperties.isUseSpecialUrl() ? baiduAIProperties.getLicensePlateUrl() : baiduAIProperties.getGeneralUrl());
-        return result;
+        try {
+            String encodedImage = imageConvert(file);
+            return recognize(baiduAIProperties.getLicensePlateUrl(), encodedImage, null);
+        } catch (IOException e) {
+            throw new FileException(FileResultCode.FILE_OPERATION_FAILED, "图片处理失败: " + e.getMessage());
+        }
     }
 
     /**

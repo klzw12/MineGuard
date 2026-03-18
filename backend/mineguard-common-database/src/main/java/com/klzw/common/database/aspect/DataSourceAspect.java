@@ -47,22 +47,17 @@ public class DataSourceAspect {
         
         String dataSourceName = dataSource.value();
         
-        try {
-            log.debug("切换数据源到: {}", dataSourceName);
-            
-            if (DynamicDataSource.MASTER.equals(dataSourceName)) {
-                DynamicDataSource.setMasterDataSource();
-            } else if (DynamicDataSource.SLAVE.equals(dataSourceName)) {
-                DynamicDataSource.setSlaveDataSource();
-            } else {
-                log.warn("未知的数据源类型: {}, 使用默认主数据源", dataSourceName);
-                DynamicDataSource.setMasterDataSource();
-            }
-            
-            return point.proceed();
-        } finally {
-            log.debug("恢复数据源到默认值");
-            DynamicDataSource.clearDataSourceContext();
+        log.debug("切换数据源到: {}", dataSourceName);
+        
+        if (DynamicDataSource.MASTER.equals(dataSourceName)) {
+            DynamicDataSource.setMasterDataSource();
+        } else if (DynamicDataSource.SLAVE.equals(dataSourceName)) {
+            DynamicDataSource.setSlaveDataSource();
+        } else {
+            log.warn("未知的数据源类型: {}, 使用默认主数据源", dataSourceName);
+            DynamicDataSource.setMasterDataSource();
         }
+        
+        return point.proceed();
     }
 }

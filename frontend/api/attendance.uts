@@ -1,0 +1,34 @@
+import { http } from '@/utils/request.uts'
+import type { AttendanceVO, AttendanceDTO, AttendanceStatisticsVO, SupplementAttendanceDTO } from '@/types/user.uts'
+
+export function checkIn(data: AttendanceDTO): Promise<AttendanceVO> {
+  return http.post<AttendanceVO>('/api/attendance/check-in', data)
+}
+
+export function checkOut(data: AttendanceDTO): Promise<AttendanceVO> {
+  return http.post<AttendanceVO>('/api/attendance/check-out', data)
+}
+
+export function getAttendance(driverId: string): Promise<AttendanceVO> {
+  return http.get<AttendanceVO>(`/api/attendance/${driverId}`)
+}
+
+export function getAttendanceList(driverId: string, params?: {
+  startDate?: string
+  endDate?: string
+  pageNum?: number
+  pageSize?: number
+}): Promise<AttendanceVO[]> {
+  return http.get<AttendanceVO[]>(`/api/attendance/${driverId}/list`, params)
+}
+
+export function getAttendanceStatistics(driverId: string, params?: {
+  startDate?: string
+  endDate?: string
+}): Promise<AttendanceStatisticsVO> {
+  return http.get<AttendanceStatisticsVO>(`/api/attendance/${driverId}/statistics`, params)
+}
+
+export function supplementAttendance(attendanceId: string, data: SupplementAttendanceDTO): Promise<void> {
+  return http.put<void>(`/api/attendance/${attendanceId}/supplement`, data)
+}

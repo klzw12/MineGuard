@@ -1,3 +1,8 @@
-Pillow==9.5.0       # 图像处理库，用于生成测试图像
-Faker==19.13.0      # 测试数据生成库，用于生成各种随机数据
+Pillow     # 图像处理库，用于生成测试图像
+Faker     # 测试数据生成库，用于生成各种随机数据
+pandas     # 数据处理库
+numpy     # 数值计算库
+openpyxl     # Excel 操作库
+fastapi     # Web 服务框架
+uvicorn     # ASGI 服务器
 # conda环境为ai-extend

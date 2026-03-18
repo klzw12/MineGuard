@@ -7,7 +7,7 @@
 		<view class="admin-content">
 			<!-- 头部区域 -->
 			<view class="header-section">
-				<text class="page-title">实时监控</text>
+				<text class="page-title">安全监控</text>
 			</view>
 			
 			<!-- 监控视图切换 -->
@@ -15,12 +15,22 @@
 				<button class="view-btn active">地图监控</button>
 				<button class="view-btn">列表监控</button>
 			</view>
+
+			<!-- 安全监控轨迹模拟 -->
+			<view class="simulation-control-section">
+				<text class="section-title">安全轨迹模拟</text>
+				<view class="control-buttons">
+					<button class="control-btn start" @click="startTrackSimulation">开始模拟</button>
+					<button class="control-btn stop" @click="stopTrackSimulation">停止模拟</button>
+					<button class="control-btn event" @click="sendRandomEvent">发送随机事件</button>
+				</view>
+			</view>
 			
 			<!-- 地图监控 -->
 			<view class="map-monitor-section">
 				<view class="map-container">
 					<text class="map-placeholder">🗺️ 地图监控区域</text>
-					<text class="map-desc">实时显示车辆位置和状态</text>
+					<text class="map-desc">全方位追踪车辆位置与运行状态，预防安全隐患</text>
 				</view>
 				
 				<!-- 车辆标记 -->
@@ -33,9 +43,9 @@
 				</view>
 			</view>
 			
-			<!-- 实时预警 -->
+			<!-- 安全预警 -->
 			<view class="alerts-section">
-				<text class="section-title">实时预警</text>
+				<text class="section-title">安全预警</text>
 				<view class="alerts-list">
 					<view class="alert-item danger" v-for="i in 3" :key="i">
 						<view class="alert-icon">
@@ -55,7 +65,90 @@
 
 <script setup lang="uts">
 	import AdminSidebar from '../../../components/AdminSidebar.uvue'
-	// 实时监控页面逻辑
+	import { generateTrackPoints, simulateTrackSend, generateRandomEvent } from '../../../utils/trackSimulator.uts'
+
+	// WebSocket连接
+	let ws: WebSocket | null = null;
+	let sendInterval = null;
+
+	// 轨迹点模拟参数
+	const tripId = 1;
+	const startPoint = { latitude: 34.7466, longitude: 113.6253 }; // 郑州
+	const endPoint = { latitude: 34.7652, longitude: 113.7494 }; // 郑州东区
+
+	// 初始化WebSocket连接
+	function initWebSocket() {
+		ws = new WebSocket('ws://localhost:8080/ws/trip');
+		
+		ws.onopen = function() {
+			console.log('WebSocket连接已建立');
+		};
+		
+		ws.onmessage = function(event) {
+			console.log('收到消息:', event.data);
+		};
+		
+		ws.onclose = function() {
+			console.log('WebSocket连接已关闭');
+		};
+		
+		ws.onerror = function(error) {
+			console.error('WebSocket连接错误:', error);
+		};
+	}
+
+	// 开始轨迹点模拟
+	function startTrackSimulation() {
+		if (!ws || ws.readyState !== WebSocket.OPEN) {
+			initWebSocket();
+			
+			// 延迟发送，确保连接已建立
+			setTimeout(() => {
+				const points = generateTrackPoints(tripId, startPoint, endPoint);
+				sendInterval = simulateTrackSend(ws, points);
+			}, 1000);
+		} else {
+			const points = generateTrackPoints(tripId, startPoint, endPoint);
+			sendInterval = simulateTrackSend(ws, points);
+		}
+	}
+
+	// 停止轨迹点模拟
+	function stopTrackSimulation() {
+		if (sendInterval) {
+			clearInterval(sendInterval);
+			sendInterval = null;
+			console.log('轨迹点模拟已停止');
+		}
+	}
+
+	// 发送随机事件
+	function sendRandomEvent() {
+		if (ws && ws.readyState === WebSocket.OPEN) {
+			const event = generateRandomEvent(tripId, startPoint.latitude, startPoint.longitude);
+			const message = {
+				type: 'alert',
+				data: event
+			};
+			ws.send(JSON.stringify(message));
+			console.log('发送随机事件:', event);
+		}
+	}
+
+	// 页面加载时初始化WebSocket
+	onMounted(() => {
+		initWebSocket();
+	});
+
+	// 页面卸载时关闭WebSocket
+	onUnmounted(() => {
+		if (sendInterval) {
+			clearInterval(sendInterval);
+		}
+		if (ws) {
+			ws.close();
+		}
+	});
 </script>
 
 <style>
@@ -95,6 +188,39 @@
 		flex-direction: row;
 		gap: 15rpx;
 		margin-bottom: 40rpx;
+	}
+
+	/* 轨迹点模拟控制 */
+	.simulation-control-section {
+		margin-bottom: 40rpx;
+	}
+
+	.control-buttons {
+		display: flex;
+		flex-direction: row;
+		gap: 15rpx;
+		margin-top: 20rpx;
+	}
+
+	.control-btn {
+		flex: 1;
+		padding: 15rpx;
+		border-radius: 15rpx;
+		font-size: 24rpx;
+		font-weight: bold;
+		color: #fff;
+	}
+
+	.control-btn.start {
+		background-color: #34C759;
+	}
+
+	.control-btn.stop {
+		background-color: #FF3B30;
+	}
+
+	.control-btn.event {
+		background-color: #FF9500;
 	}
 	
 	.view-btn {
@@ -172,7 +298,7 @@
 		color: #34C759;
 	}
 	
-	/* 实时预警 */
+	/* 安全预警 */
 	.alerts-section {
 		margin-bottom: 40rpx;
 	}

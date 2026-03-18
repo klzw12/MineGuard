@@ -41,11 +41,13 @@
 			"pages/user/home/index",
 			"pages/user/task/index",
 			"pages/user/vehicle/index",
+			"pages/user/qualification/index",
 			"pages/user/profile/index",
 			"pages/admin/home/index",
 			"pages/admin/vehicle/index",
 			"pages/admin/driver/index",
 			"pages/admin/user/index",
+			"pages/admin/role-change/index",
 			"pages/admin/monitor/index",
 			"pages/admin/report/index",
 			"pages/admin/profile/index"
@@ -116,9 +118,16 @@
 					}
 				},
 				{
+					"path": "role-change/index",
+					"style": {
+						"navigationBarTitleText": "角色变更申请",
+						"navigationStyle": "default"
+					}
+				},
+				{
 					"path": "monitor/index",
 					"style": {
-						"navigationBarTitleText": "实时监控",
+						"navigationBarTitleText": "安全监控",
 						"navigationStyle": "default"
 					}
 				},
@@ -130,9 +139,16 @@
 					}
 				},
 				{
-					"path": "profile/index",
+			"path": "profile/index",
 					"style": {
 						"navigationBarTitleText": "个人中心",
+						"navigationStyle": "default"
+					}
+				},
+				{
+					"path": "verify/index",
+					"style": {
+						"navigationBarTitleText": "管理员认证",
 						"navigationStyle": "default"
 					}
 				}
@@ -159,6 +175,13 @@
 					"path": "vehicle/index",
 					"style": {
 						"navigationBarTitleText": "车辆状态",
+						"navigationStyle": "default"
+					}
+				},
+				{
+					"path": "qualification/index",
+					"style": {
+						"navigationBarTitleText": "资格认证",
 						"navigationStyle": "default"
 					}
 				},

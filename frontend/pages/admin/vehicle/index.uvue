@@ -27,17 +27,17 @@
 			<view class="vehicle-list-section">
 				<text class="section-title">车辆列表</text>
 				<view class="vehicle-list">
-					<view class="vehicle-item" v-for="i in 5" :key="i">
-						<view class="vehicle-info">
-							<text class="vehicle-number">豫A-1234{{i}}</text>
-							<text class="vehicle-type">重型卡车</text>
-							<text class="vehicle-driver">司机：张三{{i}}</text>
-						</view>
-						<view class="vehicle-status online">
-							<text class="status-dot"></text>
-							<text class="status-text">在线</text>
-						</view>
+					<navigator :url="'/pages/admin/vehicle/detail?id=' + i" class="vehicle-item" v-for="i in 5" :key="i">
+					<view class="vehicle-info">
+						<text class="vehicle-number">豫A-1234{{i}}</text>
+						<text class="vehicle-type">重型卡车</text>
+						<text class="vehicle-driver">司机：张三{{i}}</text>
 					</view>
+					<view class="vehicle-status online">
+						<text class="status-dot"></text>
+						<text class="status-text">在线</text>
+					</view>
+				</navigator>
 				</view>
 			</view>
 			

@@ -260,4 +260,24 @@ public class RedisCacheService {
             throw new RedisException(RedisResultCode.CACHE_OPERATION_FAILED, "缓存自减失败: " + key, e);
         }
     }
+    
+    // Redis列表操作
+    public Long lPush(String key, Object value) {
+        try {
+            return redisTemplate.opsForList().leftPush(key, value);
+        } catch (Exception e) {
+            log.error("Redis列表左推失败: key={}", key);
+            throw new RedisException(RedisResultCode.CACHE_OPERATION_FAILED, "列表左推失败: " + key, e);
+        }
+    }
+    
+    @SuppressWarnings("unchecked")
+    public <T> List<T> lRange(String key, long start, long end) {
+        try {
+            return (List<T>) redisTemplate.opsForList().range(key, start, end);
+        } catch (Exception e) {
+            log.error("Redis列表范围获取失败: key={}", key);
+            throw new RedisException(RedisResultCode.CACHE_OPERATION_FAILED, "列表范围获取失败: " + key, e);
+        }
+    }
 }

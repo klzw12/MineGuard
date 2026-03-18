@@ -152,8 +152,8 @@
 		if (!password.value) {
 			errors.password = '请输入密码'
 			isValid = false
-		} else if (password.value.length < 6) {
-			errors.password = '密码长度至少6位'
+		} else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,20}$/.test(password.value)) {
+			errors.password = '密码长度为6-20个字符，包含至少一个大写字母、一个小写字母和一个数字'
 			isValid = false
 		}
 		

@@ -2,20 +2,21 @@ package com.klzw.service.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.klzw.common.core.exception.BusinessException;
+import com.klzw.common.core.enums.UserStatusEnum;
 import com.klzw.common.redis.service.RedisCacheService;
-import com.klzw.service.user.dto.AssignRoleDTO;
 import com.klzw.service.user.dto.PasswordUpdateDTO;
 import com.klzw.service.user.dto.UserRegisterDTO;
 import com.klzw.service.user.dto.UserUpdateDTO;
+import com.klzw.service.user.dto.AdminCreateUserDTO;
 import com.klzw.service.user.entity.Role;
 import com.klzw.service.user.entity.User;
-import com.klzw.service.user.entity.UserRole;
+import com.klzw.service.user.exception.UserException;
+import com.klzw.service.user.constant.UserResultCode;
 import com.klzw.service.user.mapper.RoleMapper;
 import com.klzw.service.user.mapper.UserMapper;
-import com.klzw.service.user.mapper.UserRoleMapper;
 import com.klzw.service.user.service.UserService;
 import com.klzw.service.user.vo.UserVO;
+
 import com.klzw.common.auth.util.PasswordUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -23,9 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -35,7 +34,6 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
-    private final UserRoleMapper userRoleMapper;
     private final PasswordUtils passwordUtils;
     private final RedisCacheService redisCacheService;
 
@@ -50,12 +48,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getById(String id) {
+    public User getById(Long id) {
         return userMapper.selectById(id);
     }
 
     @Override
-    public UserVO getUserVOById(String id) {
+    public UserVO getUserVOById(Long id) {
         UserVO cachedUser = redisCacheService.get(USER_CACHE_PREFIX + id);
         if (cachedUser != null) {
             return cachedUser;
@@ -67,15 +65,15 @@ public class UserServiceImpl implements UserService {
         }
 
         UserVO userVO = convertToUserVO(user);
-        List<Role> roles = userMapper.selectRolesByUserId(id);
-        userVO.setRoles(roles.stream().map(Role::getRoleCode).collect(Collectors.toList()));
+        String roleCode = getRoleCodeByUserId(id);
+        userVO.setRoleCode(roleCode);
 
         redisCacheService.set(USER_CACHE_PREFIX + id, userVO, USER_CACHE_EXPIRE, TimeUnit.MINUTES);
         return userVO;
     }
 
     @Override
-    public UserVO getCurrentUser(String userId) {
+    public UserVO getCurrentUser(Long userId) {
         return getUserVOById(userId);
     }
 
@@ -84,29 +82,23 @@ public class UserServiceImpl implements UserService {
     public UserVO register(UserRegisterDTO dto) {
         User existUser = getByUsername(dto.getUsername());
         if (existUser != null) {
-            throw new BusinessException(400, "用户名已存在");
+            throw new UserException(UserResultCode.USERNAME_EXISTS);
         }
 
         if (StringUtils.hasText(dto.getPhone())) {
             LambdaQueryWrapper<User> phoneWrapper = new LambdaQueryWrapper<>();
             phoneWrapper.eq(User::getPhone, dto.getPhone());
             if (userMapper.selectCount(phoneWrapper) > 0) {
-                throw new BusinessException(400, "手机号已被注册");
+                throw new UserException(UserResultCode.PHONE_EXISTS);
             }
         }
 
         User user = new User();
-        user.setId(UUID.randomUUID().toString());
         user.setUsername(dto.getUsername());
         user.setPassword(passwordUtils.encode(dto.getPassword()));
-        user.setRealName(dto.getRealName());
         user.setPhone(dto.getPhone());
         user.setEmail(dto.getEmail());
-        user.setStatus(1);
-        user.setUserType(1);
-        user.setDeleted(0);
-        user.setCreateTime(LocalDateTime.now());
-        user.setUpdateTime(LocalDateTime.now());
+        user.setStatus(UserStatusEnum.DISABLED.getValue());
 
         userMapper.insert(user);
 
@@ -115,10 +107,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserVO updateUserInfo(String id, UserUpdateDTO dto) {
+    public UserVO updateUserInfo(Long id, UserUpdateDTO dto) {
         User user = userMapper.selectById(id);
         if (user == null) {
-            throw new BusinessException(404, "用户不存在");
+            throw new UserException(UserResultCode.USER_NOT_FOUND);
         }
 
         if (StringUtils.hasText(dto.getPhone()) && !dto.getPhone().equals(user.getPhone())) {
@@ -126,7 +118,7 @@ public class UserServiceImpl implements UserService {
             phoneWrapper.eq(User::getPhone, dto.getPhone());
             phoneWrapper.ne(User::getId, id);
             if (userMapper.selectCount(phoneWrapper) > 0) {
-                throw new BusinessException(400, "手机号已被使用");
+                throw new UserException(UserResultCode.PHONE_EXISTS, "手机号已被使用");
             }
         }
 
@@ -142,7 +134,6 @@ public class UserServiceImpl implements UserService {
         if (StringUtils.hasText(dto.getAvatarUrl())) {
             user.setAvatarUrl(dto.getAvatarUrl());
         }
-        user.setUpdateTime(LocalDateTime.now());
 
         userMapper.updateById(user);
         clearUserCache(id);
@@ -152,18 +143,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void updatePassword(String userId, PasswordUpdateDTO dto) {
+    public void updatePassword(Long userId, PasswordUpdateDTO dto) {
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new BusinessException(404, "用户不存在");
+            throw new UserException(UserResultCode.USER_NOT_FOUND);
         }
 
         if (!passwordUtils.matches(dto.getOldPassword(), user.getPassword())) {
-            throw new BusinessException(400, "原密码错误");
+            throw new UserException(UserResultCode.OLD_PASSWORD_ERROR);
         }
 
         user.setPassword(passwordUtils.encode(dto.getNewPassword()));
-        user.setUpdateTime(LocalDateTime.now());
         userMapper.updateById(user);
 
         clearUserCache(userId);
@@ -195,14 +185,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void disableUser(String id) {
+    public void disableUser(Long id) {
         User user = userMapper.selectById(id);
         if (user == null) {
-            throw new BusinessException(404, "用户不存在");
+            throw new UserException(UserResultCode.USER_NOT_FOUND);
         }
 
-        user.setStatus(0);
-        user.setUpdateTime(LocalDateTime.now());
+        user.setStatus(UserStatusEnum.DISABLED.getValue());
         userMapper.updateById(user);
 
         clearUserCache(id);
@@ -210,14 +199,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void enableUser(String id) {
+    public void enableUser(Long id) {
         User user = userMapper.selectById(id);
         if (user == null) {
-            throw new BusinessException(404, "用户不存在");
+            throw new UserException(UserResultCode.USER_NOT_FOUND);
         }
 
-        user.setStatus(1);
-        user.setUpdateTime(LocalDateTime.now());
+        user.setStatus(UserStatusEnum.ENABLED.getValue());
         userMapper.updateById(user);
 
         clearUserCache(id);
@@ -225,52 +213,116 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void assignRoles(String userId, AssignRoleDTO dto) {
+    public void assignRole(Long userId, Long roleId) {
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new BusinessException(404, "用户不存在");
+            throw new UserException(UserResultCode.USER_NOT_FOUND);
         }
 
-        userRoleMapper.deleteByUserId(userId);
-
-        for (String roleId : dto.getRoleIds()) {
-            Role role = roleMapper.selectById(roleId);
-            if (role != null) {
-                UserRole userRole = new UserRole();
-                userRole.setId(UUID.randomUUID().toString());
-                userRole.setUserId(userId);
-                userRole.setRoleId(roleId);
-                userRole.setCreateTime(LocalDateTime.now());
-                userRoleMapper.insert(userRole);
-            }
+        Role role = roleMapper.selectById(roleId);
+        if (role == null) {
+            throw new UserException(UserResultCode.ROLE_NOT_FOUND);
         }
+
+        user.setRoleId(roleId);
+        userMapper.updateById(user);
 
         clearUserCache(userId);
     }
 
     @Override
-    public List<String> getRoleCodesByUserId(String userId) {
-        return userMapper.selectRoleCodesByUserId(userId);
+    public String getRoleCodeByUserId(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null || user.getRoleId() == null) {
+            return null;
+        }
+        Role role = roleMapper.selectById(user.getRoleId());
+        return role != null ? role.getRoleCode() : null;
     }
 
     @Override
-    public List<UserVO> getRolesByUserId(String userId) {
-        List<Role> roles = userMapper.selectRolesByUserId(userId);
-        return roles.stream().map(role -> {
-            UserVO vo = new UserVO();
-            vo.setId(role.getId());
-            return vo;
-        }).collect(Collectors.toList());
+    public Role getRoleByUserId(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null || user.getRoleId() == null) {
+            return null;
+        }
+        return roleMapper.selectById(user.getRoleId());
     }
 
     @Override
-    public void clearUserCache(String userId) {
+    public void clearUserCache(Long userId) {
         redisCacheService.delete(USER_CACHE_PREFIX + userId);
+    }
+
+    @Override
+    public User getByPhone(String phone) {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getPhone, phone);
+        return userMapper.selectOne(wrapper);
+    }
+
+    @Override
+    public void createUser(User user) {
+        userMapper.insert(user);
+    }
+
+    @Override
+    public UserVO updateAvatar(Long userId, String avatarUrl) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserException(UserResultCode.USER_NOT_FOUND);
+        }
+
+        user.setAvatarUrl(avatarUrl);
+        userMapper.updateById(user);
+
+        clearUserCache(userId);
+        return getUserVOById(userId);
+    }
+
+    @Override
+    @Transactional
+    public String adminCreateUser(AdminCreateUserDTO dto) {
+        User existUser = getByUsername(dto.getUsername());
+        if (existUser != null) {
+            throw new UserException(UserResultCode.USERNAME_EXISTS);
+        }
+
+        if (StringUtils.hasText(dto.getPhone())) {
+            LambdaQueryWrapper<User> phoneWrapper = new LambdaQueryWrapper<>();
+            phoneWrapper.eq(User::getPhone, dto.getPhone());
+            if (userMapper.selectCount(phoneWrapper) > 0) {
+                throw new UserException(UserResultCode.PHONE_EXISTS);
+            }
+        }
+
+        User user = new User();
+        user.setUsername(dto.getUsername());
+        user.setPassword(passwordUtils.encode(dto.getPassword()));
+        user.setRealName(dto.getRealName());
+        user.setPhone(dto.getPhone());
+        user.setEmail(dto.getEmail());
+        user.setStatus(UserStatusEnum.ENABLED.getValue());
+
+        userMapper.insert(user);
+
+        return String.valueOf(user.getId());
     }
 
     private UserVO convertToUserVO(User user) {
         UserVO vo = new UserVO();
         BeanUtils.copyProperties(user, vo);
+        if (user.getId() != null) {
+            vo.setId(user.getId().toString());
+        }
+        if (user.getRoleId() != null) {
+            vo.setRoleId(user.getRoleId().toString());
+            Role role = roleMapper.selectById(user.getRoleId());
+            if (role != null) {
+                vo.setRoleCode(role.getRoleCode());
+                vo.setRoleName(role.getRoleName());
+            }
+        }
         return vo;
     }
 }

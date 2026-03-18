@@ -1,20 +1,16 @@
 package com.klzw.service.user.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
+import com.klzw.common.core.enums.UserStatusEnum;
+import com.klzw.common.database.domain.BaseEntity;
 
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("user")
-public class User implements Serializable {
-
-    @TableId(type = IdType.ASSIGN_UUID)
-    private String id;
+public class User extends BaseEntity {
 
     private String username;
 
@@ -22,20 +18,35 @@ public class User implements Serializable {
 
     private String realName;
 
+    private String idCard;
+
+    private Integer gender;
+
+    private String nation;
+
+    private String birthDate;
+
+    private String address;
+
     private String phone;
 
     private String email;
 
     private String avatarUrl;
 
+    private String idCardFrontUrl;
+
+    private String idCardBackUrl;
+
     private Integer status;
 
-    private Integer userType;
+    private Long roleId;
 
-    private LocalDateTime createTime;
+    public UserStatusEnum getStatusEnum() {
+        return UserStatusEnum.getByValue(status);
+    }
 
-    private LocalDateTime updateTime;
-
-    @TableLogic
-    private Integer deleted;
+    public void setStatusEnum(UserStatusEnum statusEnum) {
+        this.status = statusEnum != null ? statusEnum.getValue() : null;
+    }
 }

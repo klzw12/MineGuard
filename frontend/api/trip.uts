@@ -1,0 +1,115 @@
+import { http } from '@/utils/request.uts'
+
+// 行程相关类型定义
+export interface TripCreateDTO {
+  vehicleId: number
+  driverId: number
+  startLocation: string
+  endLocation: string
+  startLongitude: number
+  startLatitude: number
+  endLongitude: number
+  endLatitude: number
+  estimatedStartTime: string
+  estimatedEndTime: string
+  tripType: number
+}
+
+export interface TripEndDTO {
+  endLongitude: number
+  endLatitude: number
+}
+
+export interface Trip {
+  id: number
+  tripNo: string
+  vehicleId: number
+  driverId: number
+  startLocation: string
+  endLocation: string
+  estimatedStartTime: string
+  estimatedEndTime: string
+  actualStartTime: string
+  actualEndTime: string
+  status: number
+  tripType: number
+  estimatedMileage: number
+  actualMileage: number
+  estimatedDuration: number
+  actualDuration: number
+  fuelConsumption: number
+  averageSpeed: number
+  startLongitude: number
+  startLatitude: number
+  endLongitude: number
+  endLatitude: number
+  createTime: string
+  updateTime: string
+}
+
+export interface TripTrack {
+  longitude: number
+  latitude: number
+  speed: number
+  direction: number
+  altitude: number
+  recordTime: string
+}
+
+export interface PageResult<T> {
+  total: number
+  pages: number
+  pageNum: number
+  pageSize: number
+  records: T[]
+}
+
+// 创建行程
+export function createTrip(data: TripCreateDTO): Promise<number> {
+  return http.post<number>('/api/trip', data)
+}
+
+// 开始行程
+export function startTrip(id: number): Promise<void> {
+  return http.post<void>(`/api/trip/${id}/start`)
+}
+
+// 结束行程
+export function endTrip(id: number, data: TripEndDTO): Promise<void> {
+  return http.post<void>(`/api/trip/${id}/end`, data)
+}
+
+// 获取行程详情
+export function getTrip(id: number): Promise<Trip> {
+  return http.get<Trip>(`/api/trip/${id}`)
+}
+
+// 分页查询行程
+export function getTripPage(params: {
+  pageNum?: number
+  pageSize?: number
+  vehicleId?: number
+  driverId?: number
+  status?: number
+}): Promise<PageResult<Trip>> {
+  return http.get<PageResult<Trip>>('/api/trip/page', params)
+}
+
+// 获取行程轨迹
+export function getTripTrack(id: number): Promise<TripTrack[]> {
+  return http.get<TripTrack[]>(`/api/trip/${id}/track`)
+}
+
+// 轨迹回放处理（前端实现）
+export function playTripTrack(tracks: TripTrack[]) {
+  // 按照时间顺序排序轨迹点
+  const sortedTracks = [...tracks].sort((a, b) => {
+    return new Date(a.recordTime).getTime() - new Date(b.recordTime).getTime()
+  })
+  
+  // 这里可以实现轨迹回放的逻辑
+  // 例如使用地图API绘制轨迹并播放动画
+  console.log('轨迹回放数据', sortedTracks)
+  
+  return sortedTracks
+}

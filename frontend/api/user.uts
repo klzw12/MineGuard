@@ -1,5 +1,5 @@
 import { http } from '@/utils/request.uts'
-import type { UserVO, UserRegisterDTO, UserUpdateDTO, PasswordUpdateDTO, PageResult, AssignRoleDTO, RoleVO } from '@/types/user.uts'
+import type { UserVO, UserRegisterDTO, UserUpdateDTO, PasswordUpdateDTO, PageResult, AssignRoleDTO, RoleVO, QualificationVerifyDTO, RoleChangeApplyVO } from '@/types/api/user.uts'
 
 export function register(data: UserRegisterDTO): Promise<UserVO> {
   return http.post<UserVO>('/api/user/register', data)
@@ -17,39 +17,115 @@ export function updatePassword(data: PasswordUpdateDTO): Promise<void> {
   return http.put<void>('/api/user/password', data)
 }
 
+// 管理员接口
+export function adminPageUsers(params: {
+  pageNum?: number
+  pageSize?: number
+  username?: string
+  status?: number
+}): Promise<PageResult<UserVO>> {
+  return http.get<PageResult<UserVO>>('/api/user/admin/page', params)
+}
+
 export function pageUsers(params: {
   pageNum?: number
   pageSize?: number
   username?: string
   status?: number
 }): Promise<PageResult<UserVO>> {
-  return http.get<PageResult<UserVO>>('/api/user/page', params)
+  return adminPageUsers(params)
 }
 
-export function getUserById(id: string): Promise<UserVO> {
-  return http.get<UserVO>(`/api/user/${id}`)
+export function adminGetUserById(id: string): Promise<UserVO> {
+  return http.get<UserVO>(`/api/user/admin/api/user/${id}`)
+}
+
+export function adminDisableUser(id: string): Promise<void> {
+  return http.put<void>(`/api/user/admin/api/user/${id}/disable`)
 }
 
 export function disableUser(id: string): Promise<void> {
-  return http.put<void>(`/api/user/${id}/disable`)
+  return adminDisableUser(id)
+}
+
+export function adminEnableUser(id: string): Promise<void> {
+  return http.put<void>(`/api/user/admin/api/user/${id}/enable`)
 }
 
 export function enableUser(id: string): Promise<void> {
-  return http.put<void>(`/api/user/${id}/enable`)
+  return adminEnableUser(id)
 }
 
-export function assignRoles(userId: string, data: AssignRoleDTO): Promise<void> {
-  return http.post<void>(`/api/user/${userId}/roles`, data)
+export function adminChangeUserRole(id: string, roleId: string, reason?: string): Promise<void> {
+  return http.put<void>(`/api/user/admin/api/user/${id}/api/role-change`, { roleId, reason })
 }
 
-export function getUserRoles(userId: string): Promise<string[]> {
-  return http.get<string[]>(`/api/user/${userId}/roles`)
+export function assignRoles(userId: string, data: { roleIds: string[] }): Promise<void> {
+  return adminChangeUserRole(userId, data.roleIds[0])
 }
 
+export function getUserRoles(userId: string): Promise<RoleVO[]> {
+  return http.get<RoleVO[]>(`/api/user/admin/api/user/${userId}/api/roles`)
+}
+
+// 角色变更申请接口
+export function getPendingRoleChangeApplies(): Promise<RoleChangeApplyVO[]> {
+  return http.get<RoleChangeApplyVO[]>('/api/user/admin/api/role-change/apply/pending')
+}
+
+export function getAllRoleChangeApplies(): Promise<RoleChangeApplyVO[]> {
+  return http.get<RoleChangeApplyVO[]>('/api/user/admin/api/role-change/apply/list')
+}
+
+export function getRoleChangeAppliesByUserId(userId: string): Promise<RoleChangeApplyVO[]> {
+  return http.get<RoleChangeApplyVO[]>(`/api/user/admin/api/role-change/apply/api/user/${userId}`)
+}
+
+export function handleRoleChangeApply(id: string, status: number, adminOpinion?: string, handlerId: string, handlerName: string): Promise<void> {
+  return http.put<void>(`/api/user/admin/api/role-change/apply/${id}/handle`, { status, adminOpinion, handlerId, handlerName })
+}
+
+// 资格认证接口
+export function verifyDriverQualification(data: QualificationVerifyDTO): Promise<boolean> {
+  return http.post<boolean>('/api/qualification/verify/driver', data)
+}
+
+export function verifySafetyOfficerQualification(data: QualificationVerifyDTO): Promise<boolean> {
+  return http.post<boolean>('/api/qualification/verify/safety-officer', data)
+}
+
+export function verifyRepairmanQualification(data: QualificationVerifyDTO): Promise<boolean> {
+  return http.post<boolean>('/api/qualification/verify/repairman', data)
+}
+
+// 角色管理接口
 export function getAllRoles(): Promise<RoleVO[]> {
   return http.get<RoleVO[]>('/api/role/list')
 }
 
 export function getRoleById(id: string): Promise<RoleVO> {
   return http.get<RoleVO>(`/api/role/${id}`)
+}
+
+export function createRole(data: RoleVO): Promise<RoleVO> {
+  return http.post<RoleVO>('/api/role', data)
+}
+
+export function updateRole(id: string, data: RoleVO): Promise<RoleVO> {
+  return http.put<RoleVO>(`/api/role/${id}`, data)
+}
+
+export function deleteRole(id: string): Promise<boolean> {
+  return http.delete<boolean>(`/api/role/${id}`)
+}
+
+// 上传用户头像
+export function uploadAvatar(file: any): Promise<UserVO> {
+  const formData = new FormData()
+  formData.append('file', file)
+  return http.post<UserVO>('/api/user/avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
 }

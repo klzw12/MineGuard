@@ -1,0 +1,22 @@
+import { http } from '@/utils/request.uts'
+import type { IdCardVerifyDTO, CertVerifyDTO } from '@/types/user.uts'
+
+export function verifyIdCard(data: IdCardVerifyDTO): Promise<boolean> {
+  return http.post<boolean>('/api/qualification/idcard/verify', data)
+}
+
+export function checkIdCardVerified(userId: number): Promise<boolean> {
+  return http.get<boolean>(`/api/qualification/idcard/check/${userId}`)
+}
+
+export function uploadDriverCert(data: CertVerifyDTO): Promise<boolean> {
+  return http.post<boolean>('/api/qualification/cert/driver', data)
+}
+
+export function uploadSafetyOfficerCert(data: CertVerifyDTO): Promise<boolean> {
+  return http.post<boolean>('/api/qualification/cert/safety-officer', data)
+}
+
+export function uploadRepairmanCert(data: CertVerifyDTO): Promise<boolean> {
+  return http.post<boolean>('/api/qualification/cert/repairman', data)
+}

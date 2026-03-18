@@ -1,0 +1,41 @@
+# 消息队列模块配置 - 测试环境
+mineguard:
+  mq:
+    rabbit:
+      enabled: true
+      host: "192.168.110.128"
+      port: 5673
+      username: "admin"
+      password: "rabbitadmin"
+      virtual-host: "/"
+
+# Spring RabbitMQ配置
+spring:
+  rabbitmq:
+    host: "192.168.110.128"
+    port: 5673
+    username: "admin"
+    password: "rabbitadmin"
+    virtual-host: "/"
+    connection-timeout: 60000
+    template:
+      exchange: "default.exchange"
+      routing-key: "default.routing.key"
+      mandatory: true
+    listener:
+      simple:
+        concurrency: 3
+        max-concurrency: 10
+        prefetch: 1
+        acknowledge-mode: "MANUAL"
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1000
+          multiplier: 2.0
+          max-interval: 10000
+
+# 日志配置
+logging:
+  level:
+    "org.springframework.amqp": "warn"

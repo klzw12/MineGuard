@@ -130,7 +130,6 @@ class JwtAuthenticationFilterTest {
 
     @Test
     void doFilterInternal_shouldClearUserContext_afterFilterChain() throws ServletException, IOException {
-        Long userId = 1L;
         String username = "testUser";
         String userIdString = "1";
         String authHeader = TEST_PREFIX + TEST_TOKEN;

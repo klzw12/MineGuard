@@ -1,5 +1,5 @@
 import { http, setToken, removeToken } from '@/utils/request.uts'
-import type { LoginVO, CaptchaVO, UserLoginDTO, RefreshTokenDTO } from '@/types/user.uts'
+import type { LoginVO, CaptchaVO, UserLoginDTO, RefreshTokenDTO, AdminVerifyDTO } from '@/types/user.uts'
 
 export function login(data: UserLoginDTO): Promise<LoginVO> {
   return http.post<LoginVO>('/api/auth/login', data)
@@ -15,6 +15,22 @@ export function refreshToken(data: RefreshTokenDTO): Promise<LoginVO> {
 
 export function getCaptcha(): Promise<CaptchaVO> {
   return http.get<CaptchaVO>('/api/auth/captcha')
+}
+
+export function sendSmsCode(phone: string): Promise<{ success: boolean; message: string }> {
+  return http.post('/api/auth/sms/send', { phone })
+}
+
+export function verifySmsCode(phone: string, code: string): Promise<boolean> {
+  return http.post<boolean>('/api/auth/sms/verify', { phone, code })
+}
+
+export function resetPasswordByPhone(phone: string, code: string, newPassword: string): Promise<void> {
+  return http.post<void>('/api/auth/reset-password', { phone, code, newPassword })
+}
+
+export function verifyAdmin(data: AdminVerifyDTO): Promise<LoginVO> {
+  return http.post<LoginVO>('/api/auth/admin/verify', data)
 }
 
 export { setToken, removeToken }

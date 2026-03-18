@@ -1,5 +1,6 @@
 package com.klzw.common.auth.config;
 
+import com.klzw.common.auth.util.AESUtil;
 import com.klzw.common.auth.util.JwtUtils;
 import com.klzw.common.auth.util.PasswordUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -32,7 +33,13 @@ public class AuthAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public PasswordUtils passwordUtils(PasswordEncoder passwordEncoder) {
-        return new PasswordUtils(passwordEncoder);
+    public AESUtil aesUtil() {
+        return new AESUtil();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public PasswordUtils passwordUtils(PasswordEncoder passwordEncoder, AESUtil aesUtil) {
+        return new PasswordUtils(passwordEncoder, aesUtil);
     }
 }

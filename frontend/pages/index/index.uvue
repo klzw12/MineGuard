@@ -16,7 +16,7 @@
 						<image src="/static/svgs/safe.svg" mode="aspectFit"></image>
 					</view>
 					<text class="card-title">安全监控</text>
-					<text class="card-desc">实时监控矿山安全状况，及时发现并预警潜在隐患</text>
+					<text class="card-desc">全方位多链条监控预警，预防为主保障矿山安全</text>
 				</view>
 				
 				<view class="feature-card">
@@ -75,7 +75,7 @@
 	function showAboutDialog() {
 		uni.showModal({
 			title: '关于 MineGuard',
-			content: 'MineGuard 是一款矿山安全智能监控系统，致力于提供全方位的矿山安全解决方案。\n\n核心功能：\n 安全监控：实时监控矿山安全状况，及时发现并预警潜在隐患\n 人员定位：实时追踪人员位置，确保人员安全，提高管理效率\n 隐患上报：快速上报安全隐患，简化流程，提高响应速度\n 消息通知：实时接收安全警报，确保信息及时传递，快速响应\n \n版本：1.0.0\n作者：klzw\n\n© 2026 MineGuard. All rights reserved.',
+			content: 'MineGuard 是一款矿山安全智能监控系统，致力于提供全方位的矿山安全解决方案。\n\n核心功能：\n 安全监控：全方位多链条监控预警，预防为主保障矿山安全\n 人员定位：全流程追踪人员位置，确保作业安全，提高管理效率\n 隐患上报：多维度上报安全隐患，简化流程，提高响应速度\n 消息通知：多渠道接收安全警报，确保信息及时传递，快速响应\n \n版本：1.0.0\n作者：klzw\n\n© 2026 MineGuard. All rights reserved.',
 			showCancel: false,
 			confirmText: '确定'
 		})

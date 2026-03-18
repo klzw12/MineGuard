@@ -1,0 +1,453 @@
+<template>
+  <view class="appeal-admin-page">
+    <view class="tabs">
+      <view
+        class="tab-item"
+        :class="{ active: activeTab === 'pending' }"
+        @click="switchTab('pending')"
+      >
+        <text>待处理</text>
+        <view class="badge" v-if="pendingCount > 0">{{ pendingCount }}</view>
+      </view>
+      <view
+        class="tab-item"
+        :class="{ active: activeTab === 'all' }"
+        @click="switchTab('all')"
+      >
+        <text>全部</text>
+      </view>
+    </view>
+
+    <view class="appeal-list" v-if="appeals.length > 0">
+      <view class="appeal-item" v-for="item in appeals" :key="item.id">
+        <view class="appeal-header">
+          <view class="user-info">
+            <text class="username">{{ item.username }}</text>
+            <text class="real-name">{{ item.realName }}</text>
+          </view>
+          <view class="appeal-status" :class="'status-' + item.status">
+            {{ item.statusLabel }}
+          </view>
+        </view>
+
+        <view class="appeal-content">
+          <view class="info-row">
+            <text class="info-label">手机号：</text>
+            <text class="info-value">{{ item.phone }}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">申诉原因：</text>
+            <text class="info-value">{{ item.appealReason }}</text>
+          </view>
+          <view class="info-row">
+            <text class="info-label">提交时间：</text>
+            <text class="info-value">{{ formatTime(item.createTime) }}</text>
+          </view>
+          <view class="info-row" v-if="item.adminOpinion">
+            <text class="info-label">处理意见：</text>
+            <text class="info-value">{{ item.adminOpinion }}</text>
+          </view>
+          <view class="info-row" v-if="item.handlerName">
+            <text class="info-label">处理人：</text>
+            <text class="info-value">{{ item.handlerName }}</text>
+          </view>
+          <view class="info-row" v-if="item.handleTime">
+            <text class="info-label">处理时间：</text>
+            <text class="info-value">{{ formatTime(item.handleTime) }}</text>
+          </view>
+        </view>
+
+        <view class="appeal-actions" v-if="item.status === 1">
+          <button class="action-btn approve" @click="handleAppeal(item.id, 2)">
+            通过
+          </button>
+          <button class="action-btn reject" @click="showRejectDialog(item.id, 3)">
+            驳回
+          </button>
+          <button class="action-btn delete" @click="showRejectDialog(item.id, 4)">
+            驳回并删除
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-tip" v-else>
+      <text>{{ activeTab === 'pending' ? '暂无待处理申诉' : '暂无申诉记录' }}</text>
+    </view>
+
+    <view class="reject-modal" v-if="showRejectModal">
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">驳回申诉</text>
+          <text class="modal-close" @click="closeRejectDialog">×</text>
+        </view>
+        <view class="modal-body">
+          <textarea
+            class="modal-textarea"
+            v-model="rejectReason"
+            placeholder="请输入驳回原因"
+            :maxlength="200"
+          />
+        </view>
+        <view class="modal-footer">
+          <button class="modal-btn cancel" @click="closeRejectDialog">取消</button>
+          <button class="modal-btn confirm" @click="confirmReject">确认</button>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { getPendingAppeals, getAllAppeals, handleAppeal } from '@/api/user.uts'
+import type { UserAppealVO } from '@/types/user.uts'
+
+const activeTab = ref<'pending' | 'all'>('pending')
+const appeals = ref<UserAppealVO[]>([])
+const pendingCount = ref(0)
+const showRejectModal = ref(false)
+const rejectReason = ref('')
+const currentAppealId = ref('')
+const currentStatus = ref(0)
+
+onMounted(() => {
+  loadAppeals()
+})
+
+const switchTab = (tab: 'pending' | 'all') => {
+  activeTab.value = tab
+  loadAppeals()
+}
+
+const loadAppeals = () => {
+  if (activeTab.value === 'pending') {
+    getPendingAppeals().then((res) => {
+      appeals.value = res
+      pendingCount.value = res.length
+    })
+  } else {
+    getAllAppeals().then((res) => {
+      appeals.value = res
+    })
+  }
+}
+
+const showRejectDialog = (id: string, status: number) => {
+  currentAppealId.value = id
+  currentStatus.value = status
+  rejectReason.value = ''
+  showRejectModal.value = true
+}
+
+const closeRejectDialog = () => {
+  showRejectModal.value = false
+  rejectReason.value = ''
+  currentAppealId.value = ''
+  currentStatus.value = 0
+}
+
+const confirmReject = () => {
+  if (!rejectReason.value.trim()) {
+    uni.showToast({
+      title: '请输入驳回原因',
+      icon: 'none'
+    })
+    return
+  }
+
+  processAppeal(currentStatus.value, rejectReason.value)
+}
+
+const handleAppeal = (id: string, status: number) => {
+  uni.showModal({
+    title: '确认操作',
+    content: status === 2 ? '确认通过该申诉？' : '确认驳回该申诉？',
+    success: (res) => {
+      if (res.confirm) {
+        processAppeal(status, '同意申诉')
+      }
+    }
+  })
+}
+
+const processAppeal = (status: number, adminOpinion: string) => {
+  const currentUser = uni.getStorageSync('currentUser')
+  
+  handleAppeal(currentAppealId.value, {
+    status,
+    adminOpinion,
+    handlerId: currentUser.id,
+    handlerName: currentUser.realName
+  })
+    .then(() => {
+      uni.showToast({
+        title: '处理成功',
+        icon: 'success'
+      })
+      loadAppeals()
+    })
+    .catch((err) => {
+      uni.showToast({
+        title: err.message || '处理失败',
+        icon: 'none'
+      })
+    })
+}
+
+const formatTime = (time: string) => {
+  return time.substring(0, 19).replace('T', ' ')
+}
+</script>
+
+<style scoped>
+.appeal-admin-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.tabs {
+  display: flex;
+  background-color: #fff;
+  padding: 20rpx;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx;
+  position: relative;
+  font-size: 28rpx;
+  color: #666;
+}
+
+.tab-item.active {
+  color: #007aff;
+  font-weight: bold;
+}
+
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60rpx;
+  height: 4rpx;
+  background-color: #007aff;
+  border-radius: 2rpx;
+}
+
+.badge {
+  position: absolute;
+  top: 10rpx;
+  right: 20%;
+  background-color: #ff4d4f;
+  color: #fff;
+  font-size: 20rpx;
+  padding: 2rpx 8rpx;
+  border-radius: 10rpx;
+  min-width: 30rpx;
+  text-align: center;
+}
+
+.appeal-list {
+  padding: 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.appeal-item {
+  background-color: #fff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+}
+
+.appeal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5rpx;
+}
+
+.username {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.real-name {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.appeal-status {
+  font-size: 24rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 4rpx;
+}
+
+.status-1 {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-2 {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-3 {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status-4 {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.appeal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  margin-bottom: 20rpx;
+}
+
+.info-row {
+  display: flex;
+  font-size: 28rpx;
+}
+
+.info-label {
+  color: #666;
+  min-width: 140rpx;
+}
+
+.info-value {
+  color: #333;
+  flex: 1;
+}
+
+.appeal-actions {
+  display: flex;
+  gap: 15rpx;
+}
+
+.action-btn {
+  flex: 1;
+  height: 70rpx;
+  border: none;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  color: #fff;
+}
+
+.action-btn.approve {
+  background-color: #52c41a;
+}
+
+.action-btn.reject {
+  background-color: #faad14;
+}
+
+.action-btn.delete {
+  background-color: #ff4d4f;
+}
+
+.empty-tip {
+  text-align: center;
+  padding: 100rpx 0;
+  color: #999;
+  font-size: 28rpx;
+}
+
+.reject-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  width: 80%;
+  background-color: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #eee;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.modal-close {
+  font-size: 48rpx;
+  color: #999;
+  line-height: 1;
+}
+
+.modal-body {
+  padding: 30rpx;
+}
+
+.modal-textarea {
+  width: 100%;
+  min-height: 200rpx;
+  padding: 20rpx;
+  border: 1rpx solid #ddd;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
+}
+
+.modal-footer {
+  display: flex;
+  border-top: 1rpx solid #eee;
+}
+
+.modal-btn {
+  flex: 1;
+  height: 90rpx;
+  border: none;
+  font-size: 30rpx;
+}
+
+.modal-btn.cancel {
+  background-color: #fff;
+  color: #666;
+  border-right: 1rpx solid #eee;
+}
+
+.modal-btn.confirm {
+  background-color: #007aff;
+  color: #fff;
+}
+</style>

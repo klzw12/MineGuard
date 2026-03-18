@@ -1,0 +1,128 @@
+package com.klzw.service.vehicle.service;
+
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.klzw.service.vehicle.entity.Vehicle;
+import com.klzw.service.vehicle.vo.VehicleVO;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+
+/**
+ * 车辆服务接口
+ */
+public interface VehicleService extends IService<Vehicle> {
+    
+    /**
+     * 创建车辆
+     * @param vehicle 车辆信息
+     * @return 车辆信息
+     */
+    Vehicle createVehicle(Vehicle vehicle);
+    
+    /**
+     * 更新车辆
+     * @param id 车辆ID
+     * @param vehicle 车辆信息
+     * @return 车辆信息
+     */
+    Vehicle updateVehicle(Long id, Vehicle vehicle);
+    
+    /**
+     * 删除车辆
+     * @param id 车辆ID
+     * @return 是否成功
+     */
+    boolean deleteVehicle(Long id);
+    
+    /**
+     * 获取车辆详情
+     * @param id 车辆ID
+     * @return 车辆详情
+     */
+    VehicleVO getVehicleById(Long id);
+    
+    /**
+     * 分页查询车辆
+     * @param page 页码
+     * @param size 每页大小
+     * @param vehicleNo 车牌号
+     * @param status 状态
+     * @return 车辆列表
+     */
+    List<VehicleVO> getVehiclePage(int page, int size, String vehicleNo, Integer status);
+    
+    /**
+     * 绑定用户
+     * @param id 车辆ID
+     * @param userId 用户ID
+     * @return 是否成功
+     */
+    boolean bindUser(Long id, Long userId);
+    
+    /**
+     * 解绑用户
+     * @param id 车辆ID
+     * @return 是否成功
+     */
+    boolean unbindUser(Long id);
+    
+    /**
+     * 上传车辆照片
+     * @param id 车辆ID
+     * @param file 照片文件
+     * @return 照片URL
+     */
+    String uploadVehiclePhoto(Long id, MultipartFile file);
+    
+    /**
+     * 上传行驶证并进行OCR识别（默认正面）
+     * @param id 车辆ID
+     * @param file 行驶证照片
+     * @return 更新后的车辆信息
+     */
+    Vehicle uploadLicenseAndOCR(Long id, MultipartFile file);
+    
+    /**
+     * 上传行驶证正面并进行OCR识别
+     * @param id 车辆ID
+     * @param file 行驶证正面照片
+     * @return 更新后的车辆信息
+     */
+    Vehicle uploadLicenseFrontAndOCR(Long id, MultipartFile file);
+    
+    /**
+     * 上传行驶证反面
+     * @param id 车辆ID
+     * @param file 行驶证反面照片
+     * @return 更新后的车辆信息
+     */
+    Vehicle uploadLicenseBack(Long id, MultipartFile file);
+    
+    /**
+     * 上传车辆保险信息
+     * @param id 车辆ID
+     * @param insuranceCompany 保险公司
+     * @param policyNo 保单号
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 更新后的车辆信息
+     */
+    Vehicle uploadInsuranceInfo(Long id, String insuranceCompany, String policyNo, String startDate, String endDate);
+    
+    /**
+     * 更新车辆维修状态
+     * @param id 车辆ID
+     * @param maintenanceStatus 维修状态
+     * @return 更新后的车辆信息
+     */
+    Vehicle updateMaintenanceStatus(Long id, Integer maintenanceStatus);
+    
+    /**
+     * 上传车辆保险信息
+     * @param id 车辆ID
+     * @param insurance 保险信息
+     * @return 保险信息
+     */
+    com.klzw.service.vehicle.entity.VehicleInsurance uploadInsuranceInfo(Long id, com.klzw.service.vehicle.entity.VehicleInsurance insurance);
+    
+} 

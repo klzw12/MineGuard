@@ -1,0 +1,361 @@
+<template>
+  <view class="container">
+    <view class="header">
+      <text class="title">角色变更申请管理</text>
+    </view>
+    
+    <view class="tabs">
+      <button 
+        :class="['tab-btn', { active: activeTab === 'pending' }]"
+        @tap="activeTab = 'pending'"
+      >
+        待处理
+      </button>
+      <button 
+        :class="['tab-btn', { active: activeTab === 'all' }]"
+        @tap="activeTab = 'all'"
+      >
+        全部申请
+      </button>
+    </view>
+    
+    <view class="list-container">
+      <view v-if="loading" class="loading">
+        <text>加载中...</text>
+      </view>
+      <view v-else-if="applies.length === 0" class="empty">
+        <text>暂无申请</text>
+      </view>
+      <view v-else class="apply-list">
+        <view v-for="apply in applies" :key="apply.id" class="apply-item">
+          <view class="apply-header">
+            <view class="user-info">
+              <text class="username">{{ apply.username }}</text>
+              <text class="status" :class="getStatusClass(apply.status)">
+                {{ apply.statusLabel }}
+              </text>
+            </view>
+            <text class="create-time">{{ apply.createTime }}</text>
+          </view>
+          
+          <view class="apply-content">
+            <view class="role-info">
+              <text class="label">当前角色：</text>
+              <text class="role-name">{{ apply.currentRoleName }}</text>
+            </view>
+            <view class="role-info">
+              <text class="label">申请角色：</text>
+              <text class="role-name">{{ apply.applyRoleName }}</text>
+            </view>
+            <view class="reason">
+              <text class="label">申请原因：</text>
+              <text class="reason-text">{{ apply.applyReason }}</text>
+            </view>
+          </view>
+          
+          <view v-if="apply.status === 1" class="apply-actions">
+            <button class="action-btn approve" @tap="handleApply(apply.id, 2)">
+              批准
+            </button>
+            <button class="action-btn reject" @tap="handleApply(apply.id, 3)">
+              拒绝
+            </button>
+          </view>
+          
+          <view v-else class="handle-info">
+            <view v-if="apply.handleTime" class="handle-item">
+              <text class="label">处理时间：</text>
+              <text class="value">{{ apply.handleTime }}</text>
+            </view>
+            <view v-if="apply.handlerName" class="handle-item">
+              <text class="label">处理人：</text>
+              <text class="value">{{ apply.handlerName }}</text>
+            </view>
+            <view v-if="apply.adminOpinion" class="handle-item">
+              <text class="label">处理意见：</text>
+              <text class="value">{{ apply.adminOpinion }}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+import { ref, onMounted, watch } from 'vue'
+import { getPendingRoleChangeApplies, getAllRoleChangeApplies, handleRoleChangeApply } from '@/api/user.uts'
+import type { RoleChangeApplyVO } from '@/types/user.uts'
+
+const activeTab = ref('pending')
+const loading = ref(false)
+const applies = ref<RoleChangeApplyVO[]>([])
+
+const loadApplies = async () => {
+  loading.value = true
+  
+  try {
+    let result
+    
+    if (activeTab.value === 'pending') {
+      result = await getPendingRoleChangeApplies()
+    } else {
+      result = await getAllRoleChangeApplies()
+    }
+    
+    // 为每个申请添加状态标签
+    applies.value = result.map(apply => ({
+      ...apply,
+      statusLabel: getStatusLabel(apply.status)
+    }))
+  } catch (error) {
+    uni.showToast({ title: '加载失败', icon: 'none' })
+  } finally {
+    loading.value = false
+  }
+}
+
+const getStatusLabel = (status: number): string => {
+  switch (status) {
+    case 1:
+      return '待处理'
+    case 2:
+      return '已通过'
+    case 3:
+      return '已拒绝'
+    default:
+      return '未知'
+  }
+}
+
+const getStatusClass = (status: number): string => {
+  switch (status) {
+    case 1:
+      return 'status-pending'
+    case 2:
+      return 'status-approved'
+    case 3:
+      return 'status-rejected'
+    default:
+      return ''
+  }
+}
+
+const handleApply = async (id: string, status: number) => {
+  const adminInfo = uni.getStorageSync('adminInfo')
+  if (!adminInfo || !adminInfo.id || !adminInfo.username) {
+    uni.showToast({ title: '管理员信息缺失', icon: 'none' })
+    return
+  }
+  
+  try {
+    await handleRoleChangeApply(id, status, '', adminInfo.id, adminInfo.username)
+    uni.showToast({ title: status === 2 ? '批准成功' : '拒绝成功', icon: 'success' })
+    // 重新加载数据
+    loadApplies()
+  } catch (error) {
+    uni.showToast({ title: '处理失败', icon: 'none' })
+  }
+}
+
+watch(activeTab, () => {
+  loadApplies()
+})
+
+onMounted(() => {
+  loadApplies()
+})
+</script>
+
+<style scoped>
+.container {
+  padding: 20rpx;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.header {
+  margin-bottom: 30rpx;
+  padding-top: 20rpx;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.tabs {
+  display: flex;
+  margin-bottom: 30rpx;
+  background-color: #fff;
+  border-radius: 10rpx;
+  overflow: hidden;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 20rpx;
+  font-size: 28rpx;
+  color: #666;
+  background-color: #fff;
+  border: none;
+}
+
+.tab-btn.active {
+  background-color: #007aff;
+  color: #fff;
+}
+
+.list-container {
+  min-height: 500rpx;
+}
+
+.loading, .empty {
+  text-align: center;
+  padding: 100rpx 0;
+  color: #999;
+  font-size: 28rpx;
+}
+
+.apply-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.apply-item {
+  background-color: #fff;
+  border-radius: 10rpx;
+  padding: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+.apply-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15rpx;
+  padding-bottom: 15rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 15rpx;
+}
+
+.username {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.status {
+  padding: 5rpx 15rpx;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+}
+
+.status-pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-approved {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-rejected {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.create-time {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.apply-content {
+  margin-bottom: 20rpx;
+}
+
+.role-info {
+  display: flex;
+  margin-bottom: 10rpx;
+  font-size: 24rpx;
+}
+
+.role-info .label {
+  color: #666;
+  width: 120rpx;
+}
+
+.role-info .role-name {
+  color: #333;
+  font-weight: bold;
+}
+
+.reason {
+  display: flex;
+  flex-direction: column;
+  font-size: 24rpx;
+}
+
+.reason .label {
+  color: #666;
+  margin-bottom: 5rpx;
+}
+
+.reason .reason-text {
+  color: #333;
+  line-height: 1.5;
+}
+
+.apply-actions {
+  display: flex;
+  gap: 15rpx;
+  padding-top: 15rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 15rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  font-weight: bold;
+}
+
+.action-btn.approve {
+  background-color: #52c41a;
+  color: #fff;
+}
+
+.action-btn.reject {
+  background-color: #ff4d4f;
+  color: #fff;
+}
+
+.handle-info {
+  padding-top: 15rpx;
+  border-top: 1rpx solid #f0f0f0;
+  font-size: 22rpx;
+  color: #666;
+}
+
+.handle-item {
+  margin-bottom: 8rpx;
+}
+
+.handle-item .label {
+  color: #999;
+  margin-right: 10rpx;
+}
+
+.handle-item .value {
+  color: #666;
+}
+</style>
