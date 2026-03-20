@@ -35,7 +35,7 @@ public class DeepSeekAdapter implements AiAdapter {
             
             // 使用Spring AI的ChatClient发送请求
             Prompt aiPrompt = new Prompt(new UserMessage(prompt));
-            ChatResponse response = chatClient.call(aiPrompt);
+            ChatClientResponse response = chatClient.call(aiPrompt);
             
             // 构建响应映射
             Map<String, Object> result = new HashMap<>();

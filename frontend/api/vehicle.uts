@@ -1,160 +1,112 @@
-import { http } from '../utils/request.uts'
+import { http } from '@/utils/request.uts'
 
-// 车辆管理API
+export interface VehicleVO {
+  id: number
+  vehicleNo: string
+  vehicleType: string
+  brand: string
+  model: string
+  color: string
+  status: number
+  userId?: number
+  createTime: string
+  updateTime: string
+}
+
+export interface VehicleCreateDTO {
+  vehicleNo: string
+  vehicleType: string
+  brand: string
+  model: string
+  color: string
+}
+
+export interface PageResult<T> {
+  total: number
+  pages: number
+  pageNum: number
+  pageSize: number
+  records: T[]
+}
+
 export const vehicleApi = {
-  // 创建车辆
-  createVehicle: (data: any) => {
-    return http.post('/api/vehicle', data)
+  createVehicle: (data: VehicleCreateDTO): Promise<VehicleVO | null> => {
+    return http.post<VehicleVO>('/api/vehicle', data)
   },
 
-  // 更新车辆
-  updateVehicle: (id: number, data: any) => {
-    return http.put(`/api/vehicle/${id}`, data)
+  updateVehicle: (id: number, data: VehicleCreateDTO): Promise<VehicleVO | null> => {
+    return http.put<VehicleVO>(`/api/vehicle/${id}`, data)
   },
 
-  // 删除车辆
-  deleteVehicle: (id: number) => {
-    return http.delete(`/api/vehicle/${id}`)
+  deleteVehicle: (id: number): Promise<void | null> => {
+    return http.delete<void>(`/api/vehicle/${id}`)
   },
 
-  // 获取车辆详情
-  getVehicleById: (id: number) => {
-    return http.get(`/api/vehicle/${id}`)
+  getVehicleById: (id: number): Promise<VehicleVO | null> => {
+    return http.get<VehicleVO>(`/api/vehicle/${id}`)
   },
 
-  // 分页查询车辆
-  getVehiclePage: (params: any) => {
-    return http.get('/api/vehicle/page', params)
+  getVehiclePage: (params: any): Promise<PageResult<VehicleVO> | null> => {
+    return http.get<PageResult<VehicleVO>>('/api/vehicle/page', params)
   },
 
-  // 绑定用户
-  bindUser: (id: number, userId: number) => {
-    return http.post(`/api/vehicle/${id}/bind`, { userId })
+  bindUser: (id: number, userId: number): Promise<void | null> => {
+    return http.post<void>(`/api/vehicle/${id}/bind`, { userId })
   },
 
-  // 解绑用户
-  unbindUser: (id: number) => {
-    return http.post(`/api/vehicle/${id}/unbind`)
-  },
-
-  // 上传车辆照片
-  uploadVehiclePhoto: (id: number, file: any) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    return http.post(`/api/vehicle/${id}/photo`, formData, {
-      header: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-  },
-
-  // 上传行驶证并进行OCR识别
-  uploadLicenseAndOCR: (id: number, file: any) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    return http.post(`/api/vehicle/${id}/license`, formData, {
-      header: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-  },
-
-  // 上传行驶证正面并进行OCR识别
-  uploadLicenseFrontAndOCR: (id: number, file: any) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    return http.post(`/api/vehicle/${id}/license/front`, formData, {
-      header: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-  },
-
-  // 上传行驶证反面
-  uploadLicenseBack: (id: number, file: any) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    return http.post(`/api/vehicle/${id}/license/back`, formData, {
-      header: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
-  },
-
-  // 上传车辆保险信息
-  uploadInsuranceInfo: (id: number, params: any) => {
-    return http.post(`/api/vehicle/${id}/insurance`, params)
-  },
-
-  // 更新车辆维修状态
-  updateMaintenanceStatus: (id: number, maintenanceStatus: number) => {
-    return http.put(`/api/vehicle/${id}/maintenance`, { maintenanceStatus })
+  unbindUser: (id: number): Promise<void | null> => {
+    return http.post<void>(`/api/vehicle/${id}/unbind`)
   }
 }
 
-// 车辆加油管理API
 export const refuelingApi = {
-  // 添加加油记录
-  addRefuelingRecord: (data: any) => {
-    return http.post('/api/vehicle/refueling', data)
+  addRefuelingRecord: (data: any): Promise<void | null> => {
+    return http.post<void>('/api/vehicle/refueling', data)
   },
 
-  // 获取车辆加油记录
-  getRefuelingRecords: (vehicleId: number, params: any) => {
-    return http.get(`/api/vehicle/refueling/vehicle/${vehicleId}`, params)
+  getRefuelingRecords: (vehicleId: number, params: any): Promise<any[] | null> => {
+    return http.get<any[]>(`/api/vehicle/refueling/vehicle/${vehicleId}`, params)
   }
 }
 
-// 车辆故障管理API
 export const faultApi = {
-  // 报告故障
-  reportFault: (data: any) => {
-    return http.post('/api/vehicle/fault', data)
+  reportFault: (data: any): Promise<void | null> => {
+    return http.post<void>('/api/vehicle/fault', data)
   },
 
-  // 处理故障
-  handleFault: (id: number, params: any) => {
-    return http.put(`/api/vehicle/fault/${id}/handle`, params)
+  handleFault: (id: number, params: any): Promise<void | null> => {
+    return http.put<void>(`/api/vehicle/fault/${id}/handle`, params)
   },
 
-  // 获取车辆故障记录
-  getFaultRecords: (vehicleId: number, params: any) => {
-    return http.get(`/api/vehicle/fault/vehicle/${vehicleId}`, params)
+  getFaultRecords: (vehicleId: number, params: any): Promise<any[] | null> => {
+    return http.get<any[]>(`/api/vehicle/fault/vehicle/${vehicleId}`, params)
   }
 }
 
-// 车辆保养管理API
 export const maintenanceApi = {
-  // 添加保养记录
-  addMaintenanceRecord: (data: any) => {
-    return http.post('/api/vehicle/maintenance', data)
+  addMaintenanceRecord: (data: any): Promise<void | null> => {
+    return http.post<void>('/api/vehicle/maintenance', data)
   },
 
-  // 获取车辆保养记录
-  getMaintenanceRecords: (vehicleId: number, params: any) => {
-    return http.get(`/api/vehicle/maintenance/vehicle/${vehicleId}`, params)
+  getMaintenanceRecords: (vehicleId: number, params: any): Promise<any[] | null> => {
+    return http.get<any[]>(`/api/vehicle/maintenance/vehicle/${vehicleId}`, params)
   },
 
-  // 获取下次保养信息
-  getNextMaintenance: (vehicleId: number) => {
-    return http.get(`/api/vehicle/maintenance/vehicle/${vehicleId}/next`)
+  getNextMaintenance: (vehicleId: number): Promise<any | null> => {
+    return http.get<any>(`/api/vehicle/maintenance/vehicle/${vehicleId}/next`)
   }
 }
 
-// 车辆保险管理API
 export const insuranceApi = {
-  // 添加保险信息
-  addInsurance: (data: any) => {
-    return http.post('/api/vehicle/insurance', data)
+  addInsurance: (data: any): Promise<void | null> => {
+    return http.post<void>('/api/vehicle/insurance', data)
   },
 
-  // 获取车辆保险信息
-  getVehicleInsurance: (vehicleId: number) => {
-    return http.get(`/api/vehicle/insurance/vehicle/${vehicleId}`)
+  getVehicleInsurance: (vehicleId: number): Promise<any[] | null> => {
+    return http.get<any[]>(`/api/vehicle/insurance/vehicle/${vehicleId}`)
   },
 
-  // 获取当前有效保险信息
-  getCurrentInsurance: (vehicleId: number) => {
-    return http.get(`/api/vehicle/insurance/vehicle/${vehicleId}/current`)
+  getCurrentInsurance: (vehicleId: number): Promise<any | null> => {
+    return http.get<any>(`/api/vehicle/insurance/vehicle/${vehicleId}/current`)
   }
 }

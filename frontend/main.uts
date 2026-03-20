@@ -1,35 +1,9 @@
 import App from './App.uvue'
-import AdminApp from './admin.uvue'
-import UserApp from './user.uvue'
-
 import { createSSRApp } from 'vue'
 
-export function createApp(entry = 'main') {
-	let rootComponent
-	
-	switch (entry) {
-		case 'admin':
-			rootComponent = AdminApp
-			break
-		case 'user':
-			rootComponent = UserApp
-			break
-		default:
-			rootComponent = App
-			break
-	}
-	
-	const app = createSSRApp(rootComponent)
+export function createApp() {
+	const app = createSSRApp(App)
 	return {
 		app
 	}
-}
-
-// 导出不同入口的创建函数
-export function createAdminApp() {
-	return createApp('admin')
-}
-
-export function createUserApp() {
-	return createApp('user')
 }

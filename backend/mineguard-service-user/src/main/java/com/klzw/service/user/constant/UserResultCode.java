@@ -44,6 +44,8 @@ public enum UserResultCode {
     OLD_PASSWORD_ERROR(2012, "原密码错误"),
     TOKEN_ERROR(2013, "Token错误"),
     TOKEN_EXPIRED(2014, "Token已过期"),
+    SMS_SEND_FAILED(2015, "短信发送失败"),
+    SMS_VERIFY_FAILED(2016, "短信验证失败"),
 
     /**
      * 角色相关错误

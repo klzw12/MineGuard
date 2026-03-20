@@ -68,87 +68,88 @@
 	import { generateTrackPoints, simulateTrackSend, generateRandomEvent } from '../../../utils/trackSimulator.uts'
 
 	// WebSocket连接
-	let ws: WebSocket | null = null;
-	let sendInterval = null;
+	let ws: WebSocket | null = null
+	let sendInterval: number | null = null
 
 	// 轨迹点模拟参数
-	const tripId = 1;
-	const startPoint = { latitude: 34.7466, longitude: 113.6253 }; // 郑州
-	const endPoint = { latitude: 34.7652, longitude: 113.7494 }; // 郑州东区
+	const tripId = 1
+	const startPoint = { latitude: 34.7466, longitude: 113.6253 }
+	const endPoint = { latitude: 34.7652, longitude: 113.7494 }
 
 	// 初始化WebSocket连接
 	function initWebSocket() {
-		ws = new WebSocket('ws://localhost:8080/ws/trip');
+		ws = new WebSocket('ws://localhost:8080/ws/trip')
 		
 		ws.onopen = function() {
-			console.log('WebSocket连接已建立');
-		};
+			console.log('WebSocket连接已建立')
+		}
 		
 		ws.onmessage = function(event) {
-			console.log('收到消息:', event.data);
-		};
+			console.log('收到消息:', event.data)
+		}
 		
 		ws.onclose = function() {
-			console.log('WebSocket连接已关闭');
-		};
+			console.log('WebSocket连接已关闭')
+		}
 		
 		ws.onerror = function(error) {
-			console.error('WebSocket连接错误:', error);
-		};
+			console.error('WebSocket连接错误:', error)
+		}
 	}
 
 	// 开始轨迹点模拟
 	function startTrackSimulation() {
-		if (!ws || ws.readyState !== WebSocket.OPEN) {
-			initWebSocket();
+		if (ws === null || ws.readyState !== WebSocket.OPEN) {
+			initWebSocket()
 			
-			// 延迟发送，确保连接已建立
 			setTimeout(() => {
-				const points = generateTrackPoints(tripId, startPoint, endPoint);
-				sendInterval = simulateTrackSend(ws, points);
-			}, 1000);
+				if (ws !== null) {
+					const points = generateTrackPoints(tripId, startPoint, endPoint)
+					sendInterval = simulateTrackSend(ws, points)
+				}
+			}, 1000)
 		} else {
-			const points = generateTrackPoints(tripId, startPoint, endPoint);
-			sendInterval = simulateTrackSend(ws, points);
+			const points = generateTrackPoints(tripId, startPoint, endPoint)
+			sendInterval = simulateTrackSend(ws, points)
 		}
 	}
 
 	// 停止轨迹点模拟
 	function stopTrackSimulation() {
-		if (sendInterval) {
-			clearInterval(sendInterval);
-			sendInterval = null;
-			console.log('轨迹点模拟已停止');
+		if (sendInterval !== null) {
+			clearInterval(sendInterval)
+			sendInterval = null
+			console.log('轨迹点模拟已停止')
 		}
 	}
 
 	// 发送随机事件
 	function sendRandomEvent() {
-		if (ws && ws.readyState === WebSocket.OPEN) {
-			const event = generateRandomEvent(tripId, startPoint.latitude, startPoint.longitude);
+		if (ws !== null && ws.readyState === WebSocket.OPEN) {
+			const event = generateRandomEvent(tripId, startPoint.latitude, startPoint.longitude)
 			const message = {
 				type: 'alert',
 				data: event
-			};
-			ws.send(JSON.stringify(message));
-			console.log('发送随机事件:', event);
+			}
+			ws.send(JSON.stringify(message))
+			console.log('发送随机事件:', event)
 		}
 	}
 
 	// 页面加载时初始化WebSocket
 	onMounted(() => {
-		initWebSocket();
-	});
+		initWebSocket()
+	})
 
 	// 页面卸载时关闭WebSocket
 	onUnmounted(() => {
-		if (sendInterval) {
-			clearInterval(sendInterval);
+		if (sendInterval !== null) {
+			clearInterval(sendInterval)
 		}
-		if (ws) {
-			ws.close();
+		if (ws !== null) {
+			ws.close()
 		}
-	});
+	})
 </script>
 
 <style>

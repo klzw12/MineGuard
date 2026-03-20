@@ -83,11 +83,7 @@
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-webtestclient</artifactId>
-			<scope>test</scope>
-		</dependency>
+
 
 	</dependencies>
 
@@ -97,30 +93,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-			<!-- 服务模块 Jackson 版本检查 -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-enforcer-plugin</artifactId>
-				<version>3.6.2</version>
-				<executions>
-					<execution>
-						<id>enforce-jackson-version</id>
-						<goals>
-							<goal>enforce</goal>
-						</goals>
-						<configuration>
-							<rules>
-							<bannedDependencies>
-								<excludes>
-									<!-- 不再禁止 com.fasterxml.jackson，因为 nacos 需要它 -->
-								</excludes>
-								<message>服务模块（service-*）使用 com.fasterxml.jackson</message>
-							</bannedDependencies>
-						</rules>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>

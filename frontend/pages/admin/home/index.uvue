@@ -1,493 +1,620 @@
 <template>
-	<view class="admin-home-container">
-		<!-- 顶部导航栏 -->
-		<view class="admin-navbar">
-			<text class="navbar-title">管理中心</text>
-			<view class="navbar-actions">
-				<view class="notification-btn" @click="handleNotification">
-					<text class="notification-icon">🔔</text>
-					<view class="notification-badge">3</view>
+	<AdminLayout>
+		<view class="stats-grid">
+			<view class="stat-card">
+				<view class="stat-left">
+					<text class="stat-label">在线车辆数</text>
+					<view class="stat-value-row">
+						<text class="stat-value">168</text>
+						<text class="stat-unit">辆</text>
+					</view>
+					<text class="stat-trend positive">+12% vs 昨日</text>
 				</view>
-				<view class="profile-btn" @click="navigateToProfile">
-					<image src="/static/avatar/Minecraft.png" mode="aspectFit"></image>
+				<view class="stat-icon blue">
+					<text>🚚</text>
+				</view>
+			</view>
+			
+			<view class="stat-card">
+				<view class="stat-left">
+					<text class="stat-label">今日任务数</text>
+					<view class="stat-value-row">
+						<text class="stat-value">342</text>
+						<text class="stat-unit">个</text>
+					</view>
+					<text class="stat-trend positive">+8% vs 昨日</text>
+				</view>
+				<view class="stat-icon green">
+					<text>📋</text>
+				</view>
+			</view>
+			
+			<view class="stat-card">
+				<view class="stat-left">
+					<text class="stat-label">申诉待处理</text>
+					<view class="stat-value-row">
+						<text class="stat-value">23</text>
+						<text class="stat-unit">条</text>
+					</view>
+					<text class="stat-trend negative">-5% vs 昨日</text>
+				</view>
+				<view class="stat-icon orange">
+					<text>⚠️</text>
+				</view>
+			</view>
+			
+			<view class="stat-card">
+				<view class="stat-left">
+					<text class="stat-label">消息触达率</text>
+					<view class="stat-value-row">
+						<text class="stat-value">94.2</text>
+						<text class="stat-unit">%</text>
+					</view>
+					<text class="stat-trend positive">+2.3% vs 昨日</text>
+				</view>
+				<view class="stat-icon purple">
+					<text>📈</text>
 				</view>
 			</view>
 		</view>
 		
-		<!-- 左侧导航菜单 - 使用组件 -->
-		<AdminSidebar />
-		
-		<!-- 主内容区域 -->
-		<view class="admin-content">
-			<!-- 欢迎信息 -->
-			<view class="welcome-section">
-				<text class="welcome-text">欢迎，管理员</text>
-				<text class="welcome-subtext">今天是 {{ currentDate }}</text>
-			</view>
-			
-			<!-- 数据概览 -->
-			<view class="overview-section">
-				<text class="section-title">数据概览</text>
-				<view class="overview-cards">
-					<view class="overview-card">
-						<text class="card-value">128</text>
-						<text class="card-label">车辆总数</text>
-						<text class="card-trend">+5 本月</text>
-					</view>
-					<view class="overview-card">
-						<text class="card-value">96</text>
-						<text class="card-label">在线车辆</text>
-						<text class="card-trend">85%</text>
-					</view>
-					<view class="overview-card">
-						<text class="card-value">1,245</text>
-						<text class="card-label">今日运量</text>
-						<text class="card-trend">+12% 昨日</text>
-					</view>
-					<view class="overview-card">
-						<text class="card-value">8</text>
-						<text class="card-label">今日预警</text>
-						<text class="card-trend danger">+2 昨日</text>
+		<view class="charts-section">
+			<view class="chart-card heatmap-card">
+				<text class="chart-title">车辆分布热力图</text>
+				<view class="heatmap-container">
+					<view class="heatmap-placeholder">
+						<view class="map-icon">
+							<text>📍</text>
+							<text class="map-subtitle">🚗</text>
+						</view>
+						<text class="map-text">实时车辆分布地图</text>
+						<text class="map-subtext">168辆车在线</text>
 					</view>
 				</view>
 			</view>
 			
-			<!-- 功能快捷入口 -->
-			<view class="features-section">
-				<text class="section-title">快捷操作</text>
-				<view class="features-grid">
-					<view class="feature-card" @click="navigateToVehicle">
-						<view class="card-icon">
-							<image src="/static/svgs/car.svg" mode="aspectFit"></image>
+			<view class="vehicle-list-card">
+				<view class="vehicle-list">
+					<view class="vehicle-item">
+						<view class="vehicle-left">
+							<text class="vehicle-plate">🚚 京A12345</text>
+							<text class="vehicle-driver">王师傅</text>
+							<text class="vehicle-location">北京市朝阳区CBD</text>
+							<view class="progress-container">
+								<text class="progress-label">进度</text>
+								<view class="progress-bar">
+									<view class="progress-fill" style="width: 65%"></view>
+								</view>
+								<text class="progress-percent">65%</text>
+							</view>
 						</view>
-						<text class="card-title">车辆管理</text>
+						<view class="vehicle-status-tag transporting">
+							<text>运输中</text>
+						</view>
 					</view>
-					<view class="feature-card" @click="navigateToDriver">
-						<view class="card-icon">
-							<image src="/static/svgs/user.svg" mode="aspectFit"></image>
+					
+					<view class="vehicle-item">
+						<view class="vehicle-left">
+							<text class="vehicle-plate">🚚 京B67890</text>
+							<text class="vehicle-driver">李师傅</text>
+							<text class="vehicle-location">上海市浦东新区</text>
+							<view class="progress-container">
+								<text class="progress-label">进度</text>
+								<view class="progress-bar">
+									<view class="progress-fill" style="width: 100%"></view>
+								</view>
+								<text class="progress-percent">100%</text>
+							</view>
 						</view>
-						<text class="card-title">司机管理</text>
+						<view class="vehicle-status-tag completed">
+							<text>已完成</text>
+						</view>
 					</view>
-					<view class="feature-card" @click="navigateToMonitor">
-						<view class="card-icon">
-							<image src="/static/svgs/locate.svg" mode="aspectFit"></image>
+					
+					<view class="vehicle-item">
+						<view class="vehicle-left">
+							<text class="vehicle-plate">🚚 京C45678</text>
+							<text class="vehicle-driver">张师傅</text>
+							<text class="vehicle-location">广州市天河区</text>
+							<view class="progress-container">
+								<text class="progress-label">进度</text>
+								<view class="progress-bar">
+									<view class="progress-fill" style="width: 30%"></view>
+								</view>
+								<text class="progress-percent">30%</text>
+							</view>
 						</view>
-						<text class="card-title">安全预警</text>
-					</view>
-					<view class="feature-card" @click="navigateToReport">
-						<view class="card-icon">
-							<image src="/static/svgs/report.svg" mode="aspectFit"></image>
+						<view class="vehicle-status-tag transporting">
+							<text>运输中</text>
 						</view>
-						<text class="card-title">统计报表</text>
-					</view>
-				</view>
-			</view>
-			
-			<!-- 最新预警 -->
-			<view class="alerts-section">
-				<view class="section-header">
-					<text class="section-title">最新预警</text>
-					<navigator url="/pages/admin/monitor/index" class="view-all">查看全部</navigator>
-				</view>
-				<view class="alert-list">
-					<view class="alert-item danger">
-						<view class="alert-icon">
-							<text>🚨</text>
-						</view>
-						<view class="alert-content">
-							<text class="alert-title">车辆超载</text>
-							<text class="alert-desc">车辆豫A-12345 超载 20%</text>
-							<text class="alert-time">10分钟前</text>
-						</view>
-						<text class="alert-arrow">›</text>
-					</view>
-					<view class="alert-item warning">
-						<view class="alert-icon">
-							<text>⚠️</text>
-						</view>
-						<view class="alert-content">
-							<text class="alert-title">超速行驶</text>
-							<text class="alert-desc">车辆豫B-67890 速度 60km/h</text>
-							<text class="alert-time">25分钟前</text>
-						</view>
-						<text class="alert-arrow">›</text>
-					</view>
-					<view class="alert-item info">
-						<view class="alert-icon">
-							<text>ℹ️</text>
-						</view>
-						<view class="alert-content">
-							<text class="alert-title">车辆离线</text>
-							<text class="alert-desc">车辆豫C-24680 信号中断</text>
-							<text class="alert-time">1小时前</text>
-						</view>
-						<text class="alert-arrow">›</text>
 					</view>
 				</view>
 			</view>
 		</view>
-	</view>
+		
+		<view class="bottom-charts">
+			<view class="chart-card pie-card">
+				<text class="chart-title">车辆状态占比</text>
+				<view class="pie-placeholder">
+					<view class="pie-visual">
+						<view class="pie-segment transporting" style="width: 62%; height: 100%;"></view>
+						<view class="pie-segment idle" style="width: 30%; height: 100%;"></view>
+						<view class="pie-segment maintenance" style="width: 5%; height: 100%;"></view>
+						<view class="pie-segment stopped" style="width: 3%; height: 100%;"></view>
+					</view>
+					<view class="pie-legend">
+						<view class="legend-item">
+							<view class="legend-dot blue"></view>
+							<text class="legend-text">运输中: 168辆</text>
+						</view>
+						<view class="legend-item">
+							<view class="legend-dot green"></view>
+							<text class="legend-text">空闲: 82辆</text>
+						</view>
+						<view class="legend-item">
+							<view class="legend-dot orange"></view>
+							<text class="legend-text">维修中: 15辆</text>
+						</view>
+						<view class="legend-item">
+							<view class="legend-dot red"></view>
+							<text class="legend-text">停运: 8辆</text>
+						</view>
+					</view>
+				</view>
+			</view>
+			
+			<view class="chart-card line-card">
+				<text class="chart-title">近7天任务趋势</text>
+				<view class="line-placeholder">
+					<view class="line-chart">
+						<view class="chart-line">
+							<view class="chart-point" style="left: 0%; top: 20%;"></view>
+							<view class="chart-point" style="left: 16.6%; top: 25%;"></view>
+							<view class="chart-point" style="left: 33.3%; top: 15%;"></view>
+							<view class="chart-point" style="left: 50%; top: 22%;"></view>
+							<view class="chart-point" style="left: 66.6%; top: 18%;"></view>
+							<view class="chart-point" style="left: 83.3%; top: 10%;"></view>
+							<view class="chart-point" style="left: 100%; top: 15%;"></view>
+						</view>
+						<view class="chart-labels">
+							<text>3/13</text>
+							<text>3/14</text>
+							<text>3/15</text>
+							<text>3/16</text>
+							<text>3/17</text>
+							<text>3/18</text>
+							<text>3/19</text>
+						</view>
+					</view>
+					<view class="line-legend">
+						<view class="legend-item">
+							<view class="legend-dot blue"></view>
+							<text class="legend-text">任务数</text>
+						</view>
+						<view class="legend-item">
+							<view class="legend-dot green"></view>
+							<text class="legend-text">完成数</text>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+	</AdminLayout>
 </template>
 
 <script setup lang="uts">
-	import { ref, onMounted } from 'vue'
-	import AdminSidebar from '../../../components/AdminSidebar.uvue'
-	
-	const currentDate = ref('')
-	
-	onMounted(() => {
-		// 设置当前日期
-		const now = new Date()
-		currentDate.value = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`
-	})
-	
-	function handleNotification() {
-		uni.showToast({
-			title: '通知功能开发中',
-			icon: 'none',
-			position: 'bottom'
-		})
-	}
-	
-	function navigateToProfile() {
-		uni.redirectTo({
-			url: '/pages/admin/profile/index'
-		})
-	}
+	import AdminLayout from '../../../components/AdminLayout.uvue'
 </script>
 
 <style lang="scss">
-	.admin-home-container {
-		display: flex;
-		flex-direction: row;
-		min-height: 100vh;
-		background-color: #f5f7fa;
-	}
-	
-	/* 顶部导航栏 */
-	.admin-navbar {
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		height: 80rpx;
-		background-color: #007AFF;
-		color: #fff;
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0 40rpx;
-		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
-		z-index: 999;
-	}
-	
-	.navbar-title {
-		font-size: 32rpx;
-		font-weight: bold;
-	}
-	
-	.navbar-actions {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		gap: 20rpx;
-	}
-	
-	.notification-btn {
-		position: relative;
-		padding: 10rpx;
-	}
-	
-	.notification-icon {
-		font-size: 28rpx;
-	}
-	
-	.notification-badge {
-		position: absolute;
-		top: 0;
-		right: 0;
-		width: 24rpx;
-		height: 24rpx;
-		background-color: #FF3B30;
-		color: #fff;
-		border-radius: 50%;
-		font-size: 16rpx;
-		font-weight: bold;
-		display: flex;
-		flex-direction: row;
-		justify-content: center;
-		align-items: center;
-	}
-	
-	.profile-btn {
-		width: 50rpx;
-		height: 50rpx;
-		border-radius: 50%;
-		overflow: hidden;
-	}
-	
-	.profile-btn image {
-		width: 100%;
-		height: 100%;
-	}
-	
-	/* 侧边栏组件样式由组件自身管理 */
-	
-	/* 主内容区域 */
-	.admin-content {
-		flex: 1;
-		margin-left: 220rpx;
-		margin-top: 80rpx;
-		padding: 40rpx;
-		box-sizing: border-box;
-		min-height: calc(100vh - 80rpx);
-	}
-	
-	/* 欢迎信息 */
-	.welcome-section {
-		margin-bottom: 40rpx;
-	}
-	
-	.welcome-text {
-		font-size: 36rpx;
-		font-weight: bold;
-		color: #333;
-		margin-bottom: 10rpx;
-	}
-	
-	.welcome-subtext {
-		font-size: 24rpx;
-		color: #666;
-	}
-	
-	/* 数据概览 */
-	.overview-section {
-		margin-bottom: 50rpx;
-	}
-	
-	.section-title {
-		font-size: 28rpx;
-		font-weight: bold;
-		color: #333;
-		margin-bottom: 20rpx;
-	}
-	
-	.overview-cards {
+	.stats-grid {
 		display: grid;
-		grid-template-columns: repeat(2, 1fr);
-		gap: 20rpx;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 30rpx;
+		margin-bottom: 30rpx;
+		
+		.stat-card {
+			background-color: #2a3347;
+			border-radius: 24rpx;
+			padding: 40rpx;
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+			align-items: flex-start;
+			border: 1rpx solid rgba(255, 255, 255, 0.08);
+			
+			.stat-left {
+				display: flex;
+				flex-direction: column;
+				
+				.stat-label {
+					font-size: 24rpx;
+					color: rgba(255, 255, 255, 0.6);
+					margin-bottom: 15rpx;
+				}
+				
+				.stat-value-row {
+					display: flex;
+					flex-direction: row;
+					align-items: baseline;
+					gap: 8rpx;
+					margin-bottom: 12rpx;
+					
+					.stat-value {
+						font-size: 56rpx;
+						font-weight: bold;
+						color: #fff;
+					}
+					
+					.stat-unit {
+						font-size: 24rpx;
+						color: rgba(255, 255, 255, 0.6);
+					}
+				}
+				
+				.stat-trend {
+					font-size: 22rpx;
+					
+					&.positive {
+						color: #34C759;
+					}
+					
+					&.negative {
+						color: #FF9500;
+					}
+				}
+			}
+			
+			.stat-icon {
+				width: 90rpx;
+				height: 90rpx;
+				border-radius: 20rpx;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 40rpx;
+				
+				&.blue {
+					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+				}
+				
+				&.green {
+					background: linear-gradient(135deg, #34C759 0%, #248a3f 100%);
+				}
+				
+				&.orange {
+					background: linear-gradient(135deg, #FF9500 0%, #cc7700 100%);
+				}
+				
+				&.purple {
+					background: linear-gradient(135deg, #AF52DE 0%, #8c40b0 100%);
+				}
+			}
+		}
 	}
 	
-	.overview-card {
-		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
-		color: #fff;
-		border-radius: 20rpx;
-		padding: 30rpx;
-		box-shadow: 0 4rpx 20rpx rgba(0, 122, 255, 0.3);
-	}
-	
-	.card-value {
-		font-size: 48rpx;
-		font-weight: bold;
-		margin-bottom: 10rpx;
-	}
-	
-	.card-label {
-		font-size: 24rpx;
-		opacity: 0.9;
-		margin-bottom: 10rpx;
-	}
-	
-	.card-trend {
-		font-size: 20rpx;
-		opacity: 0.8;
-	}
-	
-	.card-trend.danger {
-		color: #FF3B30;
-	}
-	
-	/* 功能快捷入口 */
-	.features-section {
-		margin-bottom: 50rpx;
-	}
-	
-	.features-grid {
+	.charts-section {
 		display: grid;
-		grid-template-columns: repeat(2, 1fr);
-		gap: 20rpx;
-	}
-	
-	.feature-card {
-		background-color: #fff;
-		border-radius: 20rpx;
-		padding: 40rpx 30rpx;
-		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-		transition: all 0.3s ease;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-	}
-	
-	.feature-card:active {
-		transform: scale(0.98);
-		box-shadow: 0 1rpx 5rpx rgba(0, 0, 0, 0.1);
-	}
-	
-	.card-icon {
-		width: 80rpx;
-		height: 80rpx;
-		margin-bottom: 20rpx;
-	}
-	
-	.card-icon image {
-		width: 100%;
-		height: 100%;
-	}
-	
-	.card-title {
-		font-size: 24rpx;
-		color: #333;
-		font-weight: bold;
-	}
-	
-	/* 最新预警 */
-	.alerts-section {
-		margin-bottom: 40rpx;
-	}
-	
-	.section-header {
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 20rpx;
-	}
-	
-	.view-all {
-		font-size: 24rpx;
-		color: #007AFF;
-	}
-	
-	.alert-list {
-		background-color: #fff;
-		border-radius: 20rpx;
-		overflow: hidden;
-		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-	}
-	
-	.alert-item {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		padding: 30rpx;
-		border-bottom: 1rpx solid #f0f0f0;
-		transition: all 0.3s ease;
-	}
-	
-	.alert-item:last-child {
-		border-bottom: none;
-	}
-	
-	.alert-item:active {
-		background-color: #f5f5f5;
-	}
-	
-	.alert-item.danger {
-		background-color: rgba(255, 59, 48, 0.05);
-	}
-	
-	.alert-item.warning {
-		background-color: rgba(240, 173, 78, 0.05);
-	}
-	
-	.alert-item.info {
-		background-color: rgba(52, 152, 219, 0.05);
-	}
-	
-	.alert-icon {
-		font-size: 40rpx;
-		margin-right: 20rpx;
-	}
-	
-	.alert-content {
-		flex: 1;
-	}
-	
-	.alert-title {
-		font-size: 24rpx;
-		font-weight: bold;
-		color: #333;
-		margin-bottom: 5rpx;
-	}
-	
-	.alert-desc {
-		font-size: 22rpx;
-		color: #666;
-		margin-bottom: 5rpx;
-	}
-	
-	.alert-time {
-		font-size: 20rpx;
-		color: #999;
-	}
-	
-	.alert-arrow {
-		font-size: 32rpx;
-		color: #999;
-	}
-	
-	/* 响应式设计 */
-	@media (max-width: 768px) {
-		.admin-sidebar {
-			width: 160rpx;
+		grid-template-columns: 2fr 1fr;
+		gap: 30rpx;
+		margin-bottom: 30rpx;
+		
+		.chart-card {
+			background-color: #2a3347;
+			border-radius: 24rpx;
+			padding: 40rpx;
+			border: 1rpx solid rgba(255, 255, 255, 0.08);
+			
+			.chart-title {
+				font-size: 32rpx;
+				font-weight: bold;
+				color: #fff;
+				margin-bottom: 30rpx;
+			}
 		}
 		
-		.admin-content {
-			margin-left: 160rpx;
-			padding: 20rpx;
+		.heatmap-card {
+			.heatmap-container {
+				.heatmap-placeholder {
+					background: linear-gradient(135deg, #2a3347 0%, #3a4458 100%);
+					border-radius: 20rpx;
+					height: 500rpx;
+					display: flex;
+					flex-direction: column;
+					align-items: center;
+					justify-content: center;
+					
+					.map-icon {
+						font-size: 100rpx;
+						margin-bottom: 20rpx;
+						display: flex;
+						flex-direction: column;
+						align-items: center;
+						
+						.map-subtitle {
+							font-size: 60rpx;
+						}
+					}
+					
+					.map-text {
+						font-size: 32rpx;
+						color: rgba(255, 255, 255, 0.8);
+						margin-bottom: 10rpx;
+					}
+					
+					.map-subtext {
+						font-size: 24rpx;
+						color: rgba(255, 255, 255, 0.5);
+					}
+				}
+			}
+		}
+		
+		.vehicle-list-card {
+			padding: 0;
+			overflow: hidden;
+			
+			.vehicle-list {
+				max-height: 680rpx;
+				overflow-y: auto;
+				
+				.vehicle-item {
+					padding: 30rpx;
+					border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+					display: flex;
+					flex-direction: row;
+					justify-content: space-between;
+					align-items: flex-start;
+					
+					&:last-child {
+						border-bottom: none;
+					}
+					
+					.vehicle-left {
+						flex: 1;
+						
+						.vehicle-plate {
+							font-size: 28rpx;
+							font-weight: bold;
+							color: #fff;
+							margin-bottom: 10rpx;
+							display: block;
+						}
+						
+						.vehicle-driver {
+							font-size: 24rpx;
+							color: rgba(255, 255, 255, 0.7);
+							margin-bottom: 8rpx;
+							display: block;
+						}
+						
+						.vehicle-location {
+							font-size: 22rpx;
+							color: rgba(255, 255, 255, 0.5);
+							margin-bottom: 20rpx;
+							display: block;
+						}
+						
+						.progress-container {
+							display: flex;
+							flex-direction: row;
+							align-items: center;
+							gap: 15rpx;
+							
+							.progress-label {
+								font-size: 22rpx;
+								color: rgba(255, 255, 255, 0.6);
+							}
+							
+							.progress-bar {
+								flex: 1;
+								height: 10rpx;
+								background-color: rgba(255, 255, 255, 0.1);
+								border-radius: 5rpx;
+								overflow: hidden;
+								
+								.progress-fill {
+									height: 100%;
+									background: linear-gradient(90deg, #007AFF 0%, #0056b3 100%);
+									border-radius: 5rpx;
+								}
+							}
+							
+							.progress-percent {
+								font-size: 22rpx;
+								color: rgba(255, 255, 255, 0.7);
+							}
+						}
+					}
+					
+					.vehicle-status-tag {
+						padding: 10rpx 20rpx;
+						border-radius: 12rpx;
+						font-size: 22rpx;
+						
+						&.transporting {
+							background-color: rgba(0, 122, 255, 0.2);
+							color: #007AFF;
+						}
+						
+						&.completed {
+							background-color: rgba(52, 199, 89, 0.2);
+							color: #34C759;
+						}
+					}
+				}
+			}
 		}
 	}
 	
-	/* 大屏幕适配 */
-	@media (min-width: 1024px) {
-		.admin-sidebar {
-			width: 240rpx;
+	.bottom-charts {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 30rpx;
+		
+		.chart-card {
+			background-color: #2a3347;
+			border-radius: 24rpx;
+			padding: 40rpx;
+			border: 1rpx solid rgba(255, 255, 255, 0.08);
+			
+			.chart-title {
+				font-size: 32rpx;
+				font-weight: bold;
+				color: #fff;
+				margin-bottom: 30rpx;
+			}
 		}
 		
-		.admin-content {
-			margin-left: 240rpx;
-			padding: 50rpx;
+		.pie-card {
+			.pie-placeholder {
+				.pie-visual {
+					width: 300rpx;
+					height: 300rpx;
+					border-radius: 50%;
+					margin: 0 auto 30rpx;
+					background: conic-gradient(
+						#007AFF 0deg 223deg,
+						#34C759 223deg 331deg,
+						#FF9500 331deg 349deg,
+						#FF3B30 349deg 360deg
+					);
+					position: relative;
+					
+					&::before {
+						content: '';
+						position: absolute;
+						top: 50%;
+						left: 50%;
+						transform: translate(-50%, -50%);
+						width: 150rpx;
+						height: 150rpx;
+						background-color: #2a3347;
+						border-radius: 50%;
+					}
+				}
+				
+				.pie-legend {
+					display: grid;
+					grid-template-columns: repeat(2, 1fr);
+					gap: 20rpx;
+					
+					.legend-item {
+						display: flex;
+						flex-direction: row;
+						align-items: center;
+						gap: 12rpx;
+						
+						.legend-dot {
+							width: 20rpx;
+							height: 20rpx;
+							border-radius: 50%;
+							
+							&.blue {
+								background-color: #007AFF;
+							}
+							
+							&.green {
+								background-color: #34C759;
+							}
+							
+							&.orange {
+								background-color: #FF9500;
+							}
+							
+							&.red {
+								background-color: #FF3B30;
+							}
+						}
+						
+						.legend-text {
+							font-size: 22rpx;
+							color: rgba(255, 255, 255, 0.7);
+						}
+					}
+				}
+			}
 		}
 		
-		/* 调整卡片和容器的间距 */
-		.overview-section,
-		.features-section,
-		.alerts-section {
-			margin-bottom: 60rpx;
-		}
-		
-		/* 调整网格布局 */
-		.overview-cards {
-			grid-template-columns: repeat(4, 1fr);
-		}
-		
-		.features-grid {
-			grid-template-columns: repeat(4, 1fr);
-		}
-		
-		/* 调整字体大小 */
-		.section-title {
-			font-size: 32rpx;
-		}
-		
-		.welcome-text {
-			font-size: 40rpx;
-		}
-		
-		.navbar-title {
-			font-size: 36rpx;
+		.line-card {
+			.line-placeholder {
+				.line-chart {
+					height: 300rpx;
+					position: relative;
+					margin-bottom: 30rpx;
+					
+					.chart-line {
+						position: absolute;
+						bottom: 60rpx;
+						left: 0;
+						right: 0;
+						height: calc(100% - 60rpx);
+						background: linear-gradient(to right, 
+							rgba(0, 122, 255, 0.1) 0%, 
+							rgba(52, 199, 89, 0.1) 100%
+						);
+						border-bottom: 2rpx solid #007AFF;
+						
+						.chart-point {
+							position: absolute;
+							width: 16rpx;
+							height: 16rpx;
+							background-color: #007AFF;
+							border-radius: 50%;
+							transform: translate(-50%, -50%);
+						}
+					}
+					
+					.chart-labels {
+						position: absolute;
+						bottom: 0;
+						left: 0;
+						right: 0;
+						display: flex;
+						flex-direction: row;
+						justify-content: space-between;
+						padding: 0 20rpx;
+						
+						text {
+							font-size: 20rpx;
+							color: rgba(255, 255, 255, 0.5);
+						}
+					}
+				}
+				
+				.line-legend {
+					display: flex;
+					flex-direction: row;
+					justify-content: center;
+					gap: 40rpx;
+					
+					.legend-item {
+						display: flex;
+						flex-direction: row;
+						align-items: center;
+						gap: 12rpx;
+						
+						.legend-dot {
+							width: 20rpx;
+							height: 20rpx;
+							border-radius: 50%;
+							
+							&.blue {
+								background-color: #007AFF;
+							}
+							
+							&.green {
+								background-color: #34C759;
+							}
+						}
+						
+						.legend-text {
+							font-size: 22rpx;
+							color: rgba(255, 255, 255, 0.7);
+						}
+					}
+				}
+			}
 		}
 	}
 </style>

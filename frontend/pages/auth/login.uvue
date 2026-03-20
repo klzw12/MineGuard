@@ -1,5 +1,5 @@
 <template>
-	<view class="login-container">
+	<view class="page-container">
 		<view class="logo-section">
 			<image class="logo" src="/static/logo/logo.png"></image>
 			<text class="app-name">MineGuard</text>
@@ -7,7 +7,6 @@
 		</view>
 		
 		<view class="form-section">
-			<!-- 登录表单 -->
 			<view class="form-item">
 				<text class="label">账号</text>
 				<input 
@@ -15,7 +14,7 @@
 					type="text" 
 					v-model="username" 
 					placeholder="请输入账号" 
-					placeholder-style="color: #999" 
+					placeholder-style="color: #8F959E" 
 					@focus="clearError('username')"
 				/>
 				<text v-if="errors.username" class="error-text">{{ errors.username }}</text>
@@ -28,7 +27,7 @@
 					type="password" 
 					v-model="password" 
 					placeholder="请输入密码" 
-					placeholder-style="color: #999" 
+					placeholder-style="color: #8F959E" 
 					@focus="clearError('password')"
 				/>
 				<text v-if="errors.password" class="error-text">{{ errors.password }}</text>
@@ -79,13 +78,13 @@
 		if (!username.value.trim()) {
 			errors.username = '请输入账号'
 			isValid = false
+		} else if (username.value.length < 2 || username.value.length > 20) {
+			errors.username = '用户名长度为2-20个字符'
+			isValid = false
 		}
 		
 		if (!password.value.trim()) {
 			errors.password = '请输入密码'
-			isValid = false
-		} else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,20}$/.test(password.value)) {
-			errors.password = '密码长度为6-20个字符，包含至少一个大写字母、一个小写字母和一个数字'
 			isValid = false
 		}
 		
@@ -107,18 +106,6 @@
 				icon: 'success',
 				position: 'bottom'
 			})
-			
-			setTimeout(() => {
-				if (userStore.userRole.value === 'admin') {
-					uni.redirectTo({
-						url: '/pages/admin/home/index'
-					})
-				} else {
-					uni.switchTab({
-						url: '/pages/user/home/index'
-					})
-				}
-			}, 1000)
 		} catch (e: any) {
 			uni.showToast({
 				title: e.message || '登录失败',
@@ -137,149 +124,98 @@
 	}
 </script>
 
-<style lang="scss">
-	.login-container {
+<style>
+	.page-container {
 		display: flex;
 		flex-direction: column;
 		min-height: 100vh;
-		padding: 80rpx 40rpx 40rpx;
+		padding: 60px 24px 24px;
 		box-sizing: border-box;
-		background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+		background-color: #F7F8FA;
 	}
 	
 	.logo-section {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		margin-bottom: 60rpx;
-		animation: fadeIn 0.8s ease-out forwards;
+		margin-bottom: 40px;
 	}
 	
 	.logo {
-		width: 160rpx;
-		height: 160rpx;
-		margin-bottom: 30rpx;
-		border-radius: $uni-border-radius-xxl;
-		box-shadow: $uni-shadow-lg;
+		width: 80px;
+		height: 80px;
+		margin-bottom: 16px;
+		border-radius: 20px;
 	}
 	
 	.app-name {
-		font-size: 36rpx;
-		font-weight: bold;
-		color: $uni-color-primary;
-		margin-bottom: 15rpx;
+		font-size: 24px;
+		font-weight: 600;
+		color: #1A1A1A;
+		margin-bottom: 8px;
 	}
 	
 	.slogan {
-		font-size: 24rpx;
-		color: $uni-text-color-grey;
+		font-size: 14px;
+		color: #8F959E;
 	}
 	
 	.form-section {
 		flex: 1;
 		width: 100%;
-		background-color: $uni-bg-color;
-		border-radius: $uni-border-radius-xxl;
-		padding: 40rpx;
-		box-shadow: $uni-shadow-lg;
-		animation: slideUp 0.8s ease-out forwards;
-	}
-	
-	.user-type-section {
-		margin-bottom: 40rpx;
-	}
-	
-	.type-label {
-		display: block;
-		font-size: 24rpx;
-		color: $uni-text-color;
-		margin-bottom: 15rpx;
-	}
-	
-	.type-buttons {
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		gap: 20rpx;
-	}
-	
-	.type-btn {
-		flex: 1;
-		padding: 20rpx;
-		border: 2rpx solid $uni-border-color;
-		border-radius: $uni-border-radius-lg;
-		text-align: center;
-		font-size: 24rpx;
-		color: $uni-text-color-grey;
-		transition: all 0.3s ease;
-	}
-	
-	.type-btn.active {
-		border-color: $uni-color-primary;
-		background-color: rgba($uni-color-primary, 0.1);
-		color: $uni-color-primary;
-		font-weight: bold;
-		transform: translateY(-2rpx);
-		box-shadow: 0 2rpx 10rpx rgba($uni-color-primary, 0.2);
+		background-color: #FFFFFF;
+		border-radius: 16px;
+		padding: 24px;
+		box-sizing: border-box;
 	}
 	
 	.form-item {
-		margin-bottom: 30rpx;
+		margin-bottom: 20px;
 	}
 	
 	.label {
 		display: block;
-		font-size: 24rpx;
-		color: $uni-text-color;
-		margin-bottom: 10rpx;
+		font-size: 14px;
+		color: #1A1A1A;
+		margin-bottom: 8px;
+		font-weight: 500;
 	}
 	
 	.input {
 		width: 100%;
-		height: 80rpx;
-		background-color: $uni-bg-color-grey;
-		border-radius: $uni-border-radius-lg;
-		padding: 0 30rpx;
+		height: 48px;
+		background-color: #F7F8FA;
+		border-radius: 10px;
+		padding: 0 16px;
 		box-sizing: border-box;
-		font-size: 28rpx;
-		border: 2rpx solid $uni-border-color;
-		transition: all 0.3s ease;
-	}
-	
-	.input:focus {
-		border-color: $uni-color-primary;
-		box-shadow: 0 0 0 4rpx rgba($uni-color-primary, 0.1);
-		background-color: $uni-bg-color;
+		font-size: 15px;
+		border: none;
 	}
 	
 	.error-text {
-		font-size: 20rpx;
-		color: $uni-color-error;
-		margin-top: 8rpx;
-		margin-left: 10rpx;
+		font-size: 12px;
+		color: #FF3B30;
+		margin-top: 6px;
 	}
 	
 	.login-btn {
 		width: 100%;
-		height: 88rpx;
-		background: linear-gradient(135deg, $uni-color-primary 0%, darken($uni-color-primary, 15%) 100%);
-		color: $uni-text-color-inverse;
-		font-size: 32rpx;
-		font-weight: bold;
-		border-radius: $uni-border-radius-lg;
-		margin-top: 50rpx;
-		margin-bottom: 30rpx;
-		transition: all 0.3s ease;
-	}
-	
-	.login-btn:active:not(:disabled) {
-		transform: scale(0.98);
-		box-shadow: 0 2rpx 10rpx rgba($uni-color-primary, 0.3);
+		height: 48px;
+		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+		color: #FFFFFF;
+		font-size: 16px;
+		font-weight: 600;
+		border-radius: 10px;
+		margin-top: 32px;
+		margin-bottom: 20px;
+		border: none;
+		display: flex;
+		justify-content: center;
+		align-items: center;
 	}
 	
 	.login-btn:disabled {
-		opacity: $uni-opacity-disabled;
-		transform: none;
+		opacity: 0.6;
 	}
 	
 	.auth-links {
@@ -287,102 +223,21 @@
 		flex-direction: row;
 		justify-content: space-between;
 		align-items: center;
-		font-size: 24rpx;
-		margin-top: 20rpx;
+		font-size: 14px;
+		margin-top: 12px;
 	}
 	
 	.link {
-		color: $uni-color-primary;
-		transition: color 0.3s ease;
-	}
-	
-	.link:active {
-		color: darken($uni-color-primary, 15%);
+		color: #34C759;
 	}
 	
 	.footer {
-		margin-top: 40rpx;
+		margin-top: 32px;
 		text-align: center;
-		animation: fadeIn 1s ease-out forwards;
 	}
 	
 	.copyright {
-		font-size: 20rpx;
-		color: $uni-text-color-grey;
-	}
-	
-	@keyframes fadeIn {
-		from {
-			opacity: 0;
-			transform: translateY(20rpx);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-	
-	@keyframes slideUp {
-		from {
-			opacity: 0;
-			transform: translateY(40rpx);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-	
-	@media (min-width: 768px) {
-		.login-container {
-			max-width: 600rpx;
-			margin: 0 auto;
-			padding-top: 120rpx;
-		}
-		
-		.form-section {
-			padding: 60rpx;
-		}
-		
-		.form-item {
-			margin-bottom: 40rpx;
-		}
-		
-		.login-btn {
-			margin-top: 60rpx;
-		}
-	}
-	
-	@media (max-width: 375px) {
-		.login-container {
-			padding: 60rpx 30rpx 30rpx;
-		}
-		
-		.logo {
-			width: 140rpx;
-			height: 140rpx;
-		}
-		
-		.app-name {
-			font-size: 32rpx;
-		}
-		
-		.slogan {
-			font-size: 22rpx;
-		}
-		
-		.form-section {
-			padding: 30rpx;
-		}
-		
-		.input {
-			height: 70rpx;
-			font-size: 26rpx;
-		}
-		
-		.login-btn {
-			height: 78rpx;
-			font-size: 28rpx;
-		}
+		font-size: 12px;
+		color: #8F959E;
 	}
 </style>

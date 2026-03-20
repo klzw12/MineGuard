@@ -54,10 +54,10 @@
           </view>
           
           <view v-if="apply.status === 1" class="apply-actions">
-            <button class="action-btn approve" @tap="handleApply(apply.id, 2)">
+            <button class="action-btn tac approve" @tap="handleApply(apply.id, 2)">
               批准
             </button>
-            <button class="action-btn reject" @tap="handleApply(apply.id, 3)">
+            <button class="action-btn tac reject" @tap="handleApply(apply.id, 3)">
               拒绝
             </button>
           </view>
@@ -324,6 +324,9 @@ onMounted(() => {
 .action-btn {
   flex: 1;
   padding: 15rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   border-radius: 8rpx;
   font-size: 24rpx;
   font-weight: bold;
@@ -357,5 +360,9 @@ onMounted(() => {
 
 .handle-item .value {
   color: #666;
+}
+
+.tac {
+  text-align: center;
 }
 </style>

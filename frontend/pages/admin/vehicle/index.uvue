@@ -1,275 +1,304 @@
 <template>
-	<view class="admin-container">
-		<!-- 左侧导航菜单 - 使用组件 -->
-		<AdminSidebar />
-		
-		<!-- 主内容区域 -->
-		<view class="admin-content">
-			<!-- 头部区域 -->
-			<view class="header-section">
-				<text class="page-title">车辆管理</text>
-			</view>
-			
-			<!-- 搜索和筛选 -->
-			<view class="search-filter-section">
-				<view class="search-bar">
-					<text class="search-icon">🔍</text>
-					<input type="text" placeholder="搜索车辆编号或司机" placeholder-style="color: #999" />
-				</view>
-				<view class="filter-buttons">
-					<button class="filter-btn">全部</button>
-					<button class="filter-btn active">在线</button>
-					<button class="filter-btn">离线</button>
-				</view>
-			</view>
-			
-			<!-- 车辆列表 -->
-			<view class="vehicle-list-section">
-				<text class="section-title">车辆列表</text>
-				<view class="vehicle-list">
-					<navigator :url="'/pages/admin/vehicle/detail?id=' + i" class="vehicle-item" v-for="i in 5" :key="i">
-					<view class="vehicle-info">
-						<text class="vehicle-number">豫A-1234{{i}}</text>
-						<text class="vehicle-type">重型卡车</text>
-						<text class="vehicle-driver">司机：张三{{i}}</text>
-					</view>
-					<view class="vehicle-status online">
-						<text class="status-dot"></text>
-						<text class="status-text">在线</text>
-					</view>
-				</navigator>
-				</view>
-			</view>
-			
-			<!-- 操作按钮 -->
-			<view class="action-buttons">
+	<AdminLayout>
+		<view class="page-header">
+			<text class="page-title">车辆管理</text>
+			<view class="header-actions">
 				<button class="primary-btn">添加车辆</button>
 				<button class="secondary-btn">批量操作</button>
 			</view>
 		</view>
-	</view>
+		
+		<view class="filter-section">
+			<view class="search-box">
+				<text class="search-icon">🔍</text>
+				<input type="text" placeholder="搜索车辆编号或司机" placeholder-style="color: rgba(255,255,255,0.4)" />
+			</view>
+			<view class="filter-buttons">
+				<button class="filter-btn active">全部</button>
+				<button class="filter-btn">在线</button>
+				<button class="filter-btn">离线</button>
+			</view>
+		</view>
+		
+		<view class="vehicle-card">
+			<view class="vehicle-list">
+				<view class="vehicle-item" v-for="i in 6" :key="i">
+					<view class="vehicle-left">
+						<view class="vehicle-header">
+							<text class="vehicle-plate">🚚 京A{{ 12340 + i }}</text>
+							<view class="vehicle-status" :class="i % 3 === 0 ? 'offline' : i % 3 === 1 ? 'maintenance' : 'online'">
+								<text class="status-dot"></text>
+								<text class="status-text">{{ i % 3 === 0 ? '离线' : i % 3 === 1 ? '维修中' : '在线' }}</text>
+							</view>
+						</view>
+						<text class="vehicle-type">重型卡车</text>
+						<text class="vehicle-driver">司机：{{ ['张三','李四','王五','赵六','钱七','孙八'][i-1] }}</text>
+						<text class="vehicle-location">当前位置：{{ ['北京市朝阳区','上海市浦东新区','广州市天河区','深圳市南山区','杭州市西湖区','成都市武侯区'][i-1] }}</text>
+						<view class="progress-container">
+							<text class="progress-label">今日任务</text>
+							<view class="progress-bar">
+								<view class="progress-fill" :style="{width: (30 + i * 10) + '%'}"></view>
+							</view>
+							<text class="progress-percent">{{ i }}/{{ 6 + i }}</text>
+						</view>
+					</view>
+					<view class="vehicle-right">
+						<view class="action-buttons">
+							<button class="action-btn">详情</button>
+							<button class="action-btn secondary">编辑</button>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+	</AdminLayout>
 </template>
 
 <script setup lang="uts">
-	import AdminSidebar from '../../../components/AdminSidebar.uvue'
-	// 车辆管理页面逻辑
+	import AdminLayout from '../../../components/AdminLayout.uvue'
 </script>
 
-<style>
-	.admin-container {
-		display: flex;
-		flex-direction: row;
-		min-height: 100vh;
-		background-color: #f5f5f5;
-	}
-	
-	.admin-content {
-		flex: 1;
-		margin-left: 240rpx;
-		padding: 40rpx;
-		box-sizing: border-box;
-		min-height: 100vh;
-	}
-	
-	.admin-vehicle {
-		background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-	}
-	
-	/* 头部区域 */
-	.header-section {
-		margin-bottom: 30rpx;
-	}
-	
-	.page-title {
-		font-size: 32rpx;
-		font-weight: bold;
-		color: #0056b3;
-	}
-	
-	/* 搜索和筛选 */
-	.search-filter-section {
-		margin-bottom: 40rpx;
-	}
-	
-	.search-bar {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		background-color: #fff;
-		border-radius: 15rpx;
-		padding: 20rpx;
-		margin-bottom: 20rpx;
-		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-	}
-	
-	.search-icon {
-		margin-right: 15rpx;
-		font-size: 24rpx;
-		color: #999;
-	}
-	
-	.search-bar input {
-		flex: 1;
-		font-size: 28rpx;
-		color: #333;
-	}
-	
-	.filter-buttons {
-		display: flex;
-		flex-direction: row;
-		gap: 15rpx;
-	}
-	
-	.filter-btn {
-		flex: 1;
-		padding: 15rpx;
-		background-color: #fff;
-		border-radius: 15rpx;
-		font-size: 24rpx;
-		color: #666;
-		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-	}
-	
-	.filter-btn.active {
-		background-color: #007AFF;
-		color: #fff;
-	}
-	
-	/* 车辆列表 */
-	.vehicle-list-section {
-		margin-bottom: 60rpx;
-	}
-	
-	.section-title {
-		font-size: 28rpx;
-		font-weight: bold;
-		color: #0056b3;
-		margin-bottom: 20rpx;
-	}
-	
-	.vehicle-list {
-		background-color: #fff;
-		border-radius: 20rpx;
-		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-	}
-	
-	.vehicle-item {
+<style lang="scss">
+	.page-header {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
 		align-items: center;
-		padding: 30rpx;
-		border-bottom: 1rpx solid #f0f0f0;
-	}
-	
-	.vehicle-item:last-child {
-		border-bottom: none;
-	}
-	
-	.vehicle-info {
-		flex: 1;
-	}
-	
-	.vehicle-number {
-		font-size: 28rpx;
-		font-weight: bold;
-		color: #333;
-		margin-bottom: 8rpx;
-		display: block;
-	}
-	
-	.vehicle-type {
-		font-size: 24rpx;
-		color: #666;
-		margin-bottom: 8rpx;
-		display: block;
-	}
-	
-	.vehicle-driver {
-		font-size: 22rpx;
-		color: #999;
-		display: block;
-	}
-	
-	.vehicle-status {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		padding: 8rpx 20rpx;
-		border-radius: 20rpx;
-	}
-	
-	.vehicle-status.online {
-		background-color: #34C759;
-		color: #fff;
-	}
-	
-	.vehicle-status.offline {
-		background-color: #999;
-		color: #fff;
-	}
-	
-	.status-dot {
-		width: 12rpx;
-		height: 12rpx;
-		border-radius: 50%;
-		background-color: currentColor;
-		margin-right: 8rpx;
-	}
-	
-	.status-text {
-		font-size: 22rpx;
-	}
-	
-	/* 操作按钮 */
-	.action-buttons {
-		display: flex;
-		flex-direction: row;
-		gap: 20rpx;
-		margin-top: 40rpx;
-		padding: 30rpx;
-		background-color: #fff;
-		border-radius: 15rpx;
-		box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
-	}
-	
-	.primary-btn {
-		flex: 1;
-		padding: 25rpx;
-		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
-		color: #fff;
-		font-size: 28rpx;
-		font-weight: bold;
-		border-radius: 15rpx;
-		box-shadow: 0 4rpx 20rpx rgba(0, 122, 255, 0.3);
-	}
-	
-	.secondary-btn {
-		flex: 1;
-		padding: 25rpx;
-		background-color: #fff;
-		color: #007AFF;
-		font-size: 28rpx;
-		font-weight: bold;
-		border-radius: 15rpx;
-		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-	}
-	
-	/* 响应式设计 */
-	@media (max-width: 768px) {
-		.admin-content {
-			margin-left: 200rpx;
-			padding: 30rpx;
-		}
-	}
-	
-	@media (min-width: 1024px) {
-		.admin-content {
-			padding: 50rpx;
+		margin-bottom: 30rpx;
+		
+		.page-title {
+			font-size: 36rpx;
+			font-weight: bold;
+			color: #fff;
 		}
 		
-		.action-buttons {
-			padding: 40rpx;
+		.header-actions {
+			display: flex;
+			flex-direction: row;
+			gap: 20rpx;
+			
+			.primary-btn {
+				padding: 20rpx 40rpx;
+				background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+				color: #fff;
+				font-size: 24rpx;
+				font-weight: 500;
+				border-radius: 12rpx;
+				box-shadow: 0 4rpx 20rpx rgba(0, 122, 255, 0.3);
+			}
+			
+			.secondary-btn {
+				padding: 20rpx 40rpx;
+				background-color: #2a3347;
+				color: #fff;
+				font-size: 24rpx;
+				font-weight: 500;
+				border-radius: 12rpx;
+				border: 1rpx solid rgba(255, 255, 255, 0.1);
+			}
+		}
+	}
+	
+	.filter-section {
+		display: flex;
+		flex-direction: row;
+		gap: 30rpx;
+		margin-bottom: 30rpx;
+		
+		.search-box {
+			flex: 1;
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			background-color: #2a3347;
+			border-radius: 16rpx;
+			padding: 20rpx 30rpx;
+			
+			.search-icon {
+				font-size: 28rpx;
+				margin-right: 15rpx;
+				opacity: 0.6;
+			}
+			
+			input {
+				flex: 1;
+				font-size: 26rpx;
+				color: #fff;
+			}
+		}
+		
+		.filter-buttons {
+			display: flex;
+			flex-direction: row;
+			gap: 15rpx;
+			
+			.filter-btn {
+				padding: 15rpx 30rpx;
+				background-color: #2a3347;
+				color: rgba(255, 255, 255, 0.7);
+				font-size: 24rpx;
+				border-radius: 12rpx;
+				border: 1rpx solid rgba(255, 255, 255, 0.1);
+				
+				&.active {
+					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+					color: #fff;
+					border: none;
+				}
+			}
+		}
+	}
+	
+	.vehicle-card {
+		background-color: #2a3347;
+		border-radius: 24rpx;
+		border: 1rpx solid rgba(255, 255, 255, 0.08);
+		overflow: hidden;
+		
+		.vehicle-list {
+			.vehicle-item {
+				padding: 35rpx;
+				border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				align-items: flex-start;
+				
+				&:last-child {
+					border-bottom: none;
+				}
+				
+				.vehicle-left {
+					flex: 1;
+					
+					.vehicle-header {
+						display: flex;
+						flex-direction: row;
+						align-items: center;
+						justify-content: space-between;
+						margin-bottom: 12rpx;
+						
+						.vehicle-plate {
+							font-size: 32rpx;
+							font-weight: bold;
+							color: #fff;
+						}
+						
+						.vehicle-status {
+							display: flex;
+							flex-direction: row;
+							align-items: center;
+							padding: 8rpx 20rpx;
+							border-radius: 20rpx;
+							
+							&.online {
+								background-color: rgba(52, 199, 89, 0.2);
+								color: #34C759;
+							}
+							
+							&.offline {
+								background-color: rgba(255, 255, 255, 0.1);
+								color: rgba(255, 255, 255, 0.5);
+							}
+							
+							&.maintenance {
+								background-color: rgba(255, 149, 0, 0.2);
+								color: #FF9500;
+							}
+							
+							.status-dot {
+								width: 12rpx;
+								height: 12rpx;
+								border-radius: 50%;
+								background-color: currentColor;
+								margin-right: 10rpx;
+							}
+							
+							.status-text {
+								font-size: 22rpx;
+								font-weight: 500;
+							}
+						}
+					}
+					
+					.vehicle-type {
+						font-size: 24rpx;
+						color: rgba(255, 255, 255, 0.7);
+						margin-bottom: 8rpx;
+						display: block;
+					}
+					
+					.vehicle-driver {
+						font-size: 22rpx;
+						color: rgba(255, 255, 255, 0.6);
+						margin-bottom: 8rpx;
+						display: block;
+					}
+					
+					.vehicle-location {
+						font-size: 22rpx;
+						color: rgba(255, 255, 255, 0.5);
+						margin-bottom: 20rpx;
+						display: block;
+					}
+					
+					.progress-container {
+						display: flex;
+						flex-direction: row;
+						align-items: center;
+						gap: 15rpx;
+						
+						.progress-label {
+							font-size: 22rpx;
+							color: rgba(255, 255, 255, 0.6);
+						}
+						
+						.progress-bar {
+							flex: 1;
+							height: 10rpx;
+							background-color: rgba(255, 255, 255, 0.1);
+							border-radius: 5rpx;
+							overflow: hidden;
+							
+							.progress-fill {
+								height: 100%;
+								background: linear-gradient(90deg, #007AFF 0%, #0056b3 100%);
+								border-radius: 5rpx;
+							}
+						}
+						
+						.progress-percent {
+							font-size: 22rpx;
+							color: rgba(255, 255, 255, 0.7);
+						}
+					}
+				}
+				
+				.vehicle-right {
+					display: flex;
+					flex-direction: column;
+					align-items: flex-end;
+					
+					.action-buttons {
+						display: flex;
+						flex-direction: column;
+						gap: 15rpx;
+						
+						.action-btn {
+							padding: 12rpx 30rpx;
+							background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+							color: #fff;
+							font-size: 22rpx;
+							border-radius: 10rpx;
+							
+							&.secondary {
+								background-color: rgba(255, 255, 255, 0.1);
+								border: 1rpx solid rgba(255, 255, 255, 0.2);
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 </style>

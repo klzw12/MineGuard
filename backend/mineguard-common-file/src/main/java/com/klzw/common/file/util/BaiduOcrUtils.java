@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import tools.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -171,38 +171,53 @@ public class BaiduOcrUtils {
 
     /**
      * 身份证识别（byte[]输入）
+     * 根据useSpecialUrl配置选择API
      * @param imageData 图片二进制数据
      * @param idCardSide 身份证正反面，front：正面，back：反面
      * @return 识别结果
      */
     public String recognizeIdCard(byte[] imageData, String idCardSide) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("id_card_side", idCardSide);
-        return recognize(imageData, baiduAIProperties.getIdCardUrl(), params, "开始身份证识别, 正反面: " + idCardSide);
+        if (baiduAIProperties.isUseSpecialUrl()) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("id_card_side", idCardSide);
+            return recognize(imageData, baiduAIProperties.getIdCardUrl(), params, "开始身份证识别, 正反面: " + idCardSide);
+        } else {
+            return recognize(imageData, baiduAIProperties.getGeneralUrl(), null, "开始身份证识别(通用), 正反面: " + idCardSide);
+        }
     }
 
     /**
      * 身份证识别（File输入）
+     * 根据useSpecialUrl配置选择API
      * @param file 图片文件
      * @param idCardSide 身份证正反面，front：正面，back：反面
      * @return 识别结果
      */
     public String recognizeIdCard(File file, String idCardSide) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("id_card_side", idCardSide);
-        return recognize(file, baiduAIProperties.getIdCardUrl(), params, "开始身份证识别, 正反面: " + idCardSide);
+        if (baiduAIProperties.isUseSpecialUrl()) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("id_card_side", idCardSide);
+            return recognize(file, baiduAIProperties.getIdCardUrl(), params, "开始身份证识别, 正反面: " + idCardSide);
+        } else {
+            return recognize(file, baiduAIProperties.getGeneralUrl(), null, "开始身份证识别(通用), 正反面: " + idCardSide);
+        }
     }
 
     /**
      * 身份证识别（MultipartFile输入）
+     * 根据useSpecialUrl配置选择API
      * @param file 上传的图片文件
      * @param idCardSide 身份证正反面，front：正面，back：反面
      * @return 识别结果
      */
     public String recognizeIdCard(MultipartFile file, String idCardSide) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("id_card_side", idCardSide);
-        return recognize(file, baiduAIProperties.getIdCardUrl(), params, "开始身份证识别, 正反面: " + idCardSide);
+        if (baiduAIProperties.isUseSpecialUrl()) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("id_card_side", idCardSide);
+            return recognize(file, baiduAIProperties.getIdCardUrl(), params, "开始身份证识别, 正反面: " + idCardSide);
+        } else {
+            return recognize(file, baiduAIProperties.getGeneralUrl(), null, "开始身份证识别(通用), 正反面: " + idCardSide);
+        }
     }
 
     /**
@@ -234,65 +249,92 @@ public class BaiduOcrUtils {
 
     /**
      * 驾驶证识别（byte[]输入）
+     * 根据useSpecialUrl配置选择API
      * @param imageData 图片二进制数据
      * @return 识别结果
      */
     public String recognizeDrivingLicense(byte[] imageData) {
-        return recognize(imageData, baiduAIProperties.getDrivingLicenseUrl(), null, "开始驾驶证识别");
+        String url = baiduAIProperties.isUseSpecialUrl() 
+            ? baiduAIProperties.getDrivingLicenseUrl() 
+            : baiduAIProperties.getGeneralUrl();
+        return recognize(imageData, url, null, "开始驾驶证识别");
     }
 
     /**
      * 驾驶证识别（File输入）
+     * 根据useSpecialUrl配置选择API
      * @param file 图片文件
      * @return 识别结果
      */
     public String recognizeDrivingLicense(File file) {
-        return recognize(file, baiduAIProperties.getDrivingLicenseUrl(), null, "开始驾驶证识别");
+        String url = baiduAIProperties.isUseSpecialUrl() 
+            ? baiduAIProperties.getDrivingLicenseUrl() 
+            : baiduAIProperties.getGeneralUrl();
+        return recognize(file, url, null, "开始驾驶证识别");
     }
 
     /**
      * 驾驶证识别（MultipartFile输入）
+     * 根据useSpecialUrl配置选择API
      * @param file 上传的图片文件
      * @return 识别结果
      */
     public String recognizeDrivingLicense(MultipartFile file) {
-        return recognize(file, baiduAIProperties.getDrivingLicenseUrl(), null, "开始驾驶证识别");
+        String url = baiduAIProperties.isUseSpecialUrl() 
+            ? baiduAIProperties.getDrivingLicenseUrl() 
+            : baiduAIProperties.getGeneralUrl();
+        return recognize(file, url, null, "开始驾驶证识别");
     }
 
     /**
      * 行驶证识别（byte[]输入）
+     * 根据useSpecialUrl配置选择API
      * @param imageData 图片二进制数据
      * @param vehicleLicenseSide 行驶证正反面，front：正面，back：反面
      * @return 识别结果
      */
     public String recognizeVehicleLicense(byte[] imageData, String vehicleLicenseSide) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("vehicle_license_side", vehicleLicenseSide);
-        return recognize(imageData, baiduAIProperties.getVehicleLicenseUrl(), params, "开始行驶证识别, 正反面: " + vehicleLicenseSide);
+        if (baiduAIProperties.isUseSpecialUrl()) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("vehicle_license_side", vehicleLicenseSide);
+            return recognize(imageData, baiduAIProperties.getVehicleLicenseUrl(), params, "开始行驶证识别, 正反面: " + vehicleLicenseSide);
+        } else {
+            return recognize(imageData, baiduAIProperties.getGeneralUrl(), null, "开始行驶证识别(通用), 正反面: " + vehicleLicenseSide);
+        }
     }
 
     /**
      * 行驶证识别（File输入）
+     * 根据useSpecialUrl配置选择API
      * @param file 图片文件
      * @param vehicleLicenseSide 行驶证正反面，front：正面，back：反面
      * @return 识别结果
      */
     public String recognizeVehicleLicense(File file, String vehicleLicenseSide) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("vehicle_license_side", vehicleLicenseSide);
-        return recognize(file, baiduAIProperties.getVehicleLicenseUrl(), params, "开始行驶证识别, 正反面: " + vehicleLicenseSide);
+        if (baiduAIProperties.isUseSpecialUrl()) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("vehicle_license_side", vehicleLicenseSide);
+            return recognize(file, baiduAIProperties.getVehicleLicenseUrl(), params, "开始行驶证识别, 正反面: " + vehicleLicenseSide);
+        } else {
+            return recognize(file, baiduAIProperties.getGeneralUrl(), null, "开始行驶证识别(通用), 正反面: " + vehicleLicenseSide);
+        }
     }
 
     /**
      * 行驶证识别（MultipartFile输入）
+     * 根据useSpecialUrl配置选择API
      * @param file 上传的图片文件
      * @param vehicleLicenseSide 行驶证正反面，front：正面，back：反面
      * @return 识别结果
      */
     public String recognizeVehicleLicense(MultipartFile file, String vehicleLicenseSide) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("vehicle_license_side", vehicleLicenseSide);
-        return recognize(file, baiduAIProperties.getVehicleLicenseUrl(), params, "开始行驶证识别, 正反面: " + vehicleLicenseSide);
+        if (baiduAIProperties.isUseSpecialUrl()) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("vehicle_license_side", vehicleLicenseSide);
+            return recognize(file, baiduAIProperties.getVehicleLicenseUrl(), params, "开始行驶证识别, 正反面: " + vehicleLicenseSide);
+        } else {
+            return recognize(file, baiduAIProperties.getGeneralUrl(), null, "开始行驶证识别(通用), 正反面: " + vehicleLicenseSide);
+        }
     }
 
     /**

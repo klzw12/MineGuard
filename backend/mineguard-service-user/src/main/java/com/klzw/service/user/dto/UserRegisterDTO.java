@@ -17,15 +17,14 @@ public class UserRegisterDTO {
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{6,20}$", message = "密码长度为6-20个字符，包含至少一个大写字母、一个小写字母和一个数字")
     private String password;
 
-    @Email(message = "邮箱格式不正确")
-    private String email;
-
+    @NotBlank(message = "手机号不能为空")
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String phone;
 
-    private String realName;
+    @NotBlank(message = "短信验证码不能为空")
+    @Pattern(regexp = "^\\d{4,6}$", message = "短信验证码必须为4-6位数字")
+    private String smsCode;
 
-    private String captchaKey;
-
-    private String captchaCode;
+    @Email(message = "邮箱格式不正确")
+    private String email;
 }

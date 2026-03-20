@@ -1,0 +1,49 @@
+export const toast = {
+  /**
+   * 显示成功提示
+   * @param title 提示内容
+   * @param duration 延迟时间（默认2000ms）
+   */
+  success: (title: string, duration: number = 2000) => {
+    uni.showToast({
+      title,
+      icon: 'success',
+      duration
+    })
+  },
+  
+  /**
+   * 显示错误提示
+   * @param title 提示内容
+   * @param duration 延迟时间（默认3000ms）
+   */
+  error: (title: string, duration: number = 3000) => {
+    uni.showToast({
+      title,
+      icon: 'none',
+      duration
+    })
+  },
+  
+  /**
+   * 显示加载提示
+   * @param title 提示内容（默认"加载中..."）
+   */
+  loading: (title: string = '加载中...') => {
+    uni.showToast({
+      title,
+      icon: 'loading',
+      duration: 0,
+      mask: true
+    })
+  },
+  
+  /**
+   * 隐藏加载提示
+   */
+  hide: () => {
+    uni.hideToast()
+  }
+}
+
+export default toast

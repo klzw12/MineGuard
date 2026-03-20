@@ -9,14 +9,13 @@ import java.util.Map;
 
 /**
  * 百度OCR识别结果解析器工厂
- * 根据useSpecialUrl参数选择合适的解析器
+ * 根据useSpecialUrl参数选择合适的解析策略
  */
 @Slf4j
 @Component
 public class BaiduOcrParserFactory {
 
     private final TemplateOcrParser templateOcrParser;
-    @SuppressWarnings("unused")
     private final BaiduAIProperties baiduAIProperties;
 
     public BaiduOcrParserFactory(TemplateOcrParser templateOcrParser, BaiduAIProperties baiduAIProperties) {
@@ -26,13 +25,14 @@ public class BaiduOcrParserFactory {
 
     /**
      * 解析身份证识别结果
-     * 支持专用API和通用API两种返回格式
+     * 根据useSpecialUrl配置选择合适的解析策略
      *
      * @param ocrResult OCR识别结果
      * @return 解析后的身份证信息
      */
     public Map<String, String> parseIdCard(String ocrResult) {
         try {
+            log.debug("解析身份证识别结果, useSpecialUrl: {}", baiduAIProperties.isUseSpecialUrl());
             return templateOcrParser.parseIdCard(ocrResult);
         } catch (Exception e) {
             log.error("解析身份证识别结果失败: {}", e.getMessage(), e);
@@ -42,13 +42,14 @@ public class BaiduOcrParserFactory {
 
     /**
      * 解析驾驶证识别结果
-     * 支持专用API和通用API两种返回格式
+     * 根据useSpecialUrl配置选择合适的解析策略
      *
      * @param ocrResult OCR识别结果
      * @return 解析后的驾驶证信息
      */
     public Map<String, String> parseDrivingLicense(String ocrResult) {
         try {
+            log.debug("解析驾驶证识别结果, useSpecialUrl: {}", baiduAIProperties.isUseSpecialUrl());
             return templateOcrParser.parseDrivingLicense(ocrResult);
         } catch (Exception e) {
             log.error("解析驾驶证识别结果失败: {}", e.getMessage(), e);
@@ -88,12 +89,14 @@ public class BaiduOcrParserFactory {
 
     /**
      * 解析车牌识别结果
+     * 始终使用专用API解析策略
      *
      * @param ocrResult OCR识别结果
      * @return 解析后的车牌信息
      */
     public Map<String, String> parseLicensePlate(String ocrResult) {
         try {
+            log.debug("解析车牌识别结果, 始终使用专用API解析策略");
             return templateOcrParser.parseLicensePlate(ocrResult);
         } catch (Exception e) {
             log.error("解析车牌识别结果失败: {}", e.getMessage(), e);
@@ -103,13 +106,14 @@ public class BaiduOcrParserFactory {
 
     /**
      * 解析行驶证正面识别结果
-     * 支持专用API和通用API两种返回格式
+     * 根据useSpecialUrl配置选择合适的解析策略
      *
      * @param ocrResult OCR识别结果
      * @return 解析后的行驶证信息
      */
     public Map<String, String> parseVehicleLicenseFront(String ocrResult) {
         try {
+            log.debug("解析行驶证正面识别结果, useSpecialUrl: {}", baiduAIProperties.isUseSpecialUrl());
             return templateOcrParser.parseVehicleLicenseFront(ocrResult);
         } catch (Exception e) {
             log.error("解析行驶证识别结果失败: {}", e.getMessage(), e);
@@ -119,13 +123,14 @@ public class BaiduOcrParserFactory {
 
     /**
      * 解析行驶证反面识别结果
-     * 支持专用API和通用API两种返回格式
+     * 根据useSpecialUrl配置选择合适的解析策略
      *
      * @param ocrResult OCR识别结果
      * @return 解析后的行驶证反面信息
      */
     public Map<String, String> parseVehicleLicenseBack(String ocrResult) {
         try {
+            log.debug("解析行驶证反面识别结果, useSpecialUrl: {}", baiduAIProperties.isUseSpecialUrl());
             return templateOcrParser.parseVehicleLicenseBack(ocrResult);
         } catch (Exception e) {
             log.error("解析行驶证反面识别结果失败: {}", e.getMessage(), e);
@@ -150,6 +155,7 @@ public class BaiduOcrParserFactory {
 
     /**
      * 解析所有类型的证件识别结果
+     * 根据useSpecialUrl配置选择合适的解析策略
      *
      * @param ocrResult OCR识别结果
      * @param type      证件类型
@@ -157,6 +163,7 @@ public class BaiduOcrParserFactory {
      */
     public Map<String, String> parse(String ocrResult, String type) {
         try {
+            log.debug("解析识别结果, 类型: {}, useSpecialUrl: {}", type, baiduAIProperties.isUseSpecialUrl());
             return templateOcrParser.parse(ocrResult, type);
         } catch (Exception e) {
             log.error("解析识别结果失败: {}", e.getMessage(), e);

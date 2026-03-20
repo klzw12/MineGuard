@@ -9,7 +9,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.filter.CorsFilter;
-import org.springframework.web.multipart.MultipartResolver;
+
+import jakarta.servlet.MultipartConfigElement;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -26,7 +27,7 @@ public class WebConfigIntegrationTest {
     private WebAutoConfiguration webAutoConfiguration;
 
     @Autowired
-    private FileUploadConfig fileUploadConfig;
+    private UploadAutoConfiguration uploadAutoConfiguration;
 
     @Autowired
     private WebMvcConfig webMvcConfig;
@@ -40,11 +41,11 @@ public class WebConfigIntegrationTest {
     }
 
     @Test
-    @DisplayName("测试FileUploadConfig Bean加载")
-    public void testFileUploadConfigBeanLoaded() {
-        assertNotNull(fileUploadConfig);
-        MultipartResolver multipartResolver = applicationContext.getBean(MultipartResolver.class);
-        assertNotNull(multipartResolver);
+    @DisplayName("测试UploadAutoConfiguration Bean加载")
+    public void testUploadAutoConfigurationBeanLoaded() {
+        assertNotNull(uploadAutoConfiguration);
+        MultipartConfigElement multipartConfig = applicationContext.getBean(MultipartConfigElement.class);
+        assertNotNull(multipartConfig);
     }
 
     @Test

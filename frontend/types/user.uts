@@ -39,11 +39,17 @@ export type CaptchaVO = {
 export type UserLoginDTO = {
   username: string
   password: string
-  captchaKey?: string
-  captchaCode?: string
 }
 
 export type UserRegisterDTO = {
+  username: string
+  password: string
+  phone: string
+  smsCode: string
+  email?: string
+}
+
+export type AdminCreateUserDTO = {
   username: string
   password: string
   realName: string
@@ -52,10 +58,14 @@ export type UserRegisterDTO = {
 }
 
 export type UserUpdateDTO = {
-  realName?: string
-  phone?: string
+  username?: string
   email?: string
   avatarUrl?: string
+}
+
+export type UpdatePhoneDTO = {
+  newPhone: string
+  smsCode: string
 }
 
 export type PasswordUpdateDTO = {
@@ -69,8 +79,11 @@ export type RefreshTokenDTO = {
 }
 
 export type AdminVerifyDTO = {
-  realName: string
-  idCard: string
+  userId: string
+  realName?: string
+  idCard?: string
+  idCardFrontBase64: string
+  idCardBackBase64?: string
 }
 
 export type RoleVO = {
@@ -94,7 +107,7 @@ export type PageResult<T> = {
 }
 
 export type IdCardVerifyDTO = {
-  userId: number
+  userId: string
   realName: string
   idCard: string
   idCardFrontBase64: string
@@ -102,7 +115,7 @@ export type IdCardVerifyDTO = {
 }
 
 export type CertVerifyDTO = {
-  userId: number
+  userId: string
   personType?: number
   certNumber?: string
   drivingLicenseBase64?: string
@@ -132,9 +145,21 @@ export type RoleChangeApplyVO = {
   createTime: string
 }
 
+export type RoleChangeApplyDTO = {
+  applyRoleId: string
+  applyReason: string
+}
+
+export type HandleRoleChangeApplyDTO = {
+  status: number
+  adminOpinion?: string
+  handlerId: string
+  handlerName: string
+}
+
 export type ResetPasswordDTO = {
   phone: string
-  code: string
+  smsCode: string
   newPassword: string
 }
 
@@ -161,6 +186,21 @@ export type MessageVO = {
   readAt?: string
   businessId?: string
   businessType?: string
+}
+
+export type AttendanceVO = {
+  id: string
+  driverId: string
+  driverName: string
+  attendanceDate: string
+  checkInTime: string
+  checkOutTime: string
+  status: number
+  statusLabel: string
+  lateMinutes: number
+  earlyLeaveMinutes: number
+  remark: string
+  createTime: string
 }
 
 export type UserAppealDTO = {
@@ -191,22 +231,10 @@ export type HandleAppealDTO = {
 }
 
 export type AttendanceDTO = {
-  driverId: number
-  attendanceDate?: string
-}
-
-export type AttendanceVO = {
-  id: string
   driverId: string
-  attendanceDate: string
-  checkInTime?: string
-  checkOutTime?: string
-  status: number
-  statusLabel: string
-  lateMinutes: number
-  earlyLeaveMinutes: number
-  remark?: string
-  createTime: string
+  latitude?: number
+  longitude?: number
+  address?: string
 }
 
 export type AttendanceStatisticsVO = {

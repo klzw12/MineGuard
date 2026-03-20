@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.klzw.common.core.enums.UserStatusEnum;
 import com.klzw.common.redis.service.RedisCacheService;
+import com.klzw.common.file.impl.FileUploadServiceImpl;
 import com.klzw.service.user.dto.PasswordUpdateDTO;
 import com.klzw.service.user.dto.UserRegisterDTO;
 import com.klzw.service.user.dto.UserUpdateDTO;
@@ -16,6 +17,7 @@ import com.klzw.service.user.mapper.RoleMapper;
 import com.klzw.service.user.mapper.UserMapper;
 import com.klzw.service.user.service.UserService;
 import com.klzw.service.user.vo.UserVO;
+import com.klzw.service.user.vo.IdCardVO;
 
 import com.klzw.common.auth.util.PasswordUtils;
 import lombok.RequiredArgsConstructor;
@@ -36,9 +38,12 @@ public class UserServiceImpl implements UserService {
     private final RoleMapper roleMapper;
     private final PasswordUtils passwordUtils;
     private final RedisCacheService redisCacheService;
+    private final FileUploadServiceImpl fileUploadService;
 
     private static final String USER_CACHE_PREFIX = "user:info:";
+    private static final String AVATAR_CACHE_PREFIX = "avatar:signed_url:";
     private static final long USER_CACHE_EXPIRE = 30;
+    private static final long AVATAR_CACHE_EXPIRE_SECONDS = 7 * 24 * 3600;
 
     @Override
     public User getByUsername(String username) {
@@ -113,23 +118,18 @@ public class UserServiceImpl implements UserService {
             throw new UserException(UserResultCode.USER_NOT_FOUND);
         }
 
-        if (StringUtils.hasText(dto.getPhone()) && !dto.getPhone().equals(user.getPhone())) {
-            LambdaQueryWrapper<User> phoneWrapper = new LambdaQueryWrapper<>();
-            phoneWrapper.eq(User::getPhone, dto.getPhone());
-            phoneWrapper.ne(User::getId, id);
-            if (userMapper.selectCount(phoneWrapper) > 0) {
-                throw new UserException(UserResultCode.PHONE_EXISTS, "手机号已被使用");
+        if (StringUtils.hasText(dto.getUsername()) && !dto.getUsername().equals(user.getUsername())) {
+            LambdaQueryWrapper<User> usernameWrapper = new LambdaQueryWrapper<>();
+            usernameWrapper.eq(User::getUsername, dto.getUsername());
+            usernameWrapper.ne(User::getId, id);
+            if (userMapper.selectCount(usernameWrapper) > 0) {
+                throw new UserException(UserResultCode.USERNAME_EXISTS, "用户名已被使用");
             }
+            user.setUsername(dto.getUsername());
         }
 
         if (StringUtils.hasText(dto.getEmail())) {
             user.setEmail(dto.getEmail());
-        }
-        if (StringUtils.hasText(dto.getPhone())) {
-            user.setPhone(dto.getPhone());
-        }
-        if (StringUtils.hasText(dto.getRealName())) {
-            user.setRealName(dto.getRealName());
         }
         if (StringUtils.hasText(dto.getAvatarUrl())) {
             user.setAvatarUrl(dto.getAvatarUrl());
@@ -307,6 +307,95 @@ public class UserServiceImpl implements UserService {
         userMapper.insert(user);
 
         return String.valueOf(user.getId());
+    }
+
+    @Override
+    public UserVO updatePhone(Long userId, String newPhone) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserException(UserResultCode.USER_NOT_FOUND);
+        }
+
+        LambdaQueryWrapper<User> phoneWrapper = new LambdaQueryWrapper<>();
+        phoneWrapper.eq(User::getPhone, newPhone);
+        phoneWrapper.ne(User::getId, userId);
+        if (userMapper.selectCount(phoneWrapper) > 0) {
+            throw new UserException(UserResultCode.PHONE_EXISTS);
+        }
+
+        user.setPhone(newPhone);
+        userMapper.updateById(user);
+
+        clearUserCache(userId);
+        return getUserVOById(userId);
+    }
+
+    @Override
+    public java.util.List<UserVO> getUsersByRoleCode(String roleCode) {
+        LambdaQueryWrapper<User> userWrapper = new LambdaQueryWrapper<>();
+        userWrapper.eq(User::getStatus, UserStatusEnum.ENABLED.getValue());
+        
+        if (roleCode != null && !roleCode.isEmpty()) {
+            LambdaQueryWrapper<Role> roleWrapper = new LambdaQueryWrapper<>();
+            roleWrapper.eq(Role::getRoleCode, roleCode);
+            Role role = roleMapper.selectOne(roleWrapper);
+            if (role != null) {
+                userWrapper.eq(User::getRoleId, role.getId());
+            } else {
+                return java.util.Collections.emptyList();
+            }
+        }
+        
+        java.util.List<User> users = userMapper.selectList(userWrapper);
+        return users.stream()
+                .map(this::convertToUserVO)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public String getAvatarSignedUrl(Long userId) {
+        String cacheKey = AVATAR_CACHE_PREFIX + userId;
+        
+        String cachedUrl = redisCacheService.get(cacheKey);
+        if (cachedUrl != null && !cachedUrl.isEmpty()) {
+            return cachedUrl;
+        }
+        
+        User user = userMapper.selectById(userId);
+        if (user == null || user.getAvatarUrl() == null || user.getAvatarUrl().isEmpty()) {
+            return null;
+        }
+        
+        String signedUrl = fileUploadService.getSignedUrl(user.getAvatarUrl(), AVATAR_CACHE_EXPIRE_SECONDS);
+        
+        redisCacheService.set(cacheKey, signedUrl, AVATAR_CACHE_EXPIRE_SECONDS, TimeUnit.SECONDS);
+        
+        return signedUrl;
+    }
+
+    @Override
+    public IdCardVO getIdCardSignedUrls(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserException(UserResultCode.USER_NOT_FOUND);
+        }
+        
+        if (user.getRealName() == null || user.getRealName().isEmpty()) {
+            throw new UserException(UserResultCode.PARAM_ERROR, "用户未完成实名认证");
+        }
+        
+        IdCardVO idCardVO = new IdCardVO();
+        idCardVO.setRealName(user.getRealName());
+        
+        if (user.getIdCardFrontUrl() != null && !user.getIdCardFrontUrl().isEmpty()) {
+            idCardVO.setFrontUrl(fileUploadService.getSignedUrl(user.getIdCardFrontUrl(), 3600L));
+        }
+        
+        if (user.getIdCardBackUrl() != null && !user.getIdCardBackUrl().isEmpty()) {
+            idCardVO.setBackUrl(fileUploadService.getSignedUrl(user.getIdCardBackUrl(), 3600L));
+        }
+        
+        return idCardVO;
     }
 
     private UserVO convertToUserVO(User user) {

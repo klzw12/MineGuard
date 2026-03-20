@@ -67,8 +67,8 @@
       </view>
 
       <view class="form-actions">
-        <button class="action-btn cancel" @click="handleCancel">取消</button>
-        <button class="action-btn submit" @click="handleSubmit" :disabled="loading">
+        <button class="action-btn tac cancel" @click="handleCancel">取消</button>
+        <button class="action-btn tac submit" @click="handleSubmit" :disabled="loading">
           {{ loading ? '创建中...' : '创建' }}
         </button>
       </view>
@@ -247,6 +247,9 @@ const handleCancel = () => {
 .action-btn {
   flex: 1;
   height: 80rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   border: none;
   border-radius: 8rpx;
   font-size: 30rpx;
@@ -264,5 +267,9 @@ const handleCancel = () => {
 
 .action-btn.submit:disabled {
   background-color: #ccc;
+}
+
+.tac {
+  text-align: center;
 }
 </style>

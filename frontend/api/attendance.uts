@@ -1,34 +1,28 @@
 import { http } from '@/utils/request.uts'
-import type { AttendanceVO, AttendanceDTO, AttendanceStatisticsVO, SupplementAttendanceDTO } from '@/types/user.uts'
+import type { AttendanceVO } from '@/types/user.uts'
 
-export function checkIn(data: AttendanceDTO): Promise<AttendanceVO> {
-  return http.post<AttendanceVO>('/api/attendance/check-in', data)
+export type CheckInDTO = {
+  userId: string
+  remark?: string
 }
 
-export function checkOut(data: AttendanceDTO): Promise<AttendanceVO> {
-  return http.post<AttendanceVO>('/api/attendance/check-out', data)
+export type CheckOutDTO = {
+  userId: string
+  remark?: string
 }
 
-export function getAttendance(driverId: string): Promise<AttendanceVO> {
-  return http.get<AttendanceVO>(`/api/attendance/${driverId}`)
+export function checkInApi(dto: CheckInDTO): Promise<AttendanceVO | null> {
+  return http.post<AttendanceVO>('/api/attendance/check-in', dto)
 }
 
-export function getAttendanceList(driverId: string, params?: {
-  startDate?: string
-  endDate?: string
-  pageNum?: number
-  pageSize?: number
-}): Promise<AttendanceVO[]> {
-  return http.get<AttendanceVO[]>(`/api/attendance/${driverId}/list`, params)
+export function checkOutApi(dto: CheckOutDTO): Promise<AttendanceVO | null> {
+  return http.post<AttendanceVO>('/api/attendance/check-out', dto)
 }
 
-export function getAttendanceStatistics(driverId: string, params?: {
-  startDate?: string
-  endDate?: string
-}): Promise<AttendanceStatisticsVO> {
-  return http.get<AttendanceStatisticsVO>(`/api/attendance/${driverId}/statistics`, params)
+export function getAttendanceByDate(userId: string, date: string): Promise<AttendanceVO | null> {
+  return http.get<AttendanceVO>(`/api/attendance/user/${userId}?date=${date}`)
 }
 
-export function supplementAttendance(attendanceId: string, data: SupplementAttendanceDTO): Promise<void> {
-  return http.put<void>(`/api/attendance/${attendanceId}/supplement`, data)
+export function getAttendanceListByMonth(userId: string, yearMonth: string): Promise<AttendanceVO[] | null> {
+  return http.get<AttendanceVO[]>(`/api/attendance/user/${userId}/list?yearMonth=${yearMonth}`)
 }

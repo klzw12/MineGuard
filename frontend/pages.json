@@ -1,31 +1,204 @@
 {
-	"pages": [ 
+	"pages": [
 		{
 			"path": "pages/index/index",
 			"style": {
-				"navigationBarTitleText": "MineGuard",
-				"navigationStyle": "default"
+				"navigationBarTitleText": "MineGuard"
 			}
 		},
 		{
 			"path": "pages/auth/login",
 			"style": {
-				"navigationBarTitleText": "登录",
-				"navigationStyle": "default"
+				"navigationBarTitleText": "登录"
 			}
 		},
 		{
 			"path": "pages/auth/register",
 			"style": {
-				"navigationBarTitleText": "注册",
-				"navigationStyle": "default"
+				"navigationBarTitleText": "注册"
 			}
 		},
 		{
 			"path": "pages/auth/reset-password",
 			"style": {
-				"navigationBarTitleText": "忘记密码",
-				"navigationStyle": "default"
+				"navigationBarTitleText": "忘记密码"
+			}
+		},
+		{
+			"path": "pages/user/task/index",
+			"style": {
+				"navigationBarTitleText": "任务管理"
+			}
+		},
+		{
+			"path": "pages/user/message/index",
+			"style": {
+				"navigationBarTitleText": "消息通知"
+			}
+		},
+		{
+			"path": "pages/user/map/index",
+			"style": {
+				"navigationBarTitleText": "导航地图",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/user/fault/index",
+			"style": {
+				"navigationBarTitleText": "故障申报"
+			}
+		},
+		{
+			"path": "pages/user/profile/index",
+			"style": {
+				"navigationBarTitleText": "个人中心"
+			}
+		},
+		{
+			"path": "pages/user/home/index",
+			"style": {
+				"navigationBarTitleText": "司机中心",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/user/vehicle/index",
+			"style": {
+				"navigationBarTitleText": "车辆状态"
+			}
+		},
+		{
+			"path": "pages/user/qualification/index",
+			"style": {
+				"navigationBarTitleText": "资格认证"
+			}
+		},
+		{
+			"path": "pages/user/appeal/index",
+			"style": {
+				"navigationBarTitleText": "账号申诉"
+			}
+		},
+		{
+			"path": "pages/user/change-password/index",
+			"style": {
+				"navigationBarTitleText": "修改密码"
+			}
+		},
+		{
+			"path": "pages/user/change-phone/index",
+			"style": {
+				"navigationBarTitleText": "修改手机号"
+			}
+		},
+		{
+			"path": "pages/admin/home/index",
+			"style": {
+				"navigationBarTitleText": "管理中心",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/admin/vehicle/index",
+			"style": {
+				"navigationBarTitleText": "车辆管理"
+			}
+		},
+		{
+			"path": "pages/admin/vehicle/detail",
+			"style": {
+				"navigationBarTitleText": "车辆详情"
+			}
+		},
+		{
+			"path": "pages/admin/driver/index",
+			"style": {
+				"navigationBarTitleText": "司机管理"
+			}
+		},
+		{
+			"path": "pages/admin/user/index",
+			"style": {
+				"navigationBarTitleText": "用户管理"
+			}
+		},
+		{
+			"path": "pages/admin/role-change/index",
+			"style": {
+				"navigationBarTitleText": "角色变更申请"
+			}
+		},
+		{
+			"path": "pages/admin/monitor/index",
+			"style": {
+				"navigationBarTitleText": "安全监控"
+			}
+		},
+		{
+			"path": "pages/admin/report/index",
+			"style": {
+				"navigationBarTitleText": "统计报表"
+			}
+		},
+		{
+			"path": "pages/admin/profile/index",
+			"style": {
+				"navigationBarTitleText": "个人中心"
+			}
+		},
+		{
+			"path": "pages/admin/verify/index",
+			"style": {
+				"navigationBarTitleText": "管理员认证"
+			}
+		},
+		{
+			"path": "pages/admin/appeal/index",
+			"style": {
+				"navigationBarTitleText": "申诉管理"
+			}
+		},
+		{
+			"path": "pages/admin/create-user/index",
+			"style": {
+				"navigationBarTitleText": "创建用户"
+			}
+		},
+		{
+			"path": "pages/admin/role/index",
+			"style": {
+				"navigationBarTitleText": "角色管理"
+			}
+		},
+		{
+			"path": "pages/admin/dispatch/index",
+			"style": {
+				"navigationBarTitleText": "任务调度"
+			}
+		},
+		{
+			"path": "pages/admin/message/broadcast",
+			"style": {
+				"navigationBarTitleText": "全局广播"
+			}
+		},
+		{
+			"path": "pages/admin/message/private",
+			"style": {
+				"navigationBarTitleText": "私聊消息"
+			}
+		},
+		{
+			"path": "pages/admin/report/vehicle",
+			"style": {
+				"navigationBarTitleText": "车辆报表"
+			}
+		},
+		{
+			"path": "pages/admin/report/driver",
+			"style": {
+				"navigationBarTitleText": "司机报表"
 			}
 		}
 	],
@@ -35,24 +208,6 @@
 		"navigationBarBackgroundColor": "#F8F8F8",
 		"backgroundColor": "#F8F8F8"
 	},
-	"uniIdRouter": {
-		"loginPage": "pages/auth/login",
-		"needLogin": [
-			"pages/user/home/index",
-			"pages/user/task/index",
-			"pages/user/vehicle/index",
-			"pages/user/qualification/index",
-			"pages/user/profile/index",
-			"pages/admin/home/index",
-			"pages/admin/vehicle/index",
-			"pages/admin/driver/index",
-			"pages/admin/user/index",
-			"pages/admin/role-change/index",
-			"pages/admin/monitor/index",
-			"pages/admin/report/index",
-			"pages/admin/profile/index"
-		]
-	},
 	"tabBar": {
 		"color": "#999999",
 		"selectedColor": "#34C759",
@@ -60,22 +215,28 @@
 		"borderStyle": "black",
 		"list": [
 			{
-				"pagePath": "pages/user/home/index",
-				"text": "首页",
-				"iconPath": "static/svgs/home.svg",
-				"selectedIconPath": "static/svgs/home.svg"
-			},
-			{
 				"pagePath": "pages/user/task/index",
 				"text": "任务",
 				"iconPath": "static/svgs/report.svg",
 				"selectedIconPath": "static/svgs/report.svg"
 			},
 			{
-				"pagePath": "pages/user/vehicle/index",
-				"text": "车辆",
-				"iconPath": "static/svgs/car.svg",
-				"selectedIconPath": "static/svgs/car.svg"
+				"pagePath": "pages/user/message/index",
+				"text": "消息",
+				"iconPath": "static/svgs/message.svg",
+				"selectedIconPath": "static/svgs/message.svg"
+			},
+			{
+				"pagePath": "pages/user/map/index",
+				"text": "导航",
+				"iconPath": "static/svgs/locate.svg",
+				"selectedIconPath": "static/svgs/locate.svg"
+			},
+			{
+				"pagePath": "pages/user/fault/index",
+				"text": "故障",
+				"iconPath": "static/svgs/warn.svg",
+				"selectedIconPath": "static/svgs/warn.svg"
 			},
 			{
 				"pagePath": "pages/user/profile/index",
@@ -85,158 +246,5 @@
 			}
 		]
 	},
-	"subPackages": [
-		{
-			"root": "pages/admin",
-			"pages": [
-				{
-					"path": "home/index",
-					"style": {
-						"navigationBarTitleText": "管理中心",
-						"navigationStyle": "custom"
-					}
-				},
-				{
-					"path": "vehicle/index",
-					"style": {
-						"navigationBarTitleText": "车辆管理",
-						"navigationStyle": "default"
-					}
-				},
-				{
-					"path": "driver/index",
-					"style": {
-						"navigationBarTitleText": "司机管理",
-						"navigationStyle": "default"
-					}
-				},
-				{
-					"path": "user/index",
-					"style": {
-						"navigationBarTitleText": "用户管理",
-						"navigationStyle": "default"
-					}
-				},
-				{
-					"path": "role-change/index",
-					"style": {
-						"navigationBarTitleText": "角色变更申请",
-						"navigationStyle": "default"
-					}
-				},
-				{
-					"path": "monitor/index",
-					"style": {
-						"navigationBarTitleText": "安全监控",
-						"navigationStyle": "default"
-					}
-				},
-				{
-					"path": "report/index",
-					"style": {
-						"navigationBarTitleText": "统计报表",
-						"navigationStyle": "default"
-					}
-				},
-				{
-			"path": "profile/index",
-					"style": {
-						"navigationBarTitleText": "个人中心",
-						"navigationStyle": "default"
-					}
-				},
-				{
-					"path": "verify/index",
-					"style": {
-						"navigationBarTitleText": "管理员认证",
-						"navigationStyle": "default"
-					}
-				}
-			]
-		},
-		{
-			"root": "pages/user",
-			"pages": [
-				{
-					"path": "home/index",
-					"style": {
-						"navigationBarTitleText": "司机中心",
-						"navigationStyle": "custom"
-					}
-				},
-				{
-					"path": "task/index",
-					"style": {
-						"navigationBarTitleText": "任务管理",
-						"navigationStyle": "default"
-					}
-				},
-				{
-					"path": "vehicle/index",
-					"style": {
-						"navigationBarTitleText": "车辆状态",
-						"navigationStyle": "default"
-					}
-				},
-				{
-					"path": "qualification/index",
-					"style": {
-						"navigationBarTitleText": "资格认证",
-						"navigationStyle": "default"
-					}
-				},
-				{
-					"path": "profile/index",
-					"style": {
-						"navigationBarTitleText": "个人中心",
-						"navigationStyle": "default"
-					}
-				}
-			]
-		}
-	],
-	"adminTabBar": {
-		"color": "#999999",
-		"selectedColor": "#007AFF",
-		"backgroundColor": "#FFFFFF",
-		"borderStyle": "black",
-		"list": [
-			{
-				"pagePath": "pages/admin/home/index",
-				"text": "首页",
-				"iconPath": "static/svgs/home.svg",
-				"selectedIconPath": "static/svgs/home.svg"
-			},
-			{
-				"pagePath": "pages/admin/vehicle/index",
-				"text": "车辆",
-				"iconPath": "static/svgs/car.svg",
-				"selectedIconPath": "static/svgs/car.svg"
-			},
-			{
-				"pagePath": "pages/admin/driver/index",
-				"text": "司机",
-				"iconPath": "static/svgs/user.svg",
-				"selectedIconPath": "static/svgs/user.svg"
-			},
-			{
-				"pagePath": "pages/admin/monitor/index",
-				"text": "监控",
-				"iconPath": "static/svgs/camera.svg",
-				"selectedIconPath": "static/svgs/camera.svg"
-			},
-			{
-				"pagePath": "pages/admin/report/index",
-				"text": "报表",
-				"iconPath": "static/svgs/report.svg",
-				"selectedIconPath": "static/svgs/report.svg"
-			},
-			{
-				"pagePath": "pages/admin/profile/index",
-				"text": "我的",
-				"iconPath": "static/svgs/setting.svg",
-				"selectedIconPath": "static/svgs/setting.svg"
-			}
-		]
-	}
+	"uniIdRouter": {}
 }

@@ -21,7 +21,7 @@ public class ExceptionHandlerRegistry {
      * 额外策略会被插入到默认策略之前，优先级高于 Default、低于 Business/System。
      */
     public ExceptionHandlerRegistry(List<ExceptionHandlerStrategy> extraStrategies) {
-        // 默认注册的异常处理策略
+        strategies.add(new MaxUploadSizeExceededExceptionHandlerStrategy());
         strategies.add(new BusinessExceptionHandlerStrategy());
         strategies.add(new SystemExceptionHandlerStrategy());
         strategies.add(new DefaultExceptionHandlerStrategy());

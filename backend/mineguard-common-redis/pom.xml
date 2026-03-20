@@ -46,12 +46,7 @@
             </exclusions>
         </dependency>
         
-        <!-- Jackson 3.x (tools.jackson) 依赖 - 用于 JSON 序列化 -->
-        <dependency>
-            <groupId>tools.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${tools-jackson.version}</version>
-        </dependency>
+
 
         <dependency>
             <groupId>com.klzw</groupId>
@@ -59,25 +54,11 @@
             <version>${mineguard.version}</version>
         </dependency>
         
-        <!-- Redisson - 排除旧的 jackson 依赖 -->
+        <!-- Redisson -->
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson-spring-boot-starter</artifactId>
             <version>${redisson.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.dataformat</groupId>
-                    <artifactId>jackson-dataformat-yaml</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         
         <dependency>
@@ -99,37 +80,7 @@
 
     <build>
         <plugins>
-            <!-- 配置模块禁止使用 com.fasterxml.jackson -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.6.2</version>
-                <executions>
-                    <execution>
-                        <id>enforce-no-fasterxml-jackson</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <bannedDependencies>
-                                    <excludes>
-                                        <exclude>com.fasterxml.jackson.core:*</exclude>
-                                        <exclude>com.fasterxml.jackson.dataformat:*</exclude>
-                                        <exclude>com.fasterxml.jackson.datatype:*</exclude>
-                                        <exclude>com.fasterxml.jackson.module:*</exclude>
-                                    </excludes>
-                                    <includes>
-                                        <!-- 注解包是允许的 -->
-                                        <include>com.fasterxml.jackson.core:jackson-annotations</include>
-                                    </includes>
-                                    <message>配置模块（common-*）严格禁止使用 com.fasterxml.jackson，必须使用 tools.jackson</message>
-                                </bannedDependencies>
-                            </rules>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

@@ -12,13 +12,13 @@
 			
 			<!-- 用户信息 -->
 			<view class="user-info-section">
-				<view class="avatar-container">
-					<image class="avatar" src="/static/avatar/Minecraft.png"></image>
+				<view class="avatar-container" @click="openEditModal">
+					<image class="avatar" :src="userInfo.avatarUrl || '/static/avatar/Minecraft.png'"></image>
 				</view>
 				<view class="user-details">
-					<text class="username">管理员</text>
-					<text class="user-role">管理员角色</text>
-					<text class="user-email">admin@mineguard.com</text>
+					<text class="username">{{ userInfo.realName || userInfo.username }}</text>
+					<text class="user-role">{{ userInfo.roleName || '管理员' }}</text>
+					<text class="user-email">{{ userInfo.email || '未设置邮箱' }}</text>
 				</view>
 			</view>
 			
@@ -46,15 +46,127 @@
 				<text class="version-text">MineGuard v1.0.0</text>
 			</view>
 		</view>
+		
+		<!-- 编辑资料模态框 -->
+		<view v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
+			<view class="modal-content" @click.stop>
+				<text class="modal-title">编辑资料</text>
+				
+				<view class="form-item">
+					<text class="form-label">用户名</text>
+					<input 
+						class="form-input" 
+						type="text" 
+						v-model="editForm.username" 
+						placeholder="请输入用户名(2-20个字符)"
+						placeholder-style="color: #999"
+					/>
+				</view>
+				
+				<view class="form-item">
+					<text class="form-label">邮箱</text>
+					<input 
+						class="form-input" 
+						type="text" 
+						v-model="editForm.email" 
+						placeholder="请输入邮箱"
+						placeholder-style="color: #999"
+					/>
+				</view>
+				
+				<view class="modal-actions">
+					<view class="modal-btn cancel" @click="closeEditModal">
+						<text>取消</text>
+					</view>
+					<view class="modal-btn confirm" @click="saveProfile">
+						<text>保存</text>
+					</view>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
-	import { ref } from 'vue'
+	import { ref, onMounted } from 'vue'
 	import AdminSidebar from '../../../components/AdminSidebar.uvue'
+	import { getCurrentUser, updateUser, uploadAvatar } from '@/api/user.uts'
+	import { logout as logoutApi } from '@/api/auth.uts'
+	import type { UserVO, UserUpdateDTO } from '@/types/user.uts'
 	
 	const menuIcons = ['⚙️', '🔐', '📋', 'ℹ️']
 	const menuTexts = ['系统设置', '账号安全', '操作日志', '关于系统']
+	
+	const userInfo = ref<UserVO>({
+		id: '',
+		username: '',
+		realName: '',
+		phone: '',
+		email: '',
+		avatarUrl: '',
+		status: 0,
+		roleId: '',
+		roleCode: '',
+		roleName: '',
+		createTime: '',
+		updateTime: ''
+	})
+	
+	const showEditModal = ref(false)
+	const editForm = ref<UserUpdateDTO>({
+		username: '',
+		email: ''
+	})
+	
+	async function loadUserInfo() {
+		try {
+			const result = await getCurrentUser()
+			if (result) {
+				userInfo.value = result
+			}
+		} catch (e) {
+			console.error('获取用户信息失败', e)
+		}
+	}
+	
+	function openEditModal() {
+		editForm.value.username = userInfo.value.username
+		editForm.value.email = userInfo.value.email || ''
+		showEditModal.value = true
+	}
+	
+	function closeEditModal() {
+		showEditModal.value = false
+	}
+	
+	async function saveProfile() {
+		if (!editForm.value.username || editForm.value.username.length < 2 || editForm.value.username.length > 20) {
+			uni.showToast({
+				title: '用户名长度为2-20个字符',
+				icon: 'none',
+				position: 'bottom'
+			})
+			return
+		}
+		try {
+			const result = await updateUser(userInfo.value.id, editForm.value)
+			if (result) {
+				userInfo.value = result
+			}
+			showEditModal.value = false
+			uni.showToast({
+				title: '保存成功',
+				icon: 'success',
+				position: 'bottom'
+			})
+		} catch (e: any) {
+			uni.showToast({
+				title: e.message || '保存失败',
+				icon: 'none',
+				position: 'bottom'
+			})
+		}
+	}
 	
 	function handleLogout() {
 		uni.showModal({
@@ -62,14 +174,18 @@
 			content: '确定要退出登录吗？',
 			confirmText: '确定',
 			cancelText: '取消',
-			success: (res) => {
+			success: async (res) => {
 				if (res.confirm) {
-					// 清除登录状态
+					try {
+						await logoutApi()
+					} catch (e) {
+						console.error('登出失败', e)
+					}
 					uni.removeStorageSync('loginStatus')
 					uni.removeStorageSync('userRole')
-					uni.removeStorageSync('username')
+					uni.removeStorageSync('userInfo')
+					uni.removeStorageSync('token')
 					
-					// 跳转到登录页面
 					uni.navigateTo({
 						url: '/pages/admin/login/index'
 					})
@@ -77,6 +193,10 @@
 			}
 		})
 	}
+	
+	onMounted(() => {
+		loadUserInfo()
+	})
 </script>
 
 <style>
@@ -243,5 +363,86 @@
 		.admin-content {
 			padding: 50rpx;
 		}
+	}
+	
+	/* 模态框 */
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+	}
+	
+	.modal-content {
+		width: 85%;
+		max-width: 600rpx;
+		background-color: #FFFFFF;
+		border-radius: 20rpx;
+		padding: 40rpx;
+	}
+	
+	.modal-title {
+		font-size: 32rpx;
+		font-weight: bold;
+		color: #333333;
+		margin-bottom: 30rpx;
+		display: block;
+		text-align: center;
+	}
+	
+	.form-item {
+		margin-bottom: 25rpx;
+	}
+	
+	.form-label {
+		font-size: 26rpx;
+		color: #666666;
+		margin-bottom: 10rpx;
+		display: block;
+	}
+	
+	.form-input {
+		width: 100%;
+		height: 80rpx;
+		background-color: #F5F7FA;
+		border-radius: 10rpx;
+		padding: 0 20rpx;
+		font-size: 28rpx;
+		color: #333333;
+		box-sizing: border-box;
+	}
+	
+	.modal-actions {
+		display: flex;
+		flex-direction: row;
+		gap: 20rpx;
+		margin-top: 30rpx;
+	}
+	
+	.modal-btn {
+		flex: 1;
+		height: 80rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border-radius: 10rpx;
+		font-size: 28rpx;
+	}
+	
+	.modal-btn.cancel {
+		background-color: #F5F7FA;
+		color: #666666;
+	}
+	
+	.modal-btn.confirm {
+		background-color: #007AFF;
+		color: #FFFFFF;
 	}
 </style>

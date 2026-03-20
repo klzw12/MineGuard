@@ -1,29 +1,40 @@
 import { http } from '@/utils/request.uts'
-import type { UserVO, UserRegisterDTO, UserUpdateDTO, PasswordUpdateDTO, PageResult, AssignRoleDTO, RoleVO, QualificationVerifyDTO, RoleChangeApplyVO } from '@/types/api/user.uts'
+import type { UserVO, UserRegisterDTO, UserUpdateDTO, UpdatePhoneDTO, PasswordUpdateDTO, PageResult, RoleVO, RoleChangeApplyVO, RoleChangeApplyDTO, AdminCreateUserDTO } from '@/types/user.uts'
 
-export function register(data: UserRegisterDTO): Promise<UserVO> {
-  return http.post<UserVO>('/api/user/register', data)
+export function register(data: UserRegisterDTO): Promise<UserVO | null> {
+  return http.post<UserVO>('/api/auth/register', data)
 }
 
-export function getCurrentUser(): Promise<UserVO> {
+export function adminCreateUser(data: AdminCreateUserDTO): Promise<UserVO | null> {
+  return http.post<UserVO>('/api/user/admin/create', data)
+}
+
+export function getCurrentUser(): Promise<UserVO | null> {
   return http.get<UserVO>('/api/user/current')
 }
 
-export function updateUser(id: string, data: UserUpdateDTO): Promise<UserVO> {
+export function updateUser(id: string, data: UserUpdateDTO): Promise<UserVO | null> {
   return http.put<UserVO>(`/api/user/${id}`, data)
 }
 
-export function updatePassword(data: PasswordUpdateDTO): Promise<void> {
+export function updatePassword(data: PasswordUpdateDTO): Promise<void | null> {
   return http.put<void>('/api/user/password', data)
 }
 
-// 管理员接口
+export function updatePhone(data: UpdatePhoneDTO): Promise<UserVO | null> {
+  return http.put<UserVO>('/api/user/phone', data)
+}
+
+export function getUserById(id: string): Promise<UserVO | null> {
+  return http.get<UserVO>(`/api/user/${id}`)
+}
+
 export function adminPageUsers(params: {
   pageNum?: number
   pageSize?: number
   username?: string
   status?: number
-}): Promise<PageResult<UserVO>> {
+}): Promise<PageResult<UserVO> | null> {
   return http.get<PageResult<UserVO>>('/api/user/admin/page', params)
 }
 
@@ -32,100 +43,121 @@ export function pageUsers(params: {
   pageSize?: number
   username?: string
   status?: number
-}): Promise<PageResult<UserVO>> {
+}): Promise<PageResult<UserVO> | null> {
   return adminPageUsers(params)
 }
 
-export function adminGetUserById(id: string): Promise<UserVO> {
-  return http.get<UserVO>(`/api/user/admin/api/user/${id}`)
+export function adminDisableUser(id: string): Promise<void | null> {
+  return http.put<void>(`/api/user/${id}/disable`)
 }
 
-export function adminDisableUser(id: string): Promise<void> {
-  return http.put<void>(`/api/user/admin/api/user/${id}/disable`)
-}
-
-export function disableUser(id: string): Promise<void> {
+export function disableUser(id: string): Promise<void | null> {
   return adminDisableUser(id)
 }
 
-export function adminEnableUser(id: string): Promise<void> {
-  return http.put<void>(`/api/user/admin/api/user/${id}/enable`)
+export function adminEnableUser(id: string): Promise<void | null> {
+  return http.put<void>(`/api/user/${id}/enable`)
 }
 
-export function enableUser(id: string): Promise<void> {
+export function enableUser(id: string): Promise<void | null> {
   return adminEnableUser(id)
 }
 
-export function adminChangeUserRole(id: string, roleId: string, reason?: string): Promise<void> {
-  return http.put<void>(`/api/user/admin/api/user/${id}/api/role-change`, { roleId, reason })
+export function assignRole(userId: string, roleId: string): Promise<void | null> {
+  return http.put<void>(`/api/user/${userId}/role?roleId=${roleId}`)
 }
 
-export function assignRoles(userId: string, data: { roleIds: string[] }): Promise<void> {
-  return adminChangeUserRole(userId, data.roleIds[0])
+export function changeUserRole(userId: string, roleId: string, reason?: string): Promise<void | null> {
+  const url = `/api/user/admin/user/${userId}/role-change?roleId=${roleId}${reason ? `&reason=${reason}` : ''}`
+  return http.put<void>(url)
 }
 
-export function getUserRoles(userId: string): Promise<RoleVO[]> {
-  return http.get<RoleVO[]>(`/api/user/admin/api/user/${userId}/api/roles`)
+export function createRoleChangeApply(data: RoleChangeApplyDTO): Promise<string | null> {
+  return http.post<string>('/api/user/admin/role-change/apply', data)
 }
 
-// 角色变更申请接口
-export function getPendingRoleChangeApplies(): Promise<RoleChangeApplyVO[]> {
-  return http.get<RoleChangeApplyVO[]>('/api/user/admin/api/role-change/apply/pending')
+export function getMyRoleChangeApplies(): Promise<RoleChangeApplyVO[] | null> {
+  return http.get<RoleChangeApplyVO[]>('/api/user/admin/role-change/apply/my')
 }
 
-export function getAllRoleChangeApplies(): Promise<RoleChangeApplyVO[]> {
-  return http.get<RoleChangeApplyVO[]>('/api/user/admin/api/role-change/apply/list')
+export function getPendingRoleChangeApplies(): Promise<RoleChangeApplyVO[] | null> {
+  return http.get<RoleChangeApplyVO[]>('/api/user/admin/role-change/apply/pending')
 }
 
-export function getRoleChangeAppliesByUserId(userId: string): Promise<RoleChangeApplyVO[]> {
-  return http.get<RoleChangeApplyVO[]>(`/api/user/admin/api/role-change/apply/api/user/${userId}`)
+export function getAllRoleChangeApplies(): Promise<RoleChangeApplyVO[] | null> {
+  return http.get<RoleChangeApplyVO[]>('/api/user/admin/role-change/apply/list')
 }
 
-export function handleRoleChangeApply(id: string, status: number, adminOpinion?: string, handlerId: string, handlerName: string): Promise<void> {
-  return http.put<void>(`/api/user/admin/api/role-change/apply/${id}/handle`, { status, adminOpinion, handlerId, handlerName })
+export function getRoleChangeAppliesByUserId(userId: string): Promise<RoleChangeApplyVO[] | null> {
+  return http.get<RoleChangeApplyVO[]>(`/api/user/admin/role-change/apply/user/${userId}`)
 }
 
-// 资格认证接口
-export function verifyDriverQualification(data: QualificationVerifyDTO): Promise<boolean> {
-  return http.post<boolean>('/api/qualification/verify/driver', data)
+export function handleRoleChangeApply(id: string, status: number, adminOpinion?: string, handlerId?: string, handlerName?: string): Promise<void | null> {
+  return http.put<void>(`/api/user/admin/role-change/apply/${id}/handle`, { status, adminOpinion, handlerId, handlerName })
 }
 
-export function verifySafetyOfficerQualification(data: QualificationVerifyDTO): Promise<boolean> {
-  return http.post<boolean>('/api/qualification/verify/safety-officer', data)
+export function getAllRoles(): Promise<RoleVO[] | null> {
+  return http.get<RoleVO[]>('/api/roles')
 }
 
-export function verifyRepairmanQualification(data: QualificationVerifyDTO): Promise<boolean> {
-  return http.post<boolean>('/api/qualification/verify/repairman', data)
+export function getUsersByRole(roleCode?: string): Promise<UserVO[] | null> {
+  const url = roleCode ? `/api/user/list?roleCode=${roleCode}` : '/api/user/list'
+  return http.get<UserVO[]>(url)
 }
 
-// 角色管理接口
-export function getAllRoles(): Promise<RoleVO[]> {
-  return http.get<RoleVO[]>('/api/role/list')
-}
-
-export function getRoleById(id: string): Promise<RoleVO> {
+export function getRoleById(id: string): Promise<RoleVO | null> {
   return http.get<RoleVO>(`/api/role/${id}`)
 }
 
-export function createRole(data: RoleVO): Promise<RoleVO> {
+export function createRole(data: RoleVO): Promise<RoleVO | null> {
   return http.post<RoleVO>('/api/role', data)
 }
 
-export function updateRole(id: string, data: RoleVO): Promise<RoleVO> {
+export function updateRole(id: string, data: RoleVO): Promise<RoleVO | null> {
   return http.put<RoleVO>(`/api/role/${id}`, data)
 }
 
-export function deleteRole(id: string): Promise<boolean> {
+export function deleteRole(id: string): Promise<boolean | null> {
   return http.delete<boolean>(`/api/role/${id}`)
 }
 
-// 上传用户头像
-export function uploadAvatar(file: any): Promise<UserVO> {
-  const formData = new FormData()
-  formData.append('file', file)
-  return http.post<UserVO>('/api/user/avatar', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+export function uploadAvatar(filePath: string): Promise<UserVO | null> {
+  return new Promise((resolve, reject) => {
+    const token = uni.getStorageSync('token') || ''
+    uni.uploadFile({
+      url: 'http://localhost:8080/api/user/avatar',
+      filePath: filePath,
+      name: 'file',
+      header: {
+        'Authorization': `Bearer ${token}`
+      },
+      success: async (res) => {
+        const data = JSON.parse(res.data) as { code: number, message: string, data: UserVO }
+        if (data.code === 200) {
+          resolve(data.data)
+        } else if (data.code === 401) {
+          reject(new Error('登录已过期，请重新登录'))
+        } else {
+          reject(new Error(data.message || '上传失败'))
+        }
+      },
+      fail: (err) => {
+        reject(err)
+      }
+    })
   })
+}
+
+export function getAvatarSignedUrl(): Promise<string | null> {
+  return http.get<string>('/api/user/avatar/signed-url')
+}
+
+export function getIdCardSignedUrls(): Promise<IdCardVO | null> {
+  return http.get<IdCardVO>('/api/user/id-card/signed-urls')
+}
+
+export type IdCardVO = {
+  frontUrl: string
+  backUrl: string
+  realName: string
 }

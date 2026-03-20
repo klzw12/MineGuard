@@ -1,413 +1,599 @@
 <template>
-	<view class="task-container">
-		<!-- 顶部导航栏 -->
-		<view class="navbar">
-			<text class="navbar-title">任务管理</text>
-			<button class="navbar-btn" @click="refreshTasks">
-				<text class="btn-icon">🔄</text>
-			</button>
+	<view class="user-task-container">
+		<view class="top-navbar">
+			<text class="navbar-title">我的任务</text>
 		</view>
 		
-		<!-- 任务状态筛选 -->
-		<view class="filter-section">
-			<scroll-view scroll-x="true" class="filter-scroll">
-				<view class="filter-item" :class="{ active: currentFilter === 'all' }" @click="setFilter('all')">
-					<text>全部</text>
+		<!-- 出勤打卡区域 -->
+		<view class="attendance-section">
+			<view class="attendance-card">
+				<view class="attendance-header">
+					<text class="attendance-title">今日出勤</text>
+					<text class="attendance-date">{{ todayDate }}</text>
 				</view>
-				<view class="filter-item" :class="{ active: currentFilter === 'pending' }" @click="setFilter('pending')">
-					<text>待处理</text>
-				</view>
-				<view class="filter-item" :class="{ active: currentFilter === 'inProgress' }" @click="setFilter('inProgress')">
-					<text>进行中</text>
-				</view>
-				<view class="filter-item" :class="{ active: currentFilter === 'completed' }" @click="setFilter('completed')">
-					<text>已完成</text>
-				</view>
-			</scroll-view>
-		</view>
-		
-		<!-- 任务列表 -->
-		<view class="task-list">
-			<view v-for="task in filteredTasks" :key="task.id" class="task-card" :class="getTaskStatusClass(task.status)">
-				<view class="task-header">
-					<text class="task-title">{{ task.title }}</text>
-					<view class="task-status" :class="getTaskStatusClass(task.status)">
-						<text>{{ getTaskStatusText(task.status) }}</text>
+				
+				<view class="attendance-status" v-if="attendanceInfo">
+					<view class="status-row">
+						<view class="status-item">
+							<text class="status-label">上班打卡</text>
+							<text class="status-value" :class="attendanceInfo.checkInTime ? 'success' : 'pending'">
+								{{ attendanceInfo.checkInTime ? formatTime(attendanceInfo.checkInTime) : '未打卡' }}
+							</text>
+						</view>
+						<view class="status-item">
+							<text class="status-label">下班打卡</text>
+							<text class="status-value" :class="attendanceInfo.checkOutTime ? 'success' : 'pending'">
+								{{ attendanceInfo.checkOutTime ? formatTime(attendanceInfo.checkOutTime) : '未打卡' }}
+							</text>
+						</view>
+					</view>
+					<view class="status-badge" :class="getStatusClass(attendanceInfo.status)">
+						<text>{{ attendanceInfo.statusLabel || '待打卡' }}</text>
 					</view>
 				</view>
 				
-				<view class="task-body">
-					<text class="task-description">{{ task.description }}</text>
-					<view class="task-info">
-						<view class="info-item">
-							<text class="info-label">开始时间：</text>
-							<text class="info-value">{{ task.startTime }}</text>
-						</view>
-						<view class="info-item">
-							<text class="info-label">截止时间：</text>
-							<text class="info-value">{{ task.endTime }}</text>
-						</view>
-					</view>
-				</view>
-				
-				<view class="task-footer">
-					<view class="task-progress" v-if="task.status !== 'completed'">
-						<view class="progress-bar">
-							<view class="progress-fill" :style="{ width: task.progress + '%' }"></view>
-						</view>
-						<text class="progress-text">{{ task.progress }}%</text>
-					</view>
-					<button class="task-btn" @click="viewTaskDetail(task)">
-						<text>查看详情</text>
+				<view class="attendance-actions">
+					<button 
+						class="check-btn" 
+						:class="{ disabled: attendanceInfo?.checkInTime }"
+						:disabled="!!attendanceInfo?.checkInTime"
+						@click="checkIn"
+					>
+						<text>{{ attendanceInfo?.checkInTime ? '已打卡' : '上班打卡' }}</text>
+					</button>
+					<button 
+						class="check-btn check-out" 
+						:class="{ disabled: !attendanceInfo?.checkInTime || attendanceInfo?.checkOutTime }"
+						:disabled="!attendanceInfo?.checkInTime || !!attendanceInfo?.checkOutTime"
+						@click="checkOut"
+					>
+						<text>{{ attendanceInfo?.checkOutTime ? '已打卡' : '下班打卡' }}</text>
 					</button>
 				</view>
 			</view>
+		</view>
+		
+		<scroll-view scroll-x="true" class="tab-scroll">
+			<view class="tab-list">
+				<view 
+					v-for="(tab, index) in tabs" 
+					:key="index"
+					:class="['tab-item', { active: activeTab === index }]"
+					@click="activeTab = index"
+				>
+					<text>{{ tab }}</text>
+				</view>
+			</view>
+		</scroll-view>
+		
+		<view class="content-area">
+			<view v-for="task in currentTasks" :key="task.id" class="task-card">
+				<view class="task-header">
+					<view class="task-info">
+						<text class="task-title">{{ task.title }}</text>
+						<text class="task-time">{{ task.time }}</text>
+					</view>
+					<view :class="['status-badge', task.status]">
+						<text>{{ task.statusText }}</text>
+					</view>
+				</view>
+				
+				<view class="task-desc">
+					<text>{{ task.desc }}</text>
+				</view>
+				
+				<view class="task-footer">
+					<view class="task-location">
+						<text class="icon">📍</text>
+						<text class="location-text">{{ task.location }}</text>
+					</view>
+					<view class="task-action" @click="viewTask(task)">
+						<text>查看详情</text>
+						<text class="arrow">›</text>
+					</view>
+				</view>
+			</view>
 			
-			<!-- 空状态 -->
-			<view v-if="filteredTasks.length === 0" class="empty-state">
+			<view v-if="currentTasks.length === 0" class="empty-state">
 				<text class="empty-icon">📋</text>
 				<text class="empty-text">暂无任务</text>
-				<text class="empty-desc">请稍后刷新或联系管理员分配任务</text>
+				<text class="empty-desc">等待调度系统派单</text>
 			</view>
 		</view>
 	</view>
 </template>
 
-<script lang="uts">
-	export default {
-		data() {
-			return {
-				currentFilter: 'all',
-				tasks: [
-					{
-						id: 1,
-						title: '矿区巡检',
-						description: '对矿区1号区域进行安全巡检，检查设备运行状态和安全隐患',
-						status: 'inProgress',
-						progress: 60,
-						startTime: '2026-02-20 08:00',
-						endTime: '2026-02-20 12:00'
-					},
-					{
-						id: 2,
-						title: '车辆维护',
-						description: '对编号为KG-001的矿车进行日常维护和检查',
-						status: 'pending',
-						progress: 0,
-						startTime: '2026-02-20 14:00',
-						endTime: '2026-02-20 16:00'
-					},
-					{
-						id: 3,
-						title: '物资运输',
-						description: '将矿区A的物资运输到矿区B仓库',
-						status: 'completed',
-						progress: 100,
-						startTime: '2026-02-19 09:00',
-						endTime: '2026-02-19 11:00'
-					}
-				]
-			}
+<script setup lang="uts">
+	import { ref, computed, onMounted } from 'vue'
+	import { onShow } from '@dcloudio/uni-app'
+	import { useUserStore } from '@/stores/user.uts'
+	import { checkInApi, checkOutApi, getAttendanceByDate } from '@/api/attendance.uts'
+	import { toast } from '@/utils/toast.uts'
+	import type { AttendanceVO } from '@/types/user.uts'
+	
+	const userStore = useUserStore()
+	
+	const activeTab = ref(0)
+	const tabs = ['全部', '待接单', '进行中', '已完成']
+	const attendanceInfo = ref<AttendanceVO | null>(null)
+	const submitting = ref(false)
+	
+	const todayDate = computed(() => {
+		const now = new Date()
+		return `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`
+	})
+	
+	const tasks = ref([
+		{
+			id: 1,
+			title: '矿石运输任务',
+			time: '2026-02-20 08:00',
+			status: 'pending',
+			statusText: '待接单',
+			desc: '从A区运输矿石到B区仓库，预计运输时间2小时',
+			location: '矿区A - 矿区B'
 		},
-		computed: {
-			filteredTasks() {
-				if (this.currentFilter === 'all') {
-					return this.tasks;
-				} else {
-					return this.tasks.filter(task => task.status === this.currentFilter);
-				}
-			}
+		{
+			id: 2,
+			title: '设备巡检任务',
+			time: '2026-02-20 10:00',
+			status: 'inProgress',
+			statusText: '进行中',
+			desc: '对3号采矿区设备进行安全巡检',
+			location: '3号采矿区'
 		},
-		methods: {
-			setFilter(filter) {
-				this.currentFilter = filter;
-			},
-			refreshTasks() {
-				// 刷新任务列表
-				uni.showToast({
-					title: '任务列表已刷新',
-					icon: 'success',
-					position: 'bottom'
-				});
-			},
-			getTaskStatusClass(status) {
-				switch (status) {
-					case 'pending': return 'status-pending';
-					case 'inProgress': return 'status-in-progress';
-					case 'completed': return 'status-completed';
-					default: return '';
-				}
-			},
-			getTaskStatusText(status) {
-				switch (status) {
-					case 'pending': return '待处理';
-					case 'inProgress': return '进行中';
-					case 'completed': return '已完成';
-					default: return '未知';
-				}
-			},
-			viewTaskDetail(task) {
-				// 查看任务详情
-				uni.showToast({
-					title: `查看任务：${task.title}`,
-					icon: 'none',
-					position: 'bottom'
-				});
-			}
+		{
+			id: 3,
+			title: '物资配送任务',
+			time: '2026-02-19 14:00',
+			status: 'completed',
+			statusText: '已完成',
+			desc: '配送安全防护用品到各作业点',
+			location: '仓库 - 各作业点'
 		}
+	])
+	
+	const currentTasks = computed(() => {
+		if (activeTab.value === 0) return tasks.value
+		const statusMap = ['all', 'pending', 'inProgress', 'completed']
+		return tasks.value.filter(t => t.status === statusMap[activeTab.value])
+	})
+	
+	onMounted(() => {
+		if (!userStore.userInfo.value) {
+			userStore.loadFromStorage()
+		}
+		loadTodayAttendance()
+	})
+	
+	onShow(() => {
+		loadTodayAttendance()
+	})
+	
+	async function loadTodayAttendance() {
+		const uid = userStore.userInfo.value?.id
+		if (!uid) return
+		
+		try {
+			const today = new Date()
+			const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+			const data = await getAttendanceByDate(uid, dateStr)
+			attendanceInfo.value = data
+		} catch (e) {
+		}
+	}
+	
+	function formatTime(time: string): string {
+		if (!time) return ''
+		const date = new Date(time)
+		return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+	}
+	
+	function getStatusClass(status: number): string {
+		if (status === 1) return 'normal'
+		if (status === 2) return 'late'
+		if (status === 3) return 'early'
+		return 'pending'
+	}
+	
+	async function checkIn() {
+		if (attendanceInfo.value?.checkInTime) return
+		
+		const uid = userStore.userInfo.value?.id
+		if (!uid) {
+			toast.error('用户信息不存在')
+			return
+		}
+		
+		submitting.value = true
+		toast.loading('打卡中...')
+		
+		try {
+			const data = await checkInApi({ userId: uid })
+			if (data) {
+				attendanceInfo.value = data
+				toast.success('上班打卡成功')
+			}
+		} catch (e: any) {
+			toast.error(e.message || '打卡失败')
+		} finally {
+			submitting.value = false
+		}
+	}
+	
+	async function checkOut() {
+		if (!attendanceInfo.value?.checkInTime || attendanceInfo.value?.checkOutTime) return
+		
+		const uid = userStore.userInfo.value?.id
+		if (!uid) {
+			toast.error('用户信息不存在')
+			return
+		}
+		
+		submitting.value = true
+		toast.loading('打卡中...')
+		
+		try {
+			const data = await checkOutApi({ userId: uid })
+			if (data) {
+				attendanceInfo.value = data
+				toast.success('下班打卡成功')
+			}
+		} catch (e: any) {
+			toast.error(e.message || '打卡失败')
+		} finally {
+			submitting.value = false
+		}
+	}
+	
+	function viewTask(task: any) {
+		uni.showToast({
+			title: `查看任务: ${task.title}`,
+			icon: 'none'
+		})
 	}
 </script>
 
 <style>
-	.task-container {
+	.user-task-container {
 		min-height: 100vh;
-		background-color: #F5F7FA;
+		background-color: #f8fafc;
+		display: flex;
+		flex-direction: column;
 	}
 	
-	/* 顶部导航栏 */
-	.navbar {
+	.top-navbar {
+		background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+		padding: 30rpx 40rpx;
+		padding-top: 60rpx;
+	}
+	
+	.navbar-title {
+		font-size: 36rpx;
+		font-weight: bold;
+		color: #fff;
+	}
+	
+	.attendance-section {
+		padding: 24rpx 30rpx;
+		background-color: #f8fafc;
+	}
+	
+	.attendance-card {
+		background-color: #fff;
+		border-radius: 24rpx;
+		padding: 32rpx;
+		box-shadow: 0 4rpx 15rpx rgba(0, 0, 0, 0.08);
+	}
+	
+	.attendance-header {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
 		align-items: center;
-		padding: 30rpx 40rpx;
-		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
-		color: #FFFFFF;
-		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+		margin-bottom: 24rpx;
 	}
 	
-	.navbar-title {
+	.attendance-title {
 		font-size: 32rpx;
-		font-weight: bold;
+		font-weight: 600;
+		color: #2c3e50;
 	}
 	
-	.navbar-btn {
-		background: rgba(255, 255, 255, 0.2);
-		border: none;
-		border-radius: 50%;
-		width: 60rpx;
-		height: 60rpx;
+	.attendance-date {
+		font-size: 26rpx;
+		color: #8F959E;
+	}
+	
+	.attendance-status {
+		margin-bottom: 24rpx;
+	}
+	
+	.status-row {
+		display: flex;
+		flex-direction: row;
+		gap: 32rpx;
+		margin-bottom: 16rpx;
+	}
+	
+	.status-item {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 8rpx;
+	}
+	
+	.status-label {
+		font-size: 24rpx;
+		color: #8F959E;
+	}
+	
+	.status-value {
+		font-size: 32rpx;
+		font-weight: 600;
+	}
+	
+	.status-value.success {
+		color: #34C759;
+	}
+	
+	.status-value.pending {
+		color: #FF9500;
+	}
+	
+	.status-badge {
+		display: inline-flex;
+		padding: 8rpx 24rpx;
+		border-radius: 24rpx;
+		align-self: flex-start;
+	}
+	
+	.status-badge text {
+		font-size: 24rpx;
+		font-weight: 500;
+	}
+	
+	.status-badge.normal {
+		background-color: #F0FFF4;
+	}
+	
+	.status-badge.normal text {
+		color: #34C759;
+	}
+	
+	.status-badge.late {
+		background-color: #FFF7E6;
+	}
+	
+	.status-badge.late text {
+		color: #FF9500;
+	}
+	
+	.status-badge.early {
+		background-color: #FFF1F0;
+	}
+	
+	.status-badge.early text {
+		color: #FF3B30;
+	}
+	
+	.status-badge.pending {
+		background-color: #F7F8FA;
+	}
+	
+	.status-badge.pending text {
+		color: #8F959E;
+	}
+	
+	.attendance-actions {
+		display: flex;
+		flex-direction: row;
+		gap: 24rpx;
+	}
+	
+	.check-btn {
+		flex: 1;
+		height: 88rpx;
+		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+		border-radius: 20rpx;
 		display: flex;
 		justify-content: center;
 		align-items: center;
+		border: none;
 	}
 	
-	.btn-icon {
+	.check-btn.check-out {
+		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+	}
+	
+	.check-btn.disabled {
+		background: #C7C7CC;
+	}
+	
+	.check-btn text {
 		font-size: 28rpx;
-		color: #FFFFFF;
+		font-weight: 600;
+		color: #fff;
 	}
 	
-	/* 任务状态筛选 */
-	.filter-section {
-		background-color: #FFFFFF;
-		padding: 20rpx 0;
-		border-bottom: 2rpx solid #F0F0F0;
+	.tab-scroll {
+		background-color: #fff;
+		margin-bottom: 24rpx;
 	}
 	
-	.filter-scroll {
+	.tab-list {
+		display: flex;
+		flex-direction: row;
+		padding: 0 32rpx;
+		gap: 48rpx;
+	}
+	
+	.tab-item {
+		padding: 24rpx 0;
+		font-size: 28rpx;
+		color: #8F959E;
+		position: relative;
 		white-space: nowrap;
-		padding: 0 40rpx;
 	}
 	
-	.filter-item {
-		display: inline-block;
-		width: 120rpx;
-		padding: 15rpx 0;
-		margin-right: 20rpx;
-		border-radius: 30rpx;
-		background-color: #F5F7FA;
-		font-size: 24rpx;
-		color: #666666;
-		transition: all 0.3s ease;
-		text-align: center;
+	.tab-item.active {
+		color: #2c3e50;
+		font-weight: 500;
 	}
 	
-	.filter-item.active {
-		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
-		color: #FFFFFF;
-		box-shadow: 0 2rpx 10rpx rgba(52, 199, 89, 0.3);
+	.tab-item.active::after {
+		content: '';
+		position: absolute;
+		bottom: 0;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 40rpx;
+		height: 6rpx;
+		background-color: #34C759;
+		border-radius: 4rpx;
 	}
 	
-	/* 任务列表 */
-	.task-list {
-		padding: 30rpx 40rpx;
-		min-height: 70vh;
+	.content-area {
+		flex: 1;
+		padding: 0 30rpx 30rpx;
 	}
 	
 	.task-card {
-		background-color: #FFFFFF;
+		background-color: #fff;
 		border-radius: 20rpx;
 		padding: 30rpx;
-		margin-bottom: 30rpx;
-		box-shadow: 0 2rpx 15rpx rgba(0, 0, 0, 0.05);
-		transition: all 0.3s ease;
+		margin-bottom: 24rpx;
+		box-shadow: 0 4rpx 15rpx rgba(0, 0, 0, 0.08);
 	}
 	
-	.task-card:active {
-		transform: scale(0.98);
-		box-shadow: 0 1rpx 5rpx rgba(0, 0, 0, 0.1);
-	}
-	
-	/* 任务头部 */
 	.task-header {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
 		align-items: flex-start;
-		margin-bottom: 20rpx;
-	}
-	
-	.task-title {
-		font-size: 28rpx;
-		font-weight: bold;
-		color: #333333;
-		flex: 1;
-		margin-right: 20rpx;
-	}
-	
-	.task-status {
-		padding: 8rpx 16rpx;
-		border-radius: 15rpx;
-		font-size: 20rpx;
-		font-weight: bold;
-	}
-	
-	.status-pending {
-		background-color: #FFF3CD;
-		color: #856404;
-	}
-	
-	.status-in-progress {
-		background-color: #D1ECF1;
-		color: #0C5460;
-	}
-	
-	.status-completed {
-		background-color: #D4EDDA;
-		color: #155724;
-	}
-	
-	/* 任务内容 */
-	.task-body {
-		margin-bottom: 20rpx;
-	}
-	
-	.task-description {
-		font-size: 24rpx;
-		color: #666666;
-		line-height: 1.5;
-		margin-bottom: 20rpx;
+		margin-bottom: 16rpx;
 	}
 	
 	.task-info {
 		display: flex;
 		flex-direction: column;
-		gap: 10rpx;
-	}
-	
-	.info-item {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-	}
-	
-	.info-label {
-		font-size: 22rpx;
-		color: #999999;
-		width: 120rpx;
-	}
-	
-	.info-value {
-		font-size: 22rpx;
-		color: #666666;
+		gap: 8rpx;
 		flex: 1;
 	}
 	
-	/* 任务底部 */
+	.task-title {
+		font-size: 32rpx;
+		font-weight: 500;
+		color: #2c3e50;
+	}
+	
+	.task-time {
+		font-size: 24rpx;
+		color: #8F959E;
+	}
+	
+	.task-card .status-badge {
+		padding: 8rpx 24rpx;
+		border-radius: 24rpx;
+	}
+	
+	.task-card .status-badge.pending {
+		background-color: #FFF7E6;
+	}
+	
+	.task-card .status-badge.pending text {
+		color: #FF9500;
+	}
+	
+	.task-card .status-badge.inProgress {
+		background-color: #E6F4FF;
+	}
+	
+	.task-card .status-badge.inProgress text {
+		color: #007AFF;
+	}
+	
+	.task-card .status-badge.completed {
+		background-color: #F0FFF4;
+	}
+	
+	.task-card .status-badge.completed text {
+		color: #34C759;
+	}
+	
+	.task-desc {
+		margin-bottom: 24rpx;
+	}
+	
+	.task-desc text {
+		font-size: 26rpx;
+		color: #5A5F6B;
+		line-height: 1.6;
+	}
+	
 	.task-footer {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
 		align-items: center;
-		padding-top: 20rpx;
-		border-top: 2rpx solid #F0F0F0;
+		padding-top: 24rpx;
+		border-top: 2rpx solid #F0F2F5;
 	}
 	
-	.task-progress {
-		flex: 1;
-		margin-right: 20rpx;
+	.task-location {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8rpx;
 	}
 	
-	.progress-bar {
-		height: 8rpx;
-		background-color: #F0F0F0;
-		border-radius: 4rpx;
-		overflow: hidden;
-		margin-bottom: 10rpx;
+	.icon {
+		font-size: 28rpx;
 	}
 	
-	.progress-fill {
-		height: 100%;
-		background: linear-gradient(90deg, #34C759 0%, #28a745 100%);
-		border-radius: 4rpx;
-		transition: width 0.3s ease;
-	}
-	
-	.progress-text {
-		font-size: 20rpx;
-		color: #666666;
-	}
-	
-	.task-btn {
-		padding: 15rpx 30rpx;
-		border-radius: 30rpx;
-		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
-		color: #FFFFFF;
+	.location-text {
 		font-size: 24rpx;
-		font-weight: bold;
+		color: #8F959E;
 	}
 	
-	/* 空状态 */
+	.task-action {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 4rpx;
+	}
+	
+	.task-action text {
+		font-size: 26rpx;
+		color: #34C759;
+	}
+	
+	.task-action .arrow {
+		font-size: 32rpx;
+		font-weight: 500;
+	}
+	
 	.empty-state {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		justify-content: center;
-		padding: 100rpx 0;
-		text-align: center;
+		padding: 160rpx 0;
 	}
 	
 	.empty-icon {
-		font-size: 80rpx;
-		margin-bottom: 30rpx;
+		font-size: 128rpx;
+		margin-bottom: 32rpx;
 	}
 	
 	.empty-text {
-		font-size: 28rpx;
-		font-weight: bold;
-		color: #333333;
-		margin-bottom: 15rpx;
+		font-size: 32rpx;
+		font-weight: 500;
+		color: #2c3e50;
+		margin-bottom: 16rpx;
 	}
 	
 	.empty-desc {
-		font-size: 24rpx;
-		color: #999999;
-		line-height: 1.5;
-	}
-	
-	/* 响应式设计 */
-	@media (min-width: 768px) {
-		.task-container {
-			max-width: 1200rpx;
-			margin: 0 auto;
-		}
-		
-		.task-list {
-			padding: 40rpx;
-		}
-		
-		.task-card {
-			padding: 40rpx;
-		}
+		font-size: 28rpx;
+		color: #8F959E;
 	}
 </style>

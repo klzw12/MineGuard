@@ -5,6 +5,7 @@ import com.klzw.service.user.dto.RefreshTokenDTO;
 import com.klzw.service.user.dto.UserLoginDTO;
 import com.klzw.service.user.dto.UserRegisterDTO;
 import com.klzw.service.user.dto.ResetPasswordDTO;
+import com.klzw.service.user.enums.SmsScene;
 import com.klzw.service.user.vo.CaptchaVO;
 import com.klzw.service.user.vo.SmsCodeVO;
 import com.klzw.service.user.vo.UserVO;
@@ -22,6 +23,8 @@ public interface AuthService {
     CaptchaVO generateCaptcha();
 
     SmsCodeVO sendSmsCode(String phone);
+
+    SmsCodeVO sendSmsCode(String phone, SmsScene scene);
 
     boolean verifySmsCode(String phone, String code);
 

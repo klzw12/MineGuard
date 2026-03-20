@@ -17,8 +17,6 @@ public class Driver extends BaseEntity {
 
     private Integer gender;
 
-    private Integer age;
-
     private String idCard;
 
     private String idCardFrontUrl;
@@ -26,8 +24,6 @@ public class Driver extends BaseEntity {
     private String idCardBackUrl;
 
     private String drivingLicenseUrl;
-
-    private Integer drivingYears;
 
     private String licenseType;
 

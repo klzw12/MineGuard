@@ -23,7 +23,7 @@
         <view class="appeal-header">
           <view class="user-info">
             <text class="username">{{ item.username }}</text>
-            <text class="real-name">{{ item.realName }}</text>
+            <text class="real-name">{{ item.realName || '' }}</text>
           </view>
           <view class="appeal-status" :class="'status-' + item.status">
             {{ item.statusLabel }}
@@ -33,7 +33,7 @@
         <view class="appeal-content">
           <view class="info-row">
             <text class="info-label">手机号：</text>
-            <text class="info-value">{{ item.phone }}</text>
+            <text class="info-value">{{ item.phone || '' }}</text>
           </view>
           <view class="info-row">
             <text class="info-label">申诉原因：</text>
@@ -58,15 +58,8 @@
         </view>
 
         <view class="appeal-actions" v-if="item.status === 1">
-          <button class="action-btn approve" @click="handleAppeal(item.id, 2)">
-            通过
-          </button>
-          <button class="action-btn reject" @click="showRejectDialog(item.id, 3)">
-            驳回
-          </button>
-          <button class="action-btn delete" @click="showRejectDialog(item.id, 4)">
-            驳回并删除
-          </button>
+          <button class="action-btn tac approve" @click="approveAppeal(item.id)">通过</button>
+          <button class="action-btn tac reject" @click="showRejectDialog(item.id)">驳回</button>
         </view>
       </view>
     </view>
@@ -76,7 +69,7 @@
     </view>
 
     <view class="reject-modal" v-if="showRejectModal">
-      <view class="modal-content">
+      <view class="modal-content" @click.stop>
         <view class="modal-header">
           <text class="modal-title">驳回申诉</text>
           <text class="modal-close" @click="closeRejectDialog">×</text>
@@ -98,10 +91,10 @@
   </view>
 </template>
 
-<script setup lang="ts">
+<script setup lang="uts">
 import { ref, onMounted } from 'vue'
-import { getPendingAppeals, getAllAppeals, handleAppeal } from '@/api/user.uts'
-import type { UserAppealVO } from '@/types/user.uts'
+import { getAdminPendingAppeals, getAdminAllAppeals, handleAppeal } from '@/api/appeal.uts'
+import type { UserAppealVO, HandleAppealDTO } from '@/types/user.uts'
 
 const activeTab = ref<'pending' | 'all'>('pending')
 const appeals = ref<UserAppealVO[]>([])
@@ -109,7 +102,6 @@ const pendingCount = ref(0)
 const showRejectModal = ref(false)
 const rejectReason = ref('')
 const currentAppealId = ref('')
-const currentStatus = ref(0)
 
 onMounted(() => {
   loadAppeals()
@@ -120,22 +112,23 @@ const switchTab = (tab: 'pending' | 'all') => {
   loadAppeals()
 }
 
-const loadAppeals = () => {
-  if (activeTab.value === 'pending') {
-    getPendingAppeals().then((res) => {
+const loadAppeals = async () => {
+  try {
+    if (activeTab.value === 'pending') {
+      const res = await getAdminPendingAppeals()
       appeals.value = res
       pendingCount.value = res.length
-    })
-  } else {
-    getAllAppeals().then((res) => {
+    } else {
+      const res = await getAdminAllAppeals()
       appeals.value = res
-    })
+    }
+  } catch (e: any) {
+    uni.showToast({ title: e.message || '加载失败', icon: 'none' })
   }
 }
 
-const showRejectDialog = (id: string, status: number) => {
+const showRejectDialog = (id: string) => {
   currentAppealId.value = id
-  currentStatus.value = status
   rejectReason.value = ''
   showRejectModal.value = true
 }
@@ -144,58 +137,51 @@ const closeRejectDialog = () => {
   showRejectModal.value = false
   rejectReason.value = ''
   currentAppealId.value = ''
-  currentStatus.value = 0
 }
 
 const confirmReject = () => {
   if (!rejectReason.value.trim()) {
-    uni.showToast({
-      title: '请输入驳回原因',
-      icon: 'none'
-    })
+    uni.showToast({ title: '请输入驳回原因', icon: 'none' })
     return
   }
-
-  processAppeal(currentStatus.value, rejectReason.value)
+  processAppeal(3, rejectReason.value)
 }
 
-const handleAppeal = (id: string, status: number) => {
+const approveAppeal = (id: string) => {
   uni.showModal({
     title: '确认操作',
-    content: status === 2 ? '确认通过该申诉？' : '确认驳回该申诉？',
+    content: '确认通过该申诉？',
     success: (res) => {
       if (res.confirm) {
-        processAppeal(status, '同意申诉')
+        currentAppealId.value = id
+        processAppeal(2, '同意申诉')
       }
     }
   })
 }
 
-const processAppeal = (status: number, adminOpinion: string) => {
-  const currentUser = uni.getStorageSync('currentUser')
+const processAppeal = async (status: number, adminOpinion: string) => {
+  const currentUser = uni.getStorageSync('userInfo')
   
-  handleAppeal(currentAppealId.value, {
+  const data: HandleAppealDTO = {
     status,
     adminOpinion,
-    handlerId: currentUser.id,
-    handlerName: currentUser.realName
-  })
-    .then(() => {
-      uni.showToast({
-        title: '处理成功',
-        icon: 'success'
-      })
-      loadAppeals()
-    })
-    .catch((err) => {
-      uni.showToast({
-        title: err.message || '处理失败',
-        icon: 'none'
-      })
-    })
+    handlerId: currentUser?.id || '',
+    handlerName: currentUser?.realName || currentUser?.username || ''
+  }
+  
+  try {
+    await handleAppeal(currentAppealId.value, data)
+    uni.showToast({ title: '处理成功', icon: 'success' })
+    closeRejectDialog()
+    loadAppeals()
+  } catch (e: any) {
+    uni.showToast({ title: e.message || '处理失败', icon: 'none' })
+  }
 }
 
-const formatTime = (time: string) => {
+const formatTime = (time: string): string => {
+  if (!time) return ''
   return time.substring(0, 19).replace('T', ' ')
 }
 </script>
@@ -314,11 +300,6 @@ const formatTime = (time: string) => {
   color: #721c24;
 }
 
-.status-4 {
-  background-color: #f8d7da;
-  color: #721c24;
-}
-
 .appeal-content {
   display: flex;
   flex-direction: column;
@@ -349,6 +330,9 @@ const formatTime = (time: string) => {
 .action-btn {
   flex: 1;
   height: 70rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   border: none;
   border-radius: 8rpx;
   font-size: 28rpx;
@@ -360,11 +344,11 @@ const formatTime = (time: string) => {
 }
 
 .action-btn.reject {
-  background-color: #faad14;
+  background-color: #ff4d4f;
 }
 
-.action-btn.delete {
-  background-color: #ff4d4f;
+.tac {
+  text-align: center;
 }
 
 .empty-tip {
@@ -436,6 +420,9 @@ const formatTime = (time: string) => {
 .modal-btn {
   flex: 1;
   height: 90rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   border: none;
   font-size: 30rpx;
 }

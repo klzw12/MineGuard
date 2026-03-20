@@ -1,0 +1,125 @@
+<template>
+	<view class="admin-layout-container">
+		<AdminSidebar />
+		<view class="admin-content">
+			<view class="page-header">
+				<text class="page-title">角色管理</text>
+				<view class="header-actions">
+					<view class="action-btn primary" @click="showAddRole">
+						<text class="action-icon">+</text>
+						<text class="action-text">添加角色</text>
+					</view>
+				</view>
+			</view>
+			
+			<view class="content-card">
+				<view class="table-header">
+					<view class="search-box">
+						<text class="search-icon">🔍</text>
+						<input type="text" placeholder="搜索角色名称..." placeholder-style="color: rgba(255,255,255,0.4)" v-model="searchKeyword" />
+					</view>
+				</view>
+				
+				<view class="table-container">
+					<view class="table-row header">
+						<text class="table-cell">角色ID</text>
+						<text class="table-cell">角色名称</text>
+						<text class="table-cell">角色编码</text>
+						<text class="table-cell">用户数量</text>
+						<text class="table-cell">状态</text>
+						<text class="table-cell">操作</text>
+					</view>
+					
+					<view class="table-row" v-for="(role, index) in filteredRoles" :key="index">
+						<text class="table-cell">{{ role.id }}</text>
+						<text class="table-cell">{{ role.name }}</text>
+						<text class="table-cell">{{ role.code }}</text>
+						<text class="table-cell">{{ role.userCount }}</text>
+						<view class="table-cell">
+							<view class="status-tag" :class="role.status === 1 ? 'active' : 'inactive'">
+								<text>{{ role.status === 1 ? '启用' : '禁用' }}</text>
+							</view>
+						</view>
+						<view class="table-cell actions">
+							<text class="action-link" @click="editRole(role)">编辑</text>
+							<text class="action-link danger" @click="deleteRole(role)">删除</text>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref, computed } from 'vue'
+	import AdminSidebar from '@/components/AdminSidebar.uvue'
+	
+	const searchKeyword = ref('')
+	
+	const roles = ref([
+		{ id: 1, name: '管理员', code: 'ADMIN', userCount: 5, status: 1 },
+		{ id: 2, name: '司机', code: 'DRIVER', userCount: 168, status: 1 },
+		{ id: 3, name: '维修员', code: 'MECHANIC', userCount: 25, status: 1 },
+		{ id: 4, name: '安全员', code: 'SAFETY', userCount: 12, status: 1 },
+		{ id: 5, name: '调度员', code: 'DISPATCHER', userCount: 8, status: 1 }
+	])
+	
+	const filteredRoles = computed(() => {
+		if (!searchKeyword.value) return roles.value
+		return roles.value.filter(role => 
+			role.name.includes(searchKeyword.value) || 
+			role.code.toLowerCase().includes(searchKeyword.value.toLowerCase())
+		)
+	})
+	
+	function showAddRole() {
+		uni.showToast({ title: '添加角色功能开发中', icon: 'none' })
+	}
+	
+	function editRole(role: any) {
+		uni.showToast({ title: '编辑角色: ' + role.name, icon: 'none' })
+	}
+	
+	function deleteRole(role: any) {
+		uni.showModal({
+			title: '确认删除',
+			content: `确定要删除角色"${role.name}"吗？`,
+			success: (res) => {
+				if (res.confirm) {
+					uni.showToast({ title: '删除成功', icon: 'success' })
+				}
+			}
+		})
+	}
+</script>
+
+<style lang="scss">
+	@import '@/styles/admin.scss';
+	
+	.status-tag {
+		padding: 6rpx 16rpx;
+		border-radius: 8rpx;
+		font-size: 22rpx;
+		
+		&.active {
+			background-color: rgba(52, 199, 89, 0.2);
+			color: #34C759;
+		}
+		
+		&.inactive {
+			background-color: rgba(255, 59, 48, 0.2);
+			color: #FF3B30;
+		}
+	}
+	
+	.action-link {
+		color: #007AFF;
+		font-size: 24rpx;
+		margin-right: 20rpx;
+		
+		&.danger {
+			color: #FF3B30;
+		}
+	}
+</style>

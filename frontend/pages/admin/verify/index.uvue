@@ -1,268 +1,348 @@
 <template>
-  <view class="verify-container">
-    <view class="header">
-      <text class="title">管理员身份认证</text>
-      <text class="subtitle">请上传身份证正面照片完成身份认证</text>
-    </view>
-    
-    <view class="form-section">
-      <view class="form-item">
-        <text class="label">真实姓名</text>
-        <input 
-          class="input" 
-          type="text" 
-          v-model="realName" 
-          placeholder="请输入真实姓名" 
-          placeholder-style="color: #999"
-        />
-      </view>
-      
-      <view class="form-item">
-        <text class="label">手机号</text>
-        <input 
-          class="input" 
-          type="number" 
-          v-model="phone" 
-          placeholder="请输入手机号" 
-          placeholder-style="color: #999"
-        />
-      </view>
-      
-      <view class="form-item">
-        <text class="label">身份证正面照片</text>
-        <view class="upload-area" @click="chooseImage">
-          <image 
-            v-if="idCardFrontBase64" 
-            :src="idCardFrontBase64" 
-            class="preview-image"
-            mode="aspectFit"
-          />
-          <view v-else class="upload-placeholder">
-            <text class="upload-icon">+</text>
-            <text class="upload-text">点击上传身份证正面</text>
-          </view>
-        </view>
-        <text class="hint">请确保照片清晰，四角完整</text>
-      </view>
-      
-      <button class="submit-btn" @click="handleSubmit" :disabled="isLoading || !canSubmit">
-        <text v-if="!isLoading">提交认证</text>
-        <text v-else>认证中...</text>
-      </button>
-    </view>
-  </view>
+	<view class="verify-container">
+		<view class="header">
+			<text class="title">管理员身份认证</text>
+			<text class="subtitle">请上传身份证照片完成身份认证</text>
+		</view>
+		
+		<view class="form-section">
+			<view class="form-item">
+				<text class="label">真实姓名 <text class="required">*</text></text>
+				<input 
+					class="input" 
+					type="text" 
+					v-model="realName" 
+					placeholder="请输入真实姓名" 
+					placeholder-style="color: #8F959E"
+				/>
+			</view>
+			
+			<view class="form-item">
+				<text class="label">身份证号</text>
+				<input 
+					class="input" 
+					type="idcard" 
+					v-model="idCard" 
+					placeholder="选填，将自动从身份证识别" 
+					placeholder-style="color: #8F959E"
+					maxlength="18"
+				/>
+			</view>
+			
+			<view class="form-item">
+				<text class="label">身份证正面照片 <text class="required">*</text></text>
+				<view class="upload-area" @click="chooseImage('front')">
+					<image 
+						v-if="frontPreview" 
+						:src="frontPreview" 
+						class="preview-image"
+						mode="aspectFit"
+					/>
+					<view v-else class="upload-placeholder">
+						<text class="upload-icon">📷</text>
+						<text class="upload-text">点击上传身份证正面</text>
+					</view>
+				</view>
+				<text class="hint">请确保照片清晰，四角完整</text>
+			</view>
+			
+			<view class="form-item">
+				<text class="label">身份证背面照片</text>
+				<view class="upload-area" @click="chooseImage('back')">
+					<image 
+						v-if="backPreview" 
+						:src="backPreview" 
+						class="preview-image"
+						mode="aspectFit"
+					/>
+					<view v-else class="upload-placeholder">
+						<text class="upload-icon">📷</text>
+						<text class="upload-text">点击上传身份证背面</text>
+					</view>
+				</view>
+				<text class="hint">选填，建议上传</text>
+			</view>
+			
+			<button class="submit-btn" @click="handleSubmit" :disabled="isLoading || !canSubmit">
+				<text v-if="!isLoading">提交认证</text>
+				<text v-else>认证中...</text>
+			</button>
+		</view>
+	</view>
 </template>
 
 <script setup lang="uts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user.uts'
+import { toast } from '@/utils/toast.uts'
 
 const userStore = useUserStore()
 
 const realName = ref('')
-const phone = ref('')
-const idCardFrontBase64 = ref('')
+const idCard = ref('')
+const frontPreview = ref('')
+const backPreview = ref('')
+const frontFilePath = ref('')
+const backFilePath = ref('')
 const isLoading = ref(false)
 
 const canSubmit = computed(() => {
-  return idCardFrontBase64.value.length > 0
+	return realName.value.trim().length > 0 && frontFilePath.value.length > 0
 })
 
-function chooseImage() {
-  uni.chooseImage({
-    count: 1,
-    sizeType: ['compressed'],
-    sourceType: ['album', 'camera'],
-    success: (res) => {
-      const tempFilePath = res.tempFilePaths[0]
-      uni.getFileSystemManager().readFile({
-        filePath: tempFilePath,
-        encoding: 'base64',
-        success: (readRes) => {
-          idCardFrontBase64.value = 'data:image/jpeg;base64,' + readRes.data as string
-        },
-        fail: (err) => {
-          uni.showToast({
-            title: '读取图片失败',
-            icon: 'none'
-          })
-        }
-      })
-    },
-    fail: () => {
-      uni.showToast({
-        title: '选择图片失败',
-        icon: 'none'
-      })
-    }
-  })
+onMounted(() => {
+	if (userStore.userInfo.value?.realName) {
+		realName.value = userStore.userInfo.value.realName
+	}
+})
+
+function chooseImage(type: string) {
+	uni.chooseImage({
+		count: 1,
+		sizeType: ['compressed'],
+		sourceType: ['album', 'camera'],
+		success: (res) => {
+			const tempFilePath = res.tempFilePaths[0]
+			if (type === 'front') {
+				frontFilePath.value = tempFilePath
+				frontPreview.value = tempFilePath
+			} else {
+				backFilePath.value = tempFilePath
+				backPreview.value = tempFilePath
+			}
+		},
+		fail: () => {
+			toast.error('选择图片失败')
+		}
+	})
+}
+
+function fileToBase64(filePath: string): Promise<string> {
+	return new Promise((resolve, reject) => {
+		// #ifdef H5
+		const xhr = new XMLHttpRequest()
+		xhr.open('GET', filePath, true)
+		xhr.responseType = 'blob'
+		xhr.onload = function() {
+			if (xhr.status === 200) {
+				const reader = new FileReader()
+				reader.onloadend = function() {
+					resolve(reader.result as string)
+				}
+				reader.onerror = function(err) {
+					reject(err)
+				}
+				reader.readAsDataURL(xhr.response)
+			} else {
+				reject(new Error('文件加载失败'))
+			}
+		}
+		xhr.onerror = function(err) {
+			reject(err)
+		}
+		xhr.send()
+		// #endif
+		
+		// #ifndef H5
+		uni.getFileSystemManager().readFile({
+			filePath: filePath,
+			encoding: 'base64',
+			success: (res) => {
+				resolve('data:image/jpeg;base64,' + res.data as string)
+			},
+			fail: (err) => {
+				reject(err)
+			}
+		})
+		// #endif
+	})
 }
 
 async function handleSubmit() {
-  if (!canSubmit.value) {
-    uni.showToast({
-      title: '请上传身份证正面照片',
-      icon: 'none'
-    })
-    return
-  }
-  
-  if (!userStore.userInfo.value) {
-    uni.showToast({
-      title: '用户信息不存在',
-      icon: 'none'
-    })
-    return
-  }
-  
-  isLoading.value = true
-  
-  try {
-    await userStore.verifyAdmin(
-      userStore.userInfo.value.id,
-      realName.value,
-      phone.value,
-      idCardFrontBase64.value
-    )
-    
-    uni.showToast({
-      title: '认证成功',
-      icon: 'success',
-      duration: 2000
-    })
-    
-    setTimeout(() => {
-      uni.redirectTo({
-        url: '/pages/admin/home/index'
-      })
-    }, 2000)
-  } catch (e: any) {
-    uni.showToast({
-      title: e.message || '认证失败',
-      icon: 'none',
-      duration: 3000
-    })
-  } finally {
-    isLoading.value = false
-  }
+	if (!canSubmit.value) {
+		if (!frontFilePath.value) {
+			toast.error('请上传身份证正面照片')
+			return
+		}
+		return
+	}
+	
+	if (!userStore.userInfo.value) {
+		toast.error('用户信息不存在')
+		return
+	}
+	
+	isLoading.value = true
+	toast.loading('认证中...')
+	
+	try {
+		const userId = userStore.userInfo.value.id
+		const frontBase64 = await fileToBase64(frontFilePath.value)
+		let backBase64 = ''
+		if (backFilePath.value) {
+			backBase64 = await fileToBase64(backFilePath.value)
+		}
+		
+		await userStore.verifyAdmin(
+			userId,
+			realName.value.trim(),
+			idCard.value.trim() || undefined,
+			frontBase64,
+			backBase64 || undefined
+		)
+		
+		toast.success('认证成功')
+		
+		setTimeout(() => {
+			uni.redirectTo({
+				url: '/pages/admin/home/index'
+			})
+		}, 1500)
+	} catch (e: any) {
+		toast.error(e.message || '认证失败')
+	} finally {
+		isLoading.value = false
+	}
 }
 </script>
 
-<style lang="scss">
+<style>
 .verify-container {
-  min-height: 100vh;
-  padding: 40rpx;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+	min-height: 100vh;
+	background-color: #f8fafc;
 }
 
 .header {
-  text-align: center;
-  margin-bottom: 60rpx;
-  padding-top: 40rpx;
+	background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+	padding: 60rpx 40rpx 40rpx;
+	text-align: center;
 }
 
 .title {
-  font-size: 40rpx;
-  font-weight: bold;
-  color: #333;
-  display: block;
-  margin-bottom: 20rpx;
+	font-size: 40rpx;
+	font-weight: bold;
+	color: #fff;
+	display: block;
+	margin-bottom: 16rpx;
 }
 
 .subtitle {
-  font-size: 26rpx;
-  color: #666;
+	font-size: 26rpx;
+	color: rgba(255, 255, 255, 0.8);
 }
 
 .form-section {
-  background-color: #fff;
-  border-radius: 20rpx;
-  padding: 40rpx;
-  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+	background-color: #fff;
+	margin: -20rpx 24rpx 24rpx;
+	border-radius: 24rpx;
+	padding: 40rpx 32rpx;
+	box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
 }
 
 .form-item {
-  margin-bottom: 40rpx;
+	margin-bottom: 32rpx;
 }
 
 .label {
-  display: block;
-  font-size: 28rpx;
-  color: #333;
-  margin-bottom: 16rpx;
-  font-weight: 500;
+	display: block;
+	font-size: 28rpx;
+	color: #2c3e50;
+	margin-bottom: 16rpx;
+	font-weight: 500;
+}
+
+.required {
+	color: #e74c3c;
 }
 
 .input {
-  width: 100%;
-  height: 88rpx;
-  background-color: #f5f7fa;
-  border-radius: 12rpx;
-  padding: 0 24rpx;
-  box-sizing: border-box;
-  font-size: 28rpx;
-  border: 2rpx solid #e8e8e8;
+	width: 100%;
+	height: 96rpx;
+	background-color: #F7F8FA;
+	border-radius: 20rpx;
+	padding: 0 32rpx;
+	box-sizing: border-box;
+	font-size: 30rpx;
+	color: #1A1A1A;
 }
 
-.input:focus {
-  border-color: #007aff;
-  background-color: #fff;
+.static-value {
+	width: 100%;
+	height: 96rpx;
+	background-color: #F7F8FA;
+	border-radius: 20rpx;
+	padding: 0 32rpx;
+	display: flex;
+	align-items: center;
+	box-sizing: border-box;
+}
+
+.static-value text {
+	font-size: 30rpx;
+	color: #2c3e50;
+	font-weight: 500;
 }
 
 .upload-area {
-  width: 100%;
-  height: 400rpx;
-  border: 2rpx dashed #d9d9d9;
-  border-radius: 12rpx;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #fafafa;
+	width: 100%;
+	height: 360rpx;
+	background-color: #F7F8FA;
+	border-radius: 24rpx;
+	border: 2rpx dashed #D1D5DB;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
 }
 
 .upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 16rpx;
 }
 
 .upload-icon {
-  font-size: 80rpx;
-  color: #999;
-  line-height: 1;
+	font-size: 64rpx;
 }
 
 .upload-text {
-  font-size: 26rpx;
-  color: #999;
-  margin-top: 16rpx;
+	font-size: 26rpx;
+	color: #8F959E;
 }
 
 .preview-image {
-  width: 100%;
-  height: 100%;
+	width: 100%;
+	height: 100%;
 }
 
 .hint {
-  font-size: 22rpx;
-  color: #999;
-  margin-top: 12rpx;
+	font-size: 24rpx;
+	color: #8F959E;
+	margin-top: 12rpx;
+	display: block;
 }
 
 .submit-btn {
-  width: 100%;
-  height: 88rpx;
-  background: linear-gradient(135deg, #007aff 0%, #0055d5 100%);
-  color: #fff;
-  font-size: 32rpx;
-  font-weight: bold;
-  border-radius: 12rpx;
-  margin-top: 40rpx;
+	width: 100%;
+	height: 96rpx;
+	background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+	border-radius: 20rpx;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-top: 40rpx;
+	border: none;
 }
 
-.submit-btn:disabled {
-  opacity: 0.6;
+.submit-btn[disabled] {
+	opacity: 0.6;
+}
+
+.submit-btn text {
+	font-size: 32rpx;
+	font-weight: 600;
+	color: #fff;
 }
 </style>

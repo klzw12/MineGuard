@@ -164,7 +164,7 @@ public class StatisticsServiceImpl implements StatisticsService {
             String response = com.klzw.common.core.util.HttpUtils.postJson(url, jsonData);
             
             // 解析响应
-            Map<String, Object> cleanResult = com.klzw.common.core.util.JsonUtils.parseObject(response, Map.class);
+            Map<String, Object> cleanResult = com.klzw.common.core.util.JsonUtils.fromJson(response, Map.class);
             result.put("cleaning_report", cleanResult.get("cleaning_report"));
             
             log.info("调用 Python 服务进行数据清洗成功");

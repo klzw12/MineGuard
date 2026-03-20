@@ -47,7 +47,7 @@ public class GatewayProperties {
         private String allowedOrigins;
         private String allowedMethods = "GET,POST,PUT,DELETE,OPTIONS";
         private String allowedHeaders = "*";
-        private boolean allowCredentials = true;
+        private boolean allowCredentials = false;
         private long maxAge = 3600L;
 
         public void setAllowedOrigins(String allowedOrigins) {

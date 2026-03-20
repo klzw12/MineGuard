@@ -1,30 +1,30 @@
 import { http } from '@/utils/request.uts'
 import type { MessageVO, MessageDTO } from '@/types/user.uts'
 
-export function sendUnicastMessage(data: MessageDTO): Promise<void> {
+export function sendUnicastMessage(data: MessageDTO): Promise<void | null> {
   return http.post<void>('/api/messages/unicast', data)
 }
 
-export function sendBroadcastMessage(data: MessageDTO): Promise<void> {
+export function sendBroadcastMessage(data: MessageDTO): Promise<void | null> {
   return http.post<void>('/api/messages/broadcast', data)
 }
 
-export function sendBroadcastToAll(data: MessageDTO): Promise<void> {
+export function sendBroadcastToAll(data: MessageDTO): Promise<void | null> {
   return http.post<void>('/api/messages/broadcast/all', data)
 }
 
-export function getUserMessages(userId: string): Promise<MessageVO[]> {
+export function getUserMessages(userId: string): Promise<MessageVO[] | null> {
   return http.get<MessageVO[]>(`/api/messages/user/${userId}`)
 }
 
-export function markMessageAsRead(messageId: string): Promise<void> {
+export function markMessageAsRead(messageId: string): Promise<void | null> {
   return http.put<void>(`/api/messages/${messageId}/read`)
 }
 
-export function deleteMessage(messageId: string): Promise<void> {
+export function deleteMessage(messageId: string): Promise<void | null> {
   return http.delete<void>(`/api/messages/${messageId}`)
 }
 
-export function getUnreadCount(userId: string): Promise<number> {
+export function getUnreadCount(userId: string): Promise<number | null> {
   return http.get<number>(`/api/messages/unread/count/${userId}`)
 }

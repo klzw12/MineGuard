@@ -15,7 +15,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.3</version>
+        <version>3.5.10</version>
         <relativePath/>
     </parent>
     
@@ -31,27 +31,27 @@
         <mineguard.version>0.0.1-SNAPSHOT</mineguard.version>
         
         <!-- 依赖版本 - 适配 Spring Cloud Alibaba 2025.1.0.0，修复所有 CVE 漏洞 -->
-        <spring-boot.version>4.0.3</spring-boot.version>
+        <spring-boot.version>3.5.10</spring-boot.version>
         <lombok.version>1.18.38</lombok.version>
-        <!-- tools.jackson 版本 - 修复 CVE-2026-29062 和 GHSA-72hv-8253-57qq -->
-        <tools-jackson.version>3.1.0</tools-jackson.version>
-        <jackson-annotations.version>2.21</jackson-annotations.version>
-        <jackson-datatype.version>3.0.0-rc2</jackson-datatype.version>
-        <!-- com.fasterxml.jackson 版本 - 最后一个无漏洞版本，用于服务模块 -->
+        <!-- com.fasterxml.jackson 版本 - 最后一个无漏洞版本 -->
         <fasterxml-jackson.version>2.21.1</fasterxml-jackson.version>
+        <fasterxml-annotations.version>2.21</fasterxml-annotations.version>
         <!-- 测试 -->
         <junit.version>5.12.1</junit.version>
         <junit.platform.version>1.12.1</junit.platform.version>
         <mockito.version>5.16.1</mockito.version>
+        <assertj-core.version>3.27.7</assertj-core.version>
         <!-- AOP -->
         <aspectj.version>1.9.23</aspectj.version>
         <!-- 其他 -->
         <guava.version>33.4.0-jre</guava.version>
         <bouncycastle.version>1.80</bouncycastle.version>
+        <tomcat-core.version>11.0.18</tomcat-core.version>
+        <commons-lang3.version>3.20.0</commons-lang3.version>
         
         <!-- Spring Cloud 版本 - 适配 SCA 2025.1.0.0 -->
-		<spring-cloud.version>2025.1.0</spring-cloud.version>
-        <spring-cloud-alibaba.version>2025.1.0.0</spring-cloud-alibaba.version>
+		<spring-cloud.version>2025.0.0</spring-cloud.version>
+        <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
         <spring-cloud-gateway.version>5.0.0</spring-cloud-gateway.version>
         <springdoc.version>3.0.2</springdoc.version>
         <!-- Java 注解 API -->
@@ -87,9 +87,9 @@
         <!-- 阿里云号码隐私保护 -->
         <alibabacloud-dypnsapi.version>2.0.0</alibabacloud-dypnsapi.version>
         <!-- Hutool工具类 -->
-        <hutool.version>5.8.32</hutool.version>
+        <hutool.version>5.8.40</hutool.version>
         <!-- Spring AI -->
-        <spring-ai.version>1.1.2</spring-ai.version>
+        <spring-ai.version>1.1.3</spring-ai.version>
     </properties>
     
     <dependencies>
@@ -115,15 +115,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!-- WebTestClient 自动配置 -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-webtestclient</artifactId>
-            <version>${spring-boot.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-
     <modules>
         <module>mineguard-common-core</module>
         <module>mineguard-common-database</module>
@@ -147,36 +139,10 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Spring Boot 默认使用 tools.jackson，这里显式指定版本以修复安全漏洞 -->
-            <dependency>
-                <groupId>tools.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${tools-jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>tools.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${tools-jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>tools.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>${tools-jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>tools.jackson.datatype</groupId>
-                <artifactId>jackson-datatype-jsr310</artifactId>
-                <version>${jackson-datatype.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>tools.jackson.dataformat</groupId>
-                <artifactId>jackson-dataformat-yaml</artifactId>
-                <version>${tools-jackson.version}</version>
-            </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
-                <version>${jackson-annotations.version}</version>
+                <version>${fasterxml-annotations.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -198,7 +164,21 @@
                 <artifactId>jackson-datatype-jsr310</artifactId>
                 <version>${fasterxml-jackson.version}</version>
             </dependency>
-            
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-core</artifactId>
+                <version>${tomcat-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons-lang3.version}</version>
+            </dependency>
             <!-- 公共模块依赖 -->
             <dependency>
                 <groupId>com.klzw</groupId>
@@ -279,12 +259,12 @@
                 <artifactId>spring-boot-starter-webmvc</artifactId>
                 <version>${spring-boot.version}</version>
             </dependency>
-            <!-- 接口文档
+            <!-- 接口文档 -->
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
                 <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
                 <version>${knife4j.version}</version>
-            </dependency> -->
+            </dependency>
             
             <!-- AOP 依赖 -->
             <dependency>
@@ -301,7 +281,7 @@
             <!-- 数据库相关依赖 -->
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>mybatis-plus-spring-boot4-starter</artifactId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
             <dependency>
@@ -558,37 +538,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.6.2</version>
-                <executions>
-                    <execution>
-                        <id>enforce-rules</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <!-- 检查依赖版本冲突 -->
-                                <dependencyConvergence/>
 
-                                <!-- 禁止重复的依赖 -->
-                                <banDuplicatePomDependencyVersions/>
-
-                                <!-- 检查特定依赖版本 -->
-                                <requireMavenVersion>
-                                    <version>3.6.3</version>
-                                </requireMavenVersion>
-
-                                <requireJavaVersion>
-                                    <version>24</version>
-                                </requireJavaVersion>
-                            </rules>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 

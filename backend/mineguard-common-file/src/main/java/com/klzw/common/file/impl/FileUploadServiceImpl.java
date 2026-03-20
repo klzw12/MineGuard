@@ -54,6 +54,25 @@ public class FileUploadServiceImpl {
         return upload(file, FileBusinessTypeEnum.fromCode(businessTypeCode), userId);
     }
 
+    /**
+     * 获取文件的签名URL
+     * @param filePath 文件路径
+     * @param expireSeconds 过期时间（秒）
+     * @return 签名URL
+     */
+    public String getSignedUrl(String filePath, long expireSeconds) {
+        return storageService.getUrl(filePath, expireSeconds);
+    }
+    
+    /**
+     * 获取文件的永久访问URL（需要OSS Bucket设置为公共读）
+     * @param filePath 文件路径
+     * @return 永久URL
+     */
+    public String getPermanentUrl(String filePath) {
+        return storageService.getPermanentUrl(filePath);
+    }
+
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new FileException(FileResultCode.FILE_OPERATION_FAILED, "文件不能为空");

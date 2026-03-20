@@ -55,6 +55,11 @@ public class AliyunOssStorageServiceImpl implements StorageService {
     }
 
     @Override
+    public String getPermanentUrl(String fileName) {
+        return aliyunOssStorageStrategy.getPermanentUrl(fileName);
+    }
+
+    @Override
     public Map<String, Object> getFileInfo(String fileName) {
         return aliyunOssStorageStrategy.getFileInfo(fileName);
     }

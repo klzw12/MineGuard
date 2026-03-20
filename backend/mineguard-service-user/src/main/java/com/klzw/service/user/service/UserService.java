@@ -88,4 +88,37 @@ public interface UserService {
      * @return 用户ID
      */
     String adminCreateUser(AdminCreateUserDTO dto);
+
+    /**
+     * 更新手机号
+     * 
+     * @param userId 用户ID
+     * @param newPhone 新手机号
+     * @return 更新后的用户信息
+     */
+    UserVO updatePhone(Long userId, String newPhone);
+    
+    /**
+     * 根据角色编码获取用户列表
+     * 
+     * @param roleCode 角色编码（可选）
+     * @return 用户列表
+     */
+    java.util.List<UserVO> getUsersByRoleCode(String roleCode);
+    
+    /**
+     * 获取用户头像签名URL
+     * 
+     * @param userId 用户ID
+     * @return 签名URL，无头像返回null
+     */
+    String getAvatarSignedUrl(Long userId);
+    
+    /**
+     * 获取用户身份证图片签名URL
+     * 
+     * @param userId 用户ID
+     * @return 身份证图片信息（不包含身份证号）
+     */
+    com.klzw.service.user.vo.IdCardVO getIdCardSignedUrls(Long userId);
 }

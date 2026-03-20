@@ -3,7 +3,7 @@ package com.klzw.common.file.handler;
 import com.klzw.common.core.util.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import tools.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.util.HashMap;
 import java.util.List;
@@ -23,13 +23,41 @@ public class TemplateOcrParser implements OcrParser {
      * @return words_result数组，解析失败返回空列表
      */
     private List<Map<String, Object>> safeParseJson(String ocrResult) {
+        if (ocrResult == null || ocrResult.trim().isEmpty()) {
+            log.warn("OCR结果为空");
+            return List.of();
+        }
+        
         try {
+            log.debug("开始解析OCR结果，长度: {}", ocrResult.length());
+            log.debug("OCR结果前200字符: {}", ocrResult.substring(0, Math.min(200, ocrResult.length())));
+            
             Map<String, Object> jsonObject = JsonUtils.fromJson(ocrResult, new TypeReference<Map<String, Object>>() {});
-            if (jsonObject != null && jsonObject.containsKey("words_result")) {
-                return JsonUtils.fromJson(JsonUtils.toJson(jsonObject.get("words_result")), new TypeReference<List<Map<String, Object>>>() {});
+            if (jsonObject == null) {
+                log.warn("JSON解析结果为null");
+                return List.of();
+            }
+            
+            log.debug("JSON解析成功，keys: {}", jsonObject.keySet());
+            
+            if (jsonObject.containsKey("words_result")) {
+                Object wordsResult = jsonObject.get("words_result");
+                log.debug("words_result类型: {}", wordsResult != null ? wordsResult.getClass().getName() : "null");
+                
+                if (wordsResult instanceof List) {
+                    List<?> list = (List<?>) wordsResult;
+                    log.debug("words_result是List，大小: {}", list.size());
+                    return (List<Map<String, Object>>) wordsResult;
+                } else {
+                    String wordsResultJson = JsonUtils.toJson(wordsResult);
+                    return JsonUtils.fromJson(wordsResultJson, new TypeReference<List<Map<String, Object>>>() {});
+                }
+            } else {
+                log.warn("JSON中不包含words_result字段，实际字段: {}", jsonObject.keySet());
             }
         } catch (Exception e) {
-            log.error("解析JSON失败: {}", e.getMessage(), e);
+            log.error("解析JSON失败: {}, OCR结果前500字符: {}", e.getMessage(), 
+                    ocrResult.substring(0, Math.min(500, ocrResult.length())), e);
         }
         return List.of();
     }
@@ -88,21 +116,43 @@ public class TemplateOcrParser implements OcrParser {
         
         // 尝试匹配原始关键字（包含冒号）
         if (text.contains(keyword)) {
-            return text.replace(keyword, "").trim();
+            String value = text.replace(keyword, "").trim();
+            // 去除值开头的冒号
+            return removeLeadingColon(value);
+        }
+        
+        // 尝试匹配中文冒号
+        String keywordWithChineseColon = keywordWithoutColon + "：";
+        if (text.contains(keywordWithChineseColon)) {
+            String value = text.replace(keywordWithChineseColon, "").trim();
+            return removeLeadingColon(value);
         }
         
         // 尝试匹配英文冒号
         String keywordWithEnglishColon = keywordWithoutColon + ":";
         if (text.contains(keywordWithEnglishColon)) {
-            return text.replace(keywordWithEnglishColon, "").trim();
+            String value = text.replace(keywordWithEnglishColon, "").trim();
+            return removeLeadingColon(value);
         }
         
         // 尝试匹配无冒号的情况（关键字后面直接跟值）
         if (text.startsWith(keywordWithoutColon)) {
-            return text.substring(keywordWithoutColon.length()).trim();
+            String value = text.substring(keywordWithoutColon.length()).trim();
+            // 去除值开头的冒号
+            return removeLeadingColon(value);
         }
         
         return null;
+    }
+    
+    /**
+     * 去除字符串开头的冒号（中文或英文）
+     */
+    private String removeLeadingColon(String value) {
+        if (value.startsWith("：") || value.startsWith(":")) {
+            return value.substring(1).trim();
+        }
+        return value;
     }
 
     @Override

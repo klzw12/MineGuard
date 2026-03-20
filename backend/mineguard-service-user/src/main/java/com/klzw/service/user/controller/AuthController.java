@@ -9,6 +9,7 @@ import com.klzw.service.user.dto.UserLoginDTO;
 import com.klzw.service.user.dto.UserRegisterDTO;
 import com.klzw.service.user.dto.ResetPasswordDTO;
 import com.klzw.service.user.dto.VerifySmsCodeDTO;
+import com.klzw.service.user.enums.SmsScene;
 import com.klzw.service.user.service.AuthService;
 import com.klzw.service.user.vo.SmsCodeVO;
 import com.klzw.service.user.vo.UserVO;
@@ -60,7 +61,8 @@ public class AuthController {
     @Operation(summary = "发送短信验证码")
     @PostMapping("/sms/send")
     public Result<SmsCodeVO> sendSmsCode(@Validated @RequestBody SendSmsCodeDTO dto) {
-        SmsCodeVO smsCodeVO = authService.sendSmsCode(dto.getPhone());
+        SmsScene scene = SmsScene.fromCode(dto.getScene());
+        SmsCodeVO smsCodeVO = authService.sendSmsCode(dto.getPhone(), scene);
         return Result.success("短信验证码发送成功", smsCodeVO);
     }
 

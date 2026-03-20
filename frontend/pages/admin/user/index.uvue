@@ -59,6 +59,7 @@
 						<view class="user-info">
 							<text class="user-name">{{ user.realName || user.username }}</text>
 							<text class="user-account">账号：{{ user.username }}</text>
+							<text class="user-role" v-if="user.roleName">角色：{{ user.roleName }}</text>
 							<text class="user-phone" v-if="user.phone">手机：{{ user.phone }}</text>
 							<text class="user-email" v-if="user.email">邮箱：{{ user.email }}</text>
 						</view>
@@ -138,7 +139,7 @@
 <script setup lang="uts">
 	import { ref, computed, onMounted } from 'vue'
 	import AdminSidebar from '../../../components/AdminSidebar.uvue'
-	import { pageUsers, disableUser, enableUser, assignRoles, getUserRoles, getAllRoles } from '@/api/user.uts'
+	import { pageUsers, disableUser, enableUser, assignRole, getAllRoles } from '@/api/user.uts'
 	import type { UserVO, RoleVO, PageResult } from '@/types/user.uts'
 	
 	const loading = ref(false)
@@ -252,12 +253,9 @@
 			await loadRoles()
 		}
 		
-		try {
-			const userRoles = await getUserRoles(user.id)
-			selectedRoleIds.value = roleList.value
-				.filter((role: RoleVO) => userRoles.includes(role.roleCode))
-				.map((role: RoleVO) => role.id)
-		} catch (e) {
+		if (user.roleId) {
+			selectedRoleIds.value = [user.roleId]
+		} else {
 			selectedRoleIds.value = []
 		}
 	}
@@ -269,19 +267,25 @@
 	}
 	
 	function toggleRole(roleId: string) {
-		const index = selectedRoleIds.value.indexOf(roleId)
-		if (index > -1) {
-			selectedRoleIds.value.splice(index, 1)
+		if (selectedRoleIds.value.includes(roleId)) {
+			selectedRoleIds.value = []
 		} else {
-			selectedRoleIds.value.push(roleId)
+			selectedRoleIds.value = [roleId]
 		}
 	}
 	
 	async function confirmAssignRoles() {
-		if (!selectedUser.value) return
+		if (!selectedUser.value || selectedRoleIds.value.length === 0) {
+			uni.showToast({
+				title: '请选择角色',
+				icon: 'none',
+				position: 'bottom'
+			})
+			return
+		}
 		
 		try {
-			await assignRoles(selectedUser.value.id, { roleIds: selectedRoleIds.value })
+			await assignRole(selectedUser.value.id, selectedRoleIds.value[0])
 			uni.showToast({
 				title: '分配成功',
 				icon: 'success',
@@ -435,6 +439,7 @@
 	}
 	
 	.user-account,
+	.user-role,
 	.user-phone,
 	.user-email {
 		font-size: 22rpx;
@@ -628,9 +633,11 @@
 	
 	.modal-btn {
 		flex: 1;
-		padding: 25rpx;
+		height: 80rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
 		border-radius: 10rpx;
-		text-align: center;
 		font-size: 28rpx;
 	}
 	

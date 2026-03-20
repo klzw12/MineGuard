@@ -13,7 +13,7 @@ public class DefaultExceptionHandlerStrategy implements ExceptionHandlerStrategy
 
     @Override
     public Result<?> handle(Throwable throwable) {
-        log.error("未处理异常: message={}", throwable.getMessage(), throwable);
-        return Result.fail(ResultCodeEnum.INTERNAL_ERROR.getCode(), "系统内部错误: " + throwable.getMessage());
+        log.error("未处理异常: message={}", throwable.getMessage());
+        return Result.fail(ResultCodeEnum.INTERNAL_ERROR.getCode(), ResultCodeEnum.INTERNAL_ERROR.getMessage());
     }
 }

@@ -1,129 +1,55 @@
-<template>
-	<view class="loading-container">
-		<text class="loading-text">加载中...</text>
-	</view>
-</template>
-
-<script lang="uts">
+<script setup lang="uts">
+	import { useUserStore } from '@/stores/user.uts'
+	
+	const userStore = useUserStore()
+	
 	// #ifdef APP-ANDROID || APP-HARMONY
 	let firstBackTime = 0
 	// #endif
-	export default {
-		data() {
-			return {
-				isLoading: true
-			}
-		},
-		onLaunch() {
-			console.log('App Launch')
-			this.checkLoginStatus()
-		},
-		onShow() {
-			console.log('App Show')
-			this.checkLoginStatus()
-		},
-		onHide() {
-			console.log('App Hide')
-		},
-		// #ifdef APP-ANDROID || APP-HARMONY
-		onLastPageBackPress() {
-			console.log('App LastPageBackPress')
-			if (firstBackTime == 0) {
-				uni.showToast({
-					title: '再按一次退出应用',
-					position: 'bottom',
-				})
-				firstBackTime = Date.now()
-				setTimeout(() => {
-					firstBackTime = 0
-				}, 2000)
-			} else if (Date.now() - firstBackTime < 2000) {
-				firstBackTime = Date.now()
-				uni.exit()
-			}
-		},
-		// #endif
-		onExit() {
-			console.log('App Exit')
-		},
-		methods: {
-			checkLoginStatus() {
-				// 检查登录状态
-				const loginStatus = uni.getStorageSync('loginStatus')
-				const userRole = uni.getStorageSync('userRole')
-				
-				if (loginStatus && userRole) {
-					// 已登录，根据角色跳转到对应首页
-					this.isLoading = false
-					if (userRole === 'admin') {
-						// 管理员端跳转
-						uni.redirectTo({
-							url: '/pages/admin/home/index'
-						})
-					} else if (userRole === 'user') {
-						// 用户端跳转
-						uni.switchTab({
-							url: '/pages/user/home/index'
-						})
-					}
-				} else {
-					// 未登录，跳转到首页
-					this.isLoading = false
-					uni.redirectTo({
-						url: '/pages/index/index'
-					})
-				}
-			}
+
+	onLaunch(() => {
+		console.log('App Launch')
+		userStore.loadFromStorage()
+	})
+
+	onAppShow(() => {
+		console.log('App Show')
+	})
+
+	onAppHide(() => {
+		console.log('App Hide')
+	})
+
+	// #ifdef APP-ANDROID || APP-HARMONY
+	onLastPageBackPress(() => {
+		console.log('App LastPageBackPress')
+		if (firstBackTime == 0) {
+			uni.showToast({
+				title: '再按一次退出应用',
+				position: 'bottom',
+			})
+			firstBackTime = Date.now()
+			setTimeout(() => {
+				firstBackTime = 0
+			}, 2000)
+		} else if (Date.now() - firstBackTime < 2000) {
+			firstBackTime = Date.now()
+			uni.exit()
 		}
-	}
+	})
+
+	onExit(() => {
+		console.log('App Exit')
+	})
+	// #endif
 </script>
 
-<style lang="scss">
-	/*每个页面公共css */
+<style>
 	.uni-row {
 		flex-direction: row;
 	}
 
 	.uni-column {
 		flex-direction: column;
-	}
-	
-	/* 加载状态 */
-	.loading-container {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		min-height: 100vh;
-		background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-	}
-	
-	.loading-text {
-		font-size: 28rpx;
-		color: $uni-color-primary;
-		font-weight: bold;
-		animation: pulse 1.5s ease 0s infinite both;
-	}
-	
-	@keyframes pulse {
-		0% {
-			opacity: 0.6;
-			transform: scale(1);
-		}
-		50% {
-			opacity: 1;
-			transform: scale(1.05);
-		}
-		100% {
-			opacity: 0.6;
-			transform: scale(1);
-		}
-	}
-	
-	/* 响应式设计 */
-	@media (min-width: 768px) {
-		.loading-container {
-			max-width: 600rpx;
-			margin: 0 auto;
-		}
 	}
 </style>

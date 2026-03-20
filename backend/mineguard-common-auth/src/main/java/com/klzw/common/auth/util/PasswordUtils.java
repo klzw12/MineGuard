@@ -53,4 +53,11 @@ public class PasswordUtils {
         }
         return aesUtil.encrypt(idCard);
     }
+    
+    public String decodeIdCard(String encryptedIdCard) {
+        if (encryptedIdCard == null || encryptedIdCard.trim().isEmpty()) {
+            return null;
+        }
+        return aesUtil.decrypt(encryptedIdCard);
+    }
 }

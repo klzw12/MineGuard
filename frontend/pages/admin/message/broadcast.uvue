@@ -1,0 +1,260 @@
+<template>
+	<view class="admin-layout-container">
+		<AdminSidebar />
+		<view class="admin-content">
+			<view class="page-header">
+				<text class="page-title">全局广播</text>
+			</view>
+			
+			<view class="content-card">
+				<view class="form-section">
+					<view class="form-group">
+						<text class="form-label">广播标题</text>
+						<input class="form-input" type="text" placeholder="请输入广播标题" placeholder-style="color: rgba(255,255,255,0.4)" v-model="broadcastTitle" />
+					</view>
+					
+					<view class="form-group">
+						<text class="form-label">广播内容</text>
+						<textarea class="form-textarea" placeholder="请输入广播内容..." placeholder-style="color: rgba(255,255,255,0.4)" v-model="broadcastContent" />
+					</view>
+					
+					<view class="form-group">
+						<text class="form-label">接收对象</text>
+						<view class="checkbox-group">
+							<view class="checkbox-item" v-for="(role, index) in roles" :key="index" @click="toggleRole(role.code)">
+								<view class="checkbox" :class="{ checked: selectedRoles.includes(role.code) }">
+									<text v-if="selectedRoles.includes(role.code)">✓</text>
+								</view>
+								<text class="checkbox-label">{{ role.name }}</text>
+							</view>
+						</view>
+					</view>
+					
+					<view class="form-actions">
+						<view class="action-btn primary" @click="sendBroadcast">
+							<text class="action-text">发送广播</text>
+						</view>
+					</view>
+				</view>
+			</view>
+			
+			<view class="content-card">
+				<view class="card-header">
+					<text class="card-title">历史广播</text>
+				</view>
+				
+				<view class="broadcast-list">
+					<view class="broadcast-item" v-for="(item, index) in broadcastHistory" :key="index">
+						<view class="broadcast-header">
+							<text class="broadcast-title">{{ item.title }}</text>
+							<text class="broadcast-time">{{ item.time }}</text>
+						</view>
+						<text class="broadcast-content">{{ item.content }}</text>
+						<view class="broadcast-footer">
+							<text class="broadcast-target">接收对象: {{ item.target }}</text>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref } from 'vue'
+	import AdminSidebar from '@/components/AdminSidebar.uvue'
+	
+	const broadcastTitle = ref('')
+	const broadcastContent = ref('')
+	const selectedRoles = ref<string[]>(['DRIVER', 'MECHANIC', 'SAFETY'])
+	
+	const roles = ref([
+		{ code: 'DRIVER', name: '司机' },
+		{ code: 'MECHANIC', name: '维修员' },
+		{ code: 'SAFETY', name: '安全员' },
+		{ code: 'ADMIN', name: '管理员' }
+	])
+	
+	const broadcastHistory = ref([
+		{ title: '系统维护通知', content: '系统将于今晚22:00-23:00进行维护，届时系统将暂停服务。', time: '2026-03-20 09:30', target: '全部用户' },
+		{ title: '安全培训通知', content: '请所有司机于本周五下午2点参加安全培训会议。', time: '2026-03-19 14:20', target: '司机' },
+		{ title: '新功能上线', content: '车辆实时监控功能已上线，请各位管理员及时查看。', time: '2026-03-18 10:00', target: '管理员' }
+	])
+	
+	function toggleRole(code: string) {
+		const index = selectedRoles.value.indexOf(code)
+		if (index > -1) {
+			selectedRoles.value.splice(index, 1)
+		} else {
+			selectedRoles.value.push(code)
+		}
+	}
+	
+	function sendBroadcast() {
+		if (!broadcastTitle.value.trim()) {
+			uni.showToast({ title: '请输入广播标题', icon: 'none' })
+			return
+		}
+		if (!broadcastContent.value.trim()) {
+			uni.showToast({ title: '请输入广播内容', icon: 'none' })
+			return
+		}
+		if (selectedRoles.value.length === 0) {
+			uni.showToast({ title: '请选择接收对象', icon: 'none' })
+			return
+		}
+		
+		uni.showModal({
+			title: '确认发送',
+			content: '确定要发送此广播吗？',
+			success: (res) => {
+				if (res.confirm) {
+					uni.showToast({ title: '广播发送成功', icon: 'success' })
+					broadcastTitle.value = ''
+					broadcastContent.value = ''
+				}
+			}
+		})
+	}
+</script>
+
+<style lang="scss">
+	@import '@/styles/admin.scss';
+	
+	.form-section {
+		padding: 30rpx;
+	}
+	
+	.form-group {
+		margin-bottom: 30rpx;
+	}
+	
+	.form-label {
+		display: block;
+		font-size: 26rpx;
+		color: rgba(255, 255, 255, 0.8);
+		margin-bottom: 15rpx;
+	}
+	
+	.form-input {
+		width: 100%;
+		padding: 20rpx;
+		background-color: rgba(255, 255, 255, 0.05);
+		border: 1rpx solid rgba(255, 255, 255, 0.1);
+		border-radius: 12rpx;
+		font-size: 26rpx;
+		color: #fff;
+	}
+	
+	.form-textarea {
+		width: 100%;
+		height: 200rpx;
+		padding: 20rpx;
+		background-color: rgba(255, 255, 255, 0.05);
+		border: 1rpx solid rgba(255, 255, 255, 0.1);
+		border-radius: 12rpx;
+		font-size: 26rpx;
+		color: #fff;
+	}
+	
+	.checkbox-group {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 20rpx;
+	}
+	
+	.checkbox-item {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 10rpx;
+	}
+	
+	.checkbox {
+		width: 36rpx;
+		height: 36rpx;
+		border: 2rpx solid rgba(255, 255, 255, 0.3);
+		border-radius: 6rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		
+		&.checked {
+			background-color: #007AFF;
+			border-color: #007AFF;
+		}
+		
+		text {
+			color: #fff;
+			font-size: 24rpx;
+		}
+	}
+	
+	.checkbox-label {
+		font-size: 26rpx;
+		color: rgba(255, 255, 255, 0.7);
+	}
+	
+	.form-actions {
+		margin-top: 40rpx;
+	}
+	
+	.card-header {
+		padding: 30rpx;
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+	}
+	
+	.card-title {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #fff;
+	}
+	
+	.broadcast-list {
+		padding: 20rpx 30rpx;
+	}
+	
+	.broadcast-item {
+		padding: 25rpx;
+		background-color: rgba(255, 255, 255, 0.03);
+		border-radius: 12rpx;
+		margin-bottom: 20rpx;
+	}
+	
+	.broadcast-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 15rpx;
+	}
+	
+	.broadcast-title {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #fff;
+	}
+	
+	.broadcast-time {
+		font-size: 22rpx;
+		color: rgba(255, 255, 255, 0.5);
+	}
+	
+	.broadcast-content {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.7);
+		line-height: 1.6;
+		margin-bottom: 15rpx;
+	}
+	
+	.broadcast-footer {
+		display: flex;
+		flex-direction: row;
+	}
+	
+	.broadcast-target {
+		font-size: 22rpx;
+		color: #007AFF;
+	}
+</style>

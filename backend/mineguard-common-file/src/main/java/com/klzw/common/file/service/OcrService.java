@@ -15,6 +15,13 @@ public interface OcrService {
      * @return 识别结果
      */
     String recognizeIdCard(MultipartFile file);
+    
+    /**
+     * 识别身份证正面（byte[]输入）
+     * @param imageData 图片二进制数据
+     * @return 识别结果
+     */
+    String recognizeIdCard(byte[] imageData);
 
     /**
      * 识别身份证背面
@@ -29,6 +36,13 @@ public interface OcrService {
      * @return 识别结果
      */
     String recognizeDrivingLicense(MultipartFile file);
+    
+    /**
+     * 识别驾驶证（byte[]输入）
+     * @param imageData 图片二进制数据
+     * @return 识别结果
+     */
+    String recognizeDrivingLicense(byte[] imageData);
 
     /**
      * 识别行驶证正面
@@ -57,6 +71,13 @@ public interface OcrService {
      * @return 识别结果
      */
     String recognizeEmergencyCert(MultipartFile file);
+    
+    /**
+     * 识别紧急救援资格证（byte[]输入）
+     * @param imageData 图片二进制数据
+     * @return 识别结果
+     */
+    String recognizeEmergencyCert(byte[] imageData);
 
     /**
      * 识别维修资格证
@@ -64,6 +85,13 @@ public interface OcrService {
      * @return 识别结果
      */
     String recognizeRepairCert(MultipartFile file);
+    
+    /**
+     * 识别维修资格证（byte[]输入）
+     * @param imageData 图片二进制数据
+     * @return 识别结果
+     */
+    String recognizeRepairCert(byte[] imageData);
 
     /**
      * 解析身份证识别结果

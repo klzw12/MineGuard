@@ -8,8 +8,8 @@
 
 | 环境 | Gateway 地址 | 说明 |
 | - | - | - |
-| 开发环境 | <http://localhost:8081> | 本地开发 |
-| 测试环境 | <http://192.168.110.128:8081> | 测试服务器 |
+| 开发环境 | <http://localhost:8080> | 本地开发 |
+| 测试环境 | <http://192.168.110.128:8080> | 测试服务器 |
 | 生产环境 | <https://api.mineguard.com> | 生产环境 |
 
 ### 1.2 统一响应格式
@@ -96,11 +96,10 @@ GET /actuator/health
 #### 2.1.2 API 文档
 
 ``` http
-GET /swagger-ui.html
-GET /webjars/swagger-ui/index.html
+GET /doc.html
 ```
 
-**说明：** 访问聚合的 Swagger UI，可查看所有服务的 API 文档。
+**说明：** 访问 Knife4j 增强的 Swagger UI，可查看所有服务的 API 文档。
 
 #### 2.1.3 各服务 API 文档
 
@@ -168,13 +167,16 @@ HTTP/1.1 503 Service Unavailable
 | /api/auth/** | user-service | 认证相关 |
 | /api/user/** | user-service | 用户管理 |
 | /api/role/** | user-service | 角色管理 |
+| /api/qualification/** | user-service | 资格认证 |
+| /api/attendance/** | user-service | 考勤管理 |
+| /api/messages/** | user-service | 消息服务 |
 | /api/vehicle/** | vehicle-service | 车辆管理 |
-| /api/driver/** | vehicle-service | 司机管理 |
 | /api/trip/** | trip-service | 行程管理 |
 | /api/warning/** | warning-service | 预警管理 |
 | /api/statistics/** | statistics-service | 统计分析 |
 | /api/cost/** | cost-service | 费用管理 |
 | /api/ai/** | ai-service | AI服务 |
+| /api/dispatch/** | dispatch-service | 调度服务 |
 
 ### 2.4 请求头传递
 
@@ -184,17 +186,64 @@ HTTP/1.1 503 Service Unavailable
 | - | - | - |
 | X-User-Id | 用户ID | 123 |
 | X-Username | 用户名 | admin |
-| X-User-Roles | 角色列表（逗号分隔） | ROLE_ADMIN,ROLE_USER |
+| X-User-Roles | 角色 | ROLE_ADMIN |
 
 ---
 
 ## 3. User Service 用户服务
 
-> ⚠️ **注意：以下为预期 API，实际实现时可能调整**
-
 ### 3.1 认证接口（/api/auth）
 
-#### 3.1.1 用户登录
+#### 3.1.1 用户注册
+
+``` http
+POST /api/auth/register
+Content-Type: application/json
+```
+
+**请求体：**
+
+```json
+{
+  "username": "newuser",
+  "password": "NewPass123",
+  "phone": "13800138001",
+  "smsCode": "123456",
+  "email": "user@example.com"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| username | string | 是 | 用户名（2-20个字符） |
+| password | string | 是 | 密码（6-20位，包含大小写字母和数字） |
+| phone | string | 是 | 手机号 |
+| smsCode | string | 是 | 短信验证码（6位数字，需先调用发送验证码接口获取） |
+| email | string | 否 | 邮箱 |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "注册成功",
+  "data": {
+    "id": "uuid-xxx",
+    "username": "newuser",
+    "phone": "13800138001",
+    "email": "user@example.com",
+    "status": 1,
+    "roleId": null,
+    "roleCode": null,
+    "createTime": "2024-01-01 00:00:00",
+    "token": "eyJhbGciOiJIUzUxMiJ9...",
+    "refreshToken": "eyJhbGciOiJIUzUxMiJ9...",
+    "expiresIn": 7200
+  }
+}
+```
+
+#### 3.1.2 用户登录
 
 ``` http
 POST /api/auth/login
@@ -206,18 +255,14 @@ Content-Type: application/json
 ```json
 {
   "username": "admin",
-  "password": "123456",
-  "captchaKey": "xxx",
-  "captchaCode": "1234"
+  "password": "Admin123"
 }
 ```
 
 | 字段 | 类型 | 必填 | 说明 |
 | - | - | - | - |
-| username | string | 是 | 用户名 |
-| password | string | 是 | 密码 |
-| captchaKey | string | 否 | 验证码Key |
-| captchaCode | string | 否 | 验证码 |
+| username | string | 是 | 用户名（2-20个字符） |
+| password | string | 是 | 密码（6-20位，包含大小写字母和数字） |
 
 **响应示例：**
 
@@ -226,67 +271,21 @@ Content-Type: application/json
   "code": 200,
   "message": "登录成功",
   "data": {
-    "accessToken": "eyJhbGciOiJIUzUxMiJ9...",
-    "refreshToken": "eyJhbGciOiJIUzUxMiJ9...",
-    "tokenType": "Bearer",
-    "expiresIn": 7200,
-    "user": {
-      "id": "uuid-xxx",
-      "username": "admin",
-      "realName": "管理员",
-      "email": "admin@example.com",
-      "phone": "13800138000",
-      "status": 1,
-      "userType": 2,
-      "roles": ["ROLE_ADMIN"],
-      "createTime": "2024-01-01 00:00:00"
-    }
-  }
-}
-```
-
-#### 3.1.2 用户注册
-
-``` http
-POST /api/user/register
-Content-Type: application/json
-```
-
-**请求体：**
-
-```json
-{
-  "username": "newuser",
-  "password": "123456",
-  "realName": "张三",
-  "email": "user@example.com",
-  "phone": "13800138001"
-}
-```
-
-| 字段 | 类型 | 必填 | 说明 |
-| - | - | - | - |
-| username | string | 是 | 用户名（4-20位字母或数字） |
-| password | string | 是 | 密码（至少6位） |
-| realName | string | 是 | 真实姓名 |
-| email | string | 否 | 邮箱 |
-| phone | string | 否 | 手机号 |
-
-**响应示例：**
-
-```json
-{
-  "code": 200,
-  "message": "注册成功",
-  "data": {
     "id": "uuid-xxx",
-    "username": "newuser",
-    "realName": "张三",
-    "email": "user@example.com",
-    "phone": "13800138001",
+    "username": "admin",
+    "realName": "管理员",
+    "phone": "13800138000",
+    "email": "admin@example.com",
+    "avatarUrl": null,
     "status": 1,
-    "userType": 1,
-    "createTime": "2024-01-01 00:00:00"
+    "roleId": "1",
+    "roleCode": "ADMIN",
+    "roleName": "系统管理员",
+    "createTime": "2024-01-01 00:00:00",
+    "updateTime": "2024-01-01 00:00:00",
+    "token": "eyJhbGciOiJIUzUxMiJ9...",
+    "refreshToken": "eyJhbGciOiJIUzUxMiJ9...",
+    "expiresIn": 7200
   }
 }
 ```
@@ -308,56 +307,7 @@ Authorization: Bearer {token}
 }
 ```
 
-#### 3.1.4 刷新Token
-
-``` http
-POST /api/auth/refresh
-Content-Type: application/json
-```
-
-**请求体：**
-
-```json
-{
-  "refreshToken": "eyJhbGciOiJIUzUxMiJ9..."
-}
-```
-
-**响应示例：**
-
-```json
-{
-  "code": 200,
-  "message": "刷新成功",
-  "data": {
-    "accessToken": "eyJhbGciOiJIUzUxMiJ9...",
-    "refreshToken": "eyJhbGciOiJIUzUxMiJ9...",
-    "tokenType": "Bearer",
-    "expiresIn": 7200
-  }
-}
-```
-
-#### 3.1.5 获取图形验证码
-
-``` http
-GET /api/auth/captcha
-```
-
-**响应示例：**
-
-```json
-{
-  "code": 200,
-  "message": "操作成功",
-  "data": {
-    "captchaKey": "uuid-xxx",
-    "captchaImage": "data:image/png;base64,iVBORw0KGgo..."
-  }
-}
-```
-
-#### 3.1.6 发送短信验证码
+#### 3.1.4 发送短信验证码
 
 ``` http
 POST /api/auth/sms/send
@@ -390,7 +340,7 @@ Content-Type: application/json
 }
 ```
 
-#### 3.1.7 验证短信验证码
+#### 3.1.5 验证短信验证码
 
 ``` http
 POST /api/auth/sms/verify
@@ -421,7 +371,7 @@ Content-Type: application/json
 }
 ```
 
-#### 3.1.8 通过手机号重置密码
+#### 3.1.6 通过手机号重置密码
 
 ``` http
 POST /api/auth/reset-password
@@ -433,7 +383,7 @@ Content-Type: application/json
 ```json
 {
   "phone": "13800138000",
-  "code": "1234",
+  "smsCode": "123456",
   "newPassword": "NewPass123"
 }
 ```
@@ -441,8 +391,8 @@ Content-Type: application/json
 | 字段 | 类型 | 必填 | 说明 |
 | - | - | - | - |
 | phone | string | 是 | 手机号 |
-| code | string | 是 | 验证码（4位数字） |
-| newPassword | string | 是 | 新密码（至少6位，包含大小写字母和数字） |
+| smsCode | string | 是 | 短信验证码（6位数字） |
+| newPassword | string | 是 | 新密码（6-20位，包含大小写字母和数字） |
 
 **响应示例：**
 
@@ -454,12 +404,43 @@ Content-Type: application/json
 }
 ```
 
-#### 3.1.9 管理员认证
+#### 3.1.7 刷新Token
+
+``` http
+POST /api/auth/refresh
+Content-Type: application/json
+```
+
+**请求体：**
+
+```json
+{
+  "refreshToken": "eyJhbGciOiJIUzUxMiJ9..."
+}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "刷新成功",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzUxMiJ9...",
+    "refreshToken": "eyJhbGciOiJIUzUxMiJ9...",
+    "tokenType": "Bearer",
+    "expiresIn": 7200
+  }
+}
+```
+
+#### 3.1.8 管理员认证
 
 > 管理员首次登录时，如果状态为禁用，需要通过此接口进行身份认证后才能启用账户
 
 ``` http
 POST /api/auth/admin/verify
+Authorization: Bearer {token}
 Content-Type: application/json
 ```
 
@@ -470,7 +451,8 @@ Content-Type: application/json
   "userId": 1,
   "realName": "张三",
   "phone": "13800138000",
-  "idCardFrontBase64": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAA..."
+  "idCardFrontBase64": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAA...",
+  "idCardBackBase64": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAA..."
 }
 ```
 
@@ -480,6 +462,7 @@ Content-Type: application/json
 | realName | string | 否 | 真实姓名（用于与身份证比对） |
 | phone | string | 否 | 手机号 |
 | idCardFrontBase64 | string | 是 | 身份证正面图片（Base64编码，支持data:image/xxx;base64,前缀） |
+| idCardBackBase64 | string | 否 | 身份证背面图片（Base64编码） |
 
 **响应示例：**
 
@@ -495,18 +478,42 @@ Content-Type: application/json
     "email": "admin@example.com",
     "avatarUrl": null,
     "status": 1,
-    "userType": 1,
+    "roleId": "1",
     "roleCode": "ADMIN",
+    "roleName": "系统管理员",
     "createTime": "2024-01-01 00:00:00",
-    "updateTime": "2024-01-01 00:00:00"
+    "updateTime": "2024-01-01 00:00:00",
+    "token": "eyJhbGciOiJIUzUxMiJ9...",
+    "refreshToken": "eyJhbGciOiJIUzUxMiJ9...",
+    "expiresIn": 7200
   }
 }
 ```
 
 **前端判断逻辑**：
-- 登录返回的UserVO中包含`status`和`userType`/`roleCode`
+
+- 登录返回的UserVO中包含`status`和`roleCode`
 - 如果`roleCode === "ADMIN"`且`status === 0`（禁用），前端跳转到管理员认证页面
 - 用户上传身份证照片进行认证，认证成功后`status`变为`1`（启用）
+
+#### 3.1.9 获取图形验证码
+
+``` http
+GET /api/auth/captcha
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "captchaKey": "uuid-xxx",
+    "captchaImage": "data:image/png;base64,iVBORw0KGgo..."
+  }
+}
+```
 
 ### 3.2 用户管理接口（/api/user）
 
@@ -539,13 +546,53 @@ Authorization: Bearer {token}
 }
 ```
 
-#### 3.2.2 更新用户信息
+#### 3.2.2 获取用户详情
+
+``` http
+GET /api/user/{id}
+Authorization: Bearer {token}
+```
+
+**说明：** 允许普通用户访问，用于WebSocket通信等场景
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+| - | - | - |
+| id | string | 用户ID |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": "uuid-xxx",
+    "username": "admin",
+    "realName": "管理员",
+    "email": "admin@example.com",
+    "phone": "13800138000",
+    "avatarUrl": null,
+    "status": 1,
+    "roleId": "1",
+    "roleCode": "ADMIN",
+    "roleName": "系统管理员",
+    "createTime": "2024-01-01 00:00:00",
+    "updateTime": "2024-01-01 00:00:00"
+  }
+}
+```
+
+#### 3.2.3 更新用户信息
 
 ``` http
 PUT /api/user/{id}
 Authorization: Bearer {token}
 Content-Type: application/json
 ```
+
+**说明：** realName（真实姓名）实名认证后不可修改，phone（手机号）需通过专门接口修改
 
 **路径参数：**
 
@@ -557,12 +604,17 @@ Content-Type: application/json
 
 ```json
 {
-  "realName": "新名字",
+  "username": "newusername",
   "email": "newemail@example.com",
-  "phone": "13900139000",
-  "avatar": "https://example.com/avatar.jpg"
+  "avatarUrl": "https://example.com/avatar.jpg"
 }
 ```
+
+| 字段 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| username | string | 否 | 用户名（2-20个字符，修改时需避免重名） |
+| email | string | 否 | 邮箱 |
+| avatarUrl | string | 否 | 头像URL |
 
 **响应示例：**
 
@@ -570,11 +622,24 @@ Content-Type: application/json
 {
   "code": 200,
   "message": "更新成功",
-  "data": null
+  "data": {
+    "id": "uuid-xxx",
+    "username": "newusername",
+    "realName": "管理员",
+    "email": "newemail@example.com",
+    "phone": "13800138000",
+    "avatarUrl": "https://example.com/avatar.jpg",
+    "status": 1,
+    "roleId": "1",
+    "roleCode": "ADMIN",
+    "roleName": "系统管理员",
+    "createTime": "2024-01-01 00:00:00",
+    "updateTime": "2024-01-01 00:00:00"
+  }
 }
 ```
 
-#### 3.2.3 修改密码
+#### 3.2.4 修改密码
 
 ``` http
 PUT /api/user/password
@@ -586,11 +651,15 @@ Content-Type: application/json
 
 ```json
 {
-  "oldPassword": "123456",
-  "newPassword": "654321",
-  "confirmPassword": "654321"
+  "oldPassword": "OldPass123",
+  "newPassword": "NewPass456"
 }
 ```
+
+| 字段 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| oldPassword | string | 是 | 原密码 |
+| newPassword | string | 是 | 新密码（6-20位，包含大小写字母和数字） |
 
 **响应示例：**
 
@@ -602,7 +671,54 @@ Content-Type: application/json
 }
 ```
 
-#### 3.2.4 上传用户头像
+#### 3.2.5 更新手机号
+
+``` http
+PUT /api/user/phone
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**说明：** 更新手机号需要先调用发送短信验证码接口获取验证码
+
+**请求体：**
+
+```json
+{
+  "newPhone": "13900139000",
+  "smsCode": "123456"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| newPhone | string | 是 | 新手机号 |
+| smsCode | string | 是 | 短信验证码（6位数字） |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "手机号更新成功",
+  "data": {
+    "id": "uuid-xxx",
+    "username": "admin",
+    "realName": "管理员",
+    "phone": "13900139000",
+    "email": "admin@example.com",
+    "avatarUrl": null,
+    "status": 1,
+    "roleId": "1",
+    "roleCode": "ADMIN",
+    "roleName": "系统管理员",
+    "createTime": "2024-01-01 00:00:00",
+    "updateTime": "2024-01-01 00:00:00"
+  }
+}
+```
+
+#### 3.2.6 上传用户头像
 
 ``` http
 POST /api/user/avatar
@@ -637,7 +753,7 @@ Content-Type: multipart/form-data
 }
 ```
 
-#### 3.2.5 分页查询用户（管理员）
+#### 3.2.6 分页查询用户（管理员）
 
 ``` http
 GET /api/user/page?pageNum=1&pageSize=10&username=&status=
@@ -682,35 +798,6 @@ Authorization: Bearer {token}
 }
 ```
 
-#### 3.2.6 获取用户详情（管理员）
-
-``` http
-GET /api/user/{id}
-Authorization: Bearer {token}
-```
-
-**响应示例：**
-
-```json
-{
-  "code": 200,
-  "message": "操作成功",
-  "data": {
-    "id": "uuid-xxx",
-    "username": "admin",
-    "realName": "管理员",
-    "email": "admin@example.com",
-    "phone": "13800138000",
-    "avatarUrl": null,
-    "status": 1,
-    "userType": 2,
-    "roles": ["ROLE_ADMIN"],
-    "createTime": "2024-01-01 00:00:00",
-    "updateTime": "2024-01-01 00:00:00"
-  }
-}
-```
-
 #### 3.2.7 禁用用户（管理员）
 
 ``` http  
@@ -745,7 +832,38 @@ Authorization: Bearer {token}
 }
 ```
 
+#### 3.2.9 分配角色（管理员）
+
+``` http
+PUT /api/user/{id}/role?roleId=2
+Authorization: Bearer {token}
+```
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+| - | - | - |
+| id | string | 用户ID |
+
+**查询参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| roleId | string | 是 | 角色ID |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "角色分配成功",
+  "data": null
+}
+```
+
 ### 3.3 角色管理接口（/api/role）
+
+> **说明**：角色管理接口大部分需要管理员权限
 
 #### 3.3.1 获取角色列表
 
@@ -753,6 +871,8 @@ Authorization: Bearer {token}
 GET /api/role/list
 Authorization: Bearer {token}
 ```
+
+**说明：** 获取所有角色列表，普通用户可访问
 
 **响应示例：**
 
@@ -762,27 +882,188 @@ Authorization: Bearer {token}
   "message": "操作成功",
   "data": [
     {
-      "id": "uuid-xxx",
-      "roleName": "管理员",
-      "roleCode": "ROLE_ADMIN",
-      "description": "系统管理员",
+      "id": "1",
+      "roleName": "系统管理员",
+      "roleCode": "ADMIN",
+      "description": "系统管理员，拥有所有权限",
       "createTime": "2024-01-01 00:00:00"
     },
     {
-      "id": "uuid-yyy",
+      "id": "2",
       "roleName": "司机",
-      "roleCode": "ROLE_DRIVER",
-      "description": "司机角色",
+      "roleCode": "DRIVER",
+      "description": "司机角色，负责车辆驾驶",
+      "createTime": "2024-01-01 00:00:00"
+    },
+    {
+      "id": "3",
+      "roleName": "运营人员",
+      "roleCode": "OPERATOR",
+      "description": "运营人员角色，处理调度工作等",
+      "createTime": "2024-01-01 00:00:00"
+    },
+    {
+      "id": "4",
+      "roleName": "维修员",
+      "roleCode": "REPAIRMAN",
+      "description": "维修员角色，负责车辆维修",
+      "createTime": "2024-01-01 00:00:00"
+    },
+    {
+      "id": "5",
+      "roleName": "安全员",
+      "roleCode": "SAFETY_OFFICER",
+      "description": "安全员角色，负责安全监督",
       "createTime": "2024-01-01 00:00:00"
     }
   ]
 }
 ```
 
+#### 3.3.2 获取角色详情
+
+``` http
+GET /api/role/{id}
+Authorization: Bearer {token}
+```
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+| - | - | - |
+| id | string | 角色ID |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": "1",
+    "roleName": "系统管理员",
+    "roleCode": "ADMIN",
+    "description": "系统管理员，拥有所有权限",
+    "createTime": "2024-01-01 00:00:00"
+  }
+}
+```
+
+#### 3.3.3 创建角色（管理员）
+
+``` http
+POST /api/role
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体：**
+
+```json
+{
+  "roleName": "新角色",
+  "roleCode": "NEW_ROLE",
+  "description": "新角色描述"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| roleName | string | 是 | 角色名称（2-50个字符） |
+| roleCode | string | 是 | 角色编码（大写字母和下划线，2-50个字符） |
+| description | string | 否 | 角色描述 |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "创建成功",
+  "data": {
+    "id": "6",
+    "roleName": "新角色",
+    "roleCode": "NEW_ROLE",
+    "description": "新角色描述",
+    "createTime": "2024-01-01 00:00:00"
+  }
+}
+```
+
+#### 3.3.4 更新角色（管理员）
+
+``` http
+PUT /api/role/{id}
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+| - | - | - |
+| id | string | 角色ID |
+
+**请求体：**
+
+```json
+{
+  "roleName": "更新后的角色名",
+  "roleCode": "UPDATED_ROLE",
+  "description": "更新后的描述"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| roleName | string | 否 | 角色名称（2-50个字符） |
+| roleCode | string | 否 | 角色编码（大写字母和下划线，2-50个字符） |
+| description | string | 否 | 角色描述 |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "更新成功",
+  "data": {
+    "id": "6",
+    "roleName": "更新后的角色名",
+    "roleCode": "UPDATED_ROLE",
+    "description": "更新后的描述",
+    "createTime": "2024-01-01 00:00:00"
+  }
+}
+```
+
+#### 3.3.5 删除角色（管理员）
+
+``` http
+DELETE /api/role/{id}
+Authorization: Bearer {token}
+```
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+| - | - | - |
+| id | string | 角色ID |
+
+**说明：** 如果有用户使用该角色，则无法删除
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "删除成功",
+  "data": true
+}
+```
+
 ### 3.4 资格认证接口（/api/qualification）
 
 > **认证流程**：先完成身份证验证（实名认证），再上传资格证书
-> 
+>
 > **前置条件**：用户必须先完成身份证验证才能上传资格证书
 
 #### 3.4.1 身份证验证（实名认证）
@@ -948,9 +1229,441 @@ Content-Type: application/json
 }
 ```
 
-### 3.5 管理员接口（/api/user/admin）
+### 3.5 考勤服务接口（/api/attendance）
 
-#### 3.5.1 分页查询用户（管理员）
+> **说明**：司机考勤打卡、查询、统计
+
+#### 3.5.1 上班打卡
+
+``` http
+POST /api/attendance/check-in
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体：**
+
+```json
+{
+  "driverId": 1,
+  "latitude": 39.908722,
+  "longitude": 116.397499,
+  "address": "北京市东城区"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| driverId | long | 是 | 司机ID |
+| latitude | double | 否 | 纬度 |
+| longitude | double | 否 | 经度 |
+| address | string | 否 | 打卡地址 |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": "uuid-xxx",
+    "driverId": "1",
+    "attendanceDate": "2024-01-01",
+    "checkInTime": "2024-01-01 08:30:00",
+    "checkOutTime": null,
+    "status": 1,
+    "statusLabel": "正常",
+    "lateMinutes": 0,
+    "earlyLeaveMinutes": 0,
+    "createTime": "2024-01-01 08:30:00"
+  }
+}
+```
+
+#### 3.5.2 下班打卡
+
+``` http
+POST /api/attendance/check-out
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体：**
+
+```json
+{
+  "driverId": 1,
+  "latitude": 39.908722,
+  "longitude": 116.397499,
+  "address": "北京市东城区"
+}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": "uuid-xxx",
+    "driverId": "1",
+    "attendanceDate": "2024-01-01",
+    "checkInTime": "2024-01-01 08:30:00",
+    "checkOutTime": "2024-01-01 17:30:00",
+    "status": 1,
+    "statusLabel": "正常",
+    "lateMinutes": 0,
+    "earlyLeaveMinutes": 0,
+    "createTime": "2024-01-01 08:30:00"
+  }
+}
+```
+
+#### 3.5.3 获取某日考勤记录
+
+``` http
+GET /api/attendance/{driverId}?date=2024-01-01
+Authorization: Bearer {token}
+```
+
+**路径参数：**
+
+| 参数 | 类型 | 说明 |
+| - | - | - |
+| driverId | long | 司机ID |
+
+**查询参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| date | string | 是 | 日期（yyyy-MM-dd） |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": "uuid-xxx",
+    "driverId": "1",
+    "attendanceDate": "2024-01-01",
+    "checkInTime": "2024-01-01 08:30:00",
+    "checkOutTime": "2024-01-01 17:30:00",
+    "status": 1,
+    "statusLabel": "正常",
+    "lateMinutes": 0,
+    "earlyLeaveMinutes": 0,
+    "createTime": "2024-01-01 08:30:00"
+  }
+}
+```
+
+#### 3.5.4 获取某月考勤记录列表
+
+``` http
+GET /api/attendance/{driverId}/list?yearMonth=2024-01
+Authorization: Bearer {token}
+```
+
+**查询参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| yearMonth | string | 是 | 年月（yyyy-MM） |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": "uuid-xxx",
+      "driverId": "1",
+      "attendanceDate": "2024-01-01",
+      "checkInTime": "2024-01-01 08:30:00",
+      "checkOutTime": "2024-01-01 17:30:00",
+      "status": 1,
+      "statusLabel": "正常",
+      "lateMinutes": 0,
+      "earlyLeaveMinutes": 0
+    }
+  ]
+}
+```
+
+#### 3.5.5 获取某月考勤统计
+
+``` http
+GET /api/attendance/{driverId}/statistics?yearMonth=2024-01
+Authorization: Bearer {token}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "totalDays": 22,
+    "normalDays": 20,
+    "lateDays": 1,
+    "earlyLeaveDays": 0,
+    "absentDays": 1,
+    "attendanceRate": 95.5
+  }
+}
+```
+
+#### 3.5.6 补卡（管理员功能）
+
+``` http
+PUT /api/attendance/{attendanceId}/supplement
+Authorization: Bearer {token}
+```
+
+**查询参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| checkInTime | string | 否 | 上班时间 |
+| checkOutTime | string | 否 | 下班时间 |
+| status | int | 否 | 状态：1-正常，2-迟到，3-早退，4-缺勤 |
+| remark | string | 否 | 备注 |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": "uuid-xxx",
+    "driverId": "1",
+    "attendanceDate": "2024-01-01",
+    "checkInTime": "2024-01-01 09:00:00",
+    "checkOutTime": "2024-01-01 18:00:00",
+    "status": 1,
+    "statusLabel": "正常",
+    "remark": "补卡"
+  }
+}
+```
+
+### 3.6 用户申诉服务接口（/api/user/appeal）
+
+> **说明**：用户被禁用后可提交申诉，管理员审核处理
+
+#### 3.6.1 提交申诉
+
+``` http
+POST /api/user/appeal
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体：**
+
+```json
+{
+  "appealReason": "账号被盗导致异常操作，现已找回，申请解封"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| appealReason | string | 是 | 申诉原因 |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "申诉提交成功",
+  "data": "uuid-appeal-xxx"
+}
+```
+
+#### 3.6.2 获取当前用户的申诉列表
+
+``` http
+GET /api/user/appeal/my
+Authorization: Bearer {token}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": "uuid-xxx",
+      "userId": "uuid-yyy",
+      "username": "user1",
+      "realName": "张三",
+      "phone": "13800138000",
+      "appealReason": "账号被盗导致异常操作",
+      "status": 1,
+      "statusLabel": "待处理",
+      "createTime": "2024-01-01 00:00:00"
+    }
+  ]
+}
+```
+
+#### 3.6.3 检查是否有待处理的申诉
+
+``` http
+GET /api/user/appeal/pending/check
+Authorization: Bearer {token}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": false
+}
+```
+
+#### 3.6.4 获取待处理的申诉列表（管理员）
+
+``` http
+GET /api/user/appeal/admin/pending
+Authorization: Bearer {token}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": "uuid-xxx",
+      "userId": "uuid-yyy",
+      "username": "user1",
+      "realName": "张三",
+      "phone": "13800138000",
+      "appealReason": "账号被盗导致异常操作",
+      "status": 1,
+      "statusLabel": "待处理",
+      "createTime": "2024-01-01 00:00:00"
+    }
+  ]
+}
+```
+
+#### 3.6.5 获取所有申诉列表（管理员）
+
+``` http
+GET /api/user/appeal/admin/list
+Authorization: Bearer {token}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": "uuid-xxx",
+      "userId": "uuid-yyy",
+      "username": "user1",
+      "realName": "张三",
+      "phone": "13800138000",
+      "appealReason": "账号被盗导致异常操作",
+      "status": 2,
+      "statusLabel": "已通过",
+      "adminOpinion": "核实情况属实，同意解封",
+      "handleTime": "2024-01-01 01:00:00",
+      "handlerId": "uuid-admin",
+      "handlerName": "管理员",
+      "createTime": "2024-01-01 00:00:00"
+    }
+  ]
+}
+```
+
+#### 3.6.6 根据用户ID获取申诉列表（管理员）
+
+``` http
+GET /api/user/appeal/admin/user/{userId}
+Authorization: Bearer {token}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": "uuid-xxx",
+      "userId": "uuid-yyy",
+      "username": "user1",
+      "appealReason": "账号被盗导致异常操作",
+      "status": 2,
+      "statusLabel": "已通过",
+      "createTime": "2024-01-01 00:00:00"
+    }
+  ]
+}
+```
+
+#### 3.6.7 处理申诉（管理员）
+
+``` http
+PUT /api/user/appeal/admin/{id}/handle
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体：**
+
+```json
+{
+  "status": 2,
+  "adminOpinion": "核实情况属实，同意解封",
+  "handlerId": "uuid-admin",
+  "handlerName": "管理员"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| status | int | 是 | 处理状态：2-已通过，3-已拒绝 |
+| adminOpinion | string | 否 | 管理员处理意见 |
+| handlerId | string | 是 | 处理人ID |
+| handlerName | string | 是 | 处理人姓名 |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "申诉处理成功",
+  "data": null
+}
+```
+
+### 3.7 管理员接口（/api/user/admin）
+
+> **说明**：管理员专用接口，普通用户无权限访问
+
+#### 3.7.1 分页查询用户（管理员）
 
 ``` http
 GET /api/user/admin/page?pageNum=1&pageSize=10&username=&status=
@@ -980,10 +1693,11 @@ Authorization: Bearer {token}
         "realName": "管理员",
         "email": "admin@example.com",
         "phone": "13800138000",
-        "avatar": null,
+        "avatarUrl": null,
         "status": 1,
-        "userType": 2,
-        "roles": ["ROLE_ADMIN"],
+        "roleId": "1",
+        "roleCode": "ADMIN",
+        "roleName": "系统管理员",
         "createTime": "2024-01-01 00:00:00"
       }
     ],
@@ -995,75 +1709,18 @@ Authorization: Bearer {token}
 }
 ```
 
-#### 3.5.2 获取用户详情（管理员）
+#### 3.7.2 变更用户角色（管理员专用）
 
 ``` http
-GET /api/user/admin/user/{id}
+PUT /api/user/admin/user/{id}/role-change?roleId=2&reason=工作需要
 Authorization: Bearer {token}
 ```
 
-**响应示例：**
+**路径参数：**
 
-```json
-{
-  "code": 200,
-  "message": "操作成功",
-  "data": {
-    "id": "uuid-xxx",
-    "username": "admin",
-    "realName": "管理员",
-    "email": "admin@example.com",
-    "phone": "13800138000",
-    "avatar": null,
-    "status": 1,
-    "userType": 2,
-    "roles": ["ROLE_ADMIN"],
-    "createTime": "2024-01-01 00:00:00",
-    "updateTime": "2024-01-01 00:00:00"
-  }
-}
-```
-
-#### 3.5.3 禁用用户（管理员）
-
-``` http  
-PUT /api/user/admin/user/{id}/disable
-Authorization: Bearer {token}
-```
-
-**响应示例：**
-
-```json
-{
-  "code": 200,
-  "message": "禁用成功",
-  "data": null
-}
-```
-
-#### 3.5.4 启用用户（管理员）
-
-``` http
-PUT /api/user/admin/user/{id}/enable
-Authorization: Bearer {token}
-```
-
-**响应示例：**
-
-```json
-{
-  "code": 200,
-  "message": "启用成功",
-  "data": null
-}
-```
-
-#### 3.5.5 变更用户角色（管理员专用）
-
-``` http
-PUT /api/user/admin/user/{id}/role-change
-Authorization: Bearer {token}
-```
+| 参数 | 类型 | 说明 |
+| - | - | - |
+| id | string | 用户ID |
 
 **查询参数：**
 
@@ -1082,7 +1739,72 @@ Authorization: Bearer {token}
 }
 ```
 
-#### 3.5.6 获取待处理的角色变更申请
+#### 3.7.3 提交角色变更申请（用户端）
+
+``` http
+POST /api/user/admin/role-change/apply
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体：**
+
+```json
+{
+  "applyRoleId": "uuid-role-xxx",
+  "applyReason": "已取得相关资格证书，申请变更为安全员角色"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| applyRoleId | string | 是 | 申请的角色ID |
+| applyReason | string | 是 | 申请原因 |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "申请提交成功",
+  "data": "uuid-apply-xxx"
+}
+```
+
+#### 3.7.4 获取我的角色变更申请（用户端）
+
+``` http
+GET /api/user/admin/role-change/apply/my
+Authorization: Bearer {token}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": "uuid-xxx",
+      "userId": "uuid-yyy",
+      "username": "user1",
+      "currentRoleId": "uuid-role1",
+      "currentRoleCode": "DRIVER",
+      "currentRoleName": "司机",
+      "applyRoleId": "uuid-role2",
+      "applyRoleCode": "SAFETY_OFFICER",
+      "applyRoleName": "安全员",
+      "applyReason": "已取得相关资格证书",
+      "status": 1,
+      "statusLabel": "待处理",
+      "createTime": "2024-01-01 00:00:00"
+    }
+  ]
+}
+```
+
+#### 3.7.5 获取待处理的角色变更申请（管理员）
 
 ``` http
 GET /api/user/admin/role-change/apply/pending
@@ -1101,10 +1823,10 @@ Authorization: Bearer {token}
       "userId": "uuid-yyy",
       "username": "user1",
       "currentRoleId": "uuid-role1",
-      "currentRoleCode": "ROLE_DRIVER",
+      "currentRoleCode": "DRIVER",
       "currentRoleName": "司机",
       "applyRoleId": "uuid-role2",
-      "applyRoleCode": "ROLE_SAFETY_OFFICER",
+      "applyRoleCode": "SAFETY_OFFICER",
       "applyRoleName": "安全员",
       "applyReason": "用户尝试认证新角色，需要管理员审核",
       "status": 1,
@@ -1115,7 +1837,7 @@ Authorization: Bearer {token}
 }
 ```
 
-#### 3.5.7 获取所有角色变更申请
+#### 3.7.6 获取所有角色变更申请（管理员）
 
 ``` http
 GET /api/user/admin/role-change/apply/list
@@ -1134,10 +1856,10 @@ Authorization: Bearer {token}
       "userId": "uuid-yyy",
       "username": "user1",
       "currentRoleId": "uuid-role1",
-      "currentRoleCode": "ROLE_DRIVER",
+      "currentRoleCode": "DRIVER",
       "currentRoleName": "司机",
       "applyRoleId": "uuid-role2",
-      "applyRoleCode": "ROLE_SAFETY_OFFICER",
+      "applyRoleCode": "SAFETY_OFFICER",
       "applyRoleName": "安全员",
       "applyReason": "用户尝试认证新角色，需要管理员审核",
       "status": 2,
@@ -1152,7 +1874,7 @@ Authorization: Bearer {token}
 }
 ```
 
-#### 3.5.8 获取用户的角色变更申请历史
+#### 3.7.7 获取用户的角色变更申请历史（管理员）
 
 ``` http
 GET /api/user/admin/role-change/apply/user/{userId}
@@ -1171,10 +1893,10 @@ Authorization: Bearer {token}
       "userId": "uuid-yyy",
       "username": "user1",
       "currentRoleId": "uuid-role1",
-      "currentRoleCode": "ROLE_DRIVER",
+      "currentRoleCode": "DRIVER",
       "currentRoleName": "司机",
       "applyRoleId": "uuid-role2",
-      "applyRoleCode": "ROLE_SAFETY_OFFICER",
+      "applyRoleCode": "SAFETY_OFFICER",
       "applyRoleName": "安全员",
       "applyReason": "用户尝试认证新角色，需要管理员审核",
       "status": 2,
@@ -1189,10 +1911,10 @@ Authorization: Bearer {token}
 }
 ```
 
-#### 3.5.9 处理角色变更申请
+#### 3.7.8 处理角色变更申请（管理员）
 
 ``` http
-PUT /api/user/admin/role-change/apply/{id}/handle
+PUT /api/user/admin/role-change/apply/{id}/handle?status=2&adminOpinion=同意&handlerId=xxx&handlerName=管理员
 Authorization: Bearer {token}
 ```
 
@@ -1212,6 +1934,197 @@ Authorization: Bearer {token}
   "code": 200,
   "message": "处理成功",
   "data": null
+}
+```
+
+
+### 3.8 消息服务接口（/api/messages）
+
+> **说明**：消息推送服务，支持单播、广播
+
+#### 3.8.1 发送单播消息
+
+``` http
+POST /api/messages/unicast
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体：**
+
+```json
+{
+  "receiver": "uuid-user-xxx",
+  "type": "SYSTEM",
+  "content": "您的账号已通过审核",
+  "priority": "HIGH",
+  "businessId": "uuid-business-xxx",
+  "businessType": "APPEAL"
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| receiver | string | 是 | 接收者用户ID |
+| type | string | 否 | 消息类型 |
+| content | string | 是 | 消息内容 |
+| priority | string | 否 | 优先级：HIGH、NORMAL、LOW |
+| businessId | string | 否 | 业务ID |
+| businessType | string | 否 | 业务类型 |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "消息发送成功",
+  "data": null
+}
+```
+
+#### 3.8.2 发送广播消息（指定用户）
+
+``` http
+POST /api/messages/broadcast?userIds=uuid1,uuid2,uuid3
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体：**
+
+```json
+{
+  "type": "ANNOUNCEMENT",
+  "content": "系统将于今晚进行维护",
+  "priority": "HIGH"
+}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "广播消息发送成功",
+  "data": null
+}
+```
+
+#### 3.8.3 发送广播消息（所有在线用户）
+
+``` http
+POST /api/messages/broadcast/all
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**请求体：**
+
+```json
+{
+  "type": "ANNOUNCEMENT",
+  "content": "系统公告：新功能已上线",
+  "priority": "NORMAL"
+}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "广播消息发送成功",
+  "data": null
+}
+```
+
+#### 3.8.4 获取用户消息列表
+
+``` http
+GET /api/messages/user/{userId}?page=1&size=20
+Authorization: Bearer {token}
+```
+
+**查询参数：**
+
+| 参数 | 类型 | 必填 | 说明 |
+| - | - | - | - |
+| page | int | 否 | 页码，默认1 |
+| size | int | 否 | 每页大小，默认20 |
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": [
+    {
+      "id": "uuid-xxx",
+      "messageId": "msg-xxx",
+      "sender": "system",
+      "receiver": "uuid-user-xxx",
+      "type": "SYSTEM",
+      "content": "您的账号已通过审核",
+      "status": "READ",
+      "priority": "HIGH",
+      "createdAt": "2024-01-01 00:00:00",
+      "readAt": "2024-01-01 01:00:00",
+      "businessId": "uuid-business-xxx",
+      "businessType": "APPEAL"
+    }
+  ]
+}
+```
+
+#### 3.8.5 标记消息已读
+
+``` http
+PUT /api/messages/{messageId}/read
+Authorization: Bearer {token}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "消息已标记为已读",
+  "data": null
+}
+```
+
+#### 3.8.6 删除消息
+
+``` http
+DELETE /api/messages/{messageId}
+Authorization: Bearer {token}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "消息已删除",
+  "data": null
+}
+```
+
+#### 3.8.7 获取未读消息数量
+
+``` http
+GET /api/messages/unread/count/{userId}
+Authorization: Bearer {token}
+```
+
+**响应示例：**
+
+```json
+{
+  "code": 200,
+  "message": "操作成功",
+  "data": 5
 }
 ```
 
@@ -2464,6 +3377,7 @@ Authorization: Bearer {token}
 **说明：** 轨迹回放由前端负责处理，前端从后端获取轨迹数据后，在前端进行轨迹回放的动画展示。
 
 **前端处理流程：**
+
 1. 调用 `/api/trip/{id}/track` 获取行程轨迹数据
 2. 解析轨迹数据，按时间顺序排列
 3. 使用地图API（如高德地图、百度地图）在前端实现轨迹回放动画
@@ -2474,6 +3388,7 @@ Authorization: Bearer {token}
 **说明：** 事件触发由前端负责处理，前端通过WebSocket或定时轮询获取事件数据，并在前端触发相应的事件处理逻辑。
 
 **前端处理流程：**
+
 1. 建立WebSocket连接或定时轮询获取事件数据
 2. 监听事件数据，根据事件类型触发相应的处理逻辑
 3. 展示事件通知、预警信息等

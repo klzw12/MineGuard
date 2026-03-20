@@ -1,9 +1,12 @@
 package com.klzw.service.user.dto;
 
 import lombok.Data;
+import java.io.Serializable;
 
 @Data
-public class MessageDTO {
+public class MessageDTO implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
     private String messageId;
     private String sender;
     private String receiver;

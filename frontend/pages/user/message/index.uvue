@@ -1,0 +1,806 @@
+<template>
+	<view class="user-message-container">
+		<view class="top-navbar">
+			<text class="navbar-title">消息中心</text>
+		</view>
+		
+		<view class="tab-bar">
+			<view 
+				class="tab-item" 
+				:class="{ active: activeTab === 'notice' }" 
+				@click="switchTab('notice')"
+			>
+				<text>通知</text>
+				<view v-if="unreadCount > 0" class="tab-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</view>
+			</view>
+			<view 
+				class="tab-item" 
+				:class="{ active: activeTab === 'private' }" 
+				@click="switchTab('private')"
+			>
+				<text>私信</text>
+			</view>
+		</view>
+		
+		<!-- 通知列表 -->
+		<view v-if="activeTab === 'notice'" class="message-list">
+			<view v-if="noticeMessages.length === 0" class="empty-state">
+				<text class="empty-text">暂无通知</text>
+			</view>
+			<view 
+				class="message-item" 
+				v-for="(msg, index) in noticeMessages" 
+				:key="msg.messageId"
+				:class="{ unread: msg.status === 'UNREAD' }"
+				@click="viewNotice(msg)"
+			>
+				<view class="message-left">
+					<view class="message-icon">
+						<text>{{ getMessageIcon(msg.type) }}</text>
+					</view>
+				</view>
+				<view class="message-content">
+					<view class="message-header">
+						<text class="message-title">{{ getMessageTitle(msg) }}</text>
+						<text class="message-time">{{ formatTime(msg.createdAt) }}</text>
+					</view>
+					<text class="message-text">{{ msg.content }}</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 私信列表 -->
+		<view v-if="activeTab === 'private'" class="message-list">
+			<view class="private-header">
+				<text class="private-title">联系人</text>
+				<view class="add-contact" @click="showContactPicker = true">
+					<text>+ 发私信</text>
+				</view>
+			</view>
+			
+			<view v-if="privateMessages.length === 0" class="empty-state">
+				<text class="empty-text">暂无私信</text>
+			</view>
+			
+			<view 
+				class="contact-item" 
+				v-for="(msg, index) in privateMessages" 
+				:key="msg.sender"
+				@click="openChat(msg)"
+			>
+				<view class="contact-avatar">
+					<text>{{ getAvatarText(msg.senderName) }}</text>
+				</view>
+				<view class="contact-info">
+					<view class="contact-header">
+						<text class="contact-name">{{ msg.senderName || '未知用户' }}</text>
+						<text class="contact-time">{{ formatTime(msg.createdAt) }}</text>
+					</view>
+					<text class="contact-preview">{{ msg.content }}</text>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 联系人选择器 -->
+		<view class="picker-mask" v-if="showContactPicker" @click="showContactPicker = false">
+			<view class="picker-content" @click.stop>
+				<view class="picker-header">
+					<text class="picker-title">选择联系人</text>
+					<text class="picker-close" @click="showContactPicker = false">×</text>
+				</view>
+				<view class="picker-options">
+					<view v-if="contactList.length === 0" class="empty-contacts">
+						<text class="empty-text">暂无联系人</text>
+						<text class="empty-hint">请等待其他用户注册</text>
+					</view>
+					<view 
+						class="picker-option" 
+						v-for="user in contactList" 
+						:key="user.id"
+						@click="selectContact(user)"
+					>
+						<view class="option-avatar">
+							<text>{{ getAvatarText(user.username) }}</text>
+						</view>
+						<view class="option-info">
+							<text class="option-name">{{ user.username }}</text>
+							<text class="option-role">{{ user.roleName || '未认证' }}</text>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<!-- 聊天弹窗 -->
+		<view class="chat-modal" v-if="showChatModal" @click="closeChatModal">
+			<view class="chat-content" @click.stop>
+				<view class="chat-header">
+					<text class="chat-title">{{ currentChatUser?.username || '聊天' }}</text>
+					<text class="chat-close" @click="closeChatModal">×</text>
+				</view>
+				<view class="chat-messages">
+					<view 
+						class="chat-msg" 
+						v-for="(msg, index) in chatMessages" 
+						:key="index"
+						:class="{ 'my-msg': msg.sender === currentUserId }"
+					>
+						<view class="msg-bubble">
+							<text>{{ msg.content }}</text>
+						</view>
+						<text class="msg-time">{{ formatTime(msg.createdAt) }}</text>
+					</view>
+				</view>
+				<view class="chat-input-area">
+					<input 
+						class="chat-input" 
+						v-model="chatInput" 
+						placeholder="输入消息..." 
+						@confirm="sendMessage"
+					/>
+					<view class="send-btn" @click="sendMessage">
+						<text>发送</text>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref, computed, onMounted } from 'vue'
+	import { onShow } from '@dcloudio/uni-app'
+	import { useUserStore } from '@/stores/user.uts'
+	import { getUserMessages, markMessageAsRead, getUnreadCount, sendUnicastMessage } from '@/api/message.uts'
+	import { getUsersByRole } from '@/api/user.uts'
+	import { toast } from '@/utils/toast.uts'
+	import type { MessageVO, UserVO } from '@/types/user.uts'
+	
+	const userStore = useUserStore()
+	
+	const activeTab = ref('notice')
+	const unreadCount = ref(0)
+	const noticeMessages = ref<MessageVO[]>([])
+	const privateMessages = ref<MessageVO[]>([])
+	const showContactPicker = ref(false)
+	const contactList = ref<UserVO[]>([])
+	const showChatModal = ref(false)
+	const currentChatUser = ref<UserVO | null>(null)
+	const chatMessages = ref<MessageVO[]>([])
+	const chatInput = ref('')
+	
+	const currentUserId = computed(() => userStore.userInfo.value?.id || '')
+	
+	onMounted(() => {
+		if (!userStore.userInfo.value) {
+			userStore.loadFromStorage()
+		}
+		loadMessages()
+		loadContacts()
+	})
+	
+	onShow(() => {
+		loadMessages()
+	})
+	
+	async function loadMessages() {
+		const uid = currentUserId.value
+		if (!uid) return
+		
+		try {
+			const messages = await getUserMessages(uid)
+			if (messages) {
+				noticeMessages.value = messages.filter((m: MessageVO) => m.type !== 'PRIVATE')
+				privateMessages.value = messages.filter((m: MessageVO) => m.type === 'PRIVATE')
+			}
+			
+			const count = await getUnreadCount(uid)
+			if (count !== null) {
+				unreadCount.value = count
+			}
+		} catch (e) {
+		}
+	}
+	
+	async function loadContacts() {
+		try {
+			console.log('开始加载联系人列表...')
+			const users = await getUsersByRole()
+			console.log('获取到的用户列表:', JSON.stringify(users))
+			if (users) {
+				const uid = currentUserId.value
+				console.log('当前用户ID:', uid)
+				contactList.value = users.filter((u: UserVO) => u.id !== uid)
+				console.log('过滤后的联系人列表:', JSON.stringify(contactList.value))
+			} else {
+				console.log('用户列表为空')
+			}
+		} catch (e: any) {
+			console.log('加载联系人失败:', e.message)
+			toast.error('加载联系人失败')
+		}
+	}
+	
+	function switchTab(tab: string) {
+		activeTab.value = tab
+	}
+	
+	function getMessageIcon(type: string): string {
+		switch (type) {
+			case 'TASK': return '📋'
+			case 'SYSTEM': return '🔔'
+			case 'PAYMENT': return '💰'
+			default: return '📢'
+		}
+	}
+	
+	function getMessageTitle(msg: MessageVO): string {
+		if (msg.businessType === 'TASK') return '任务通知'
+		if (msg.businessType === 'PAYMENT') return '收入通知'
+		if (msg.businessType === 'SYSTEM') return '系统通知'
+		return '通知'
+	}
+	
+	function formatTime(time: string): string {
+		if (!time) return ''
+		const date = new Date(time)
+		const now = new Date()
+		const diff = now.getTime() - date.getTime()
+		
+		if (diff < 60000) return '刚刚'
+		if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
+		if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
+		if (diff < 604800000) return Math.floor(diff / 86400000) + '天前'
+		
+		return date.toLocaleDateString()
+	}
+	
+	function getAvatarText(name: string): string {
+		if (!name) return '?'
+		return name.charAt(0).toUpperCase()
+	}
+	
+	async function viewNotice(msg: MessageVO) {
+		if (msg.status === 'UNREAD') {
+			try {
+				await markMessageAsRead(msg.messageId)
+				msg.status = 'READ'
+				if (unreadCount.value > 0) {
+					unreadCount.value--
+				}
+			} catch (e) {
+			}
+		}
+	}
+	
+	function selectContact(user: UserVO) {
+		showContactPicker.value = false
+		currentChatUser.value = user
+		chatMessages.value = []
+		showChatModal.value = true
+	}
+	
+	function openChat(msg: MessageVO) {
+		const uid = currentUserId.value
+		const senderId = msg.sender === uid ? msg.receiver : msg.sender
+		
+		const user = contactList.value.find((u: UserVO) => u.id === senderId)
+		if (user) {
+			currentChatUser.value = user
+			chatMessages.value = privateMessages.value.filter((m: MessageVO) => 
+				(m.sender === senderId && m.receiver === uid) || 
+				(m.sender === uid && m.receiver === senderId)
+			)
+			showChatModal.value = true
+		}
+	}
+	
+	function closeChatModal() {
+		showChatModal.value = false
+		currentChatUser.value = null
+		chatInput.value = ''
+	}
+	
+	async function sendMessage() {
+		if (!chatInput.value.trim()) {
+			toast.error('请输入消息内容')
+			return
+		}
+		
+		if (!currentChatUser.value) {
+			toast.error('请选择联系人')
+			return
+		}
+		
+		try {
+			await sendUnicastMessage({
+				receiver: currentChatUser.value.id,
+				type: 'PRIVATE',
+				content: chatInput.value.trim()
+			})
+			
+			chatMessages.value.push({
+				id: Date.now().toString(),
+				messageId: Date.now().toString(),
+				sender: currentUserId.value,
+				receiver: currentChatUser.value.id,
+				type: 'PRIVATE',
+				content: chatInput.value.trim(),
+				status: 'READ',
+				priority: 'LOW',
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString()
+			})
+			
+			chatInput.value = ''
+		} catch (e: any) {
+			toast.error(e.message || '发送失败')
+		}
+	}
+</script>
+
+<style>
+	.user-message-container {
+		min-height: 100vh;
+		background-color: #f8fafc;
+		display: flex;
+		flex-direction: column;
+	}
+	
+	.top-navbar {
+		background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+		padding: 30rpx 40rpx;
+		padding-top: 60rpx;
+	}
+	
+	.navbar-title {
+		font-size: 36rpx;
+		font-weight: bold;
+		color: #fff;
+	}
+	
+	.tab-bar {
+		display: flex;
+		flex-direction: row;
+		background-color: #fff;
+		padding: 0 30rpx;
+		border-bottom: 1rpx solid #e8ecf1;
+	}
+	
+	.tab-item {
+		flex: 1;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		padding: 30rpx 0;
+		position: relative;
+		
+		text {
+			font-size: 28rpx;
+			color: #7f8c8d;
+			font-weight: 500;
+		}
+		
+		&.active {
+			text {
+				color: #2c3e50;
+				font-weight: bold;
+			}
+			
+			&::after {
+				content: '';
+				position: absolute;
+				bottom: 0;
+				left: 20%;
+				right: 20%;
+				height: 4rpx;
+				background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+				border-radius: 2rpx;
+			}
+		}
+		
+		.tab-badge {
+			min-width: 32rpx;
+			height: 32rpx;
+			background-color: #e74c3c;
+			border-radius: 16rpx;
+			margin-left: 8rpx;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			padding: 0 8rpx;
+		}
+		
+		.tab-badge text {
+			font-size: 20rpx;
+			color: #fff;
+		}
+	}
+	
+	.message-list {
+		flex: 1;
+		padding: 20rpx;
+	}
+	
+	.empty-state {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 100rpx 0;
+	}
+	
+	.empty-text {
+		font-size: 28rpx;
+		color: #95a5a6;
+	}
+	
+	.message-item {
+		background-color: #fff;
+		border-radius: 20rpx;
+		padding: 30rpx;
+		margin-bottom: 20rpx;
+		box-shadow: 0 4rpx 15rpx rgba(0, 0, 0, 0.08);
+		display: flex;
+		flex-direction: row;
+		gap: 20rpx;
+	}
+	
+	.message-item.unread {
+		background-color: #f0f9ff;
+	}
+	
+	.message-left .message-icon {
+		width: 90rpx;
+		height: 90rpx;
+		background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+		border-radius: 20rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 40rpx;
+	}
+	
+	.message-content {
+		flex: 1;
+	}
+	
+	.message-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 15rpx;
+	}
+	
+	.message-title {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #2c3e50;
+	}
+	
+	.message-time {
+		font-size: 22rpx;
+		color: #95a5a6;
+	}
+	
+	.message-text {
+		font-size: 26rpx;
+		color: #7f8c8d;
+		line-height: 1.6;
+	}
+	
+	.private-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 20rpx 0;
+		margin-bottom: 20rpx;
+	}
+	
+	.private-title {
+		font-size: 32rpx;
+		font-weight: bold;
+		color: #2c3e50;
+	}
+	
+	.add-contact {
+		background-color: #34C759;
+		padding: 16rpx 32rpx;
+		border-radius: 30rpx;
+	}
+	
+	.add-contact text {
+		font-size: 26rpx;
+		color: #fff;
+		font-weight: 500;
+	}
+	
+	.contact-item {
+		background-color: #fff;
+		border-radius: 20rpx;
+		padding: 30rpx;
+		margin-bottom: 20rpx;
+		box-shadow: 0 4rpx 15rpx rgba(0, 0, 0, 0.08);
+		display: flex;
+		flex-direction: row;
+		gap: 20rpx;
+	}
+	
+	.contact-avatar {
+		width: 90rpx;
+		height: 90rpx;
+		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	
+	.contact-avatar text {
+		font-size: 36rpx;
+		color: #fff;
+		font-weight: bold;
+	}
+	
+	.contact-info {
+		flex: 1;
+	}
+	
+	.contact-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 10rpx;
+	}
+	
+	.contact-name {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #2c3e50;
+	}
+	
+	.contact-time {
+		font-size: 22rpx;
+		color: #95a5a6;
+	}
+	
+	.contact-preview {
+		font-size: 26rpx;
+		color: #7f8c8d;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	
+	.picker-mask {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		justify-content: center;
+		align-items: flex-end;
+		z-index: 999;
+	}
+	
+	.picker-content {
+		width: 100%;
+		max-height: 80vh;
+		background-color: #FFFFFF;
+		border-radius: 32rpx 32rpx 0 0;
+		overflow: hidden;
+	}
+	
+	.picker-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 32rpx;
+		border-bottom: 2rpx solid #F0F2F5;
+	}
+	
+	.picker-title {
+		font-size: 32rpx;
+		font-weight: 600;
+		color: #2c3e50;
+	}
+	
+	.picker-close {
+		font-size: 48rpx;
+		color: #95a5a6;
+		line-height: 1;
+	}
+	
+	.picker-options {
+		padding: 16rpx 0;
+		max-height: 60vh;
+		overflow-y: auto;
+	}
+	
+	.picker-option {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 24rpx 32rpx;
+		gap: 24rpx;
+	}
+	
+	.option-avatar {
+		width: 80rpx;
+		height: 80rpx;
+		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	
+	.option-avatar text {
+		font-size: 32rpx;
+		color: #fff;
+		font-weight: bold;
+	}
+	
+	.option-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 8rpx;
+	}
+	
+	.option-name {
+		font-size: 30rpx;
+		color: #2c3e50;
+		font-weight: 500;
+	}
+	
+	.option-role {
+		font-size: 24rpx;
+		color: #95a5a6;
+	}
+	
+	.empty-contacts {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 80rpx 0;
+	}
+	
+	.empty-contacts .empty-text {
+		font-size: 28rpx;
+		color: #95a5a6;
+		margin-bottom: 16rpx;
+	}
+	
+	.empty-contacts .empty-hint {
+		font-size: 24rpx;
+		color: #bdc3c7;
+	}
+	
+	.chat-modal {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 999;
+	}
+	
+	.chat-content {
+		width: 90%;
+		height: 80vh;
+		background-color: #fff;
+		border-radius: 24rpx;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+	
+	.chat-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 32rpx;
+		border-bottom: 2rpx solid #F0F2F5;
+		background-color: #f8fafc;
+	}
+	
+	.chat-title {
+		font-size: 32rpx;
+		font-weight: 600;
+		color: #2c3e50;
+	}
+	
+	.chat-close {
+		font-size: 48rpx;
+		color: #95a5a6;
+		line-height: 1;
+	}
+	
+	.chat-messages {
+		flex: 1;
+		padding: 24rpx;
+		overflow-y: auto;
+	}
+	
+	.chat-msg {
+		margin-bottom: 24rpx;
+		display: flex;
+		flex-direction: column;
+	}
+	
+	.chat-msg.my-msg {
+		align-items: flex-end;
+	}
+	
+	.msg-bubble {
+		max-width: 70%;
+		padding: 20rpx 28rpx;
+		border-radius: 20rpx;
+		background-color: #f1f5f9;
+	}
+	
+	.chat-msg.my-msg .msg-bubble {
+		background-color: #34C759;
+	}
+	
+	.msg-bubble text {
+		font-size: 28rpx;
+		color: #2c3e50;
+	}
+	
+	.chat-msg.my-msg .msg-bubble text {
+		color: #fff;
+	}
+	
+	.msg-time {
+		font-size: 22rpx;
+		color: #95a5a6;
+		margin-top: 8rpx;
+	}
+	
+	.chat-input-area {
+		display: flex;
+		flex-direction: row;
+		padding: 20rpx;
+		border-top: 2rpx solid #F0F2F5;
+		gap: 16rpx;
+	}
+	
+	.chat-input {
+		flex: 1;
+		height: 80rpx;
+		background-color: #f1f5f9;
+		border-radius: 40rpx;
+		padding: 0 32rpx;
+		font-size: 28rpx;
+	}
+	
+	.send-btn {
+		width: 140rpx;
+		height: 80rpx;
+		background-color: #34C759;
+		border-radius: 40rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.send-btn text {
+		font-size: 28rpx;
+		color: #fff;
+		font-weight: 500;
+	}
+</style>

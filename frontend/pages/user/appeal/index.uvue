@@ -18,7 +18,7 @@
           <text class="char-count">{{ appealReason.length }}/500</text>
         </view>
 
-        <button class="submit-btn" @click="submitAppeal" :disabled="loading">
+        <button class="submit-btn tac" @click="submitAppeal" :disabled="loading">
           {{ loading ? '提交中...' : '提交申诉' }}
         </button>
       </view>
@@ -59,9 +59,10 @@
   </view>
 </template>
 
-<script setup lang="ts">
+<script setup lang="uts">
 import { ref, onMounted } from 'vue'
-import { createAppeal, getMyAppeals, hasPendingAppeal } from '@/api/user.uts'
+import { createAppeal, getMyAppeals, hasPendingAppeal } from '@/api/appeal.uts'
+import { toast } from '@/utils/toast.uts'
 import type { UserAppealVO } from '@/types/user.uts'
 
 const appealReason = ref('')
@@ -74,47 +75,43 @@ onMounted(() => {
   loadAppeals()
 })
 
-const checkPendingAppeal = () => {
-  hasPendingAppeal().then((res) => {
-    hasPending.value = res
-  })
+const checkPendingAppeal = async () => {
+  try {
+    const res = await hasPendingAppeal()
+    hasPending.value = res ?? false
+  } catch (e: any) {
+    console.error('检查待处理申诉失败', e)
+  }
 }
 
-const loadAppeals = () => {
-  getMyAppeals().then((res) => {
-    appeals.value = res
-  })
+const loadAppeals = async () => {
+  try {
+    const res = await getMyAppeals()
+    appeals.value = res ?? []
+  } catch (e: any) {
+    console.error('加载申诉列表失败', e)
+  }
 }
 
-const submitAppeal = () => {
+const submitAppeal = async () => {
   if (!appealReason.value.trim()) {
-    uni.showToast({
-      title: '请填写申诉原因',
-      icon: 'none'
-    })
+    toast.error('请填写申诉原因')
     return
   }
 
   loading.value = true
-  createAppeal({ appealReason: appealReason.value })
-    .then(() => {
-      uni.showToast({
-        title: '申诉提交成功',
-        icon: 'success'
-      })
-      appealReason.value = ''
-      hasPending.value = true
-      loadAppeals()
-    })
-    .catch((err) => {
-      uni.showToast({
-        title: err.message || '提交失败',
-        icon: 'none'
-      })
-    })
-    .finally(() => {
-      loading.value = false
-    })
+  
+  try {
+    await createAppeal({ appealReason: appealReason.value })
+    toast.success('申诉提交成功')
+    appealReason.value = ''
+    hasPending.value = true
+    loadAppeals()
+  } catch (err: any) {
+    toast.error(err.message || '提交失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 const formatTime = (time: string) => {
@@ -193,6 +190,7 @@ const formatTime = (time: string) => {
   border: none;
   border-radius: 8rpx;
   font-size: 30rpx;
+  text-align: center;
 }
 
 .submit-btn:disabled {
@@ -317,5 +315,9 @@ const formatTime = (time: string) => {
   padding: 60rpx 0;
   color: #999;
   font-size: 28rpx;
+}
+
+.tac {
+  text-align: center;
 }
 </style>

@@ -4,6 +4,8 @@ spring:
       server-addr: ${SERVER_IP:192.168.110.128}:8848
       username: ${NACOS_USERNAME:nacos}
       password: ${NACOS_PASSWORD:nacos}
+      group: Service_Dev
+      namespace: dev
       discovery:
         namespace: ${NACOS_NAMESPACE:dev}
         group: Service_Dev
@@ -12,7 +14,7 @@ spring:
         group: Service_Dev  
   config:
     import:
-      - nacos:gateway-service.yml?group=Service_Dev&refresh=true
+      - nacos:gateway-service.yml?refresh=true
       - nacos:common-core.yml?group=Shared_Dev&namespace=dev&refresh=true
       - nacos:common-auth.yml?group=Shared_Dev&namespace=dev&refresh=true
       - nacos:common-redis.yml?group=Shared_Dev&namespace=dev&refresh=true

@@ -1,0 +1,268 @@
+<template>
+	<view class="admin-layout-container">
+		<AdminSidebar />
+		<view class="admin-content">
+			<view class="page-header">
+				<text class="page-title">司机报表</text>
+				<view class="header-actions">
+					<view class="action-btn" @click="exportReport">
+						<text class="action-text">导出报表</text>
+					</view>
+				</view>
+			</view>
+			
+			<view class="stats-grid">
+				<view class="stat-card">
+					<text class="stat-value">168</text>
+					<text class="stat-label">司机总数</text>
+					<text class="stat-trend positive">↑ 8%</text>
+				</view>
+				<view class="stat-card">
+					<text class="stat-value">142</text>
+					<text class="stat-label">在岗</text>
+					<text class="stat-trend positive">↑ 5%</text>
+				</view>
+				<view class="stat-card">
+					<text class="stat-value">15</text>
+					<text class="stat-label">休息中</text>
+					<text class="stat-trend">-</text>
+				</view>
+				<view class="stat-card">
+					<text class="stat-value">11</text>
+					<text class="stat-label">请假</text>
+					<text class="stat-trend negative">↓ 2%</text>
+				</view>
+			</view>
+			
+			<view class="content-card">
+				<view class="card-header">
+					<text class="card-title">司机绩效排名</text>
+				</view>
+				
+				<view class="ranking-list">
+					<view class="ranking-item" v-for="(driver, index) in driverRanking" :key="index">
+						<view class="ranking-position" :class="'pos-' + (index + 1)">
+							<text>{{ index + 1 }}</text>
+						</view>
+						<view class="ranking-info">
+							<text class="ranking-name">{{ driver.name }}</text>
+							<text class="ranking-stats">完成任务: {{ driver.tasks }} | 安全评分: {{ driver.safetyScore }}</text>
+						</view>
+						<view class="ranking-score">
+							<text class="score-value">{{ driver.score }}</text>
+							<text class="score-label">综合评分</text>
+						</view>
+					</view>
+				</view>
+			</view>
+			
+			<view class="content-card">
+				<view class="card-header">
+					<text class="card-title">司机出勤统计</text>
+				</view>
+				
+				<view class="table-container">
+					<view class="table-row header">
+						<text class="table-cell">司机姓名</text>
+						<text class="table-cell">出勤天数</text>
+						<text class="table-cell">迟到次数</text>
+						<text class="table-cell">早退次数</text>
+						<text class="table-cell">状态</text>
+					</view>
+					
+					<view class="table-row" v-for="(driver, index) in attendanceStats" :key="index">
+						<text class="table-cell">{{ driver.name }}</text>
+						<text class="table-cell">{{ driver.days }}</text>
+						<text class="table-cell">{{ driver.late }}</text>
+						<text class="table-cell">{{ driver.early }}</text>
+						<view class="table-cell">
+							<view class="status-tag" :class="driver.statusClass">
+								<text>{{ driver.status }}</text>
+							</view>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref } from 'vue'
+	import AdminSidebar from '@/components/AdminSidebar.uvue'
+	
+	const driverRanking = ref([
+		{ name: '张师傅', tasks: 156, safetyScore: 98, score: 96.5 },
+		{ name: '李师傅', tasks: 148, safetyScore: 95, score: 94.2 },
+		{ name: '王师傅', tasks: 142, safetyScore: 92, score: 91.8 },
+		{ name: '赵师傅', tasks: 138, safetyScore: 90, score: 89.5 },
+		{ name: '孙师傅', tasks: 135, safetyScore: 88, score: 87.3 }
+	])
+	
+	const attendanceStats = ref([
+		{ name: '张师傅', days: 28, late: 0, early: 0, status: '在岗', statusClass: 'active' },
+		{ name: '李师傅', days: 26, late: 1, early: 0, status: '在岗', statusClass: 'active' },
+		{ name: '王师傅', days: 25, late: 2, early: 1, status: '休息', statusClass: 'rest' },
+		{ name: '赵师傅', days: 27, late: 0, early: 0, status: '在岗', statusClass: 'active' },
+		{ name: '孙师傅', days: 22, late: 3, early: 2, status: '请假', statusClass: 'leave' }
+	])
+	
+	function exportReport() {
+		uni.showToast({ title: '导出功能开发中', icon: 'none' })
+	}
+</script>
+
+<style lang="scss">
+	@import '@/styles/admin.scss';
+	
+	.stats-grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 20rpx;
+		margin-bottom: 30rpx;
+	}
+	
+	.stat-card {
+		background-color: #2a3347;
+		border-radius: 16rpx;
+		padding: 30rpx;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	
+	.stat-value {
+		font-size: 48rpx;
+		font-weight: bold;
+		color: #fff;
+		margin-bottom: 10rpx;
+	}
+	
+	.stat-label {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.6);
+		margin-bottom: 10rpx;
+	}
+	
+	.stat-trend {
+		font-size: 22rpx;
+		
+		&.positive {
+			color: #34C759;
+		}
+		
+		&.negative {
+			color: #FF3B30;
+		}
+	}
+	
+	.card-header {
+		padding: 25rpx 30rpx;
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+	}
+	
+	.card-title {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #fff;
+	}
+	
+	.ranking-list {
+		padding: 20rpx 30rpx;
+	}
+	
+	.ranking-item {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 20rpx;
+		background-color: rgba(255, 255, 255, 0.03);
+		border-radius: 12rpx;
+		margin-bottom: 15rpx;
+	}
+	
+	.ranking-position {
+		width: 50rpx;
+		height: 50rpx;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-right: 20rpx;
+		background-color: #2a3347;
+		
+		&.pos-1 {
+			background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+		}
+		
+		&.pos-2 {
+			background: linear-gradient(135deg, #C0C0C0 0%, #A0A0A0 100%);
+		}
+		
+		&.pos-3 {
+			background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);
+		}
+		
+		text {
+			font-size: 24rpx;
+			font-weight: bold;
+			color: #fff;
+		}
+	}
+	
+	.ranking-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+	}
+	
+	.ranking-name {
+		font-size: 26rpx;
+		font-weight: bold;
+		color: #fff;
+		margin-bottom: 5rpx;
+	}
+	
+	.ranking-stats {
+		font-size: 22rpx;
+		color: rgba(255, 255, 255, 0.5);
+	}
+	
+	.ranking-score {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+	}
+	
+	.score-value {
+		font-size: 32rpx;
+		font-weight: bold;
+		color: #007AFF;
+	}
+	
+	.score-label {
+		font-size: 20rpx;
+		color: rgba(255, 255, 255, 0.5);
+	}
+	
+	.status-tag {
+		padding: 6rpx 16rpx;
+		border-radius: 8rpx;
+		font-size: 22rpx;
+		
+		&.active {
+			background-color: rgba(52, 199, 89, 0.2);
+			color: #34C759;
+		}
+		
+		&.rest {
+			background-color: rgba(255, 149, 0, 0.2);
+			color: #FF9500;
+		}
+		
+		&.leave {
+			background-color: rgba(255, 59, 48, 0.2);
+			color: #FF3B30;
+		}
+	}
+</style>

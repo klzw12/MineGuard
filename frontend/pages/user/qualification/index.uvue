@@ -1,368 +1,857 @@
 <template>
-  <view class="container">
-    <view class="header">
-      <text class="title">资格认证</text>
-      <text class="subtitle">上传相关证件，获取对应角色身份</text>
-    </view>
-    
-    <view class="role-selector">
-      <text class="label">选择认证角色</text>
-      <view class="role-buttons">
-        <button 
-          :class="['role-btn', { active: selectedRole === 'driver' }]"
-          @tap="selectedRole = 'driver'"
-        >
-          司机
-        </button>
-        <button 
-          :class="['role-btn', { active: selectedRole === 'safety' }]"
-          @tap="selectedRole = 'safety'"
-        >
-          安全员
-        </button>
-        <button 
-          :class="['role-btn', { active: selectedRole === 'repair' }]"
-          @tap="selectedRole = 'repair'"
-        >
-          维修员
-        </button>
-      </view>
-    </view>
-    
-    <form @submit.prevent="handleSubmit">
-      <view class="form-group">
-        <text class="label">真实姓名</text>
-        <input 
-          v-model="form.name" 
-          type="text" 
-          placeholder="请输入真实姓名"
-          class="input"
-        />
-      </view>
-      
-      <view class="form-group">
-        <text class="label">身份证号</text>
-        <input 
-          v-model="form.idCard" 
-          type="text" 
-          placeholder="请输入身份证号"
-          class="input"
-        />
-      </view>
-      
-      <view class="form-group">
-        <text class="label">身份证正面</text>
-        <view class="upload-area" @tap="uploadIdCardFront">
-          <image v-if="form.idCardFrontBase64" :src="form.idCardFrontBase64" class="uploaded-image"></image>
-          <view v-else class="upload-placeholder">
-            <text class="upload-text">点击上传</text>
-          </view>
-        </view>
-      </view>
-      
-      <view class="form-group">
-        <text class="label">身份证背面</text>
-        <view class="upload-area" @tap="uploadIdCardBack">
-          <image v-if="form.idCardBackBase64" :src="form.idCardBackBase64" class="uploaded-image"></image>
-          <view v-else class="upload-placeholder">
-            <text class="upload-text">点击上传</text>
-          </view>
-        </view>
-      </view>
-      
-      <view v-if="selectedRole === 'driver'" class="form-group">
-        <text class="label">驾驶证</text>
-        <view class="upload-area" @tap="uploadDrivingLicense">
-          <image v-if="form.drivingLicenseBase64" :src="form.drivingLicenseBase64" class="uploaded-image"></image>
-          <view v-else class="upload-placeholder">
-            <text class="upload-text">点击上传</text>
-          </view>
-        </view>
-      </view>
-      
-      <view v-if="selectedRole === 'safety'" class="form-group">
-        <text class="label">应急救援证</text>
-        <view class="upload-area" @tap="uploadEmergencyCert">
-          <image v-if="form.emergencyCertBase64" :src="form.emergencyCertBase64" class="uploaded-image"></image>
-          <view v-else class="upload-placeholder">
-            <text class="upload-text">点击上传</text>
-          </view>
-        </view>
-      </view>
-      
-      <view v-if="selectedRole === 'repair'" class="form-group">
-        <text class="label">维修资格证</text>
-        <view class="upload-area" @tap="uploadRepairCert">
-          <image v-if="form.repairCertBase64" :src="form.repairCertBase64" class="uploaded-image"></image>
-          <view v-else class="upload-placeholder">
-            <text class="upload-text">点击上传</text>
-          </view>
-        </view>
-      </view>
-      
-      <button type="primary" form-type="submit" :loading="loading" class="submit-btn">
-        {{ loading ? '认证中...' : '提交认证' }}
-      </button>
-    </form>
-  </view>
+	<view class="page-container">
+		<view class="header">
+			<text class="title">资格认证</text>
+		</view>
+		
+		<view class="content">
+			<!-- 已实名认证状态 -->
+			<view v-if="isVerified" class="verified-section">
+				<view class="verified-card">
+					<view class="verified-icon">✓</view>
+					<text class="verified-title">实名认证已完成</text>
+					<text class="verified-name">真实姓名：{{ verifiedRealName }}</text>
+					
+					<view class="id-card-preview">
+						<view class="preview-item" v-if="idCardFrontUrl" @click="previewImage(idCardFrontUrl)">
+							<image class="preview-image" :src="idCardFrontUrl" mode="aspectFit"></image>
+							<text class="preview-label">身份证正面</text>
+						</view>
+						<view class="preview-item" v-if="idCardBackUrl" @click="previewImage(idCardBackUrl)">
+							<image class="preview-image" :src="idCardBackUrl" mode="aspectFit"></image>
+							<text class="preview-label">身份证背面</text>
+						</view>
+					</view>
+				</view>
+				
+				<!-- 资格认证区域 -->
+				<view class="cert-section">
+					<view class="section-header">
+						<text class="section-title">资格认证</text>
+						<text class="section-desc">选择认证类型并上传相关证件</text>
+					</view>
+					
+					<view class="form-group">
+						<text class="label">认证类型 <text class="required">*</text></text>
+						<view class="picker-wrapper" @click="showCertTypePicker = true">
+							<text class="picker-value" :class="{ placeholder: !selectedCertType }">
+								{{ selectedCertTypeName || '请选择认证类型' }}
+							</text>
+							<text class="picker-arrow">▼</text>
+						</view>
+					</view>
+					
+					<!-- 认证表单 -->
+					<view v-if="selectedCertType" class="cert-form">
+						<view class="form-group" v-if="selectedCertType === 'driver'">
+							<text class="label">驾驶证 <text class="required">*</text></text>
+							<view class="upload-area" @click="uploadCertImage('cert')">
+								<image v-if="certPreview" class="preview-image" :src="certPreview" mode="aspectFit"></image>
+								<view v-else class="upload-placeholder">
+									<text class="upload-icon">📷</text>
+									<text class="upload-text">点击上传驾驶证</text>
+								</view>
+							</view>
+						</view>
+						
+						<view class="form-group" v-if="selectedCertType === 'safety_officer'">
+							<text class="label">应急救援证 <text class="required">*</text></text>
+							<view class="upload-area" @click="uploadCertImage('cert')">
+								<image v-if="certPreview" class="preview-image" :src="certPreview" mode="aspectFit"></image>
+								<view v-else class="upload-placeholder">
+									<text class="upload-icon">📷</text>
+									<text class="upload-text">点击上传应急救援证</text>
+								</view>
+							</view>
+						</view>
+						
+						<view class="form-group" v-if="selectedCertType === 'repairman'">
+							<text class="label">维修资格证 <text class="required">*</text></text>
+							<view class="upload-area" @click="uploadCertImage('cert')">
+								<image v-if="certPreview" class="preview-image" :src="certPreview" mode="aspectFit"></image>
+								<view v-else class="upload-placeholder">
+									<text class="upload-icon">📷</text>
+									<text class="upload-text">点击上传维修资格证</text>
+								</view>
+							</view>
+						</view>
+						
+						<view class="form-group">
+							<text class="label">证书编号（可选）</text>
+							<input class="input" v-model="certNumber" placeholder="请输入证书编号" />
+						</view>
+						
+						<button class="submit-btn" @click="submitCert" :disabled="submitting">
+							<text>{{ submitting ? '提交中...' : '提交认证' }}</text>
+						</button>
+					</view>
+					
+					<!-- 已认证列表 -->
+					<view v-if="verifiedCerts.length > 0" class="verified-certs">
+						<text class="certs-title">已获得资格</text>
+						<view class="cert-item" v-for="(cert, index) in verifiedCerts" :key="index">
+							<view class="cert-icon">✓</view>
+							<view class="cert-info">
+								<text class="cert-name">{{ cert.name }}</text>
+								<text class="cert-status">已认证</text>
+							</view>
+						</view>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 未实名认证状态 -->
+			<view v-else class="form-card">
+				<view class="form-header">
+					<text class="form-title">实名认证</text>
+					<text class="form-desc">请上传身份证照片完成实名认证</text>
+				</view>
+				
+				<view class="form-group">
+					<text class="label">真实姓名 <text class="required">*</text></text>
+					<input class="input" v-model="realName" placeholder="请输入真实姓名" />
+				</view>
+				
+				<view class="form-group">
+					<text class="label">身份证号 <text class="required">*</text></text>
+					<input class="input" v-model="idCard" type="idcard" placeholder="请输入身份证号" maxlength="18" />
+				</view>
+				
+				<view class="form-group">
+					<text class="label">身份证正面 <text class="required">*</text></text>
+					<view class="upload-area" @click="uploadFront">
+						<image v-if="frontPreview" class="preview-image" :src="frontPreview" mode="aspectFit"></image>
+						<view v-else class="upload-placeholder">
+							<text class="upload-icon">📷</text>
+							<text class="upload-text">点击上传身份证正面</text>
+						</view>
+					</view>
+				</view>
+				
+				<view class="form-group">
+					<text class="label">身份证背面（可选）</text>
+					<view class="upload-area" @click="uploadBack">
+						<image v-if="backPreview" class="preview-image" :src="backPreview" mode="aspectFit"></image>
+						<view v-else class="upload-placeholder">
+							<text class="upload-icon">📷</text>
+							<text class="upload-text">点击上传身份证背面</text>
+						</view>
+					</view>
+				</view>
+				
+				<button class="submit-btn" @click="submitAuth" :disabled="submitting">
+					<text>{{ submitting ? '提交中...' : '提交实名认证' }}</text>
+				</button>
+			</view>
+		</view>
+		
+		<!-- 认证类型选择器 -->
+		<view class="picker-mask" v-if="showCertTypePicker" @click="showCertTypePicker = false">
+			<view class="picker-content" @click.stop>
+				<view class="picker-header">
+					<text class="picker-title">选择认证类型</text>
+					<text class="picker-close" @click="showCertTypePicker = false">×</text>
+				</view>
+				<view class="picker-options">
+					<view 
+						class="picker-option" 
+						v-for="item in certTypeOptions" 
+						:key="item.value"
+						:class="{ selected: selectedCertType === item.value }"
+						@click="selectCertType(item.value)"
+					>
+						<text class="option-text">{{ item.label }}</text>
+						<text v-if="selectedCertType === item.value" class="option-check">✓</text>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
 </template>
 
 <script setup lang="uts">
-import { ref, onMounted } from 'vue'
-import { verifyDriverQualification, verifySafetyOfficerQualification, verifyRepairmanQualification } from '@/api/user.uts'
-import type { QualificationVerifyDTO } from '@/types/user.uts'
-
-const selectedRole = ref('driver')
-const loading = ref(false)
-const form = ref<QualificationVerifyDTO>({
-  userId: '',
-  name: '',
-  idCard: '',
-  idCardFrontBase64: '',
-  idCardBackBase64: '',
-  drivingLicenseBase64: '',
-  emergencyCertBase64: '',
-  repairCertBase64: ''
-})
-
-onMounted(() => {
-  // 获取当前用户ID
-  const userInfo = uni.getStorageSync('userInfo')
-  if (userInfo && userInfo.id) {
-    form.value.userId = userInfo.id
-  }
-})
-
-const uploadIdCardFront = () => {
-  chooseImage('idCardFrontBase64')
-}
-
-const uploadIdCardBack = () => {
-  chooseImage('idCardBackBase64')
-}
-
-const uploadDrivingLicense = () => {
-  chooseImage('drivingLicenseBase64')
-}
-
-const uploadEmergencyCert = () => {
-  chooseImage('emergencyCertBase64')
-}
-
-const uploadRepairCert = () => {
-  chooseImage('repairCertBase64')
-}
-
-const chooseImage = (field: string) => {
-  uni.chooseImage({
-    count: 1,
-    sizeType: ['compressed'],
-    sourceType: ['camera', 'album'],
-    success: (res) => {
-      uni.getFileSystemManager().readFile({
-        filePath: res.tempFilePaths[0],
-        encoding: 'base64',
-        success: (result) => {
-          form.value[field] = `data:image/jpeg;base64,${result.data}`
-        },
-        fail: (err) => {
-          uni.showToast({ title: '图片读取失败', icon: 'none' })
-        }
-      })
-    },
-    fail: (err) => {
-      uni.showToast({ title: '选择图片失败', icon: 'none' })
-    }
-  })
-}
-
-const handleSubmit = async () => {
-  // 表单验证
-  if (!form.value.name) {
-    uni.showToast({ title: '请输入真实姓名', icon: 'none' })
-    return
-  }
-  
-  if (!form.value.idCard) {
-    uni.showToast({ title: '请输入身份证号', icon: 'none' })
-    return
-  }
-  
-  if (!form.value.idCardFrontBase64) {
-    uni.showToast({ title: '请上传身份证正面', icon: 'none' })
-    return
-  }
-  
-  if (!form.value.idCardBackBase64) {
-    uni.showToast({ title: '请上传身份证背面', icon: 'none' })
-    return
-  }
-  
-  if (selectedRole.value === 'driver' && !form.value.drivingLicenseBase64) {
-    uni.showToast({ title: '请上传驾驶证', icon: 'none' })
-    return
-  }
-  
-  if (selectedRole.value === 'safety' && !form.value.emergencyCertBase64) {
-    uni.showToast({ title: '请上传应急救援证', icon: 'none' })
-    return
-  }
-  
-  if (selectedRole.value === 'repair' && !form.value.repairCertBase64) {
-    uni.showToast({ title: '请上传维修资格证', icon: 'none' })
-    return
-  }
-  
-  loading.value = true
-  
-  try {
-    let result
-    
-    switch (selectedRole.value) {
-      case 'driver':
-        result = await verifyDriverQualification(form.value)
-        break
-      case 'safety':
-        result = await verifySafetyOfficerQualification(form.value)
-        break
-      case 'repair':
-        result = await verifyRepairmanQualification(form.value)
-        break
-      default:
-        return
-    }
-    
-    if (result) {
-      uni.showToast({ title: '认证成功', icon: 'success' })
-      // 跳转到个人中心
-      setTimeout(() => {
-        uni.navigateTo({ url: '/pages/user/profile/index' })
-      }, 1500)
-    }
-  } catch (error) {
-    uni.showToast({ title: '认证失败，请重试', icon: 'none' })
-  } finally {
-    loading.value = false
-  }
-}
+	import { ref, computed, onMounted } from 'vue'
+	import { useUserStore } from '@/stores/user.uts'
+	import { verifyIdCard, uploadDriverCert, uploadSafetyOfficerCert, uploadRepairmanCert } from '@/api/qualification.uts'
+	import { getIdCardSignedUrls, getAllRoles, type IdCardVO } from '@/api/user.uts'
+	import { toast } from '@/utils/toast.uts'
+	import type { RoleVO } from '@/types/user.uts'
+	
+	const userStore = useUserStore()
+	
+	const isVerified = computed(() => !!userStore.userInfo.value?.realName)
+	const verifiedRealName = computed(() => userStore.userInfo.value?.realName || '')
+	
+	const realName = ref('')
+	const idCard = ref('')
+	const frontPreview = ref('')
+	const backPreview = ref('')
+	const frontFilePath = ref('')
+	const backFilePath = ref('')
+	const submitting = ref(false)
+	const idCardFrontUrl = ref('')
+	const idCardBackUrl = ref('')
+	
+	const showCertTypePicker = ref(false)
+	const selectedCertType = ref('')
+	const certPreview = ref('')
+	const certFilePath = ref('')
+	const certNumber = ref('')
+	const roleList = ref<RoleVO[]>([])
+	
+	const certTypeOptions = computed(() => {
+		const options: { value: string, label: string }[] = []
+		roleList.value.forEach((role: RoleVO) => {
+			if (role.roleCode === 'ROLE_DRIVER') {
+				options.push({ value: 'driver', label: role.roleName || '司机' })
+			} else if (role.roleCode === 'ROLE_SAFETY_OFFICER') {
+				options.push({ value: 'safety_officer', label: role.roleName || '安全员' })
+			} else if (role.roleCode === 'ROLE_REPAIRMAN') {
+				options.push({ value: 'repairman', label: role.roleName || '维修员' })
+			}
+		})
+		if (options.length === 0) {
+			options.push({ value: 'driver', label: '司机' })
+			options.push({ value: 'safety_officer', label: '安全员' })
+			options.push({ value: 'repairman', label: '维修员' })
+		}
+		return options
+	})
+	
+	const selectedCertTypeName = computed(() => {
+		const option = certTypeOptions.value.find((o: { value: string, label: string }) => o.value === selectedCertType.value)
+		return option ? option.label : ''
+	})
+	
+	const verifiedCerts = computed(() => {
+		const certs: { name: string }[] = []
+		const roleName = userStore.userInfo.value?.roleName
+		if (roleName) {
+			certs.push({ name: roleName })
+		}
+		return certs
+	})
+	
+	onMounted(async () => {
+		if (!userStore.userInfo.value) {
+			userStore.loadFromStorage()
+		}
+		if (isVerified.value) {
+			await loadIdCardUrls()
+			await loadRoleList()
+		}
+	})
+	
+	async function loadIdCardUrls() {
+		try {
+			const data = await getIdCardSignedUrls()
+			if (data) {
+				idCardFrontUrl.value = data.frontUrl || ''
+				idCardBackUrl.value = data.backUrl || ''
+			}
+		} catch (e) {
+		}
+	}
+	
+	async function loadRoleList() {
+		try {
+			const roles = await getAllRoles()
+			if (roles) {
+				roleList.value = roles
+			}
+		} catch (e) {
+		}
+	}
+	
+	function previewImage(url: string) {
+		uni.previewImage({
+			urls: [url],
+			current: url
+		})
+	}
+	
+	function uploadFront() {
+		uni.chooseImage({
+			count: 1,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: (res) => {
+				frontFilePath.value = res.tempFilePaths[0]
+				frontPreview.value = res.tempFilePaths[0]
+			}
+		})
+	}
+	
+	function uploadBack() {
+		uni.chooseImage({
+			count: 1,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: (res) => {
+				backFilePath.value = res.tempFilePaths[0]
+				backPreview.value = res.tempFilePaths[0]
+			}
+		})
+	}
+	
+	function uploadCertImage(type: string) {
+		uni.chooseImage({
+			count: 1,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: (res) => {
+				certFilePath.value = res.tempFilePaths[0]
+				certPreview.value = res.tempFilePaths[0]
+			}
+		})
+	}
+	
+	function selectCertType(value: string) {
+		selectedCertType.value = value
+		certPreview.value = ''
+		certFilePath.value = ''
+		certNumber.value = ''
+		showCertTypePicker.value = false
+	}
+	
+	function fileToBase64(filePath: string): Promise<string> {
+		return new Promise((resolve, reject) => {
+			// #ifdef H5
+			const xhr = new XMLHttpRequest()
+			xhr.open('GET', filePath, true)
+			xhr.responseType = 'blob'
+			xhr.onload = function() {
+				if (xhr.status === 200) {
+					const reader = new FileReader()
+					reader.onloadend = function() {
+						resolve(reader.result as string)
+					}
+					reader.onerror = function(err) {
+						reject(err)
+					}
+					reader.readAsDataURL(xhr.response)
+				} else {
+					reject(new Error('文件加载失败'))
+				}
+			}
+			xhr.onerror = function(err) {
+				reject(err)
+			}
+			xhr.send()
+			// #endif
+			
+			// #ifndef H5
+			uni.getFileSystemManager().readFile({
+				filePath: filePath,
+				encoding: 'base64',
+				success: (res) => {
+					resolve('data:image/jpeg;base64,' + res.data as string)
+				},
+				fail: (err) => {
+					reject(err)
+				}
+			})
+			// #endif
+		})
+	}
+	
+	async function submitAuth() {
+		if (!realName.value.trim()) {
+			toast.error('请输入真实姓名')
+			return
+		}
+		
+		if (!idCard.value.trim() || idCard.value.length !== 18) {
+			toast.error('请输入正确的身份证号')
+			return
+		}
+		
+		if (!frontFilePath.value) {
+			toast.error('请上传身份证正面照片')
+			return
+		}
+		
+		let uid = userStore.userInfo.value?.id
+		if (!uid) {
+			userStore.loadFromStorage()
+			uid = userStore.userInfo.value?.id
+		}
+		
+		if (!uid) {
+			toast.error('用户信息不存在，请重新登录')
+			return
+		}
+		
+		submitting.value = true
+		toast.loading('提交中...')
+		
+		try {
+			const frontBase64 = await fileToBase64(frontFilePath.value)
+			let backBase64 = ''
+			if (backFilePath.value) {
+				backBase64 = await fileToBase64(backFilePath.value)
+			}
+			
+			const result = await verifyIdCard({
+				userId: uid,
+				realName: realName.value,
+				idCard: idCard.value,
+				idCardFrontBase64: frontBase64,
+				idCardBackBase64: backBase64 || undefined
+			})
+			
+			if (result) {
+				toast.success('实名认证提交成功')
+				await userStore.fetchCurrentUser()
+				setTimeout(() => {
+					loadIdCardUrls()
+					loadRoleList()
+				}, 500)
+			}
+		} catch (e: any) {
+			toast.error(e.message || '提交失败')
+		} finally {
+			submitting.value = false
+		}
+	}
+	
+	async function submitCert() {
+		if (!selectedCertType.value) {
+			toast.error('请选择认证类型')
+			return
+		}
+		
+		if (!certFilePath.value) {
+			toast.error('请上传证书照片')
+			return
+		}
+		
+		let uid = userStore.userInfo.value?.id
+		if (!uid) {
+			userStore.loadFromStorage()
+			uid = userStore.userInfo.value?.id
+		}
+		
+		if (!uid) {
+			toast.error('用户信息不存在，请重新登录')
+			return
+		}
+		
+		submitting.value = true
+		toast.loading('提交中...')
+		
+		try {
+			const certBase64 = await fileToBase64(certFilePath.value)
+			
+			const certData = {
+				userId: uid,
+				personType: undefined as number | undefined,
+				certNumber: certNumber.value || undefined,
+				drivingLicenseBase64: undefined as string | undefined,
+				emergencyCertBase64: undefined as string | undefined,
+				repairCertBase64: undefined as string | undefined
+			}
+			
+			if (selectedCertType.value === 'driver') {
+				certData.drivingLicenseBase64 = certBase64
+			} else if (selectedCertType.value === 'safety_officer') {
+				certData.emergencyCertBase64 = certBase64
+			} else if (selectedCertType.value === 'repairman') {
+				certData.repairCertBase64 = certBase64
+			}
+			
+			let result = false
+			if (selectedCertType.value === 'driver') {
+				result = await uploadDriverCert(certData) || false
+			} else if (selectedCertType.value === 'safety_officer') {
+				result = await uploadSafetyOfficerCert(certData) || false
+			} else if (selectedCertType.value === 'repairman') {
+				result = await uploadRepairmanCert(certData) || false
+			}
+			
+			if (result) {
+				toast.success('资格认证提交成功')
+				await userStore.fetchCurrentUser()
+				certPreview.value = ''
+				certFilePath.value = ''
+				certNumber.value = ''
+				selectedCertType.value = ''
+			}
+		} catch (e: any) {
+			toast.error(e.message || '提交失败')
+		} finally {
+			submitting.value = false
+		}
+	}
 </script>
 
-<style scoped>
-.container {
-  padding: 20rpx;
-  background-color: #f5f5f5;
-  min-height: 100vh;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 40rpx;
-  padding-top: 40rpx;
-}
-
-.title {
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 10rpx;
-}
-
-.subtitle {
-  font-size: 24rpx;
-  color: #666;
-}
-
-.role-selector {
-  margin-bottom: 40rpx;
-}
-
-.role-selector .label {
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 15rpx;
-  display: block;
-}
-
-.role-buttons {
-  display: flex;
-  justify-content: space-between;
-  gap: 20rpx;
-}
-
-.role-btn {
-  flex: 1;
-  padding: 20rpx;
-  border: 2rpx solid #ddd;
-  border-radius: 10rpx;
-  background-color: #fff;
-  font-size: 28rpx;
-  color: #333;
-}
-
-.role-btn.active {
-  border-color: #007aff;
-  background-color: #e6f0ff;
-  color: #007aff;
-}
-
-.form-group {
-  margin-bottom: 30rpx;
-  background-color: #fff;
-  padding: 20rpx;
-  border-radius: 10rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
-}
-
-.form-group .label {
-  font-size: 26rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 15rpx;
-  display: block;
-}
-
-.input {
-  width: 100%;
-  padding: 20rpx;
-  border: 1rpx solid #ddd;
-  border-radius: 8rpx;
-  font-size: 26rpx;
-  color: #333;
-}
-
-.upload-area {
-  width: 100%;
-  height: 300rpx;
-  border: 2rpx dashed #ddd;
-  border-radius: 10rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.upload-placeholder {
-  text-align: center;
-  color: #999;
-}
-
-.upload-text {
-  font-size: 24rpx;
-}
-
-.uploaded-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.submit-btn {
-  margin-top: 40rpx;
-  padding: 25rpx;
-  font-size: 28rpx;
-  font-weight: bold;
-  border-radius: 10rpx;
-}
+<style>
+	.page-container {
+		min-height: 100vh;
+		background-color: #F7F8FA;
+	}
+	
+	.header {
+		padding: 40rpx 32rpx 24rpx;
+		background-color: #FFFFFF;
+	}
+	
+	.title {
+		font-size: 40rpx;
+		font-weight: 600;
+		color: #1A1A1A;
+	}
+	
+	.content {
+		padding: 32rpx;
+	}
+	
+	.verified-section {
+		display: flex;
+		flex-direction: column;
+		gap: 32rpx;
+	}
+	
+	.verified-card {
+		background-color: #FFFFFF;
+		border-radius: 32rpx;
+		padding: 48rpx 32rpx;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	
+	.verified-icon {
+		width: 120rpx;
+		height: 120rpx;
+		border-radius: 50%;
+		background-color: #34C759;
+		color: #FFFFFF;
+		font-size: 64rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		margin-bottom: 24rpx;
+	}
+	
+	.verified-title {
+		font-size: 36rpx;
+		font-weight: 600;
+		color: #1A1A1A;
+		margin-bottom: 24rpx;
+	}
+	
+	.verified-name, .verified-id {
+		font-size: 28rpx;
+		color: #666;
+		margin-bottom: 12rpx;
+	}
+	
+	.id-card-preview {
+		display: flex;
+		flex-direction: row;
+		gap: 24rpx;
+		margin-top: 32rpx;
+		width: 100%;
+	}
+	
+	.preview-item {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	
+	.preview-image {
+		width: 100%;
+		height: 240rpx;
+		border-radius: 16rpx;
+		background-color: #F7F8FA;
+	}
+	
+	.preview-label {
+		font-size: 24rpx;
+		color: #8F959E;
+		margin-top: 12rpx;
+	}
+	
+	.cert-section {
+		background-color: #FFFFFF;
+		border-radius: 32rpx;
+		padding: 32rpx;
+	}
+	
+	.section-header {
+		margin-bottom: 32rpx;
+	}
+	
+	.section-title {
+		font-size: 32rpx;
+		font-weight: 600;
+		color: #1A1A1A;
+		display: block;
+		margin-bottom: 8rpx;
+	}
+	
+	.section-desc {
+		font-size: 26rpx;
+		color: #8F959E;
+	}
+	
+	.form-card {
+		background-color: #FFFFFF;
+		border-radius: 32rpx;
+		padding: 40rpx;
+	}
+	
+	.form-header {
+		margin-bottom: 48rpx;
+	}
+	
+	.form-title {
+		font-size: 36rpx;
+		font-weight: 600;
+		color: #1A1A1A;
+		display: block;
+		margin-bottom: 8rpx;
+	}
+	
+	.form-desc {
+		font-size: 26rpx;
+		color: #8F959E;
+		display: block;
+	}
+	
+	.form-group {
+		margin-bottom: 40rpx;
+	}
+	
+	.label {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #1A1A1A;
+		display: block;
+		margin-bottom: 16rpx;
+	}
+	
+	.required {
+		color: #FF3B30;
+	}
+	
+	.input {
+		width: 100%;
+		height: 96rpx;
+		background-color: #F7F8FA;
+		border-radius: 20rpx;
+		padding: 0 32rpx;
+		font-size: 30rpx;
+		color: #1A1A1A;
+		box-sizing: border-box;
+	}
+	
+	.picker-wrapper {
+		width: 100%;
+		height: 96rpx;
+		background-color: #F7F8FA;
+		border-radius: 20rpx;
+		padding: 0 32rpx;
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		box-sizing: border-box;
+	}
+	
+	.picker-value {
+		font-size: 30rpx;
+		color: #1A1A1A;
+	}
+	
+	.picker-value.placeholder {
+		color: #8F959E;
+	}
+	
+	.picker-arrow {
+		font-size: 24rpx;
+		color: #8F959E;
+	}
+	
+	.cert-form {
+		margin-top: 32rpx;
+		padding-top: 32rpx;
+		border-top: 2rpx solid #F0F2F5;
+	}
+	
+	.upload-area {
+		width: 100%;
+		height: 320rpx;
+		background-color: #F7F8FA;
+		border-radius: 24rpx;
+		border: 2rpx dashed #D1D5DB;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		overflow: hidden;
+	}
+	
+	.upload-placeholder {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 16rpx;
+	}
+	
+	.upload-icon {
+		font-size: 64rpx;
+	}
+	
+	.upload-text {
+		font-size: 26rpx;
+		color: #8F959E;
+	}
+	
+	.submit-btn {
+		width: 100%;
+		height: 96rpx;
+		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+		border-radius: 20rpx;
+		border: none;
+		margin-top: 32rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.submit-btn[disabled] {
+		opacity: 0.6;
+	}
+	
+	.submit-btn text {
+		font-size: 32rpx;
+		font-weight: 600;
+		color: #FFFFFF;
+	}
+	
+	.verified-certs {
+		margin-top: 32rpx;
+		padding-top: 32rpx;
+		border-top: 2rpx solid #F0F2F5;
+	}
+	
+	.certs-title {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #1A1A1A;
+		margin-bottom: 24rpx;
+		display: block;
+	}
+	
+	.cert-item {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 24rpx;
+		background-color: #F7F8FA;
+		border-radius: 16rpx;
+		margin-bottom: 16rpx;
+	}
+	
+	.cert-icon {
+		width: 48rpx;
+		height: 48rpx;
+		border-radius: 50%;
+		background-color: #34C759;
+		color: #FFFFFF;
+		font-size: 28rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		margin-right: 24rpx;
+	}
+	
+	.cert-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+	}
+	
+	.cert-name {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #1A1A1A;
+	}
+	
+	.cert-status {
+		font-size: 24rpx;
+		color: #34C759;
+		margin-top: 4rpx;
+	}
+	
+	.picker-mask {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		justify-content: center;
+		align-items: flex-end;
+		z-index: 999;
+	}
+	
+	.picker-content {
+		width: 100%;
+		background-color: #FFFFFF;
+		border-radius: 32rpx 32rpx 0 0;
+		overflow: hidden;
+	}
+	
+	.picker-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 32rpx;
+		border-bottom: 2rpx solid #F0F2F5;
+	}
+	
+	.picker-title {
+		font-size: 32rpx;
+		font-weight: 600;
+		color: #1A1A1A;
+	}
+	
+	.picker-close {
+		font-size: 48rpx;
+		color: #8F959E;
+		line-height: 1;
+	}
+	
+	.picker-options {
+		padding: 16rpx 0;
+	}
+	
+	.picker-option {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 32rpx;
+	}
+	
+	.picker-option.selected {
+		background-color: #F0FFF4;
+	}
+	
+	.option-text {
+		font-size: 30rpx;
+		color: #1A1A1A;
+	}
+	
+	.option-check {
+		font-size: 32rpx;
+		color: #34C759;
+		font-weight: 600;
+	}
 </style>

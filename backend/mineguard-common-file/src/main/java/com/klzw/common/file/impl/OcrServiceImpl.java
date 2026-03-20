@@ -31,6 +31,12 @@ public class OcrServiceImpl implements OcrService {
     }
 
     @Override
+    public String recognizeIdCard(byte[] imageData) {
+        log.info("识别身份证正面（byte[]）");
+        return baiduOcrUtils.recognizeIdCard(imageData, "front");
+    }
+
+    @Override
     public String recognizeIdCardBack(MultipartFile file) {
         log.info("识别身份证背面");
         return baiduOcrUtils.recognizeIdCard(file, "back");
@@ -40,6 +46,12 @@ public class OcrServiceImpl implements OcrService {
     public String recognizeDrivingLicense(MultipartFile file) {
         log.info("识别驾驶证");
         return baiduOcrUtils.recognizeDrivingLicense(file);
+    }
+
+    @Override
+    public String recognizeDrivingLicense(byte[] imageData) {
+        log.info("识别驾驶证（byte[]）");
+        return baiduOcrUtils.recognizeDrivingLicense(imageData);
     }
 
     @Override
@@ -67,9 +79,21 @@ public class OcrServiceImpl implements OcrService {
     }
 
     @Override
+    public String recognizeEmergencyCert(byte[] imageData) {
+        log.info("识别紧急救援资格证（byte[]）");
+        return baiduOcrUtils.recognizeGeneral(imageData);
+    }
+
+    @Override
     public String recognizeRepairCert(MultipartFile file) {
         log.info("识别维修资格证");
         return baiduOcrUtils.recognizeGeneral(file);
+    }
+
+    @Override
+    public String recognizeRepairCert(byte[] imageData) {
+        log.info("识别维修资格证（byte[]）");
+        return baiduOcrUtils.recognizeGeneral(imageData);
     }
 
     @Override

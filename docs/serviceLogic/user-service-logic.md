@@ -1,235 +1,779 @@
-# 用户服务逻辑文档
+# 用户服务逻辑
 
-## 1. 模块概述
+## 1. 认证服务逻辑 (AuthService)
 
-用户服务是MineGuard系统的核心服务之一，负责用户的全生命周期管理。主要功能包括用户注册、登录认证、用户信息管理、角色管理、资格认证、考勤管理、站内消息通信（WebSocket）、用户申诉处理等。
+### 1.1 用户注册
 
-**服务端口**：`8081`
+**接口**: `POST /api/auth/register`  
+**DTO**: `UserRegisterDTO(username, password, phone, smsCode, email)`  
+**VO**: `UserVO`
 
-**数据库**：
+**处理流程**:
 
-- MySQL：存储用户、角色、司机、安全员、维修员、考勤、申诉等数据
-- MongoDB：存储站内消息（Message集合）
-
-**服务依赖**：
-
-- Redis：缓存和Token存储
-- RabbitMQ：消息队列
-- 阿里云短信服务：验证码发送
-
----
-
-## 2. 核心功能
-
-### 2.1 认证模块（Auth）
-
-| 功能 | 说明 | 实现状态 |
-| ---- | ---- | ---- |
-| 用户登录 | 用户名密码登录，返回JWT令牌 | ✅ 已实现 |
-| 用户注册 | 用户注册，默认角色为司机 | ✅ 已实现 |
-| 密码重置 | 通过手机号验证码重置密码 | ✅ 已实现 |
-| 管理员认证 | 管理员首次登录需身份认证后启用账户 | ✅ 已实现 |
-| 图形验证码 | 获取登录图形验证码 | ⬜ 不暴露（用短信验证码替代） |
-| 短信验证码 | 发送/验证手机验证码 | ✅ 已实现 |
-| Token刷新 | 刷新accessToken | ✅ 已实现 |
-| 用户登出 | 退出登录清除Token | ✅ 已实现 |
-
-### 2.2 用户管理模块（User）
-
-| 功能 | 说明 | 实现状态 |
-| ---- | ---- | ---- |
-| 获取当前用户信息 | 获取登录用户详细信息 | ✅ 已实现 |
-| 更新用户信息 | 更新用户基本信息 | ✅ 已实现 |
-| 修改密码 | 验证旧密码后修改 | ✅ 已实现 |
-| 上传头像 | 上传用户头像到OSS | ✅ 已实现 |
-| 获取用户角色 | 获取当前用户角色信息 | ✅ 已实现 |
-| 管理员创建用户 | 管理员手动创建用户 | ✅ 已实现 |
-
-### 2.3 管理员模块（Admin）
-
-| 功能 | 说明 | 实现状态 |
-| ---- | ---- | ---- |
-| 分页查询用户 | 管理员分页查询用户列表 | ✅ 已实现 |
-| 获取用户详情 | 管理员获取指定用户详情 | ✅ 已实现 |
-| 禁用用户 | 管理员禁用用户账号 | ✅ 已实现 |
-| 启用用户 | 管理员启用用户账号 | ✅ 已实现 |
-| 变更用户角色 | 管理员变更用户角色 | ✅ 已实现 |
-| 角色变更申请处理 | 审批用户角色变更申请 | ✅ 已实现 |
-| 获取待处理申请 | 获取所有待处理的角色变更申请 | ✅ 已实现 |
-| 获取所有申请 | 获取所有角色变更申请 | ✅ 已实现 |
-
-### 2.4 角色管理模块（Role）
-
-| 功能 | 说明 | 实现状态 |
-| ---- | ---- | -------- |
-| 获取角色列表 | 获取所有角色 | ✅ 已实现 |
-| 获取角色详情 | 根据ID获取角色 | ✅ 已实现 |
-| 创建角色 | 创建新角色 | ✅ 已实现 |
-| 更新角色 | 更新角色信息 | ✅ 已实现 |
-| 删除角色 | 删除角色 | ✅ 已实现 |
-| 分配角色权限 | 分配权限给角色 | ❌ 未实现 |
-| 权限验证 | 验证用户权限 | ❌ 未实现 |
-
-### 2.5 资格认证模块（Qualification）
-
-| 功能 | 说明 | 实现状态 |
-| ---- | ---- | -------- |
-| 身份证验证 | 实名认证，上传身份证照片 | ✅ 已实现 |
-| 检查身份证状态 | 检查用户是否已实名认证 | ✅ 已实现 |
-| 驾驶证认证 | 司机资格认证 | ✅ 已实现 |
-| 应急救援证认证 | 安全员资格认证 | ✅ 已实现 |
-| 维修资格证认证 | 维修员资格认证 | ✅ 已实现 |
-
-### 2.6 考勤管理模块（Attendance）
-
-| 功能 | 说明 | 实现状态 |
-| ---- | ---- | -------- |
-| 上班打卡 | 司机签到 | ✅ 已实现 |
-| 下班打卡 | 司机签退 | ✅ 已实现 |
-| 获取考勤记录 | 获取指定日期考勤 | ✅ 已实现 |
-| 获取考勤列表 | 获取月度考勤列表 | ✅ 已实现 |
-| 考勤统计 | 获取月度考勤统计 | ✅ 已实现 |
-| 补卡 | 管理员补卡 | ✅ 已实现 |
-
-### 2.7 站内消息模块（Message - WS）
-
-| 功能 | 说明 | 实现状态 |
-| ---- | ---- | -------- |
-| WebSocket连接 | 建立WS连接 `/ws/messages` | ✅ 已实现 |
-| 单播消息 | 发送给指定用户 | ✅ 已实现 |
-| 广播消息 | 发送给指定用户群体 | ✅ 已实现 |
-| 全局广播 | 发送给所有在线用户 | ✅ 已实现 |
-| 获取消息列表 | 获取用户消息分页列表 | ✅ 已实现 |
-| 标记已读 | 标记消息为已读 | ✅ 已实现 |
-| 删除消息 | 删除消息 | ✅ 已实现 |
-| 未读计数 | 获取未读消息数量 | ✅ 已实现 |
-
-**消息存储**：MongoDB集合 `messages`
-
-### 2.8 用户申诉模块（UserAppeal）
-
-| 功能 | 说明 | 实现状态 |
-| ---- | ---- | -------- |
-| 提交申诉 | 用户提交申诉 | ✅ 已实现 |
-| 我的申诉 | 获取当前用户申诉列表 | ✅ 已实现 |
-| 检查待处理 | 检查是否有待处理申诉 | ✅ 已实现 |
-| 待处理列表 | 管理员获取待处理申诉 | ✅ 已实现 |
-| 所有申诉 | 管理员获取所有申诉 | ✅ 已实现 |
-| 处理申诉 | 管理员处理申诉 | ✅ 已实现 |
-| 按用户查询 | 管理员按用户ID查询申诉 | ✅ 已实现 |
-
-### 2.9 管理员初始化模块
-
-| 功能 | 说明 | 实现状态 |
-| ---- | ---- | -------- |
-| 自动创建管理员 | 系统启动时自动创建管理员账户 | ✅ 已实现 |
-| 管理员角色自动创建 | 自动创建管理员角色 | ✅ 已实现 |
-
-**配置项**：`AdminInitProperties.initadmin` 控制是否开启
+1. 校验用户名是否已存在（`UserService.getByUsername`）
+2. 校验手机号是否已存在（`UserService.getByPhone`）
+3. 验证短信验证码（调用阿里云SmsService.verifySmsCode）
+4. 创建用户，设置默认状态为启用，无默认角色
+5. 密码加密存储
+6. 生成JWT Token
+7. 返回用户信息（含token、refreshToken、expiresIn）
 
 ---
 
-## 3. 未实现功能
+### 1.2 用户登录
 
-### 3.1 认证模块
+**接口**: `POST /api/auth/login`  
+**DTO**: `UserLoginDTO(username, password)`  
+**VO**: `UserVO`
 
-- **图形验证码**：Service已实现，不暴露接口（用短信验证码替代）
-- **短信验证码**：✅ 已实现（Controller + Service）
-- **Token刷新**：✅ 已实现（Controller + Service）
-- **用户登出**：✅ 已实现（Controller + Service）
+**处理流程**:
 
-### 3.2 权限模块
-
-- **权限管理**：permission表已创建但无对应Controller和Service
-- **角色权限分配**：RoleController未实现权限分配接口
-- **权限验证**：未实现基于权限的验证逻辑
-
-### 3.3 其他
-
-- **消息已读未读状态推送**：WebSocket未实现实时推送已读状态
-- **消息撤回**：未实现消息撤回功能
+1. 根据用户名查询用户
+2. 校验密码是否正确
+3. 校验用户状态（是否被禁用且并非管理员）
+4. 生成JWT Token
+5. 查询用户角色信息
+6. 返回用户信息（含token）
 
 ---
 
-## 4. API与前端审查
+### 1.3 用户登出
 
-### 4.1 API文档对照
+**接口**: `POST /api/auth/logout`  
+**返回**: `void`
 
-| API文档接口 | 后端实现 | 前端实现 | 备注 |
-| ----------- | -------- | -------- | ---- |
-| POST /api/auth/login | ✅ | ✅ auth.uts | |
-| POST /api/auth/logout | ✅ | ✅ auth.uts | |
-| POST /api/auth/refresh | ✅ | ✅ auth.uts | |
-| GET /api/auth/captcha | ⬜ | ✅ auth.uts | 不暴露（用短信验证码替代） |
-| POST /api/auth/sms/send | ✅ | ✅ auth.uts | |
-| POST /api/auth/sms/verify | ✅ | ✅ auth.uts | |
-| POST /api/auth/reset-password | ✅ | ✅ auth.uts | |
-| POST /api/auth/admin/verify | ✅ | ✅ auth.uts | |
-| POST /api/user/register | ✅ | ✅ user.uts | 实际路径为/api/user/register |
-| GET /api/user/current | ✅ | ❌ | 需补充 |
-| PUT /api/user/{id} | ✅ | ❌ | 需补充 |
-| PUT /api/user/password | ✅ | ❌ | 需补充 |
-| POST /api/user/avatar | ✅ | ❌ | 需补充 |
-| GET /api/user/admin/page | ✅ | ✅ user.uts | |
-| GET /api/user/admin/user/{id} | ✅ | ✅ user.uts | |
-| PUT /api/user/admin/user/{id}/disable | ✅ | ✅ user.uts | |
-| PUT /api/user/admin/user/{id}/enable | ✅ | ✅ user.uts | |
-| PUT /api/user/admin/user/{id}/role-change | ✅ | ✅ user.uts | |
-| GET /api/role/list | ✅ | ✅ user.uts | |
-| GET /api/role/{id} | ✅ | ✅ user.uts | |
-| POST /api/role | ✅ | ❌ | 需补充 |
-| PUT /api/role/{id} | ✅ | ❌ | 需补充 |
-| DELETE /api/role/{id} | ✅ | ❌ | 需补充 |
-| POST /api/qualification/idcard/verify | ✅ | ✅ qualification.uts | |
-| GET /api/qualification/idcard/check/{userId} | ✅ | ✅ qualification.uts | |
-| POST /api/qualification/cert/driver | ✅ QualificationController | ✅ qualification.uts | |
-| POST /api/qualification/cert/safety-officer | ✅ QualificationController | ✅ qualification.uts | |
-| POST /api/qualification/cert/repairman | ✅ QualificationController | ✅ qualification.uts | |
-| POST /api/messages/unicast | ✅ MessageController | ❌ 未实现 | 需补充 |
-| POST /api/messages/broadcast | ✅ MessageController | ❌ 未实现 | 需补充 |
-| POST /api/messages/broadcast/all | ✅ MessageController | ❌ 未实现 | 需补充 |
-| GET /api/messages/user/{userId} | ✅ MessageController | ❌ 未实现 | 需补充 |
-| PUT /api/messages/{messageId}/read | ✅ MessageController | ❌ 未实现 | 需补充 |
-| DELETE /api/messages/{messageId} | ✅ MessageController | ❌ 未实现 | 需补充 |
-| GET /api/messages/unread/count/{userId} | ✅ MessageController | ❌ 未实现 | 需补充 |
-| GET /api/user/appeal/my | ✅ UserAppealController | ❌ 未实现 | 需补充 |
-| POST /api/user/appeal | ✅ UserAppealController | ❌ 未实现 | 需补充 |
-| GET /api/user/appeal/pending/check | ✅ UserAppealController | ❌ 未实现 | 需补充 |
-| GET /api/user/appeal/admin/pending | ✅ UserAppealController | ❌ 未实现 | 需补充 |
-| GET /api/user/appeal/admin/list | ✅ UserAppealController | ❌ 未实现 | 需补充 |
-| PUT /api/user/appeal/admin/{id}/handle | ✅ UserAppealController | ❌ 未实现 | 需补充 |
-| 考勤相关接口 | ✅ AttendanceController | ❌ 未实现 | 需补充 |
+**处理流程**:
 
-### 4.2 前端缺失接口
+1. 获取当前用户Token
+2. 将Token加入黑名单（Redis）
+3. 清除用户缓存
 
-前端 `user.uts` 缺少以下功能：
+---
 
-- `getCurrentUser()` - 获取当前用户信息
-- `updateUser()` - 更新用户信息
-- `updatePassword()` - 修改密码
-- `uploadAvatar()` - 上传头像（函数存在但未导出或使用方式可能有问题）
-- 角色管理CRUD接口
-- 站内消息接口
-- 用户申诉接口
-- 考勤接口
+### 1.4 发送短信验证码
 
-### 4.3 需要补充的建议
+**接口**: `POST /api/auth/sms/send`  
+**DTO**: `SendSmsCodeDTO(phone)`  
+**VO**: `SmsCodeVO`
 
-1. **后端补充**：
-   - 实现图形验证码接口
-   - 实现短信验证码发送和验证
-   - 实现Token刷新接口
-   - 实现登出接口
-   - 实现权限管理相关接口
+**处理流程**:
 
-2. **前端补充**：
-   - 在 `user.uts` 中添加获取当前用户、更新用户、修改密码等接口
-   - 创建 `message.uts` 实现站内消息功能
-   - 创建 `appeal.uts` 实现用户申诉功能
-   - 创建 `attendance.uts` 实现考勤功能
+1. 校验手机号格式
+2. 调用阿里云短信服务发送验证码
+3. 阿里云服务内部处理验证码生成和存储
+4. 返回发送结果
 
-3. **API文档更新**：
-   - 补充缺失的接口文档
-   - 添加站内消息接口文档
-   - 添加用户申诉接口文档
-   - 添加考勤接口文档
+---
+
+### 1.5 验证短信验证码
+
+**接口**: `POST /api/auth/sms/verify`  
+**DTO**: `VerifySmsCodeDTO(phone, code)`  
+**返回**: `Boolean`
+
+**处理流程**:
+
+1. 调用阿里云短信服务验证验证码
+2. 返回验证结果
+
+---
+
+### 1.6 重置密码
+
+**接口**: `POST /api/auth/reset-password`  
+**DTO**: `ResetPasswordDTO(phone, smsCode, newPassword)`  
+**返回**: `void`
+
+**处理流程**:
+
+1. 验证短信验证码（调用阿里云SmsService.verifySmsCode）
+2. 根据手机号查询用户
+3. 新密码加密后更新
+4. 清除用户缓存
+
+---
+
+### 1.7 刷新Token
+
+**接口**: `POST /api/auth/refresh`  
+**参数**: `refreshToken`  
+**VO**: `TokenVO(accessToken, refreshToken, tokenType, expiresIn)`
+
+**处理流程**:
+
+1. 验证refreshToken是否有效
+2. 从refreshToken中解析用户信息
+3. 生成新的accessToken和refreshToken
+4. 返回新的Token信息
+
+---
+
+### 1.8 管理员认证
+
+**接口**: `POST /api/auth/admin/verify`  
+**DTO**: `AdminVerifyDTO(userId, realName, phone, idCardFrontBase64, idCardBackBase64)`  
+**VO**: `UserVO`
+
+**处理流程**:
+
+1. 校验用户是否存在
+2. 校验用户是否为管理员角色
+3. 上传身份证图片到存储服务
+4. 调用OCR服务识别身份证信息
+5. 校验身份证姓名与提交姓名是否一致（如果提交了realName）
+6. 更新用户身份证信息和实名信息
+7. 更新用户状态为启用
+8. 生成新的JWT Token
+9. 返回用户信息（含token、refreshToken、expiresIn）
+
+---
+
+## 2. 用户服务逻辑 (UserService)
+
+### 2.1 获取当前用户
+
+**接口**: `GET /api/user/current`  
+**VO**: `UserVO`
+
+**处理流程**:
+
+1. 从Token中获取用户ID
+2. 从缓存中获取用户信息
+3. 缓存未命中则查询数据库
+4. 查询用户角色信息
+5. 返回用户信息
+
+---
+
+### 2.2 获取用户详情
+
+**接口**: `GET /api/user/{id}`  
+**VO**: `UserVO`
+
+**处理流程**:
+
+1. 根据ID查询用户
+2. 查询用户角色信息
+3. 返回用户信息
+
+---
+
+### 2.3 更新用户信息
+
+**接口**: `PUT /api/user/{id}`  
+**DTO**: `UserUpdateDTO(username, email, avatarUrl)`  
+**VO**: `UserVO`
+
+**说明**: realName（真实姓名）实名认证后不可修改，phone（手机号）需通过专门接口修改
+
+**处理流程**:
+
+1. 校验用户是否存在
+2. 如果修改用户名，校验用户名是否已被使用
+3. 更新用户信息
+4. 清除用户缓存
+5. 返回更新后的用户信息
+
+---
+
+### 2.4 修改密码
+
+**接口**: `PUT /api/user/password`  
+**DTO**: `PasswordUpdateDTO(oldPassword, newPassword)`  
+**返回**: `void`
+
+**处理流程**:
+
+1. 校验用户是否存在
+2. 校验原密码是否正确
+3. 新密码加密后更新
+4. 清除用户缓存
+
+---
+
+### 2.5 更新手机号
+
+**接口**: `PUT /api/user/phone`  
+**DTO**: `UpdatePhoneDTO(newPhone, smsCode)`  
+**VO**: `UserVO`
+
+**处理流程**:
+
+1. 验证短信验证码（调用阿里云SmsService.verifySmsCode）
+2. 校验用户是否存在
+3. 校验新手机号是否已被其他用户使用
+4. 更新用户手机号
+5. 清除用户缓存
+6. 返回更新后的用户信息
+
+---
+
+### 2.6 上传头像
+
+**接口**: `POST /api/user/avatar`  
+**请求**: `MultipartFile file`  
+**VO**: `UserVO`
+
+**处理流程**:
+
+1. 校验用户是否存在
+2. 上传图片到存储服务
+3. 更新用户头像URL
+4. 清除用户缓存
+5. 返回更新后的用户信息
+
+---
+
+### 2.7 分页查询用户
+
+**接口**: `GET /api/user/page`  
+**参数**: `pageNum, pageSize, username, status`  
+**VO**: `Page<UserVO>`
+
+**处理流程**:
+
+1. 构建查询条件
+2. 分页查询用户列表
+3. 查询每个用户的角色信息
+4. 返回分页结果
+
+---
+
+### 2.8 禁用/启用用户
+
+**接口**: `PUT /api/user/{id}/disable` / `PUT /api/user/{id}/enable`  
+**返回**: `void`
+
+**处理流程**:
+
+1. 校验用户是否存在
+2. 更新用户状态
+3. 清除用户缓存
+
+---
+
+### 2.9 分配角色
+
+**接口**: `PUT /api/user/{id}/role`  
+**参数**: `roleId`  
+**返回**: `void`
+
+**处理流程**:
+
+1. 校验用户是否存在
+2. 校验角色是否存在
+3. 更新用户角色
+4. 清除用户缓存
+
+---
+
+## 3. 角色服务逻辑 (RoleService)
+
+### 3.1 获取角色列表
+
+**接口**: `GET /api/role/list`  
+**权限**: 普通用户可访问  
+**VO**: `List<RoleVO>`
+
+**处理流程**:
+
+1. 查询所有角色
+2. 返回角色列表
+
+---
+
+### 3.2 获取角色详情
+
+**接口**: `GET /api/role/{id}`  
+**权限**: 管理员权限  
+**VO**: `RoleVO`
+
+**处理流程**:
+
+1. 根据ID查询角色
+2. 返回角色信息
+
+---
+
+### 3.3 创建角色
+
+**接口**: `POST /api/role`  
+**DTO**: `RoleVO`  
+**VO**: `RoleVO`
+
+**处理流程**:
+
+1. 校验角色编码是否已存在
+2. 创建角色
+3. 返回角色信息
+
+---
+
+### 3.4 更新角色
+
+**接口**: `PUT /api/role/{id}`  
+**权限**: 管理员权限  
+**DTO**: `RoleVO`  
+**VO**: `RoleVO`
+
+**处理流程**:
+
+1. 校验角色是否存在
+2. 更新角色信息
+3. 返回角色信息
+
+---
+
+### 3.5 删除角色
+
+**接口**: `DELETE /api/role/{id}`  
+**权限**: 管理员权限  
+**返回**: `Boolean`
+
+**处理流程**:
+
+1. 校验角色是否存在
+2. 校验是否有用户使用该角色
+3. 删除角色
+4. 返回结果
+
+---
+
+## 4. 人员资格认证服务逻辑 (QualificationService)
+
+### 4.1 身份证验证（实名认证）
+
+**接口**: `POST /api/qualification/idcard/verify`  
+**DTO**: `IdCardVerifyDTO(userId, realName, idCard, idCardFrontBase64, idCardBackBase64)`  
+**返回**: `Boolean`
+
+**处理流程**:
+
+1. 校验用户是否已完成身份证验证
+2. 校验身份证号格式
+3. 调用OCR服务识别身份证信息
+4. 校验OCR识别的姓名和身份证号与提交信息是否一致
+5. 更新用户实名信息（realName, idCard, gender, nation, birthDate, address）
+6. 返回验证结果
+
+---
+
+### 4.2 检查身份证验证状态
+
+**接口**: `GET /api/qualification/idcard/check/{userId}`  
+**返回**: `Boolean`
+
+**处理流程**:
+
+1. 根据用户ID查询用户信息
+2. 检查用户是否已完成身份证验证（realName和idCard是否已填写）
+3. 返回验证状态
+
+---
+
+### 4.3 上传驾驶证（司机）
+
+**接口**: `POST /api/qualification/cert/driver`  
+**DTO**: `CertVerifyDTO(userId, personType, certNumber, drivingLicenseBase64)`  
+**返回**: `Boolean`
+
+**处理流程**:
+
+1. 校验用户是否已完成身份证验证
+2. 调用OCR服务识别驾驶证信息
+3. 校验驾驶证姓名与实名认证姓名是否一致
+4. 校验驾驶证是否过期
+5. 创建或更新司机信息（Driver表）
+6. 返回验证结果
+
+---
+
+### 4.4 上传应急救援证（安全员）
+
+**接口**: `POST /api/qualification/cert/safety-officer`  
+**DTO**: `CertVerifyDTO(userId, personType, certNumber, emergencyCertBase64)`  
+**返回**: `Boolean`
+
+**处理流程**:
+
+1. 校验用户是否已完成身份证验证
+2. 调用OCR服务识别应急救援证信息
+3. 校验证书姓名与实名认证姓名是否一致
+4. 校验证书是否过期
+5. 创建或更新安全员信息（SafetyOfficer表）
+6. 返回验证结果
+
+---
+
+### 4.5 上传维修资格证（维修员）
+
+**接口**: `POST /api/qualification/cert/repairman`  
+**DTO**: `CertVerifyDTO(userId, personType, certNumber, repairCertBase64)`  
+**返回**: `Boolean`
+
+**处理流程**:
+
+1. 校验用户是否已完成身份证验证
+2. 调用OCR服务识别维修资格证信息
+3. 校验证书姓名与实名认证姓名是否一致
+4. 校验证书是否过期
+5. 创建或更新维修员信息（Repairman表）
+6. 返回验证结果
+
+---
+
+## 5. 考勤服务逻辑 (AttendanceService)
+
+### 5.1 上班打卡
+
+**接口**: `POST /api/attendance/check-in`  
+**DTO**: `CheckInDTO(driverId, latitude, longitude, address)`  
+**VO**: `AttendanceVO`
+
+**处理流程**:
+
+1. 校验司机是否存在
+2. 校验当天是否已打卡
+3. 创建出勤记录
+4. 判断是否迟到
+5. 返回出勤记录
+
+---
+
+### 5.2 下班打卡
+
+**接口**: `POST /api/attendance/check-out`  
+**DTO**: `CheckOutDTO(driverId, latitude, longitude, address)`  
+**VO**: `AttendanceVO`
+
+**处理流程**:
+
+1. 校验司机是否存在
+2. 查询当天出勤记录
+3. 更新下班时间和位置
+4. 判断是否早退
+5. 返回出勤记录
+
+---
+
+### 5.3 获取某日考勤记录
+
+**接口**: `GET /api/attendance/{driverId}?date=2024-01-01`  
+**参数**: `date` (LocalDate格式 yyyy-MM-dd)  
+**VO**: `AttendanceVO`
+
+**处理流程**:
+
+1. 根据司机ID和日期查询出勤记录
+2. 返回出勤记录
+
+---
+
+### 5.4 获取某月考勤记录列表
+
+**接口**: `GET /api/attendance/{driverId}/list?yearMonth=2024-01`  
+**参数**: `yearMonth` (格式 yyyy-MM)  
+**VO**: `List<AttendanceVO>`
+
+**处理流程**:
+
+1. 根据司机ID和月份查询出勤记录列表
+2. 返回出勤记录列表
+
+---
+
+### 5.5 获取某月考勤统计
+
+**接口**: `GET /api/attendance/{driverId}/statistics?yearMonth=2024-01`  
+**参数**: `yearMonth` (格式 yyyy-MM)  
+**VO**: `AttendanceStatisticsVO`
+
+**处理流程**:
+
+1. 查询月度出勤记录
+2. 统计正常、迟到、早退、缺勤天数
+3. 返回统计数据
+
+---
+
+### 5.6 补卡（管理员功能）
+
+**接口**: `PUT /api/attendance/{attendanceId}/supplement`  
+**参数**: `checkInTime, checkOutTime, status, remark`  
+**VO**: `AttendanceVO`
+
+**处理流程**:
+
+1. 校验出勤记录是否存在
+2. 更新打卡时间和状态
+3. 添加备注信息
+4. 返回更新后的出勤记录
+
+---
+
+## 6. 用户申诉服务逻辑 (UserAppealService)
+
+### 6.1 提交申诉
+
+**接口**: `POST /api/user/appeal`  
+**DTO**: `UserAppealDTO(appealReason)`  
+**返回**: `String` (申诉ID)
+
+**处理流程**:
+
+1. 校验用户是否存在
+2. 校验用户是否已被禁用
+3. 校验是否已有待处理的申诉
+4. 创建申诉记录
+5. 返回申诉ID
+
+---
+
+### 6.2 获取当前用户的申诉列表
+
+**接口**: `GET /api/user/appeal/my`  
+**VO**: `List<UserAppealVO>`
+
+**处理流程**:
+
+1. 从Token获取用户ID
+2. 查询用户的申诉列表
+3. 返回申诉列表
+
+---
+
+### 6.3 检查是否有待处理的申诉
+
+**接口**: `GET /api/user/appeal/pending/check`  
+**返回**: `Boolean`
+
+**处理流程**:
+
+1. 从Token获取用户ID
+2. 检查是否有待处理的申诉
+3. 返回结果
+
+---
+
+### 6.4 获取待处理的申诉列表（管理员）
+
+**接口**: `GET /api/user/appeal/admin/pending`  
+**VO**: `List<UserAppealVO>`
+
+**处理流程**:
+
+1. 查询状态为待处理的申诉列表
+2. 返回申诉列表
+
+---
+
+### 6.5 获取所有申诉列表（管理员）
+
+**接口**: `GET /api/user/appeal/admin/list`  
+**VO**: `List<UserAppealVO>`
+
+**处理流程**:
+
+1. 查询所有申诉列表
+2. 返回申诉列表
+
+---
+
+### 6.6 根据用户ID获取申诉列表（管理员）
+
+**接口**: `GET /api/user/appeal/admin/user/{userId}`  
+**VO**: `List<UserAppealVO>`
+
+**处理流程**:
+
+1. 根据用户ID查询申诉列表
+2. 返回申诉列表
+
+---
+
+### 6.7 处理申诉（管理员）
+
+**接口**: `PUT /api/user/appeal/admin/{id}/handle`  
+**DTO**: `HandleAppealDTO(status, adminOpinion, handlerId, handlerName)`  
+**返回**: `Boolean`
+
+**处理流程**:
+
+1. 校验申诉是否存在
+2. 校验申诉是否已处理
+3. 更新申诉状态和处理意见
+4. 如果申诉通过，启用用户
+5. 返回处理结果
+
+---
+
+## 7. 角色变更申请服务逻辑 (RoleChangeApplyService)
+
+> **说明**：角色变更申请接口位于管理员接口下，路径为 `/api/user/admin/role-change/apply`
+
+### 7.1 创建角色变更申请（用户端）
+
+**接口**: `POST /api/user/admin/role-change/apply`  
+**DTO**: `RoleChangeApply(applyRoleId, applyReason)`  
+**返回**: `String` (申请ID)
+
+**处理流程**:
+
+1. 获取当前用户信息
+2. 校验申请角色是否存在
+3. 校验是否已有待处理的申请
+4. 创建角色变更申请
+5. 返回申请ID
+
+---
+
+### 7.2 获取用户的角色变更申请（用户端）
+
+**接口**: `GET /api/user/admin/role-change/apply/my`  
+**VO**: `List<RoleChangeApplyVO>`
+
+**处理流程**:
+
+1. 从Token获取用户ID
+2. 查询用户的角色变更申请列表
+3. 返回申请列表
+
+---
+
+### 7.3 获取待处理申请（管理员）
+
+**接口**: `GET /api/user/admin/role-change/apply/pending`  
+**VO**: `List<RoleChangeApplyVO>`
+
+**处理流程**:
+
+1. 查询状态为待处理的申请列表
+2. 返回申请列表
+
+---
+
+### 7.4 获取所有角色变更申请（管理员）
+
+**接口**: `GET /api/user/admin/role-change/apply/list`  
+**VO**: `List<RoleChangeApplyVO>`
+
+**处理流程**:
+
+1. 查询所有角色变更申请列表
+2. 返回申请列表
+
+---
+
+### 7.5 获取用户的角色变更申请历史（管理员）
+
+**接口**: `GET /api/user/admin/role-change/apply/user/{userId}`  
+**VO**: `List<RoleChangeApplyVO>`
+
+**处理流程**:
+
+1. 根据用户ID查询角色变更申请列表
+2. 返回申请列表
+
+---
+
+### 7.6 处理角色变更申请（管理员）
+
+**接口**: `PUT /api/user/admin/role-change/apply/{id}/handle`  
+**参数**: `status, adminOpinion, handlerId, handlerName`  
+**返回**: `Boolean`
+
+**处理流程**:
+
+1. 校验申请是否存在
+2. 校验申请是否已处理
+3. 更新申请状态和处理意见
+4. 如果申请通过，更新用户角色
+5. 返回处理结果
+
+---
+
+## 8. 消息服务逻辑 (MessageService)
+
+### 8.1 发送单播消息
+
+**接口**: `POST /api/messages/unicast`  
+**DTO**: `MessageDTO(receiver, type, content, priority, businessId, businessType)`  
+**返回**: `void`
+
+**处理流程**:
+
+1. 创建消息记录
+2. 存储到MongoDB
+3. 如果用户在线，通过WebSocket推送消息
+
+---
+
+### 8.2 发送广播消息
+
+**接口**: `POST /api/messages/broadcast`  
+**DTO**: `MessageDTO(type, content, priority)`  
+**参数**: `userIds`  
+**返回**: `void`
+
+**处理流程**:
+
+1. 批量创建消息记录
+2. 存储到MongoDB
+3. 通过WebSocket推送给在线用户
+
+---
+
+### 8.3 获取用户消息列表
+
+**接口**: `GET /api/messages`  
+**参数**: `page, size`  
+**VO**: `List<Message>`
+
+**处理流程**:
+
+1. 从Token获取用户ID
+2. 分页查询用户消息
+3. 返回消息列表
+
+---
+
+### 8.4 标记消息已读
+
+**接口**: `PUT /api/messages/{messageId}/read`  
+**返回**: `void`
+
+**处理流程**:
+
+1. 更新消息状态为已读
+2. 更新阅读时间
+
+---
+
+### 8.5 获取未读消息数量
+
+**接口**: `GET /api/messages/unread/count`  
+**返回**: `long`
+
+**处理流程**:
+
+1. 从Token获取用户ID
+2. 统计未读消息数量
+3. 返回数量
+
+---
+
+## 9. 管理员初始化服务逻辑 (AdminInitService)
+
+### 9.1 初始化管理员
+
+**触发时机**: 应用启动时  
+**配置**: `AdminInitProperties(initadmin, adminUsername, adminPassword, adminRealName, adminPhone, adminEmail)`
+
+**处理流程**:
+
+1. 检查是否开启管理员初始化功能
+2. 查找或创建管理员角色（ADMIN）
+3. 检查是否已有管理员用户
+4. 创建管理员用户，密码加密
+5. 设置管理员状态为禁用（需完成实名认证后启用）
+6. 分配管理员角色

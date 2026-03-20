@@ -1,0 +1,329 @@
+<template>
+	<view class="fault-container">
+		<view class="fault-header">
+			<text class="header-title">故障申报</text>
+		</view>
+		
+		<view class="fault-content">
+			<view class="form-card">
+				<view class="form-group">
+					<text class="form-label">故障类型</text>
+					<picker :value="faultTypeIndex" :range="faultTypes" @change="onFaultTypeChange">
+						<view class="picker-input">
+							<text>{{ faultTypes[faultTypeIndex] }}</text>
+							<text class="picker-arrow">▼</text>
+						</view>
+					</picker>
+				</view>
+				
+				<view class="form-group">
+					<text class="form-label">车辆编号</text>
+					<input class="form-input" v-model="vehicleNo" placeholder="请输入车辆编号" />
+				</view>
+				
+				<view class="form-group">
+					<text class="form-label">故障描述</text>
+					<textarea class="form-textarea" v-model="description" placeholder="请详细描述故障情况" :maxlength="500" />
+					<text class="char-count">{{ description.length }}/500</text>
+				</view>
+				
+				<view class="form-group">
+					<text class="form-label">故障照片</text>
+					<view class="upload-area" @click="uploadPhoto">
+						<view class="upload-placeholder">
+							<text class="upload-icon">📷</text>
+							<text class="upload-text">点击上传照片</text>
+						</view>
+					</view>
+				</view>
+				
+				<button class="submit-btn" @click="submitFault">
+					<text>提交申报</text>
+				</button>
+			</view>
+			
+			<view class="history-section">
+				<text class="section-title">历史申报</text>
+				<view class="history-list">
+					<view class="history-item" v-for="(item, index) in historyList" :key="index">
+						<view class="history-header">
+							<text class="history-type">{{ item.type }}</text>
+							<text class="history-status" :class="'status-' + item.status">{{ item.statusText }}</text>
+						</view>
+						<text class="history-desc">{{ item.description }}</text>
+						<text class="history-time">{{ item.time }}</text>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref } from 'vue'
+	
+	const faultTypes = ['发动机故障', '制动系统', '轮胎问题', '电气系统', '其他']
+	const faultTypeIndex = ref(0)
+	const vehicleNo = ref('')
+	const description = ref('')
+	
+	const historyList = ref([
+		{
+			type: '发动机故障',
+			description: '发动机启动困难，需要多次尝试',
+			status: 2,
+			statusText: '已处理',
+			time: '2026-03-15 14:30'
+		},
+		{
+			type: '轮胎问题',
+			description: '左前轮胎磨损严重，需要更换',
+			status: 1,
+			statusText: '处理中',
+			time: '2026-03-18 09:15'
+		}
+	])
+	
+	const onFaultTypeChange = (e: any) => {
+		faultTypeIndex.value = e.detail.value
+	}
+	
+	const uploadPhoto = () => {
+		uni.chooseImage({
+			count: 1,
+			success: (res) => {
+				uni.showToast({
+					title: '照片已选择',
+					icon: 'success'
+				})
+			}
+		})
+	}
+	
+	const submitFault = () => {
+		if (!vehicleNo.value.trim()) {
+			uni.showToast({
+				title: '请输入车辆编号',
+				icon: 'none'
+			})
+			return
+		}
+		if (!description.value.trim()) {
+			uni.showToast({
+				title: '请描述故障情况',
+				icon: 'none'
+			})
+			return
+		}
+		
+		uni.showToast({
+			title: '申报提交成功',
+			icon: 'success'
+		})
+		
+		vehicleNo.value = ''
+		description.value = ''
+		faultTypeIndex.value = 0
+	}
+</script>
+
+<style>
+	.fault-container {
+		min-height: 100vh;
+		background-color: #f5f5f5;
+	}
+	
+	.fault-header {
+		background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%);
+		padding: 40rpx 32rpx;
+		padding-top: 80rpx;
+	}
+	
+	.header-title {
+		font-size: 36rpx;
+		font-weight: bold;
+		color: #fff;
+	}
+	
+	.fault-content {
+		padding: 32rpx;
+	}
+	
+	.form-card {
+		background-color: #fff;
+		border-radius: 24rpx;
+		padding: 32rpx;
+		margin-bottom: 32rpx;
+	}
+	
+	.form-group {
+		margin-bottom: 32rpx;
+	}
+	
+	.form-label {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #333;
+		display: block;
+		margin-bottom: 16rpx;
+	}
+	
+	.picker-input {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		height: 88rpx;
+		background-color: #f5f5f5;
+		border-radius: 16rpx;
+		padding: 0 24rpx;
+	}
+	
+	.picker-input text {
+		font-size: 28rpx;
+		color: #333;
+	}
+	
+	.picker-arrow {
+		font-size: 24rpx;
+		color: #999;
+	}
+	
+	.form-input {
+		height: 88rpx;
+		background-color: #f5f5f5;
+		border-radius: 16rpx;
+		padding: 0 24rpx;
+		font-size: 28rpx;
+	}
+	
+	.form-textarea {
+		width: 100%;
+		min-height: 200rpx;
+		background-color: #f5f5f5;
+		border-radius: 16rpx;
+		padding: 24rpx;
+		font-size: 28rpx;
+		box-sizing: border-box;
+	}
+	
+	.char-count {
+		font-size: 24rpx;
+		color: #999;
+		text-align: right;
+		display: block;
+		margin-top: 8rpx;
+	}
+	
+	.upload-area {
+		height: 200rpx;
+		background-color: #f5f5f5;
+		border-radius: 16rpx;
+		border: 2rpx dashed #ddd;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.upload-placeholder {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	
+	.upload-icon {
+		font-size: 64rpx;
+		margin-bottom: 16rpx;
+	}
+	
+	.upload-text {
+		font-size: 26rpx;
+		color: #999;
+	}
+	
+	.submit-btn {
+		width: 100%;
+		height: 88rpx;
+		background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%);
+		border-radius: 16rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border: none;
+		margin-top: 16rpx;
+	}
+	
+	.submit-btn text {
+		font-size: 30rpx;
+		font-weight: 500;
+		color: #fff;
+	}
+	
+	.history-section {
+		background-color: #fff;
+		border-radius: 24rpx;
+		padding: 32rpx;
+	}
+	
+	.section-title {
+		font-size: 30rpx;
+		font-weight: bold;
+		color: #333;
+		display: block;
+		margin-bottom: 24rpx;
+	}
+	
+	.history-list {
+		display: flex;
+		flex-direction: column;
+		gap: 24rpx;
+	}
+	
+	.history-item {
+		background-color: #f9f9f9;
+		border-radius: 16rpx;
+		padding: 24rpx;
+	}
+	
+	.history-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 16rpx;
+	}
+	
+	.history-type {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #333;
+	}
+	
+	.history-status {
+		font-size: 24rpx;
+		padding: 4rpx 16rpx;
+		border-radius: 8rpx;
+	}
+	
+	.status-1 {
+		background-color: #FFF3CD;
+		color: #856404;
+	}
+	
+	.status-2 {
+		background-color: #D4EDDA;
+		color: #155724;
+	}
+	
+	.history-desc {
+		font-size: 26rpx;
+		color: #666;
+		display: block;
+		margin-bottom: 8rpx;
+	}
+	
+	.history-time {
+		font-size: 24rpx;
+		color: #999;
+	}
+</style>

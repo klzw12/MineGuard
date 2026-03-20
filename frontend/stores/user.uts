@@ -1,6 +1,6 @@
 import { ref } from 'vue'
-import type { UserVO, LoginVO } from '@/types/user.uts'
-import { setToken, removeToken } from '@/utils/request.uts'
+import type { UserVO, LoginVO, UserRegisterDTO } from '@/types/user.uts'
+import { setToken, setRefreshToken, removeToken } from '@/utils/request.uts'
 import * as authApi from '@/api/auth.uts'
 import * as userApi from '@/api/user.uts'
 
@@ -44,14 +44,23 @@ function loadFromStorage() {
 }
 
 function handleLoginRedirect(user: UserVO) {
-  if (user.roleCode === 'ROLE_ADMIN' && user.status === 0) {
+  console.log('handleLoginRedirect called:', JSON.stringify(user))
+  console.log('roleCode:', user.roleCode, 'status:', user.status, 'status type:', typeof user.status)
+  
+  // 管理员且禁用状态，跳转到实名认证
+  // 兼容 ADMIN 和 ROLE_ADMIN 两种格式
+  const isAdmin = user.roleCode === 'ROLE_ADMIN' || user.roleCode === 'ADMIN'
+  if (isAdmin && user.status === 0) {
+    console.log('Redirecting to admin verify page')
     uni.redirectTo({
       url: '/pages/admin/verify/index'
     })
     return
   }
   
+  // 非管理员且禁用状态，跳转到申诉页面
   if (user.status === 0) {
+    console.log('Redirecting to appeal page')
     uni.showToast({
       title: '账号已被禁用，请提交申诉',
       icon: 'none',
@@ -65,23 +74,22 @@ function handleLoginRedirect(user: UserVO) {
     return
   }
   
+  // 正常用户跳转
   if (userRole.value === 'admin') {
+    console.log('Redirecting to admin home page')
     uni.redirectTo({
       url: '/pages/admin/home/index'
     })
   } else {
+    console.log('Redirecting to user task page')
     uni.switchTab({
-      url: '/pages/user/home/index'
+      url: '/pages/user/task/index'
     })
   }
 }
 
-async function login(username: string, password: string): Promise<void> {
-  const loginVO = await authApi.login({ username, password })
-  
-  setToken(loginVO.token)
-  
-  const user: UserVO = {
+function buildUserFromLoginVO(loginVO: LoginVO): UserVO {
+  return {
     id: loginVO.id,
     username: loginVO.username,
     realName: loginVO.realName,
@@ -95,6 +103,39 @@ async function login(username: string, password: string): Promise<void> {
     createTime: loginVO.createTime?.toString() || '',
     updateTime: loginVO.updateTime?.toString() || ''
   }
+}
+
+async function login(username: string, password: string): Promise<void> {
+  const loginVO = await authApi.login({ username, password })
+  
+  if (loginVO === null) {
+    throw new Error('登录失败，请重试')
+  }
+
+  setToken(loginVO.token)
+  if (loginVO.refreshToken) {
+    setRefreshToken(loginVO.refreshToken)
+  }
+
+  const user = buildUserFromLoginVO(loginVO)
+  
+  setUserInfo(user)
+  handleLoginRedirect(user)
+}
+
+async function register(data: UserRegisterDTO): Promise<void> {
+  const loginVO = await authApi.register(data)
+  
+  if (loginVO === null) {
+    throw new Error('注册失败，请重试')
+  }
+
+  setToken(loginVO.token)
+  if (loginVO.refreshToken) {
+    setRefreshToken(loginVO.refreshToken)
+  }
+
+  const user = buildUserFromLoginVO(loginVO)
   
   setUserInfo(user)
   handleLoginRedirect(user)
@@ -104,7 +145,7 @@ async function logout(): Promise<void> {
   try {
     await authApi.logout()
   } catch (e) {
-    console.error('Logout API failed:', e)
+    // console.error('Logout API failed:', e)
   } finally {
     removeToken()
     setUserInfo(null)
@@ -114,38 +155,35 @@ async function logout(): Promise<void> {
 async function fetchCurrentUser(): Promise<void> {
   try {
     const user = await userApi.getCurrentUser()
-    setUserInfo(user)
+    if (user !== null) {
+      setUserInfo(user)
+    } else {
+      removeToken()
+      setUserInfo(null)
+    }
   } catch (e) {
-    console.error('Fetch current user failed:', e)
+    // console.error('Fetch current user failed:', e)
     removeToken()
     setUserInfo(null)
   }
 }
 
-async function verifyAdmin(userId: number, realName: string, phone: string, idCardFrontBase64: string): Promise<void> {
+async function verifyAdmin(userId: string, realName: string | undefined, idCard: string | undefined, idCardFrontBase64: string, idCardBackBase64?: string): Promise<void> {
   const loginVO = await authApi.verifyAdmin({
     userId,
     realName,
-    phone,
-    idCardFrontBase64
+    idCard,
+    idCardFrontBase64,
+    idCardBackBase64
   })
+  
+  if (loginVO === null) {
+    throw new Error('管理员认证失败，请重试')
+  }
   
   setToken(loginVO.token)
   
-  const user: UserVO = {
-    id: loginVO.id,
-    username: loginVO.username,
-    realName: loginVO.realName,
-    phone: loginVO.phone,
-    email: loginVO.email,
-    avatarUrl: loginVO.avatarUrl,
-    status: loginVO.status,
-    roleId: loginVO.roleId,
-    roleCode: loginVO.roleCode,
-    roleName: loginVO.roleName,
-    createTime: loginVO.createTime?.toString() || '',
-    updateTime: loginVO.updateTime?.toString() || ''
-  }
+  const user = buildUserFromLoginVO(loginVO)
   
   setUserInfo(user)
 }
@@ -158,6 +196,7 @@ export function useUserStore() {
     setUserInfo,
     loadFromStorage,
     login,
+    register,
     logout,
     fetchCurrentUser,
     verifyAdmin,

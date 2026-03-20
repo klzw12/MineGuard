@@ -1,6 +1,7 @@
 package com.klzw.common.database;
 
 import com.klzw.common.core.config.DotenvInitializer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
@@ -11,7 +12,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
 
 
 /**
@@ -45,10 +45,42 @@ public abstract class AbstractIntegrationTest {
      */
     @BeforeEach
     void setUp() {
+        System.out.println("=== 开始清理测试数据 ===");
         try {
-            jdbcTemplate.execute("DELETE FROM test_table WHERE 1=1");
+            // 清理测试相关表数据
+            jdbcTemplate.execute("TRUNCATE TABLE test_table");
+            System.out.println("清理 test_table 表数据");
+            jdbcTemplate.execute("TRUNCATE TABLE user");
+            jdbcTemplate.execute("TRUNCATE TABLE role");
+            jdbcTemplate.execute("TRUNCATE TABLE permission");
+            jdbcTemplate.execute("TRUNCATE TABLE user_role");
+            jdbcTemplate.execute("TRUNCATE TABLE role_permission");
+            System.out.println("=== 测试数据清理完成 ===");
         } catch (Exception e) {
-            // 忽略清理失败
+            System.out.println("清理数据时发生异常: " + e.getMessage());
+            // 忽略清理失败，可能是表不存在
+        }
+    }
+    
+    /**
+     * 测试后清理数据，确保测试环境干净
+     */
+    @AfterEach
+    void tearDown() {
+        System.out.println("=== 开始清理测试数据 ===");
+        try {
+            // 清理测试相关表数据
+            jdbcTemplate.execute("TRUNCATE TABLE test_table");
+            System.out.println("清理 test_table 表数据");
+            jdbcTemplate.execute("TRUNCATE TABLE user");
+            jdbcTemplate.execute("TRUNCATE TABLE role");
+            jdbcTemplate.execute("TRUNCATE TABLE permission");
+            jdbcTemplate.execute("TRUNCATE TABLE user_role");
+            jdbcTemplate.execute("TRUNCATE TABLE role_permission");
+            System.out.println("=== 测试数据清理完成 ===");
+        } catch (Exception e) {
+            System.out.println("清理数据时发生异常: " + e.getMessage());
+            // 忽略清理失败，可能是表不存在
         }
     }
 }

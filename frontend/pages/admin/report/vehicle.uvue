@@ -1,0 +1,226 @@
+<template>
+	<view class="admin-layout-container">
+		<AdminSidebar />
+		<view class="admin-content">
+			<view class="page-header">
+				<text class="page-title">车辆报表</text>
+				<view class="header-actions">
+					<view class="action-btn" @click="exportReport">
+						<text class="action-text">导出报表</text>
+					</view>
+				</view>
+			</view>
+			
+			<view class="stats-grid">
+				<view class="stat-card">
+					<text class="stat-value">168</text>
+					<text class="stat-label">车辆总数</text>
+					<text class="stat-trend positive">↑ 5%</text>
+				</view>
+				<view class="stat-card">
+					<text class="stat-value">142</text>
+					<text class="stat-label">运营中</text>
+					<text class="stat-trend positive">↑ 12%</text>
+				</view>
+				<view class="stat-card">
+					<text class="stat-value">15</text>
+					<text class="stat-label">维修中</text>
+					<text class="stat-trend negative">↓ 3%</text>
+				</view>
+				<view class="stat-card">
+					<text class="stat-value">11</text>
+					<text class="stat-label">停运</text>
+					<text class="stat-trend">-</text>
+				</view>
+			</view>
+			
+			<view class="content-card">
+				<view class="card-header">
+					<text class="card-title">车辆运营统计</text>
+				</view>
+				
+				<view class="chart-placeholder">
+					<view class="bar-chart">
+						<view class="bar-item" v-for="(item, index) in chartData" :key="index">
+							<view class="bar" :style="{ height: item.value + '%' }">
+								<text class="bar-value">{{ item.value }}</text>
+							</view>
+							<text class="bar-label">{{ item.label }}</text>
+						</view>
+					</view>
+				</view>
+			</view>
+			
+			<view class="content-card">
+				<view class="card-header">
+					<text class="card-title">车辆状态明细</text>
+				</view>
+				
+				<view class="table-container">
+					<view class="table-row header">
+						<text class="table-cell">车牌号</text>
+						<text class="table-cell">运营天数</text>
+						<text class="table-cell">行驶里程(km)</text>
+						<text class="table-cell">油耗(L)</text>
+						<text class="table-cell">状态</text>
+					</view>
+					
+					<view class="table-row" v-for="(vehicle, index) in vehicleStats" :key="index">
+						<text class="table-cell">{{ vehicle.plate }}</text>
+						<text class="table-cell">{{ vehicle.days }}</text>
+						<text class="table-cell">{{ vehicle.mileage }}</text>
+						<text class="table-cell">{{ vehicle.fuel }}</text>
+						<view class="table-cell">
+							<view class="status-tag" :class="vehicle.statusClass">
+								<text>{{ vehicle.status }}</text>
+							</view>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref } from 'vue'
+	import AdminSidebar from '@/components/AdminSidebar.uvue'
+	
+	const chartData = ref([
+		{ label: '周一', value: 85 },
+		{ label: '周二', value: 92 },
+		{ label: '周三', value: 78 },
+		{ label: '周四', value: 88 },
+		{ label: '周五', value: 95 },
+		{ label: '周六', value: 70 },
+		{ label: '周日', value: 65 }
+	])
+	
+	const vehicleStats = ref([
+		{ plate: '京A12345', days: 28, mileage: 12580, fuel: 1256, status: '运营中', statusClass: 'active' },
+		{ plate: '京B67890', days: 25, mileage: 10230, fuel: 1023, status: '运营中', statusClass: 'active' },
+		{ plate: '京C11111', days: 20, mileage: 8560, fuel: 856, status: '维修中', statusClass: 'maintenance' },
+		{ plate: '京D22222', days: 30, mileage: 15680, fuel: 1568, status: '运营中', statusClass: 'active' },
+		{ plate: '京E33333', days: 15, mileage: 6230, fuel: 623, status: '停运', statusClass: 'stopped' }
+	])
+	
+	function exportReport() {
+		uni.showToast({ title: '导出功能开发中', icon: 'none' })
+	}
+</script>
+
+<style lang="scss">
+	@import '@/styles/admin.scss';
+	
+	.stats-grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 20rpx;
+		margin-bottom: 30rpx;
+	}
+	
+	.stat-card {
+		background-color: #2a3347;
+		border-radius: 16rpx;
+		padding: 30rpx;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	
+	.stat-value {
+		font-size: 48rpx;
+		font-weight: bold;
+		color: #fff;
+		margin-bottom: 10rpx;
+	}
+	
+	.stat-label {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.6);
+		margin-bottom: 10rpx;
+	}
+	
+	.stat-trend {
+		font-size: 22rpx;
+		
+		&.positive {
+			color: #34C759;
+		}
+		
+		&.negative {
+			color: #FF3B30;
+		}
+	}
+	
+	.card-header {
+		padding: 25rpx 30rpx;
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+	}
+	
+	.card-title {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #fff;
+	}
+	
+	.chart-placeholder {
+		padding: 30rpx;
+	}
+	
+	.bar-chart {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-around;
+		align-items: flex-end;
+		height: 300rpx;
+	}
+	
+	.bar-item {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+	
+	.bar {
+		width: 50rpx;
+		background: linear-gradient(180deg, #007AFF 0%, #0056b3 100%);
+		border-radius: 8rpx 8rpx 0 0;
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+		padding-top: 10rpx;
+	}
+	
+	.bar-value {
+		font-size: 20rpx;
+		color: #fff;
+	}
+	
+	.bar-label {
+		font-size: 22rpx;
+		color: rgba(255, 255, 255, 0.6);
+		margin-top: 10rpx;
+	}
+	
+	.status-tag {
+		padding: 6rpx 16rpx;
+		border-radius: 8rpx;
+		font-size: 22rpx;
+		
+		&.active {
+			background-color: rgba(52, 199, 89, 0.2);
+			color: #34C759;
+		}
+		
+		&.maintenance {
+			background-color: rgba(255, 149, 0, 0.2);
+			color: #FF9500;
+		}
+		
+		&.stopped {
+			background-color: rgba(255, 59, 48, 0.2);
+			color: #FF3B30;
+		}
+	}
+</style>

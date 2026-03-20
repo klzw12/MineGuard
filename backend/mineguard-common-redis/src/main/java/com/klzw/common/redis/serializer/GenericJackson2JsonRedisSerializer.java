@@ -1,10 +1,10 @@
 package com.klzw.common.redis.serializer;
 
-import tools.jackson.databind.DefaultTyping;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
-import tools.jackson.databind.jsontype.PolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.serializer.SerializationException;
 
@@ -26,8 +26,13 @@ public class GenericJackson2JsonRedisSerializer implements RedisSerializer<Objec
         JsonMapper mapper = JsonMapper.builder()
             .defaultDateFormat(dateFormat)
             .polymorphicTypeValidator(ptv)
-            .activateDefaultTyping(ptv, DefaultTyping.NON_FINAL)
             .build();
+        
+        // 注册Java 8日期时间模块，支持LocalDateTime等类型
+        mapper.registerModule(new JavaTimeModule());
+        
+        // 启用类型信息包含，确保反序列化时能正确识别类型
+        mapper.activateDefaultTyping(ptv, JsonMapper.DefaultTyping.NON_FINAL);
         
         return mapper;
     }

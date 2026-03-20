@@ -174,6 +174,11 @@ public class AliyunOssStorageStrategy implements StorageStrategy, DisposableBean
             String bucketName = aliyunOssProperties.getBucketName(module);
             ensureBucketExists(bucketName);
             
+            // 如果expireSeconds <= 0，返回永久URL（需要Bucket设置为公共读）
+            if (expireSeconds <= 0) {
+                return generatePermanentUrl(bucketName, fileName);
+            }
+            
             Date expiration = new Date(System.currentTimeMillis() + expireSeconds * 1000);
             return ossClient.generatePresignedUrl(
                     bucketName,
@@ -183,6 +188,27 @@ public class AliyunOssStorageStrategy implements StorageStrategy, DisposableBean
         } catch (Exception e) {
             throw new FileException(FileResultCode.URL_GENERATE_FAILED, "阿里云OSS获取文件URL失败", e);
         }
+    }
+
+    /**
+     * 生成永久访问URL（需要Bucket设置为公共读）
+     */
+    private String generatePermanentUrl(String bucketName, String fileName) {
+        String endpoint = aliyunOssProperties.getEndpoint();
+        // 移除协议前缀
+        if (endpoint.startsWith("https://")) {
+            endpoint = endpoint.substring(8);
+        } else if (endpoint.startsWith("http://")) {
+            endpoint = endpoint.substring(7);
+        }
+        return "https://" + bucketName + "." + endpoint + "/" + fileName;
+    }
+
+    @Override
+    public String getPermanentUrl(String fileName) {
+        String module = extractModuleFromFilePath(fileName);
+        String bucketName = aliyunOssProperties.getBucketName(module);
+        return generatePermanentUrl(bucketName, fileName);
     }
 
     @Override

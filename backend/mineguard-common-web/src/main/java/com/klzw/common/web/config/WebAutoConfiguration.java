@@ -42,41 +42,55 @@ public class WebAutoConfiguration implements WebMvcConfigurer {
                 .addResourceLocations("classpath:/static/");
     }
 
+    // 注意：CORS配置优先在网关处理，此处不再配置CorsFilter
+    // 为了确保不会有多个CORS过滤器，我们明确不注册CorsFilter
+    // @Bean
+    // @ConditionalOnMissingBean
+    // public CorsFilter corsFilter() {
+    //     WebProperties.Cors cors = webProperties.getCors();
+
+    //     CorsConfiguration config = new CorsConfiguration();
+
+    //     if (cors.getAllowedOrigins() != null && !cors.getAllowedOrigins().isEmpty()) {
+    //         // 处理逗号分隔的多个源
+    //         for (String origin : cors.getAllowedOrigins().split(",")) {
+    //             config.addAllowedOriginPattern(origin.trim());
+    //         }
+    //     }
+
+    //     // 处理逗号分隔的多个方法
+    //     if (cors.getAllowedMethods() != null && !cors.getAllowedMethods().isEmpty()) {
+    //         for (String method : cors.getAllowedMethods().split(",")) {
+    //             config.addAllowedMethod(method.trim());
+    //         }
+    //     }
+
+    //     // 处理逗号分隔的多个头部
+    //     if (cors.getAllowedHeaders() != null && !cors.getAllowedHeaders().isEmpty()) {
+    //         for (String header : cors.getAllowedHeaders().split(",")) {
+    //             config.addAllowedHeader(header.trim());
+    //         }
+    //     }
+
+    //     config.setAllowCredentials(cors.isAllowCredentials());
+    //     config.setMaxAge(cors.getMaxAge());
+
+    //     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    //     source.registerCorsConfiguration("/**", config);
+
+    //     return new CorsFilter(source);
+    // }
+    
+    // 确保不会有其他CORS过滤器被注册
     @Bean
-    @ConditionalOnMissingBean
-    public CorsFilter corsFilter() {
-        WebProperties.Cors cors = webProperties.getCors();
-
-        CorsConfiguration config = new CorsConfiguration();
-
-        if (cors.getAllowedOrigins() != null && !cors.getAllowedOrigins().isEmpty()) {
-            // 处理逗号分隔的多个源
-            for (String origin : cors.getAllowedOrigins().split(",")) {
-                config.addAllowedOriginPattern(origin.trim());
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addCorsMappings(org.springframework.web.servlet.config.annotation.CorsRegistry registry) {
+                // 明确禁用CORS映射，因为CORS由网关处理
+                log.info("CORS mappings disabled in WebAutoConfiguration, handled by gateway");
             }
-        }
-
-        // 处理逗号分隔的多个方法
-        if (cors.getAllowedMethods() != null && !cors.getAllowedMethods().isEmpty()) {
-            for (String method : cors.getAllowedMethods().split(",")) {
-                config.addAllowedMethod(method.trim());
-            }
-        }
-
-        // 处理逗号分隔的多个头部
-        if (cors.getAllowedHeaders() != null && !cors.getAllowedHeaders().isEmpty()) {
-            for (String header : cors.getAllowedHeaders().split(",")) {
-                config.addAllowedHeader(header.trim());
-            }
-        }
-
-        config.setAllowCredentials(cors.isAllowCredentials());
-        config.setMaxAge(cors.getMaxAge());
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-
-        return new CorsFilter(source);
+        };
     }
 
 

@@ -18,7 +18,8 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
     "com.klzw.common.file",
     "com.klzw.common.mq",
     "com.klzw.common.websocket",
-    "com.klzw.common.mongodb"
+    "com.klzw.common.mongodb",
+        "com.klzw.common.web"
 })
 @MapperScan("com.klzw.service.user.mapper")
 @EnableMongoRepositories(basePackages = "com.klzw.common.websocket.repository")
@@ -33,8 +34,6 @@ public class MineguardUserServiceApplication {
 
     @Bean
     public ApplicationRunner adminInitRunner() {
-        return args -> {
-            adminInitService.initAdmin();
-        };
+        return args -> adminInitService.initAdmin();
     }
 }

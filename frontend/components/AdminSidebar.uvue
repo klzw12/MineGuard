@@ -1,88 +1,200 @@
 <template>
 	<view class="admin-sidebar">
-		<!-- 侧边栏头部 -->
 		<view class="sidebar-header">
-			<text class="sidebar-title">MineGuard</text>
-			<text class="sidebar-subtitle">管理中心</text>
+			<view class="logo-container">
+				<view class="logo-icon">
+					<image src="/static/svgs/car.svg" mode="aspectFit"></image>
+				</view>
+				<view class="logo-text">
+					<text class="sidebar-title">物流车队</text>
+					<text class="sidebar-subtitle">管理系统</text>
+				</view>
+			</view>
 		</view>
 		
-		<!-- 导航菜单 -->
 		<view class="sidebar-menu">
+			<!-- 仪表盘 - 无子菜单 -->
 			<view 
 				class="sidebar-item" 
 				:class="{ active: currentPath === '/pages/admin/home/index' }" 
 				@click="navigateTo('/pages/admin/home/index')"
 			>
-				<text class="sidebar-icon">🏠</text>
-				<text class="sidebar-text">首页</text>
-			</view>
-			<view 
-				class="sidebar-item" 
-				:class="{ active: currentPath === '/pages/admin/vehicle/index' }" 
-				@click="navigateTo('/pages/admin/vehicle/index')"
-			>
-				<text class="sidebar-icon">🚚</text>
-				<text class="sidebar-text">车辆管理</text>
-			</view>
-			<view 
-				class="sidebar-item" 
-				:class="{ active: currentPath === '/pages/admin/driver/index' }" 
-				@click="navigateTo('/pages/admin/driver/index')"
-			>
-				<text class="sidebar-icon">👨‍💼</text>
-				<text class="sidebar-text">司机管理</text>
-			</view>
-			<view 
-				class="sidebar-item" 
-				:class="{ active: currentPath === '/pages/admin/user/index' }" 
-				@click="navigateTo('/pages/admin/user/index')"
-			>
-				<text class="sidebar-icon">👥</text>
-				<text class="sidebar-text">用户管理</text>
-			</view>
-			<view 
-				class="sidebar-item" 
-				:class="{ active: currentPath === '/pages/admin/role-change/index' }" 
-				@click="navigateTo('/pages/admin/role-change/index')"
-			>
-				<text class="sidebar-icon">🔄</text>
-				<text class="sidebar-text">角色变更</text>
-			</view>
-			<view 
-				class="sidebar-item" 
-				:class="{ active: currentPath === '/pages/admin/monitor/index' }" 
-				@click="navigateTo('/pages/admin/monitor/index')"
-			>
-				<text class="sidebar-icon">📺</text>
-				<text class="sidebar-text">安全监控</text>
-			</view>
-			<view 
-				class="sidebar-item" 
-				:class="{ active: currentPath === '/pages/admin/report/index' }" 
-				@click="navigateTo('/pages/admin/report/index')"
-			>
 				<text class="sidebar-icon">📊</text>
-				<text class="sidebar-text">统计报表</text>
+				<text class="sidebar-text">仪表盘</text>
 			</view>
+			
+			<!-- 用户管理 - 可展开 -->
+			<view class="sidebar-group">
+				<view 
+					class="sidebar-item sidebar-parent" 
+					:class="{ active: isGroupActive('user') }"
+					@click="toggleGroup('user')"
+				>
+					<text class="sidebar-icon">👥</text>
+					<text class="sidebar-text">用户管理</text>
+					<text class="sidebar-arrow" :class="{ expanded: expandedGroups.includes('user') }">›</text>
+				</view>
+				<view class="sidebar-submenu" :class="{ expanded: expandedGroups.includes('user') }">
+					<view 
+						class="sidebar-subitem" 
+						:class="{ active: currentPath === '/pages/admin/user/index' }"
+						@click="navigateTo('/pages/admin/user/index')"
+					>
+						<text class="subitem-text">用户列表</text>
+					</view>
+					<view 
+						class="sidebar-subitem" 
+						:class="{ active: currentPath === '/pages/admin/role/index' }"
+						@click="navigateTo('/pages/admin/role/index')"
+					>
+						<text class="subitem-text">角色管理</text>
+					</view>
+					<view 
+						class="sidebar-subitem" 
+						:class="{ active: currentPath === '/pages/admin/role-change/index' }"
+						@click="navigateTo('/pages/admin/role-change/index')"
+					>
+						<text class="subitem-text">角色变更</text>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 车辆管理 - 可展开 -->
+			<view class="sidebar-group">
+				<view 
+					class="sidebar-item sidebar-parent" 
+					:class="{ active: isGroupActive('vehicle') }"
+					@click="toggleGroup('vehicle')"
+				>
+					<text class="sidebar-icon">🚚</text>
+					<text class="sidebar-text">车辆管理</text>
+					<text class="sidebar-arrow" :class="{ expanded: expandedGroups.includes('vehicle') }">›</text>
+				</view>
+				<view class="sidebar-submenu" :class="{ expanded: expandedGroups.includes('vehicle') }">
+					<view 
+						class="sidebar-subitem" 
+						:class="{ active: currentPath === '/pages/admin/vehicle/index' }"
+						@click="navigateTo('/pages/admin/vehicle/index')"
+					>
+						<text class="subitem-text">车辆列表</text>
+					</view>
+					<view 
+						class="sidebar-subitem" 
+						:class="{ active: currentPath === '/pages/admin/driver/index' }"
+						@click="navigateTo('/pages/admin/driver/index')"
+					>
+						<text class="subitem-text">司机管理</text>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 调度管理 - 可展开 -->
+			<view class="sidebar-group">
+				<view 
+					class="sidebar-item sidebar-parent" 
+					:class="{ active: isGroupActive('dispatch') }"
+					@click="toggleGroup('dispatch')"
+				>
+					<text class="sidebar-icon">📖</text>
+					<text class="sidebar-text">调度管理</text>
+					<text class="sidebar-arrow" :class="{ expanded: expandedGroups.includes('dispatch') }">›</text>
+				</view>
+				<view class="sidebar-submenu" :class="{ expanded: expandedGroups.includes('dispatch') }">
+					<view 
+						class="sidebar-subitem" 
+						:class="{ active: currentPath === '/pages/admin/dispatch/index' }"
+						@click="navigateTo('/pages/admin/dispatch/index')"
+					>
+						<text class="subitem-text">任务调度</text>
+					</view>
+					<view 
+						class="sidebar-subitem" 
+						:class="{ active: currentPath === '/pages/admin/monitor/index' }"
+						@click="navigateTo('/pages/admin/monitor/index')"
+					>
+						<text class="subitem-text">实时监控</text>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 申诉管理 - 无子菜单 -->
 			<view 
 				class="sidebar-item" 
-				:class="{ active: currentPath === '/pages/admin/profile/index' }" 
-				@click="navigateTo('/pages/admin/profile/index')"
+				:class="{ active: currentPath === '/pages/admin/appeal/index' }" 
+				@click="navigateTo('/pages/admin/appeal/index')"
 			>
-				<text class="sidebar-icon">👤</text>
-				<text class="sidebar-text">个人中心</text>
+				<text class="sidebar-icon">📄</text>
+				<text class="sidebar-text">申诉管理</text>
+			</view>
+			
+			<!-- 消息发放 - 可展开 -->
+			<view class="sidebar-group">
+				<view 
+					class="sidebar-item sidebar-parent" 
+					:class="{ active: isGroupActive('message') }"
+					@click="toggleGroup('message')"
+				>
+					<text class="sidebar-icon">📣</text>
+					<text class="sidebar-text">消息发放</text>
+					<text class="sidebar-arrow" :class="{ expanded: expandedGroups.includes('message') }">›</text>
+				</view>
+				<view class="sidebar-submenu" :class="{ expanded: expandedGroups.includes('message') }">
+					<view 
+						class="sidebar-subitem" 
+						:class="{ active: currentPath === '/pages/admin/message/broadcast' }"
+						@click="navigateTo('/pages/admin/message/broadcast')"
+					>
+						<text class="subitem-text">全局广播</text>
+					</view>
+					<view 
+						class="sidebar-subitem" 
+						:class="{ active: currentPath === '/pages/admin/message/private' }"
+						@click="navigateTo('/pages/admin/message/private')"
+					>
+						<text class="subitem-text">私聊消息</text>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 数据报表 - 可展开 -->
+			<view class="sidebar-group">
+				<view 
+					class="sidebar-item sidebar-parent" 
+					:class="{ active: isGroupActive('report') }"
+					@click="toggleGroup('report')"
+				>
+					<text class="sidebar-icon">📈</text>
+					<text class="sidebar-text">数据报表</text>
+					<text class="sidebar-arrow" :class="{ expanded: expandedGroups.includes('report') }">›</text>
+				</view>
+				<view class="sidebar-submenu" :class="{ expanded: expandedGroups.includes('report') }">
+					<view 
+						class="sidebar-subitem" 
+						:class="{ active: currentPath === '/pages/admin/report/index' }"
+						@click="navigateTo('/pages/admin/report/index')"
+					>
+						<text class="subitem-text">运营报表</text>
+					</view>
+					<view 
+						class="sidebar-subitem" 
+						:class="{ active: currentPath === '/pages/admin/report/vehicle' }"
+						@click="navigateTo('/pages/admin/report/vehicle')"
+					>
+						<text class="subitem-text">车辆报表</text>
+					</view>
+					<view 
+						class="sidebar-subitem" 
+						:class="{ active: currentPath === '/pages/admin/report/driver' }"
+						@click="navigateTo('/pages/admin/report/driver')"
+					>
+						<text class="subitem-text">司机报表</text>
+					</view>
+				</view>
 			</view>
 		</view>
 		
-		<!-- 侧边栏底部 -->
 		<view class="sidebar-footer">
-			<view class="sidebar-item logout" @click="handleLogout">
-				<text class="sidebar-icon">🚪</text>
-				<text class="sidebar-text">退出登录</text>
-			</view>
-			<view class="sidebar-version">
-				<text class="version-text">v1.0.0</text>
-			</view>
+			<text class="copyright">© 2026 物流车队管理系统</text>
 		</view>
 	</view>
 </template>
@@ -93,22 +205,64 @@
 	
 	const userStore = useUserStore()
 	const currentPath = ref('')
+	const expandedGroups = ref<string[]>([])
+	
+	// 定义菜单组与路径的映射
+	const groupPathMap: Map<string, string[]> = new Map([
+		['user', ['/pages/admin/user/index', '/pages/admin/role/index', '/pages/admin/role-change/index']],
+		['vehicle', ['/pages/admin/vehicle/index', '/pages/admin/driver/index']],
+		['dispatch', ['/pages/admin/dispatch/index', '/pages/admin/monitor/index']],
+		['message', ['/pages/admin/message/broadcast', '/pages/admin/message/private']],
+		['report', ['/pages/admin/report/index', '/pages/admin/report/vehicle', '/pages/admin/report/driver']]
+	])
 	
 	onMounted(() => {
-		const pages = getCurrentPages()
-		if (pages.length > 0) {
-			currentPath.value = pages[pages.length - 1].route
-		}
+		updateCurrentPath()
+		// 根据当前路径展开对应的菜单组
+		expandCurrentGroup()
 	})
 	
 	uni.onShow(() => {
+		updateCurrentPath()
+		expandCurrentGroup()
+	})
+	
+	function updateCurrentPath() {
 		const pages = getCurrentPages()
 		if (pages.length > 0) {
 			currentPath.value = pages[pages.length - 1].route
 		}
-	})
+	}
 	
-	function navigateTo(url) {
+	function expandCurrentGroup() {
+		// 根据当前路径自动展开对应的菜单组
+		groupPathMap.forEach((paths, group) => {
+			if (paths.includes(currentPath.value)) {
+				if (!expandedGroups.value.includes(group)) {
+					expandedGroups.value.push(group)
+				}
+			}
+		})
+	}
+	
+	function isGroupActive(group: string): boolean {
+		const paths = groupPathMap.get(group)
+		if (paths) {
+			return paths.includes(currentPath.value)
+		}
+		return false
+	}
+	
+	function toggleGroup(group: string) {
+		const index = expandedGroups.value.indexOf(group)
+		if (index > -1) {
+			expandedGroups.value.splice(index, 1)
+		} else {
+			expandedGroups.value.push(group)
+		}
+	}
+	
+	function navigateTo(url: string) {
 		uni.redirectTo({
 			url: url
 		})
@@ -134,9 +288,8 @@
 
 <style lang="scss">
 	.admin-sidebar {
-		width: 240rpx;
-		background-color: #fff;
-		box-shadow: 2rpx 0 10rpx rgba(0, 0, 0, 0.1);
+		width: 280rpx;
+		background: linear-gradient(180deg, #1a1f2e 0%, #151823 100%);
 		height: 100vh;
 		position: fixed;
 		top: 0;
@@ -144,118 +297,161 @@
 		bottom: 0;
 		overflow-y: auto;
 		z-index: 999;
+		display: flex;
+		flex-direction: column;
 		
-		/* 侧边栏头部 */
 		.sidebar-header {
-			padding: 40rpx 20rpx;
-			text-align: center;
-			border-bottom: 1rpx solid #f0f0f0;
+			padding: 40rpx 30rpx;
+			border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
 			
-			.sidebar-title {
-				font-size: 32rpx;
-				font-weight: bold;
-				color: #007AFF;
-				margin-bottom: 8rpx;
-			}
-			
-			.sidebar-subtitle {
-				font-size: 20rpx;
-				color: #666;
+			.logo-container {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				gap: 20rpx;
+				
+				.logo-icon {
+					width: 70rpx;
+					height: 70rpx;
+					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+					border-radius: 16rpx;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					
+					image {
+						width: 40rpx;
+						height: 40rpx;
+					}
+				}
+				
+				.logo-text {
+					display: flex;
+					flex-direction: column;
+					
+					.sidebar-title {
+						font-size: 36rpx;
+						font-weight: bold;
+						color: #fff;
+						margin-bottom: 4rpx;
+					}
+					
+					.sidebar-subtitle {
+						font-size: 22rpx;
+						color: rgba(255, 255, 255, 0.6);
+					}
+				}
 			}
 		}
 		
-		/* 导航菜单 */
 		.sidebar-menu {
-			padding: 20rpx 0;
+			padding: 20rpx 15rpx;
+			flex: 1;
 		}
 		
-		/* 菜单项 */
+		.sidebar-group {
+			margin: 8rpx 0;
+		}
+		
 		.sidebar-item {
 			display: flex;
-			flex-direction: column;
+			flex-direction: row;
 			align-items: center;
-			padding: 30rpx 20rpx;
-			margin: 10rpx;
-			border-radius: 10rpx;
+			padding: 24rpx 20rpx;
+			border-radius: 12rpx;
 			cursor: pointer;
-			transition: all 0.3s ease;
+			transition: all 0.2s ease;
 			
 			&.active {
-				background-color: rgba(0, 122, 255, 0.1);
-				color: #007AFF;
-				font-weight: bold;
+				background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+				color: #fff;
+				font-weight: 500;
+				box-shadow: 0 4rpx 20rpx rgba(0, 122, 255, 0.3);
+			}
+			
+			&:active:not(.active) {
+				background-color: rgba(255, 255, 255, 0.08);
+			}
+			
+			.sidebar-icon {
+				font-size: 32rpx;
+				margin-right: 16rpx;
+				opacity: 0.9;
+			}
+			
+			.sidebar-text {
+				font-size: 26rpx;
+				color: rgba(255, 255, 255, 0.7);
+				flex: 1;
+			}
+			
+			.sidebar-arrow {
+				font-size: 28rpx;
+				color: rgba(255, 255, 255, 0.4);
+				transition: transform 0.3s ease;
+				
+				&.expanded {
+					transform: rotate(90deg);
+				}
+			}
+			
+			&.active .sidebar-text,
+			&.active .sidebar-icon,
+			&.active .sidebar-arrow {
+				color: #fff;
+				opacity: 1;
+			}
+		}
+		
+		.sidebar-parent {
+			.sidebar-arrow {
+				display: block;
+			}
+		}
+		
+		.sidebar-submenu {
+			max-height: 0;
+			overflow: hidden;
+			transition: max-height 0.3s ease;
+			
+			&.expanded {
+				max-height: 500rpx;
+			}
+		}
+		
+		.sidebar-subitem {
+			padding: 20rpx 20rpx 20rpx 68rpx;
+			margin: 4rpx 0;
+			border-radius: 10rpx;
+			cursor: pointer;
+			transition: all 0.2s ease;
+			
+			.subitem-text {
+				font-size: 24rpx;
+				color: rgba(255, 255, 255, 0.6);
 			}
 			
 			&:active {
-				background-color: rgba(0, 122, 255, 0.1);
+				background-color: rgba(255, 255, 255, 0.05);
 			}
 			
-			&.logout {
-				margin-top: 50rpx;
-				color: #FF3B30;
+			&.active {
+				background-color: rgba(0, 122, 255, 0.15);
 				
-				&:active {
-					background-color: rgba(255, 59, 48, 0.1);
+				.subitem-text {
+					color: #007AFF;
+					font-weight: 500;
 				}
 			}
 		}
 		
-		/* 菜单图标 */
-		.sidebar-icon {
-			font-size: 40rpx;
-			margin-bottom: 10rpx;
-		}
-		
-		/* 菜单文本 */
-		.sidebar-text {
-			font-size: 22rpx;
-			text-align: center;
-		}
-		
-		/* 侧边栏底部 */
 		.sidebar-footer {
-			margin-top: auto;
-			padding: 20rpx 0;
+			padding: 30rpx;
+			border-top: 1rpx solid rgba(255, 255, 255, 0.08);
 			
-			.sidebar-version {
-				padding: 20rpx;
-				text-align: center;
-				
-				.version-text {
-					font-size: 18rpx;
-					color: #999;
-				}
-			}
-		}
-	}
-	
-	/* 响应式设计 */
-	@media (max-width: 768px) {
-		.admin-sidebar {
-			width: 200rpx;
-			
-			.sidebar-header {
-				padding: 30rpx 15rpx;
-				
-				.sidebar-title {
-					font-size: 28rpx;
-				}
-				
-				.sidebar-subtitle {
-					font-size: 18rpx;
-				}
-			}
-			
-			.sidebar-item {
-				padding: 25rpx 15rpx;
-				
-				.sidebar-icon {
-					font-size: 36rpx;
-				}
-				
-				.sidebar-text {
-					font-size: 20rpx;
-				}
+			.copyright {
+				font-size: 20rpx;
+				color: rgba(255, 255, 255, 0.4);
 			}
 		}
 	}

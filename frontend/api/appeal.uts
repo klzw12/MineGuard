@@ -1,30 +1,34 @@
 import { http } from '@/utils/request.uts'
 import type { UserAppealVO, UserAppealDTO, HandleAppealDTO } from '@/types/user.uts'
 
-export function submitAppeal(data: UserAppealDTO): Promise<UserAppealVO> {
+export function createAppeal(data: UserAppealDTO): Promise<UserAppealVO | null> {
   return http.post<UserAppealVO>('/api/user/appeal', data)
 }
 
-export function getMyAppeals(): Promise<UserAppealVO[]> {
+export function getMyAppeals(): Promise<UserAppealVO[] | null> {
   return http.get<UserAppealVO[]>('/api/user/appeal/my')
 }
 
-export function getPendingCheckAppeals(): Promise<UserAppealVO[]> {
+export function hasPendingAppeal(): Promise<boolean | null> {
+  return http.get<boolean>('/api/user/appeal/pending/check')
+}
+
+export function getPendingCheckAppeals(): Promise<UserAppealVO[] | null> {
   return http.get<UserAppealVO[]>('/api/user/appeal/pending/check')
 }
 
-export function getAdminPendingAppeals(): Promise<UserAppealVO[]> {
+export function getAdminPendingAppeals(): Promise<UserAppealVO[] | null> {
   return http.get<UserAppealVO[]>('/api/user/appeal/admin/pending')
 }
 
-export function getAdminAllAppeals(): Promise<UserAppealVO[]> {
+export function getAdminAllAppeals(): Promise<UserAppealVO[] | null> {
   return http.get<UserAppealVO[]>('/api/user/appeal/admin/list')
 }
 
-export function handleAppeal(id: string, data: HandleAppealDTO): Promise<void> {
+export function handleAppeal(id: string, data: HandleAppealDTO): Promise<void | null> {
   return http.put<void>(`/api/user/appeal/admin/${id}/handle`, data)
 }
 
-export function getUserAppeals(userId: string): Promise<UserAppealVO[]> {
+export function getUserAppeals(userId: string): Promise<UserAppealVO[] | null> {
   return http.get<UserAppealVO[]>(`/api/user/appeal/admin/user/${userId}`)
 }

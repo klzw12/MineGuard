@@ -15,12 +15,14 @@ import com.klzw.service.user.dto.UserRegisterDTO;
 import com.klzw.service.user.dto.ResetPasswordDTO;
 import com.klzw.service.user.entity.Role;
 import com.klzw.service.user.entity.User;
+import com.klzw.service.user.enums.SmsScene;
 import com.klzw.service.user.exception.UserException;
 import com.klzw.service.user.constant.UserResultCode;
 import com.klzw.service.user.mapper.RoleMapper;
 import com.klzw.service.user.mapper.UserMapper;
 import com.klzw.service.user.service.AuthService;
 import com.klzw.service.user.service.UserService;
+import com.klzw.service.user.service.sms.SmsService;
 import com.klzw.service.user.vo.CaptchaVO;
 import com.klzw.service.user.vo.SmsCodeVO;
 import com.klzw.service.user.vo.UserVO;
@@ -54,6 +56,7 @@ public class AuthServiceImpl implements AuthService {
     private final RedisCacheService redisCacheService;
     private final StorageService storageService;
     private final OcrService ocrService;
+    private final SmsService smsService;
 
     @Override
     public UserVO register(UserRegisterDTO dto) {
@@ -62,11 +65,14 @@ public class AuthServiceImpl implements AuthService {
             throw new UserException(UserResultCode.USERNAME_EXISTS);
         }
 
-        if (dto.getPhone() != null && !dto.getPhone().isEmpty()) {
-            User userByPhone = userService.getByPhone(dto.getPhone());
-            if (userByPhone != null) {
-                throw new UserException(UserResultCode.PHONE_EXISTS);
-            }
+        User userByPhone = userService.getByPhone(dto.getPhone());
+        if (userByPhone != null) {
+            throw new UserException(UserResultCode.PHONE_EXISTS);
+        }
+
+        boolean smsVerified = smsService.verifySmsCode(dto.getPhone(), dto.getSmsCode());
+        if (!smsVerified) {
+            throw new UserException(UserResultCode.SMS_VERIFY_FAILED, "短信验证码错误或已过期");
         }
 
         User user = new User();
@@ -78,10 +84,6 @@ public class AuthServiceImpl implements AuthService {
 
         userService.createUser(user);
 
-        UserLoginDTO loginDTO = new UserLoginDTO();
-        loginDTO.setUsername(dto.getUsername());
-        loginDTO.setPassword(dto.getPassword());
-        
         UserVO userVO = userService.getUserVOById(user.getId());
         String accessToken = jwtUtils.generateToken(user.getId(), user.getUsername());
         String refreshToken = jwtUtils.generateToken(user.getId(), user.getUsername() + ":refresh");
@@ -189,25 +191,34 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public SmsCodeVO sendSmsCode(String phone) {
-        String code = generateSmsCode(6);
-        String smsId = UUID.randomUUID().toString().replace("-", "");
+        return sendSmsCode(phone, SmsScene.REGISTER);
+    }
 
-        redisCacheService.set(SMS_CODE_PREFIX + smsId, phone + ":" + code, SMS_CODE_EXPIRE, TimeUnit.MINUTES);
+    @Override
+    public SmsCodeVO sendSmsCode(String phone, SmsScene scene) {
+        boolean result = smsService.sendSmsCode(phone, scene);
+        if (!result) {
+            throw new UserException(UserResultCode.SMS_SEND_FAILED);
+        }
 
-        log.info("发送短信验证码，手机号：{}，验证码：{}", phone, code);
+        log.info("发送{}验证码，手机号：{}", scene.getDescription(), phone);
 
         SmsCodeVO vo = new SmsCodeVO();
-        vo.setSmsId(smsId);
         return vo;
     }
 
     @Override
     public boolean verifySmsCode(String phone, String code) {
-        return false;
+        return smsService.verifySmsCode(phone, code);
     }
 
     @Override
     public void resetPasswordByPhone(ResetPasswordDTO dto) {
+        boolean smsVerified = smsService.verifySmsCode(dto.getPhone(), dto.getSmsCode());
+        if (!smsVerified) {
+            throw new UserException(UserResultCode.SMS_VERIFY_FAILED, "短信验证码错误或已过期");
+        }
+
         User user = userService.getByPhone(dto.getPhone());
         if (user == null) {
             throw new UserException(UserResultCode.USER_NOT_FOUND);
@@ -224,7 +235,8 @@ public class AuthServiceImpl implements AuthService {
     public UserVO verifyAdmin(AdminVerifyDTO dto) {
         log.info("管理员认证，用户ID：{}", dto.getUserId());
         
-        User user = userMapper.selectById(dto.getUserId());
+        Long userId = Long.parseLong(dto.getUserId());
+        User user = userMapper.selectById(userId);
         if (user == null) {
             throw new UserException(UserResultCode.USER_NOT_FOUND);
         }
@@ -233,8 +245,10 @@ public class AuthServiceImpl implements AuthService {
             throw new UserException(UserResultCode.PARAM_ERROR, "非管理员用户无法进行管理员认证");
         }
         
-        String idCardFrontUrl = uploadImage(dto.getIdCardFrontBase64(), "admin_verify");
-        Map<String, String> idCardInfo = ocrService.parseIdCard(idCardFrontUrl);
+        // 先识别身份证，再上传到OSS
+        byte[] frontImageBytes = decodeBase64Image(dto.getIdCardFrontBase64());
+        String ocrResult = ocrService.recognizeIdCard(frontImageBytes);
+        Map<String, String> idCardInfo = ocrService.parseIdCard(ocrResult);
         
         if (idCardInfo == null || idCardInfo.isEmpty()) {
             throw new UserException(UserResultCode.ID_CARD_INVALID, "身份证识别失败");
@@ -250,12 +264,42 @@ public class AuthServiceImpl implements AuthService {
             throw new UserException(UserResultCode.ID_CARD_INVALID, "身份证识别失败：无法识别姓名");
         }
         
-        if (dto.getRealName() != null && !dto.getRealName().isEmpty() && !actualName.equals(dto.getRealName())) {
-            throw new UserException(UserResultCode.ID_CARD_INVALID, "身份证姓名与提交姓名不一致");
+        // 验证姓名：如果用户已有姓名，验证是否一致
+        if (user.getRealName() != null && !user.getRealName().isEmpty()) {
+            if (!actualName.equals(user.getRealName())) {
+                throw new UserException(UserResultCode.ID_CARD_INVALID, "身份证姓名与账号姓名不一致");
+            }
+        } else if (dto.getRealName() != null && !dto.getRealName().isEmpty()) {
+            // 如果用户没有姓名但传入了姓名，验证是否一致
+            if (!actualName.equals(dto.getRealName())) {
+                throw new UserException(UserResultCode.ID_CARD_INVALID, "身份证姓名与提交姓名不一致");
+            }
+            user.setRealName(dto.getRealName());
+        } else {
+            // 使用 OCR 识别的姓名
+            user.setRealName(actualName);
         }
         
-        user.setRealName(actualName);
-        user.setPhone(dto.getPhone());
+        // 验证身份证号：如果用户传入了身份证号，验证是否一致
+        if (dto.getIdCard() != null && !dto.getIdCard().isEmpty()) {
+            if (!actualIdCard.equals(dto.getIdCard())) {
+                throw new UserException(UserResultCode.ID_CARD_INVALID, "身份证号与提交的不一致");
+            }
+        }
+        
+        // OCR识别成功后，上传图片到OSS
+        String idCardFrontUrl = uploadImageFromBytes(frontImageBytes, "admin_verify");
+        String idCardBackUrl = null;
+        if (dto.getIdCardBackBase64() != null && !dto.getIdCardBackBase64().isEmpty()) {
+            byte[] backImageBytes = decodeBase64Image(dto.getIdCardBackBase64());
+            idCardBackUrl = uploadImageFromBytes(backImageBytes, "admin_verify");
+        }
+        
+        user.setIdCard(actualIdCard);
+        user.setIdCardFrontUrl(idCardFrontUrl);
+        if (idCardBackUrl != null) {
+            user.setIdCardBackUrl(idCardBackUrl);
+        }
         user.setStatus(UserStatusEnum.ENABLED.getValue());
         userMapper.updateById(user);
         
@@ -263,10 +307,32 @@ public class AuthServiceImpl implements AuthService {
         
         log.info("管理员认证成功，用户ID：{}", dto.getUserId());
         
-        return userService.getUserVOById(user.getId());
+        UserVO userVO = userService.getUserVOById(user.getId());
+        String accessToken = jwtUtils.generateToken(user.getId(), user.getUsername());
+        String refreshToken = jwtUtils.generateToken(user.getId(), user.getUsername() + ":refresh");
+        userVO.setToken(accessToken);
+        userVO.setRefreshToken(refreshToken);
+        userVO.setExpiresIn(TOKEN_EXPIRE_TIME);
+        
+        return userVO;
     }
     
     private String uploadImage(String base64Image, String folder) {
+        if (base64Image == null || base64Image.isEmpty()) {
+            throw new UserException(UserResultCode.PARAM_ERROR, "图片不能为空");
+        }
+        
+        try {
+            byte[] imageBytes = decodeBase64Image(base64Image);
+            return uploadImageFromBytes(imageBytes, folder);
+            
+        } catch (Exception e) {
+            log.error("图片上传失败", e);
+            throw new UserException(UserResultCode.QUALIFICATION_VERIFY_FAILED, "图片上传失败");
+        }
+    }
+    
+    private byte[] decodeBase64Image(String base64Image) {
         if (base64Image == null || base64Image.isEmpty()) {
             throw new UserException(UserResultCode.PARAM_ERROR, "图片不能为空");
         }
@@ -276,13 +342,22 @@ public class AuthServiceImpl implements AuthService {
             if (base64Image.contains(",")) {
                 base64Data = base64Image.split(",")[1];
             }
-            
-            byte[] imageBytes = Base64.getDecoder().decode(base64Data);
+            return Base64.getDecoder().decode(base64Data);
+        } catch (Exception e) {
+            log.error("Base64解码失败", e);
+            throw new UserException(UserResultCode.PARAM_ERROR, "图片格式错误");
+        }
+    }
+    
+    private String uploadImageFromBytes(byte[] imageBytes, String folder) {
+        if (imageBytes == null || imageBytes.length == 0) {
+            throw new UserException(UserResultCode.PARAM_ERROR, "图片不能为空");
+        }
+        
+        try {
             ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes);
-            
             String fileName = folder + "/" + System.currentTimeMillis() + ".jpg";
             return storageService.upload(inputStream, fileName, "image/jpeg");
-            
         } catch (Exception e) {
             log.error("图片上传失败", e);
             throw new UserException(UserResultCode.QUALIFICATION_VERIFY_FAILED, "图片上传失败");

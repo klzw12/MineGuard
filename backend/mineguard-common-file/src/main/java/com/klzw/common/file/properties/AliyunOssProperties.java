@@ -14,6 +14,7 @@ public class AliyunOssProperties {
     private Buckets buckets;
     private int defaultExpireTime = 3600;
     private String defaultFolder = "";
+    private String domain; // 自定义域名或CDN域名
 
     @Data
     public static class Buckets {
@@ -39,5 +40,18 @@ public class AliyunOssProperties {
             default:
                 return defaultBucket;
         }
+    }
+    
+    /**
+     * 获取永久访问URL（不签名）
+     * 如果配置了自定义域名则使用自定义域名，否则使用OSS默认域名
+     */
+    public String getPermanentUrl(String bucketName, String filePath) {
+        if (domain != null && !domain.isEmpty()) {
+            return domain + "/" + filePath;
+        }
+        // 使用OSS默认域名格式: https://{bucket}.{endpoint}/{filePath}
+        String cleanEndpoint = endpoint.replace("https://", "").replace("http://", "");
+        return "https://" + bucketName + "." + cleanEndpoint + "/" + filePath;
     }
 }

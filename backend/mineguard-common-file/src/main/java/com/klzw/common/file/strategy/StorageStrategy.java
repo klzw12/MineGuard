@@ -53,6 +53,14 @@ public interface StorageStrategy {
     String getUrl(String fileName, long expireSeconds);
     
     /**
+     * 获取文件永久访问URL（需要Bucket设置为公共读）
+     *
+     * @param fileName 文件名（包含路径）
+     * @return 永久访问URL
+     */
+    String getPermanentUrl(String fileName);
+    
+    /**
      * 获取文件信息
      *
      * @param fileName 文件名（包含路径）

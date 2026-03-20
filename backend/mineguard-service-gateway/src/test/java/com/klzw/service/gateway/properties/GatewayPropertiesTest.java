@@ -51,7 +51,7 @@ class GatewayPropertiesTest {
         assert cors.getAllowedOrigins() == null;
         assert cors.getAllowedMethods().equals("GET,POST,PUT,DELETE,OPTIONS");
         assert cors.getAllowedHeaders().equals("*");
-        assert cors.isAllowCredentials() == true;
+        assert cors.isAllowCredentials() == false;
         assert cors.getMaxAge() == 3600L;
     }
 

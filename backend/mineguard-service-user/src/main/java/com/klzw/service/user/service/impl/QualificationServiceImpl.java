@@ -62,11 +62,13 @@ public class QualificationServiceImpl implements QualificationService {
         User user = validateUserExists(dto.getUserId());
         validateIdCardFormat(dto.getIdCard());
         
-        String idCardFrontUrl = uploadImage(dto.getIdCardFrontBase64(), "idcard_front");
-        Map<String, String> idCardInfo = ocrService.parseIdCard(idCardFrontUrl);
+        byte[] frontImageBytes = decodeBase64Image(dto.getIdCardFrontBase64());
+        String ocrResult = ocrService.recognizeIdCard(frontImageBytes);
+        Map<String, String> idCardInfo = ocrService.parseIdCard(ocrResult);
         
         validateIdCardInfo(idCardInfo, dto.getRealName(), dto.getIdCard());
         
+        String idCardFrontUrl = uploadImageFromBytes(frontImageBytes, "idcard_front");
         String idCardBackUrl = uploadOptionalImage(dto.getIdCardBackBase64(), "idcard_back");
         
         user.setIdCardFrontUrl(idCardFrontUrl);
@@ -82,6 +84,33 @@ public class QualificationServiceImpl implements QualificationService {
         
         log.info("身份证验证成功，用户ID：{}，姓名：{}", dto.getUserId(), dto.getRealName());
         return true;
+    }
+    
+    private byte[] decodeBase64Image(String base64Image) {
+        if (base64Image == null || base64Image.isEmpty()) {
+            throw new UserException(UserResultCode.PARAM_ERROR, "图片不能为空");
+        }
+        try {
+            String base64Data = base64Image;
+            if (base64Image.contains(",")) {
+                base64Data = base64Image.split(",")[1];
+            }
+            return Base64.getDecoder().decode(base64Data);
+        } catch (Exception e) {
+            log.error("Base64解码失败", e);
+            throw new UserException(UserResultCode.PARAM_ERROR, "图片格式错误");
+        }
+    }
+    
+    private String uploadImageFromBytes(byte[] imageBytes, String folder) {
+        try {
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(imageBytes);
+            String fileName = folder + "/" + System.currentTimeMillis() + ".jpg";
+            return storageService.upload(inputStream, fileName, "image/jpeg");
+        } catch (Exception e) {
+            log.error("图片上传失败", e);
+            throw new UserException(UserResultCode.QUALIFICATION_VERIFY_FAILED, "图片上传失败");
+        }
     }
 
     private Integer parseGender(String gender) {
@@ -108,11 +137,14 @@ public class QualificationServiceImpl implements QualificationService {
         User user = validateUserExists(dto.getUserId());
         validateIdCardVerified(user);
         
-        String drivingLicenseUrl = uploadImage(dto.getDrivingLicenseBase64(), "driving_license");
-        Map<String, String> licenseInfo = ocrService.parseDrivingLicense(drivingLicenseUrl);
+        byte[] imageBytes = decodeBase64Image(dto.getDrivingLicenseBase64());
+        String ocrResult = ocrService.recognizeDrivingLicense(imageBytes);
+        Map<String, String> licenseInfo = ocrService.parseDrivingLicense(ocrResult);
         
         validateDrivingLicense(licenseInfo, user.getRealName());
         validateLicenseNotExpired(licenseInfo);
+        
+        String drivingLicenseUrl = uploadImageFromBytes(imageBytes, "driving_license");
         
         saveDriverCert(dto, user, drivingLicenseUrl, licenseInfo);
         assignRoleToUser(dto.getUserId(), ROLE_DRIVER);
@@ -129,11 +161,14 @@ public class QualificationServiceImpl implements QualificationService {
         User user = validateUserExists(dto.getUserId());
         validateIdCardVerified(user);
         
-        String emergencyCertUrl = uploadImage(dto.getEmergencyCertBase64(), "emergency_cert");
-        Map<String, String> certInfo = ocrService.parseEmergencyCert(emergencyCertUrl);
+        byte[] imageBytes = decodeBase64Image(dto.getEmergencyCertBase64());
+        String ocrResult = ocrService.recognizeEmergencyCert(imageBytes);
+        Map<String, String> certInfo = ocrService.parseEmergencyCert(ocrResult);
         
         validateEmergencyCert(certInfo, user.getRealName());
         validateCertNotExpired(certInfo);
+        
+        String emergencyCertUrl = uploadImageFromBytes(imageBytes, "emergency_cert");
         
         saveSafetyOfficerCert(dto, user, emergencyCertUrl, certInfo);
         assignRoleToUser(dto.getUserId(), ROLE_SAFETY_OFFICER);
@@ -150,11 +185,14 @@ public class QualificationServiceImpl implements QualificationService {
         User user = validateUserExists(dto.getUserId());
         validateIdCardVerified(user);
         
-        String repairCertUrl = uploadImage(dto.getRepairCertBase64(), "repair_cert");
-        Map<String, String> certInfo = ocrService.parseRepairCert(repairCertUrl);
+        byte[] imageBytes = decodeBase64Image(dto.getRepairCertBase64());
+        String ocrResult = ocrService.recognizeRepairCert(imageBytes);
+        Map<String, String> certInfo = ocrService.parseRepairCert(ocrResult);
         
         validateRepairCert(certInfo, user.getRealName());
         validateCertNotExpired(certInfo);
+        
+        String repairCertUrl = uploadImageFromBytes(imageBytes, "repair_cert");
         
         saveRepairmanCert(dto, user, repairCertUrl, certInfo);
         assignRoleToUser(dto.getUserId(), ROLE_REPAIRMAN);
@@ -319,8 +357,19 @@ public class QualificationServiceImpl implements QualificationService {
         driver.setUserId(dto.getUserId());
         driver.setDriverName(user.getRealName());
         driver.setIdCard(user.getIdCard());
-        driver.setIdCardFrontUrl(existingDriver != null ? existingDriver.getIdCardFrontUrl() : null);
-        driver.setIdCardBackUrl(existingDriver != null ? existingDriver.getIdCardBackUrl() : null);
+        
+        // 优先从 User 表获取身份证 URL（实名认证时已保存）
+        String idCardFrontUrl = user.getIdCardFrontUrl();
+        String idCardBackUrl = user.getIdCardBackUrl();
+        // 如果 User 表没有，再从 existingDriver 获取
+        if (idCardFrontUrl == null && existingDriver != null) {
+            idCardFrontUrl = existingDriver.getIdCardFrontUrl();
+        }
+        if (idCardBackUrl == null && existingDriver != null) {
+            idCardBackUrl = existingDriver.getIdCardBackUrl();
+        }
+        driver.setIdCardFrontUrl(idCardFrontUrl);
+        driver.setIdCardBackUrl(idCardBackUrl);
         driver.setDrivingLicenseUrl(drivingLicenseUrl);
         driver.setStatus(UserStatusEnum.ENABLED.getValue());
         
@@ -354,8 +403,19 @@ public class QualificationServiceImpl implements QualificationService {
         officer.setUserId(dto.getUserId());
         officer.setOfficerName(user.getRealName());
         officer.setIdCard(user.getIdCard());
-        officer.setIdCardFrontUrl(existingOfficer != null ? existingOfficer.getIdCardFrontUrl() : null);
-        officer.setIdCardBackUrl(existingOfficer != null ? existingOfficer.getIdCardBackUrl() : null);
+        
+        // 优先从 User 表获取身份证 URL（实名认证时已保存）
+        String idCardFrontUrl = user.getIdCardFrontUrl();
+        String idCardBackUrl = user.getIdCardBackUrl();
+        // 如果 User 表没有，再从 existingOfficer 获取
+        if (idCardFrontUrl == null && existingOfficer != null) {
+            idCardFrontUrl = existingOfficer.getIdCardFrontUrl();
+        }
+        if (idCardBackUrl == null && existingOfficer != null) {
+            idCardBackUrl = existingOfficer.getIdCardBackUrl();
+        }
+        officer.setIdCardFrontUrl(idCardFrontUrl);
+        officer.setIdCardBackUrl(idCardBackUrl);
         officer.setEmergencyCertUrl(emergencyCertUrl);
         officer.setStatus(UserStatusEnum.ENABLED.getValue());
         
@@ -389,8 +449,19 @@ public class QualificationServiceImpl implements QualificationService {
         repairman.setUserId(dto.getUserId());
         repairman.setRepairmanName(user.getRealName());
         repairman.setIdCard(user.getIdCard());
-        repairman.setIdCardFrontUrl(existingRepairman != null ? existingRepairman.getIdCardFrontUrl() : null);
-        repairman.setIdCardBackUrl(existingRepairman != null ? existingRepairman.getIdCardBackUrl() : null);
+        
+        // 优先从 User 表获取身份证 URL（实名认证时已保存）
+        String idCardFrontUrl = user.getIdCardFrontUrl();
+        String idCardBackUrl = user.getIdCardBackUrl();
+        // 如果 User 表没有，再从 existingRepairman 获取
+        if (idCardFrontUrl == null && existingRepairman != null) {
+            idCardFrontUrl = existingRepairman.getIdCardFrontUrl();
+        }
+        if (idCardBackUrl == null && existingRepairman != null) {
+            idCardBackUrl = existingRepairman.getIdCardBackUrl();
+        }
+        repairman.setIdCardFrontUrl(idCardFrontUrl);
+        repairman.setIdCardBackUrl(idCardBackUrl);
         repairman.setRepairCertUrl(repairCertUrl);
         repairman.setStatus(UserStatusEnum.ENABLED.getValue());
         

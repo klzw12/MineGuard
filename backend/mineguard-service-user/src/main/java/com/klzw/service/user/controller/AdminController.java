@@ -1,8 +1,10 @@
 package com.klzw.service.user.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.klzw.common.web.resolver.CurrentUser;
 import com.klzw.common.core.result.Result;
 import com.klzw.service.user.entity.Role;
+import com.klzw.service.user.entity.RoleChangeApply;
 import com.klzw.service.user.exception.UserException;
 import com.klzw.service.user.constant.UserResultCode;
 import com.klzw.service.user.service.RoleChangeApplyService;
@@ -15,6 +17,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "管理员管理", description = "管理员相关接口")
@@ -38,41 +41,6 @@ public class AdminController {
         return Result.success(page);
     }
 
-    @Operation(summary = "获取用户详情（管理员）")
-    @GetMapping("/user/{id}")
-    public Result<UserVO> getUserById(@PathVariable Long id) {
-        UserVO userVO = userService.getUserVOById(id);
-        return Result.success(userVO);
-    }
-
-    @Operation(summary = "禁用用户（管理员）")
-    @PutMapping("/user/{id}/disable")
-    public Result<Void> disableUser(@PathVariable Long id) {
-        userService.disableUser(id);
-        return Result.success("禁用成功", null);
-    }
-
-    @Operation(summary = "启用用户（管理员）")
-    @PutMapping("/user/{id}/enable")
-    public Result<Void> enableUser(@PathVariable Long id) {
-        userService.enableUser(id);
-        return Result.success("启用成功", null);
-    }
-
-    @Operation(summary = "获取用户角色（管理员）")
-    @GetMapping("/user/{id}/role")
-    public Result<Role> getUserRole(@PathVariable Long id) {
-        Role role = userService.getRoleByUserId(id);
-        return Result.success(role);
-    }
-
-    @Operation(summary = "获取用户角色编码（管理员）")
-    @GetMapping("/user/{id}/role-code")
-    public Result<String> getUserRoleCode(@PathVariable Long id) {
-        String roleCode = userService.getRoleCodeByUserId(id);
-        return Result.success(roleCode);
-    }
-
     @Operation(summary = "变更用户角色（管理员专用）")
     @PutMapping("/user/{id}/role-change")
     public Result<Void> changeUserRole(
@@ -80,57 +48,68 @@ public class AdminController {
             @Parameter(description = "新角色ID") @RequestParam Long roleId,
             @Parameter(description = "变更原因") @RequestParam(required = false) String reason) {
         
-        // 获取当前用户信息
         UserVO userVO = userService.getUserVOById(id);
         if (userVO == null) {
             throw new UserException(UserResultCode.USER_NOT_FOUND);
         }
         
-        // 检查用户是否已有角色
         Role currentRole = userService.getRoleByUserId(id);
         if (currentRole == null) {
-            // 用户没有角色，直接分配
             userService.assignRole(id, roleId);
             return Result.success("角色分配成功", null);
         }
         
-        // 用户已有角色，需要管理员变更
-        // 记录角色变更日志（可扩展）
         log.info("管理员变更用户角色，用户ID：{}，原角色：{}，新角色：{}，原因：{}", 
                 id, currentRole.getRoleCode(), roleId, reason);
         
-        // 执行角色变更
         userService.assignRole(id, roleId);
         
         return Result.success("角色变更成功", null);
     }
 
-    @Operation(summary = "获取待处理的角色变更申请")
+    @Operation(summary = "提交角色变更申请（用户端）")
+    @PostMapping("/role-change/apply")
+    public Result<String> createRoleChangeApply(
+            @CurrentUser Long userId,
+            @Validated @RequestBody RoleChangeApply apply) {
+        apply.setUserId(userId);
+        String applyId = roleChangeApplyService.createRoleChangeApply(apply);
+        return Result.success("申请提交成功", applyId);
+    }
+
+    @Operation(summary = "获取我的角色变更申请（用户端）")
+    @GetMapping("/role-change/apply/my")
+    public Result<List<RoleChangeApplyVO>> getMyRoleChangeApplies(@CurrentUser Long userId) {
+        List<RoleChangeApplyVO> applies = roleChangeApplyService.getRoleChangeAppliesByUserId(userId);
+        return Result.success(applies);
+    }
+
+    @Operation(summary = "获取待处理的角色变更申请（管理员）")
     @GetMapping("/role-change/apply/pending")
     public Result<List<RoleChangeApplyVO>> getPendingRoleChangeApplies() {
         List<RoleChangeApplyVO> applies = roleChangeApplyService.getPendingRoleChangeApplies();
         return Result.success(applies);
     }
 
-    @Operation(summary = "获取所有角色变更申请")
+    @Operation(summary = "获取所有角色变更申请（管理员）")
     @GetMapping("/role-change/apply/list")
     public Result<List<RoleChangeApplyVO>> getAllRoleChangeApplies() {
         List<RoleChangeApplyVO> applies = roleChangeApplyService.getAllRoleChangeApplies();
         return Result.success(applies);
     }
 
-    @Operation(summary = "获取用户的角色变更申请历史")
+    @Operation(summary = "获取用户的角色变更申请历史（管理员）")
     @GetMapping("/role-change/apply/user/{userId}")
     public Result<List<RoleChangeApplyVO>> getRoleChangeAppliesByUserId(@PathVariable Long userId) {
         List<RoleChangeApplyVO> applies = roleChangeApplyService.getRoleChangeAppliesByUserId(userId);
         return Result.success(applies);
     }
 
-    @Operation(summary = "处理角色变更申请")
+    @Operation(summary = "处理角色变更申请（管理员）")
     @PutMapping("/role-change/apply/{id}/handle")
     public Result<Void> handleRoleChangeApply(
             @PathVariable Long id,
-            @RequestParam Integer status, // 2-已通过，3-已拒绝
+            @RequestParam Integer status,
             @RequestParam(required = false) String adminOpinion,
             @RequestParam Long handlerId,
             @RequestParam String handlerName) {

@@ -24,7 +24,7 @@ public class RequestLogFilter implements GlobalFilter, Ordered {
         String method = request.getMethod().name();
         String path = request.getPath().value();
         String clientIp = getClientIp(request);
-        String uri = request.getURI().toString();
+        String uri = request.getURI() != null ? request.getURI().toString() : "unknown-uri";
         
         long startTime = System.currentTimeMillis();
         
@@ -38,10 +38,22 @@ public class RequestLogFilter implements GlobalFilter, Ordered {
             int statusCode = exchange.getResponse().getStatusCode() != null 
                     ? exchange.getResponse().getStatusCode().value() 
                     : 0;
-            String contentType = exchange.getResponse().getHeaders().getFirst("Content-Type");
+            String contentType = exchange.getResponse().getHeaders() != null 
+                    ? exchange.getResponse().getHeaders().getFirst("Content-Type") 
+                    : "unknown";
             
             // 添加debug日志，打印响应头信息
-            log.debug("[{}] Response headers: {}", traceId, exchange.getResponse().getHeaders());
+            log.debug("[{}] Response headers: {}", traceId, exchange.getResponse().getHeaders() != null ? exchange.getResponse().getHeaders() : "null");
+            
+            // 特别打印CORS相关的响应头
+            if (exchange.getResponse().getHeaders() != null) {
+                log.debug("[{}] CORS headers:", traceId);
+                exchange.getResponse().getHeaders().forEach((key, values) -> {
+                    if (key.toLowerCase().startsWith("access-control-")) {
+                        log.debug("[{}]   {}: {}", traceId, key, values);
+                    }
+                });
+            }
             
             log.info("[{}] RequestLogFilter SUCCESS - {} {} - {} ({}ms) Content-Type: {}", 
                      traceId, method, path, statusCode, duration, contentType);

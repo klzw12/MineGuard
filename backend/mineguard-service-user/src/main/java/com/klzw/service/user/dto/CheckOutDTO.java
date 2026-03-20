@@ -9,9 +9,9 @@ import lombok.Data;
 public class CheckOutDTO {
 
     /**
-     * 司机ID
+     * 用户ID
      */
-    private Long driverId;
+    private Long userId;
 
     /**
      * 备注

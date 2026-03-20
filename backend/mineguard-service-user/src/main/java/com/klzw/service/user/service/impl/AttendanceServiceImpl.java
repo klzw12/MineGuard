@@ -41,10 +41,11 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Override
     @Transactional
     public AttendanceVO checkIn(CheckInDTO dto) {
-        log.info("司机上班打卡，司机ID：{}", dto.getDriverId());
+        Long userId = dto.getUserId();
+        log.info("司机上班打卡，用户ID：{}", userId);
 
         // 验证司机是否存在
-        Driver driver = driverMapper.selectById(dto.getDriverId());
+        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
         if (driver == null) {
             throw new UserException(UserResultCode.USER_NOT_FOUND, "司机不存在");
         }
@@ -53,13 +54,13 @@ public class AttendanceServiceImpl implements AttendanceService {
         LocalDateTime now = LocalDateTime.now();
 
         // 查询今天是否已有出勤记录
-        DriverAttendance attendance = attendanceMapper.selectByDriverIdAndDate(dto.getDriverId(), today);
+        DriverAttendance attendance = attendanceMapper.selectByDriverIdAndDate(driver.getId(), today);
 
         if (attendance == null) {
             // 创建新的出勤记录
             attendance = new DriverAttendance();
             // 使用雪花算法生成Long类型的id
-            attendance.setDriverId(dto.getDriverId());
+            attendance.setDriverId(driver.getId());
             attendance.setAttendanceDate(today);
             attendance.setCheckInTime(now);
             attendance.setCreateTime(now);
@@ -96,17 +97,18 @@ public class AttendanceServiceImpl implements AttendanceService {
             attendanceMapper.updateById(attendance);
         }
 
-        log.info("司机上班打卡成功，司机ID：{}，状态：{}", dto.getDriverId(), attendance.getStatus());
+        log.info("司机上班打卡成功，用户ID：{}，司机ID：{}，状态：{}", userId, driver.getId(), attendance.getStatus());
         return convertToVO(attendance, driver.getDriverName());
     }
 
     @Override
     @Transactional
     public AttendanceVO checkOut(CheckOutDTO dto) {
-        log.info("司机下班打卡，司机ID：{}", dto.getDriverId());
+        Long userId = dto.getUserId();
+        log.info("司机下班打卡，用户ID：{}", userId);
 
         // 验证司机是否存在
-        Driver driver = driverMapper.selectById(dto.getDriverId());
+        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
         if (driver == null) {
             throw new UserException(UserResultCode.USER_NOT_FOUND, "司机不存在");
         }
@@ -115,13 +117,13 @@ public class AttendanceServiceImpl implements AttendanceService {
         LocalDateTime now = LocalDateTime.now();
 
         // 查询今天的出勤记录
-        DriverAttendance attendance = attendanceMapper.selectByDriverIdAndDate(dto.getDriverId(), today);
+        DriverAttendance attendance = attendanceMapper.selectByDriverIdAndDate(driver.getId(), today);
 
         if (attendance == null) {
             // 没有上班记录，创建新的出勤记录（异常打卡）
             attendance = new DriverAttendance();
             // 使用雪花算法生成Long类型的id
-            attendance.setDriverId(dto.getDriverId());
+            attendance.setDriverId(driver.getId());
             attendance.setAttendanceDate(today);
             attendance.setCheckOutTime(now);
             attendance.setStatus(AttendanceStatusEnum.ABSENT.getValue());
@@ -149,7 +151,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             attendanceMapper.updateById(attendance);
         }
 
-        log.info("司机下班打卡成功，司机ID：{}，状态：{}", dto.getDriverId(), attendance.getStatus());
+        log.info("司机下班打卡成功，用户ID：{}，司机ID：{}，状态：{}", userId, driver.getId(), attendance.getStatus());
         return convertToVO(attendance, driver.getDriverName());
     }
 

@@ -1,6 +1,6 @@
 package com.klzw.service.user.exception;
 
-import com.klzw.common.core.exception.BusinessException;
+import com.klzw.common.core.exception.BaseException;
 import com.klzw.service.user.constant.UserResultCode;
 import lombok.Getter;
 
@@ -17,7 +17,7 @@ import lombok.Getter;
  * 错误码范围：2000-2099
  */
 @Getter
-public class UserException extends BusinessException {
+public class UserException extends BaseException {
 
     /**
      * 用户模块标识
@@ -25,22 +25,22 @@ public class UserException extends BusinessException {
     private static final String MODULE = "user";
 
     public UserException(int code, String message) {
-        super(code, message);
+        super(code, message, MODULE);
     }
 
     public UserException(UserResultCode resultCode) {
-        super(resultCode.getCode(), resultCode.getMessage());
+        super(resultCode.getCode(), resultCode.getMessage(), MODULE);
     }
 
     public UserException(UserResultCode resultCode, String message) {
-        super(resultCode.getCode(), message);
+        super(resultCode.getCode(), message, MODULE);
     }
 
     public UserException(UserResultCode resultCode, Throwable cause) {
-        super(resultCode.getCode(), resultCode.getMessage(), cause);
+        super(resultCode.getCode(), resultCode.getMessage(), MODULE, cause);
     }
 
     public UserException(int code, String message, Throwable cause) {
-        super(code, message, cause);
+        super(code, message, MODULE, cause);
     }
 }
