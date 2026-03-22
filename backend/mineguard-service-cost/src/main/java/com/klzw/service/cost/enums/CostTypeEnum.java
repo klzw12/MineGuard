@@ -1,33 +1,14 @@
 package com.klzw.service.cost.enums;
 
-/**
- * 成本类型枚举
- */
 public enum CostTypeEnum {
-    /**
-     * 燃油费
-     */
-    FUEL(1, "燃油费"),
-    /**
-     * 过路费
-     */
-    TOLL(2, "过路费"),
-    /**
-     * 维修费
-     */
-    MAINTENANCE(3, "维修费"),
-    /**
-     * 保险费
-     */
-    INSURANCE(4, "保险费"),
-    /**
-     * 罚款
-     */
-    FINE(5, "罚款"),
-    /**
-     * 其他
-     */
-    OTHER(6, "其他");
+
+    FUEL(1, "燃油成本"),
+    MAINTENANCE(2, "维修成本"),
+    LABOR(3, "人工成本"),
+    INSURANCE(4, "保险成本"),
+    DEPRECIATION(5, "折旧成本"),
+    MANAGEMENT(6, "管理成本"),
+    OTHER(7, "其他成本");
 
     private final int code;
     private final String name;

@@ -1,0 +1,551 @@
+<template>
+	<view class="echarts-container">
+		<view class="echarts-title" v-if="title">
+			<text class="title-text">{{ title }}</text>
+		</view>
+		<view class="echarts-wrapper" :style="{ height: canvasHeight + 'rpx' }">
+			<canvas 
+				canvas-id="echartsCanvas"
+				id="echartsCanvas"
+				class="echarts-canvas"
+				:style="{ width: canvasWidth + 'rpx', height: canvasHeight + 'rpx' }"
+				@touchstart="touchStart"
+				@touchmove="touchMove"
+				@touchend="touchEnd"
+			></canvas>
+		</view>
+		<view class="echarts-legend" v-if="showLegend && legendData.length > 0">
+			<view class="legend-item" v-for="(item, index) in legendData" :key="index" @click="toggleLegend(index)">
+				<view class="legend-color" :style="{ backgroundColor: item.color }"></view>
+				<text class="legend-text" :class="{ 'legend-inactive': !item.visible }">{{ item.name }}</text>
+				<text class="legend-value" v-if="item.value !== undefined">{{ formatValue(item.value) }}</text>
+			</view>
+		</view>
+		<view class="echarts-tooltip" v-if="tooltipVisible" :style="{ left: tooltipX + 'px', top: tooltipY + 'px' }">
+			<text class="tooltip-title">{{ tooltipTitle }}</text>
+			<text class="tooltip-value">{{ tooltipValue }}</text>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref, onMounted, watch, nextTick, computed } from 'vue'
+
+	const props = defineProps<{
+		title?: string
+		option: any
+		width?: number
+		height?: number
+		showLegend?: boolean
+	}>()
+
+	const canvasWidth = ref(props.width || 750)
+	const canvasHeight = ref(props.height || 500)
+	const legendData = ref<{ name: string, color: string, value: number, visible: boolean }[]>([])
+	const tooltipVisible = ref(false)
+	const tooltipX = ref(0)
+	const tooltipY = ref(0)
+	const tooltipTitle = ref('')
+	const tooltipValue = ref('')
+
+	let chartInstance: any = null
+	let touchStartX: number = 0
+	let touchStartY: number = 0
+
+	const initChart = () => {
+		nextTick(() => {
+			buildLegendData()
+			drawChart()
+		})
+	}
+
+	const buildLegendData = () => {
+		const series = props.option?.series || []
+		const colors = ['#007AFF', '#34C759', '#FF9500', '#FF3B30', '#8E8E93', '#5856D6', '#FF2D55']
+		const newLegendData: { name: string, color: string, value: number, visible: boolean }[] = []
+
+		series.forEach((s: any, index: number) => {
+			if (s.type === 'pie') {
+				const data = s.data || []
+				data.forEach((item: any, i: number) => {
+					newLegendData.push({
+						name: item.name || `系列${i}`,
+						color: colors[i % colors.length],
+						value: item.value || 0,
+						visible: true
+					})
+				})
+			} else {
+				newLegendData.push({
+					name: s.name || `系列${index}`,
+					color: colors[index % colors.length],
+					value: 0,
+					visible: true
+				})
+			}
+		})
+
+		legendData.value = newLegendData
+	}
+
+	const drawChart = () => {
+		const ctx = uni.createCanvasContext('echartsCanvas')
+		
+		if (!props.option) return
+
+		const chartType = props.option.series?.[0]?.type || 'bar'
+		
+		ctx.clearRect(0, 0, canvasWidth.value, canvasHeight.value)
+		
+		if (chartType === 'pie') {
+			drawPieChart(ctx)
+		} else if (chartType === 'line') {
+			drawLineChart(ctx)
+		} else if (chartType === 'bar') {
+			drawBarChart(ctx)
+		}
+		
+		ctx.draw()
+	}
+
+	const drawPieChart = (ctx: any) => {
+		const series = props.option.series?.[0]
+		const data = series?.data || []
+		const visibleData = data.filter((_: any, i: number) => legendData.value[i]?.visible !== false)
+		
+		if (visibleData.length === 0) return
+
+		const centerX = canvasWidth.value / 2
+		const centerY = canvasHeight.value / 2 - 30
+		const radius = Math.min(centerX, centerY) - 80
+
+		let total = 0
+		visibleData.forEach((item: any) => {
+			total += item.value || 0
+		})
+
+		if (total === 0) return
+
+		let startAngle = -Math.PI / 2
+		const colors = ['#007AFF', '#34C759', '#FF9500', '#FF3B30', '#8E8E93', '#5856D6', '#FF2D55']
+
+		visibleData.forEach((item: any, index: number) => {
+			const originalIndex = data.indexOf(item)
+			const endAngle = startAngle + (item.value / total) * 2 * Math.PI
+			
+			ctx.beginPath()
+			ctx.moveTo(centerX, centerY)
+			ctx.arc(centerX, centerY, radius, startAngle, endAngle)
+			ctx.closePath()
+			ctx.setFillStyle(colors[originalIndex % colors.length])
+			ctx.fill()
+			
+			const midAngle = startAngle + (item.value / total) * Math.PI
+			const labelRadius = radius + 30
+			const labelX = centerX + Math.cos(midAngle) * labelRadius
+			const labelY = centerY + Math.sin(midAngle) * labelRadius
+			
+			const percentage = ((item.value / total) * 100).toFixed(1)
+			ctx.setFontSize(18)
+			ctx.setFillStyle('#ffffff')
+			ctx.setTextAlign('center')
+			ctx.fillText(`${percentage}%`, labelX, labelY)
+			
+			startAngle = endAngle
+		})
+
+		ctx.setFontSize(24)
+		ctx.setFillStyle('#ffffff')
+		ctx.setTextAlign('center')
+		ctx.fillText(`总计: ${formatValue(total)}`, centerX, canvasHeight.value - 20)
+	}
+
+	const drawLineChart = (ctx: any) => {
+		const xAxis = props.option.xAxis?.data || []
+		const series = props.option.series || []
+		const padding = 60
+		const chartWidth = canvasWidth.value - padding * 2
+		const chartHeight = canvasHeight.value - padding * 2 - 40
+
+		ctx.setStrokeStyle('#3a3a5c')
+		ctx.setLineWidth(1)
+		ctx.beginPath()
+		ctx.moveTo(padding, padding)
+		ctx.lineTo(padding, canvasHeight.value - padding - 40)
+		ctx.lineTo(canvasWidth.value - padding, canvasHeight.value - padding - 40)
+		ctx.stroke()
+
+		const colors = ['#007AFF', '#34C759', '#FF9500']
+		
+		let allValues: number[] = []
+		series.forEach((s: any) => {
+			if (s.data) {
+				allValues = allValues.concat(s.data.filter((v: number) => v !== null && v !== undefined))
+			}
+		})
+		
+		if (allValues.length === 0) return
+		
+		const maxValue = Math.max(...allValues.map((v: number) => Math.abs(v)))
+		const minValue = Math.min(...allValues.map((v: number) => Math.abs(v)))
+		const range = maxValue - minValue || 1
+
+		const gridLines = 5
+		ctx.setFontSize(16)
+		ctx.setFillStyle('rgba(255,255,255,0.5)')
+		ctx.setTextAlign('right')
+		for (let i = 0; i <= gridLines; i++) {
+			const y = padding + (chartHeight / gridLines) * i
+			const value = maxValue - (range / gridLines) * i
+			ctx.fillText(formatValue(value), padding - 10, y + 5)
+			
+			ctx.beginPath()
+			ctx.setStrokeStyle('rgba(255,255,255,0.1)')
+			ctx.moveTo(padding, y)
+			ctx.lineTo(canvasWidth.value - padding, y)
+			ctx.stroke()
+		}
+
+		series.forEach((s: any, seriesIndex: number) => {
+			if (!legendData.value[seriesIndex]?.visible) return
+			
+			const data = s.data || []
+			if (data.length === 0) return
+
+			ctx.beginPath()
+			ctx.setStrokeStyle(colors[seriesIndex % colors.length])
+			ctx.setLineWidth(2)
+
+			data.forEach((value: number, index: number) => {
+				if (value === null || value === undefined) return
+				
+				const x = padding + (index / Math.max(data.length - 1, 1)) * chartWidth
+				const y = padding + ((maxValue - value) / range) * chartHeight
+				
+				if (index === 0 || data[index - 1] === null) {
+					ctx.moveTo(x, y)
+				} else {
+					ctx.lineTo(x, y)
+				}
+			})
+			
+			ctx.stroke()
+
+			data.forEach((value: number, index: number) => {
+				if (value === null || value === undefined) return
+				
+				const x = padding + (index / Math.max(data.length - 1, 1)) * chartWidth
+				const y = padding + ((maxValue - value) / range) * chartHeight
+				
+				ctx.beginPath()
+				ctx.arc(x, y, 4, 0, 2 * Math.PI)
+				ctx.setFillStyle(colors[seriesIndex % colors.length])
+				ctx.fill()
+			})
+		})
+
+		ctx.setFontSize(16)
+		ctx.setFillStyle('#ffffff')
+		ctx.setTextAlign('center')
+		
+		const labelInterval = Math.ceil(xAxis.length / 7)
+		xAxis.forEach((label: string, index: number) => {
+			if (index % labelInterval === 0 || index === xAxis.length - 1) {
+				const x = padding + (index / Math.max(xAxis.length - 1, 1)) * chartWidth
+				ctx.fillText(label, x, canvasHeight.value - padding - 20)
+			}
+		})
+	}
+
+	const drawBarChart = (ctx: any) => {
+		const xAxis = props.option.xAxis?.data || []
+		const series = props.option.series || []
+		const padding = 60
+		const chartWidth = canvasWidth.value - padding * 2
+		const chartHeight = canvasHeight.value - padding * 2 - 40
+
+		ctx.setStrokeStyle('#3a3a5c')
+		ctx.setLineWidth(1)
+		ctx.beginPath()
+		ctx.moveTo(padding, padding)
+		ctx.lineTo(padding, canvasHeight.value - padding - 40)
+		ctx.lineTo(canvasWidth.value - padding, canvasHeight.value - padding - 40)
+		ctx.stroke()
+
+		const colors = ['#007AFF', '#34C759', '#FF9500']
+		const visibleSeries = series.filter((_: any, i: number) => legendData.value[i]?.visible !== false)
+		
+		if (visibleSeries.length === 0) return
+
+		let allValues: number[] = []
+		visibleSeries.forEach((s: any) => {
+			if (s.data) {
+				allValues = allValues.concat(s.data.filter((v: number) => v !== null && v !== undefined))
+			}
+		})
+		
+		if (allValues.length === 0) return
+		
+		const maxValue = Math.max(...allValues.map((v: number) => Math.abs(v)))
+
+		const gridLines = 5
+		ctx.setFontSize(16)
+		ctx.setFillStyle('rgba(255,255,255,0.5)')
+		ctx.setTextAlign('right')
+		for (let i = 0; i <= gridLines; i++) {
+			const y = padding + (chartHeight / gridLines) * i
+			const value = maxValue - (maxValue / gridLines) * i
+			ctx.fillText(formatValue(value), padding - 10, y + 5)
+			
+			ctx.beginPath()
+			ctx.setStrokeStyle('rgba(255,255,255,0.1)')
+			ctx.moveTo(padding, y)
+			ctx.lineTo(canvasWidth.value - padding, y)
+			ctx.stroke()
+		}
+
+		const barWidth = chartWidth / xAxis.length / (visibleSeries.length + 1)
+
+		visibleSeries.forEach((s: any, seriesIndex: number) => {
+			const data = s.data || []
+			if (data.length === 0) return
+
+			const originalIndex = series.indexOf(s)
+
+			data.forEach((value: number, index: number) => {
+				if (value === null || value === undefined) return
+				
+				const groupWidth = chartWidth / xAxis.length
+				const x = padding + index * groupWidth + (originalIndex + 0.5) * barWidth
+				const barHeight = (value / maxValue) * chartHeight
+				const y = canvasHeight.value - padding - 40 - barHeight
+
+				ctx.beginPath()
+				ctx.rect(x, y, barWidth - 5, barHeight)
+				ctx.setFillStyle(colors[originalIndex % colors.length])
+				ctx.fill()
+			})
+		})
+
+		ctx.setFontSize(16)
+		ctx.setFillStyle('#ffffff')
+		ctx.setTextAlign('center')
+		
+		const labelInterval = Math.ceil(xAxis.length / 7)
+		xAxis.forEach((label: string, index: number) => {
+			if (index % labelInterval === 0 || index === xAxis.length - 1) {
+				const x = padding + (index + 0.5) * (chartWidth / xAxis.length)
+				ctx.fillText(label, x, canvasHeight.value - padding - 20)
+			}
+		})
+	}
+
+	const formatValue = (value: number): string => {
+		if (value === null || value === undefined) return '0'
+		if (Math.abs(value) >= 10000) {
+			return (value / 10000).toFixed(1) + '万'
+		}
+		if (Math.abs(value) >= 1000) {
+			return (value / 1000).toFixed(1) + 'k'
+		}
+		return value.toFixed(0)
+	}
+
+	const toggleLegend = (index: number) => {
+		legendData.value[index].visible = !legendData.value[index].visible
+		drawChart()
+	}
+
+	const touchStart = (e: any) => {
+		touchStartX = e.touches[0].x
+		touchStartY = e.touches[0].y
+	}
+
+	const touchMove = (e: any) => {
+		// Handle touch move for potential interactions
+	}
+
+	const touchEnd = (e: any) => {
+		const touchEndX = e.changedTouches[0].x
+		const touchEndY = e.changedTouches[0].y
+		
+		if (Math.abs(touchEndX - touchStartX) < 10 && Math.abs(touchEndY - touchStartY) < 10) {
+			handleTap(touchEndX, touchEndY)
+		}
+	}
+
+	const handleTap = (x: number, y: number) => {
+		const chartType = props.option.series?.[0]?.type || 'bar'
+		
+		if (chartType === 'pie') {
+			handlePieTap(x, y)
+		} else if (chartType === 'bar') {
+			handleBarTap(x, y)
+		}
+	}
+
+	const handlePieTap = (x: number, y: number) => {
+		const centerX = canvasWidth.value / 2
+		const centerY = canvasHeight.value / 2 - 30
+		const radius = Math.min(centerX, centerY) - 80
+		
+		const dx = x - centerX
+		const dy = y - centerY
+		const distance = Math.sqrt(dx * dx + dy * dy)
+		
+		if (distance <= radius) {
+			let angle = Math.atan2(dy, dx)
+			if (angle < -Math.PI / 2) angle += 2 * Math.PI
+			angle += Math.PI / 2
+			if (angle > 2 * Math.PI) angle -= 2 * Math.PI
+			
+			const series = props.option.series?.[0]
+			const data = series?.data || []
+			let total = 0
+			data.forEach((item: any) => total += item.value || 0)
+			
+			let currentAngle = 0
+			for (let i = 0; i < data.length; i++) {
+				const sliceAngle = (data[i].value / total) * 2 * Math.PI
+				if (angle >= currentAngle && angle < currentAngle + sliceAngle) {
+					showTooltip(data[i].name, formatValue(data[i].value), x, y)
+					break
+				}
+				currentAngle += sliceAngle
+			}
+		}
+	}
+
+	const handleBarTap = (x: number, y: number) => {
+		const padding = 60
+		const chartWidth = canvasWidth.value - padding * 2
+		const xAxis = props.option.xAxis?.data || []
+		
+		if (x >= padding && x <= canvasWidth.value - padding) {
+			const barIndex = Math.floor((x - padding) / (chartWidth / xAxis.length))
+			if (barIndex >= 0 && barIndex < xAxis.length) {
+				const series = props.option.series?.[0]
+				const value = series?.data?.[barIndex]
+				if (value !== undefined) {
+					showTooltip(xAxis[barIndex], formatValue(value), x, y)
+				}
+			}
+		}
+	}
+
+	const showTooltip = (title: string, value: string, x: number, y: number) => {
+		tooltipTitle.value = title
+		tooltipValue.value = value
+		tooltipX.value = x
+		tooltipY.value = y - 60
+		tooltipVisible.value = true
+		
+		setTimeout(() => {
+			tooltipVisible.value = false
+		}, 2000)
+	}
+
+	watch(() => props.option, () => {
+		initChart()
+	}, { deep: true })
+
+	watch(() => props.height, (newHeight) => {
+		canvasHeight.value = newHeight || 500
+		initChart()
+	})
+
+	onMounted(() => {
+		initChart()
+	})
+</script>
+
+<style lang="scss">
+	.echarts-container {
+		background-color: #2a3347;
+		border-radius: 20rpx;
+		padding: 25rpx;
+		margin-bottom: 20rpx;
+		position: relative;
+
+		.echarts-title {
+			margin-bottom: 20rpx;
+
+			.title-text {
+				font-size: 28rpx;
+				font-weight: bold;
+				color: #fff;
+			}
+		}
+
+		.echarts-wrapper {
+			width: 100%;
+
+			.echarts-canvas {
+				width: 100%;
+			}
+		}
+
+		.echarts-legend {
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			justify-content: center;
+			margin-top: 20rpx;
+			gap: 20rpx;
+
+			.legend-item {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				padding: 10rpx 20rpx;
+				background-color: rgba(255, 255, 255, 0.05);
+				border-radius: 10rpx;
+
+				.legend-color {
+					width: 20rpx;
+					height: 20rpx;
+					border-radius: 4rpx;
+					margin-right: 10rpx;
+				}
+
+				.legend-text {
+					font-size: 22rpx;
+					color: #fff;
+					margin-right: 10rpx;
+
+					&.legend-inactive {
+						color: rgba(255, 255, 255, 0.3);
+					}
+				}
+
+				.legend-value {
+					font-size: 22rpx;
+					color: rgba(255, 255, 255, 0.7);
+				}
+			}
+		}
+
+		.echarts-tooltip {
+			position: absolute;
+			background-color: rgba(0, 0, 0, 0.8);
+			padding: 15rpx 25rpx;
+			border-radius: 10rpx;
+			pointer-events: none;
+			z-index: 100;
+
+			.tooltip-title {
+				display: block;
+				font-size: 24rpx;
+				color: #fff;
+				margin-bottom: 5rpx;
+			}
+
+			.tooltip-value {
+				display: block;
+				font-size: 28rpx;
+				font-weight: bold;
+				color: #007AFF;
+			}
+		}
+	}
+</style>

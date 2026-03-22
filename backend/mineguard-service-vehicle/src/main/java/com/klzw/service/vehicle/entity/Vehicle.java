@@ -20,9 +20,9 @@ public class Vehicle extends BaseEntity {
     
     private String model;
     
-    private Long userId;
-    
     private Integer status;
+    
+    private Integer fuelLevel;
     
     private String photoUrl;
     
@@ -58,7 +58,7 @@ public class Vehicle extends BaseEntity {
     
     private String dimensions;
     
-    private String remarks;
-    
     private String inspectionRecord;
+    
+    private String remark;
 }

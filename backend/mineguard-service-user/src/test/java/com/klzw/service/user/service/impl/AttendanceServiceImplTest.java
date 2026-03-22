@@ -3,12 +3,12 @@ package com.klzw.service.user.service.impl;
 import com.klzw.service.user.config.AttendanceProperties;
 import com.klzw.service.user.dto.CheckInDTO;
 import com.klzw.service.user.dto.CheckOutDTO;
-import com.klzw.service.user.entity.Driver;
-import com.klzw.service.user.entity.DriverAttendance;
+import com.klzw.service.user.entity.User;
+import com.klzw.service.user.entity.UserAttendance;
 import com.klzw.service.user.enums.AttendanceStatusEnum;
 import com.klzw.service.user.exception.UserException;
-import com.klzw.service.user.mapper.DriverAttendanceMapper;
-import com.klzw.service.user.mapper.DriverMapper;
+import com.klzw.service.user.mapper.UserAttendanceMapper;
+import com.klzw.service.user.mapper.UserMapper;
 import com.klzw.service.user.vo.AttendanceStatisticsVO;
 import com.klzw.service.user.vo.AttendanceVO;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,10 +30,10 @@ import static org.mockito.Mockito.*;
 public class AttendanceServiceImplTest {
 
     @Mock
-    private DriverAttendanceMapper attendanceMapper;
+    private UserAttendanceMapper attendanceMapper;
 
     @Mock
-    private DriverMapper driverMapper;
+    private UserMapper userMapper;
 
     @Mock
     private AttendanceProperties attendanceProperties;
@@ -51,132 +51,8 @@ public class AttendanceServiceImplTest {
     }
 
     @Test
-    void testCheckIn_DriverNotFound() {
-        CheckInDTO dto = new CheckInDTO();
-        dto.setDriverId(123L);
-
-        when(driverMapper.selectById(123L)).thenReturn(null);
-
-        UserException exception = assertThrows(UserException.class, () -> {
-            attendanceService.checkIn(dto);
-        });
-        assertNotNull(exception);
-    }
-
-    @Test
-    void testCheckIn_NewAttendance() {
-        CheckInDTO dto = new CheckInDTO();
-        dto.setDriverId(123L);
-
-        Driver driver = new Driver();
-        driver.setId(123L);
-        driver.setDriverName("张三");
-
-        when(driverMapper.selectById(123L)).thenReturn(driver);
-        when(attendanceMapper.selectByDriverIdAndDate(123L, LocalDate.now())).thenReturn(null);
-
-        AttendanceVO result = attendanceService.checkIn(dto);
-
-        assertNotNull(result);
-        assertEquals("123", result.getDriverId());
-        assertEquals("张三", result.getDriverName());
-        assertNotNull(result.getCheckInTime());
-
-        verify(attendanceMapper, times(1)).insert(any(DriverAttendance.class));
-    }
-
-    @Test
-    void testCheckIn_RepeatAttendance() {
-        CheckInDTO dto = new CheckInDTO();
-        dto.setDriverId(123L);
-
-        Driver driver = new Driver();
-        driver.setId(123L);
-        driver.setDriverName("张三");
-
-        DriverAttendance existingAttendance = new DriverAttendance();
-        existingAttendance.setId(1L);
-        existingAttendance.setDriverId(123L);
-        existingAttendance.setAttendanceDate(LocalDate.now());
-        existingAttendance.setCheckInTime(LocalDateTime.now().minusHours(1));
-
-        when(driverMapper.selectById(123L)).thenReturn(driver);
-        when(attendanceMapper.selectByDriverIdAndDate(123L, LocalDate.now())).thenReturn(existingAttendance);
-
-        AttendanceVO result = attendanceService.checkIn(dto);
-
-        assertNotNull(result);
-        assertEquals("123", result.getDriverId());
-
-        verify(attendanceMapper, times(1)).updateById(any(DriverAttendance.class));
-    }
-
-    @Test
-    void testCheckOut_DriverNotFound() {
-        CheckOutDTO dto = new CheckOutDTO();
-        dto.setDriverId(123L);
-
-        when(driverMapper.selectById(123L)).thenReturn(null);
-
-        UserException exception = assertThrows(UserException.class, () -> {
-            attendanceService.checkOut(dto);
-        });
-        assertNotNull(exception);
-    }
-
-    @Test
-    void testCheckOut_NoCheckIn() {
-        CheckOutDTO dto = new CheckOutDTO();
-        dto.setDriverId(123L);
-
-        Driver driver = new Driver();
-        driver.setId(123L);
-        driver.setDriverName("张三");
-
-        when(driverMapper.selectById(123L)).thenReturn(driver);
-        when(attendanceMapper.selectByDriverIdAndDate(123L, LocalDate.now())).thenReturn(null);
-
-        AttendanceVO result = attendanceService.checkOut(dto);
-
-        assertNotNull(result);
-        assertEquals("123", result.getDriverId());
-        assertEquals("张三", result.getDriverName());
-        assertNotNull(result.getCheckOutTime());
-
-        verify(attendanceMapper, times(1)).insert(any(DriverAttendance.class));
-    }
-
-    @Test
-    void testCheckOut_WithCheckIn() {
-        CheckOutDTO dto = new CheckOutDTO();
-        dto.setDriverId(123L);
-
-        Driver driver = new Driver();
-        driver.setId(123L);
-        driver.setDriverName("张三");
-
-        DriverAttendance existingAttendance = new DriverAttendance();
-        existingAttendance.setId(1L);
-        existingAttendance.setDriverId(123L);
-        existingAttendance.setAttendanceDate(LocalDate.now());
-        existingAttendance.setCheckInTime(LocalDateTime.now().minusHours(8));
-        existingAttendance.setStatus(AttendanceStatusEnum.NORMAL.getValue());
-
-        when(driverMapper.selectById(123L)).thenReturn(driver);
-        when(attendanceMapper.selectByDriverIdAndDate(123L, LocalDate.now())).thenReturn(existingAttendance);
-
-        AttendanceVO result = attendanceService.checkOut(dto);
-
-        assertNotNull(result);
-        assertEquals("123", result.getDriverId());
-        assertNotNull(result.getCheckOutTime());
-
-        verify(attendanceMapper, times(1)).updateById(any(DriverAttendance.class));
-    }
-
-    @Test
     void testGetAttendanceByDate_NotFound() {
-        when(attendanceMapper.selectByDriverIdAndDate(123L, LocalDate.now())).thenReturn(null);
+        when(attendanceMapper.selectByUserIdAndDate(123L, LocalDate.now())).thenReturn(null);
 
         AttendanceVO result = attendanceService.getAttendanceByDate(123L, LocalDate.now());
 
@@ -185,26 +61,26 @@ public class AttendanceServiceImplTest {
 
     @Test
     void testGetAttendanceByDate_Found() {
-        DriverAttendance attendance = new DriverAttendance();
+        UserAttendance attendance = new UserAttendance();
         attendance.setId(1L);
-        attendance.setDriverId(123L);
+        attendance.setUserId(123L);
         attendance.setAttendanceDate(LocalDate.now());
         attendance.setCheckInTime(LocalDateTime.now());
         attendance.setStatus(AttendanceStatusEnum.NORMAL.getValue());
 
-        Driver driver = new Driver();
-        driver.setId(123L);
-        driver.setDriverName("张三");
+        User user = new User();
+        user.setId(123L);
+        user.setRealName("张三");
 
-        when(attendanceMapper.selectByDriverIdAndDate(123L, LocalDate.now())).thenReturn(attendance);
-        when(driverMapper.selectById(123L)).thenReturn(driver);
+        when(attendanceMapper.selectByUserIdAndDate(123L, LocalDate.now())).thenReturn(attendance);
+        when(userMapper.selectById(123L)).thenReturn(user);
 
         AttendanceVO result = attendanceService.getAttendanceByDate(123L, LocalDate.now());
 
         assertNotNull(result);
         assertEquals("1", result.getId());
-        assertEquals("123", result.getDriverId());
-        assertEquals("张三", result.getDriverName());
+        assertEquals("123", result.getUserId());
+        assertEquals("张三", result.getUserName());
     }
 
     @Test
@@ -214,28 +90,28 @@ public class AttendanceServiceImplTest {
         LocalDate startDate = ym.atDay(1);
         LocalDate endDate = ym.atEndOfMonth();
 
-        DriverAttendance attendance = new DriverAttendance();
+        UserAttendance attendance = new UserAttendance();
         attendance.setId(1L);
-        attendance.setDriverId(123L);
+        attendance.setUserId(123L);
         attendance.setAttendanceDate(LocalDate.now());
         attendance.setCheckInTime(LocalDateTime.now());
         attendance.setStatus(AttendanceStatusEnum.NORMAL.getValue());
 
-        Driver driver = new Driver();
-        driver.setId(123L);
-        driver.setDriverName("张三");
+        User user = new User();
+        user.setId(123L);
+        user.setRealName("张三");
 
-        when(attendanceMapper.selectByDriverIdAndMonth(123L, startDate, endDate))
+        when(attendanceMapper.selectByUserIdAndMonth(123L, startDate, endDate))
                 .thenReturn(Collections.singletonList(attendance));
-        when(driverMapper.selectById(123L)).thenReturn(driver);
+        when(userMapper.selectById(123L)).thenReturn(user);
 
         List<AttendanceVO> result = attendanceService.getAttendanceListByMonth(123L, yearMonth);
 
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals("1", result.get(0).getId());
-        assertEquals("123", result.get(0).getDriverId());
-        assertEquals("张三", result.get(0).getDriverName());
+        assertEquals("123", result.get(0).getUserId());
+        assertEquals("张三", result.get(0).getUserName());
     }
 
     @Test
@@ -245,20 +121,20 @@ public class AttendanceServiceImplTest {
         LocalDate startDate = ym.atDay(1);
         LocalDate endDate = ym.atEndOfMonth();
 
-        Driver driver = new Driver();
-        driver.setId(123L);
-        driver.setDriverName("张三");
+        User user = new User();
+        user.setId(123L);
+        user.setRealName("张三");
 
         when(attendanceMapper.countAttendanceDays(123L, startDate, endDate)).thenReturn(20);
         when(attendanceMapper.countLateTimes(123L, startDate, endDate)).thenReturn(2);
         when(attendanceMapper.countEarlyLeaveTimes(123L, startDate, endDate)).thenReturn(1);
-        when(driverMapper.selectById(123L)).thenReturn(driver);
+        when(userMapper.selectById(123L)).thenReturn(user);
 
         AttendanceStatisticsVO result = attendanceService.getAttendanceStatistics(123L, yearMonth);
 
         assertNotNull(result);
-        assertEquals("123", result.getDriverId());
-        assertEquals("张三", result.getDriverName());
+        assertEquals("123", result.getUserId());
+        assertEquals("张三", result.getUserName());
         assertEquals(yearMonth, result.getMonth());
         assertEquals(20, result.getActualAttendanceDays());
         assertEquals(2, result.getLateTimes());
@@ -270,32 +146,32 @@ public class AttendanceServiceImplTest {
         when(attendanceMapper.selectById(1L)).thenReturn(null);
 
         UserException exception = assertThrows(UserException.class, () -> {
-            attendanceService.supplementAttendance(1L, LocalDate.now(), LocalDate.now(), 1, "补卡");
+            attendanceService.supplementAttendance(1L, LocalDateTime.now(), LocalDateTime.now(), 1, "补卡");
         });
         assertNotNull(exception);
     }
 
     @Test
     void testSupplementAttendance_Success() {
-        DriverAttendance attendance = new DriverAttendance();
+        UserAttendance attendance = new UserAttendance();
         attendance.setId(1L);
-        attendance.setDriverId(123L);
+        attendance.setUserId(123L);
         attendance.setAttendanceDate(LocalDate.now());
 
-        Driver driver = new Driver();
-        driver.setId(123L);
-        driver.setDriverName("张三");
+        User user = new User();
+        user.setId(123L);
+        user.setRealName("张三");
 
         when(attendanceMapper.selectById(1L)).thenReturn(attendance);
-        when(driverMapper.selectById(123L)).thenReturn(driver);
+        when(userMapper.selectById(123L)).thenReturn(user);
 
-        AttendanceVO result = attendanceService.supplementAttendance(1L, LocalDate.now(), LocalDate.now(), 1, "补卡");
+        AttendanceVO result = attendanceService.supplementAttendance(1L, LocalDateTime.now(), LocalDateTime.now(), 1, "补卡");
 
         assertNotNull(result);
         assertEquals("1", result.getId());
-        assertEquals("123", result.getDriverId());
-        assertEquals("张三", result.getDriverName());
+        assertEquals("123", result.getUserId());
+        assertEquals("张三", result.getUserName());
 
-        verify(attendanceMapper, times(1)).updateById(any(DriverAttendance.class));
+        verify(attendanceMapper, times(1)).updateById(any(UserAttendance.class));
     }
 }

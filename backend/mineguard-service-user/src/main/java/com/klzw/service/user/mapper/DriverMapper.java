@@ -29,4 +29,14 @@ public interface DriverMapper extends BaseMapper<Driver> {
      */
     @Select("SELECT * FROM driver WHERE id_card = #{idCard} AND deleted = 0")
     Driver selectByIdCard(@Param("idCard") String idCard);
+
+    /**
+     * 检查用户是否具有指定角色
+     *
+     * @param userId 用户ID
+     * @param roleCode 角色编码
+     * @return 是否具有该角色
+     */
+    @Select("SELECT COUNT(*) > 0 FROM user_role ur JOIN role r ON ur.role_id = r.id WHERE ur.user_id = #{userId} AND r.role_code = #{roleCode}")
+    boolean hasRole(@Param("userId") Long userId, @Param("roleCode") String roleCode);
 }

@@ -4,7 +4,6 @@
 			<text class="navbar-title">我的任务</text>
 		</view>
 		
-		<!-- 出勤打卡区域 -->
 		<view class="attendance-section">
 			<view class="attendance-card">
 				<view class="attendance-header">
@@ -67,34 +66,54 @@
 		</scroll-view>
 		
 		<view class="content-area">
-			<view v-for="task in currentTasks" :key="task.id" class="task-card">
+			<view v-if="loading" class="loading-state">
+				<text class="loading-text">加载中...</text>
+			</view>
+			
+			<view v-else-if="currentTasks.length > 0" v-for="task in currentTasks" :key="task.id" class="task-card">
 				<view class="task-header">
 					<view class="task-info">
-						<text class="task-title">{{ task.title }}</text>
-						<text class="task-time">{{ task.time }}</text>
+						<text class="task-title">{{ task.startLocation }} → {{ task.endLocation }}</text>
+						<text class="task-time">计划时间: {{ formatDateTime(task.scheduledStartTime) }}</text>
 					</view>
-					<view :class="['status-badge', task.status]">
-						<text>{{ task.statusText }}</text>
+					<view :class="['status-badge', getTaskStatusClass(task.status)]">
+						<text>{{ getTaskStatusText(task.status) }}</text>
 					</view>
 				</view>
 				
 				<view class="task-desc">
-					<text>{{ task.desc }}</text>
+					<text>任务编号: {{ task.taskNo }}</text>
+					<text v-if="task.cargoWeight"> | 货物重量: {{ task.cargoWeight }}吨</text>
+				</view>
+				
+				<view class="task-meta" v-if="task.priority">
+					<text class="meta-label">优先级:</text>
+					<text :class="['priority-tag', getPriorityClass(task.priority)]">{{ task.priority }}</text>
 				</view>
 				
 				<view class="task-footer">
 					<view class="task-location">
-						<text class="icon">📍</text>
-						<text class="location-text">{{ task.location }}</text>
+						<text class="icon">🚗</text>
+						<text class="location-text">{{ task.vehicleNo || '待分配' }}</text>
 					</view>
-					<view class="task-action" @click="viewTask(task)">
-						<text>查看详情</text>
-						<text class="arrow">›</text>
+					<view class="task-actions">
+						<view v-if="task.status === 0" class="action-btn accept" @click="acceptTask(task)">
+							<text>接单</text>
+						</view>
+						<view v-else-if="task.status === 1" class="action-btn start" @click="startTask(task)">
+							<text>开始行程</text>
+						</view>
+						<view v-else-if="task.status === 2" class="action-btn complete" @click="completeTask(task)">
+							<text>完成任务</text>
+						</view>
+						<view v-else class="action-btn detail" @click="viewTask(task)">
+							<text>详情</text>
+						</view>
 					</view>
 				</view>
 			</view>
 			
-			<view v-if="currentTasks.length === 0" class="empty-state">
+			<view v-else class="empty-state">
 				<text class="empty-icon">📋</text>
 				<text class="empty-text">暂无任务</text>
 				<text class="empty-desc">等待调度系统派单</text>
@@ -108,54 +127,28 @@
 	import { onShow } from '@dcloudio/uni-app'
 	import { useUserStore } from '@/stores/user.uts'
 	import { checkInApi, checkOutApi, getAttendanceByDate } from '@/api/attendance.uts'
+	import { getPendingTasksByDriver, startTask as startTaskApi, completeTask as completeTaskApi } from '@/api/dispatch.uts'
+	import { request } from '@/utils/request'
 	import { toast } from '@/utils/toast.uts'
-	import type { AttendanceVO } from '@/types/user.uts'
+	import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 	
 	const userStore = useUserStore()
 	
 	const activeTab = ref(0)
-	const tabs = ['全部', '待接单', '进行中', '已完成']
+	const tabs = ['全部', '待接单', '已接单', '进行中', '已完成']
 	const attendanceInfo = ref<AttendanceVO | null>(null)
 	const submitting = ref(false)
+	const tasks = ref<DispatchTaskVO[]>([])
+	const loading = ref(false)
 	
 	const todayDate = computed(() => {
 		const now = new Date()
 		return `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`
 	})
 	
-	const tasks = ref([
-		{
-			id: 1,
-			title: '矿石运输任务',
-			time: '2026-02-20 08:00',
-			status: 'pending',
-			statusText: '待接单',
-			desc: '从A区运输矿石到B区仓库，预计运输时间2小时',
-			location: '矿区A - 矿区B'
-		},
-		{
-			id: 2,
-			title: '设备巡检任务',
-			time: '2026-02-20 10:00',
-			status: 'inProgress',
-			statusText: '进行中',
-			desc: '对3号采矿区设备进行安全巡检',
-			location: '3号采矿区'
-		},
-		{
-			id: 3,
-			title: '物资配送任务',
-			time: '2026-02-19 14:00',
-			status: 'completed',
-			statusText: '已完成',
-			desc: '配送安全防护用品到各作业点',
-			location: '仓库 - 各作业点'
-		}
-	])
-	
 	const currentTasks = computed(() => {
 		if (activeTab.value === 0) return tasks.value
-		const statusMap = ['all', 'pending', 'inProgress', 'completed']
+		const statusMap = [-1, 0, 1, 2, 3]
 		return tasks.value.filter(t => t.status === statusMap[activeTab.value])
 	})
 	
@@ -164,11 +157,35 @@
 			userStore.loadFromStorage()
 		}
 		loadTodayAttendance()
+		loadTasks()
 	})
 	
 	onShow(() => {
 		loadTodayAttendance()
+		loadTasks()
 	})
+	
+	async function loadTasks() {
+		const driverId = userStore.driverInfo.value?.id
+		if (!driverId) {
+			const uid = userStore.userInfo.value?.id
+			if (!uid) return
+		}
+		
+		loading.value = true
+		
+		try {
+			const driverIdNum = userStore.driverInfo.value?.id
+			if (driverIdNum) {
+				const data = await getPendingTasksByDriver(driverIdNum)
+				tasks.value = data || []
+			}
+		} catch (e) {
+			console.error('加载任务失败', e)
+		} finally {
+			loading.value = false
+		}
+	}
 	
 	async function loadTodayAttendance() {
 		const uid = userStore.userInfo.value?.id
@@ -189,11 +206,39 @@
 		return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 	}
 	
+	function formatDateTime(time: string | null): string {
+		if (!time) return '-'
+		const date = new Date(time)
+		return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+	}
+	
 	function getStatusClass(status: number): string {
 		if (status === 1) return 'normal'
 		if (status === 2) return 'late'
 		if (status === 3) return 'early'
 		return 'pending'
+	}
+	
+	function getTaskStatusClass(status: number): string {
+		if (status === 0) return 'pending'
+		if (status === 1) return 'accepted'
+		if (status === 2) return 'inProgress'
+		if (status === 3) return 'completed'
+		return 'cancelled'
+	}
+	
+	function getTaskStatusText(status: number): string {
+		if (status === 0) return '待接单'
+		if (status === 1) return '已接单'
+		if (status === 2) return '进行中'
+		if (status === 3) return '已完成'
+		return '已取消'
+	}
+	
+	function getPriorityClass(priority: string): string {
+		if (priority === 'high' || priority === '紧急') return 'high'
+		if (priority === 'medium' || priority === '普通') return 'medium'
+		return 'low'
 	}
 	
 	async function checkIn() {
@@ -246,9 +291,79 @@
 		}
 	}
 	
-	function viewTask(task: any) {
+	async function acceptTask(task: DispatchTaskVO) {
+		uni.showModal({
+			title: '确认接单',
+			content: `确定要接取该任务吗？\n${task.startLocation} → ${task.endLocation}`,
+			success: async (res) => {
+				if (res.confirm) {
+					try {
+						toast.loading('接单中...')
+						const result = await request({
+							url: `/api/dispatch/task/${task.id}/accept`,
+							method: 'POST'
+						})
+						if (result.code === 200) {
+							toast.success('接单成功')
+							
+							// 跳转到 Map 页面，拼接 URL 参数
+							const tripId = result.data?.tripId || ''
+							const vehicleId = task.vehicleId || ''
+							const driverId = task.executorId || ''
+							
+							uni.navigateTo({
+								url: `/pages/user/map/index?taskId=${task.id}&tripId=${tripId}&vehicleId=${vehicleId}&driverId=${driverId}&startLongitude=${task.startLongitude}&startLatitude=${task.startLatitude}&endLongitude=${task.endLongitude}&endLatitude=${task.endLatitude}&startLocation=${task.startLocation}&endLocation=${task.endLocation}&taskNo=${task.taskNo}`
+							})
+						}
+					} catch (e: any) {
+						toast.error(e.message || '接单失败')
+					}
+				}
+			}
+		})
+	}
+	
+	async function startTask(task: DispatchTaskVO) {
+		uni.showModal({
+			title: '开始行程',
+			content: `确定开始执行任务吗？\n${task.startLocation} → ${task.endLocation}`,
+			success: async (res) => {
+				if (res.confirm) {
+					try {
+						toast.loading('启动中...')
+						await startTaskApi(task.id)
+						toast.success('任务已开始')
+						loadTasks()
+					} catch (e: any) {
+						toast.error(e.message || '启动失败')
+					}
+				}
+			}
+		})
+	}
+	
+	async function completeTask(task: DispatchTaskVO) {
+		uni.showModal({
+			title: '完成任务',
+			content: `确定已完成该任务吗？\n${task.startLocation} → ${task.endLocation}`,
+			success: async (res) => {
+				if (res.confirm) {
+					try {
+						toast.loading('处理中...')
+						await completeTaskApi(task.id)
+						toast.success('任务已完成')
+						loadTasks()
+					} catch (e: any) {
+						toast.error(e.message || '操作失败')
+					}
+				}
+			}
+		})
+	}
+	
+	function viewTask(task: DispatchTaskVO) {
 		uni.showToast({
-			title: `查看任务: ${task.title}`,
+			title: `任务: ${task.taskNo}`,
 			icon: 'none'
 		})
 	}
@@ -458,6 +573,18 @@
 		padding: 0 30rpx 30rpx;
 	}
 	
+	.loading-state {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 100rpx 0;
+	}
+	
+	.loading-text {
+		font-size: 28rpx;
+		color: #8F959E;
+	}
+	
 	.task-card {
 		background-color: #fff;
 		border-radius: 20rpx;
@@ -505,6 +632,14 @@
 		color: #FF9500;
 	}
 	
+	.task-card .status-badge.accepted {
+		background-color: #E6F4FF;
+	}
+	
+	.task-card .status-badge.accepted text {
+		color: #007AFF;
+	}
+	
 	.task-card .status-badge.inProgress {
 		background-color: #E6F4FF;
 	}
@@ -522,13 +657,47 @@
 	}
 	
 	.task-desc {
-		margin-bottom: 24rpx;
+		margin-bottom: 16rpx;
 	}
 	
 	.task-desc text {
 		font-size: 26rpx;
 		color: #5A5F6B;
 		line-height: 1.6;
+	}
+	
+	.task-meta {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 12rpx;
+		margin-bottom: 16rpx;
+	}
+	
+	.meta-label {
+		font-size: 24rpx;
+		color: #8F959E;
+	}
+	
+	.priority-tag {
+		padding: 4rpx 16rpx;
+		border-radius: 12rpx;
+		font-size: 22rpx;
+	}
+	
+	.priority-tag.high {
+		background-color: #FFF1F0;
+		color: #FF3B30;
+	}
+	
+	.priority-tag.medium {
+		background-color: #FFF7E6;
+		color: #FF9500;
+	}
+	
+	.priority-tag.low {
+		background-color: #F0FFF4;
+		color: #34C759;
 	}
 	
 	.task-footer {
@@ -556,21 +725,41 @@
 		color: #8F959E;
 	}
 	
-	.task-action {
+	.task-actions {
 		display: flex;
 		flex-direction: row;
-		align-items: center;
-		gap: 4rpx;
+		gap: 16rpx;
 	}
 	
-	.task-action text {
+	.action-btn {
+		padding: 12rpx 32rpx;
+		border-radius: 20rpx;
+	}
+	
+	.action-btn text {
 		font-size: 26rpx;
-		color: #34C759;
+		font-weight: 500;
+		color: #fff;
 	}
 	
-	.task-action .arrow {
-		font-size: 32rpx;
-		font-weight: 500;
+	.action-btn.accept {
+		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+	}
+	
+	.action-btn.start {
+		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+	}
+	
+	.action-btn.complete {
+		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+	}
+	
+	.action-btn.detail {
+		background-color: #F7F8FA;
+	}
+	
+	.action-btn.detail text {
+		color: #2c3e50;
 	}
 	
 	.empty-state {

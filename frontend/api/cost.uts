@@ -1,0 +1,222 @@
+import { http } from '@/utils/request.uts'
+
+export interface CostDetailVO {
+  id: number
+  costNo: string
+  costType: number
+  costTypeName: string
+  costName: string
+  amount: number
+  vehicleId: number | null
+  vehicleNo: string | null
+  tripId: number | null
+  tripNo: string | null
+  userId: number | null
+  userName: string | null
+  costDate: string
+  paymentMethod: string | null
+  invoiceNo: string | null
+  description: string | null
+  createTime: string
+}
+
+export interface CostDetailDTO {
+  id?: number
+  costType: number
+  costName: string
+  amount: number
+  vehicleId?: number
+  tripId?: number
+  userId?: number
+  costDate: string
+  paymentMethod?: string
+  invoiceNo?: string
+  description?: string
+  remark?: string
+}
+
+export interface CostStatisticsVO {
+  startDate: string
+  endDate: string
+  totalAmount: number
+  recordCount: number
+  typeAmountMap: Record<string, number>
+  typeNames: Record<string, string>
+  fuelCost: number
+  maintenanceCost: number
+  laborCost: number
+  insuranceCost: number
+  depreciationCost: number
+  managementCost: number
+  otherCost: number
+}
+
+export interface SalaryConfigVO {
+  id: number
+  roleCode: string
+  roleName: string
+  baseSalary: number
+  dailySalary: number
+  hourlySalary: number
+  overtimeRate: number
+  performanceBonus: number
+  status: number
+  statusName: string
+  effectiveDate: string
+  expiryDate: string
+  createTime: string
+}
+
+export interface SalaryConfigDTO {
+  id?: number
+  roleCode: string
+  roleName: string
+  baseSalary: number
+  dailySalary: number
+  hourlySalary: number
+  overtimeRate: number
+  performanceBonus: number
+  status: number
+  effectiveDate: string
+  expiryDate: string
+  remark?: string
+}
+
+export interface CostBudgetVO {
+  id: number
+  budgetNo: string
+  budgetName: string
+  budgetType: number
+  budgetTypeName: string
+  budgetYear: number
+  budgetMonth: number | null
+  budgetQuarter: number | null
+  fuelBudget: number
+  maintenanceBudget: number
+  laborBudget: number
+  insuranceBudget: number
+  depreciationBudget: number
+  managementBudget: number
+  otherBudget: number
+  totalBudget: number
+  status: number
+  statusName: string
+  usedAmount: number
+  remainingAmount: number
+  createTime: string
+}
+
+export interface CostBudgetDTO {
+  id?: number
+  budgetName: string
+  budgetType: number
+  budgetYear: number
+  budgetMonth?: number
+  budgetQuarter?: number
+  fuelBudget: number
+  maintenanceBudget: number
+  laborBudget: number
+  insuranceBudget: number
+  depreciationBudget: number
+  managementBudget: number
+  otherBudget: number
+  remark?: string
+}
+
+export const costApi = {
+  getCostDetailList: (params: any): Promise<CostDetailVO[] | null> => {
+    return http.get<CostDetailVO[]>('/api/cost/detail/list', params)
+  },
+
+  getCostDetail: (id: number): Promise<CostDetailVO | null> => {
+    return http.get<CostDetailVO>(`/api/cost/detail/${id}`)
+  },
+
+  addCostDetail: (data: CostDetailDTO): Promise<CostDetailVO | null> => {
+    return http.post<CostDetailVO>('/api/cost/detail', data)
+  },
+
+  updateCostDetail: (data: CostDetailDTO): Promise<CostDetailVO | null> => {
+    return http.put<CostDetailVO>('/api/cost/detail', data)
+  },
+
+  deleteCostDetail: (id: number): Promise<void | null> => {
+    return http.delete<void>(`/api/cost/detail/${id}`)
+  },
+
+  getCostStatistics: (params: any): Promise<CostStatisticsVO | null> => {
+    return http.get<CostStatisticsVO>('/api/cost/statistics', params)
+  },
+
+  getSalaryConfigList: (): Promise<SalaryConfigVO[] | null> => {
+    return http.get<SalaryConfigVO[]>('/api/cost/salary-config/list')
+  },
+
+  getSalaryConfig: (id: number): Promise<SalaryConfigVO | null> => {
+    return http.get<SalaryConfigVO>(`/api/cost/salary-config/${id}`)
+  },
+
+  addSalaryConfig: (data: SalaryConfigDTO): Promise<SalaryConfigVO | null> => {
+    return http.post<SalaryConfigVO>('/api/cost/salary-config', data)
+  },
+
+  updateSalaryConfig: (data: SalaryConfigDTO): Promise<SalaryConfigVO | null> => {
+    return http.put<SalaryConfigVO>('/api/cost/salary-config', data)
+  },
+
+  deleteSalaryConfig: (id: number): Promise<void | null> => {
+    return http.delete<void>(`/api/cost/salary-config/${id}`)
+  },
+
+  getBudgetList: (params: any): Promise<CostBudgetVO[] | null> => {
+    return http.get<CostBudgetVO[]>('/api/cost/budget/list', params)
+  },
+
+  getBudget: (id: number): Promise<CostBudgetVO | null> => {
+    return http.get<CostBudgetVO>(`/api/cost/budget/${id}`)
+  },
+
+  addBudget: (data: CostBudgetDTO): Promise<CostBudgetVO | null> => {
+    return http.post<CostBudgetVO>('/api/cost/budget', data)
+  },
+
+  updateBudget: (data: CostBudgetDTO): Promise<CostBudgetVO | null> => {
+    return http.put<CostBudgetVO>('/api/cost/budget', data)
+  },
+
+  deleteBudget: (id: number): Promise<void | null> => {
+    return http.delete<void>(`/api/cost/budget/${id}`)
+  },
+
+  checkBudgetUsage: (id: number): Promise<any | null> => {
+    return http.get<any>(`/api/cost/budget/${id}/usage`)
+  },
+
+  getBudgetAlerts: (): Promise<any[] | null> => {
+    return http.get<any[]>('/api/cost/budget/alerts')
+  },
+
+  getCostReport: (startDate: string, endDate: string): Promise<any | null> => {
+    return http.get<any>('/api/cost/report', { startDate, endDate })
+  },
+
+  getCostTrend: (startDate: string, endDate: string, granularity: string): Promise<any | null> => {
+    return http.get<any>('/api/cost/trend', { startDate, endDate, granularity })
+  },
+
+  getEnergyAnalysis: (startDate: string, endDate: string): Promise<any | null> => {
+    return http.get<any>('/api/cost/analysis/energy', { startDate, endDate })
+  },
+
+  getUtilizationAnalysis: (startDate: string, endDate: string): Promise<any | null> => {
+    return http.get<any>('/api/cost/analysis/utilization', { startDate, endDate })
+  },
+
+  getIdleRateAnalysis: (startDate: string, endDate: string): Promise<any | null> => {
+    return http.get<any>('/api/cost/analysis/idle-rate', { startDate, endDate })
+  },
+
+  getOverallCostAnalysis: (startDate: string, endDate: string): Promise<any | null> => {
+    return http.get<any>('/api/cost/analysis/overall', { startDate, endDate })
+  }
+}

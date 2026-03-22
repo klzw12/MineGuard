@@ -1,19 +1,17 @@
 package com.klzw.service.warning.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.klzw.common.database.domain.BaseEntity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @TableName("warning_record")
-public class WarningRecord {
-
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+public class WarningRecord extends BaseEntity {
 
     private String warningNo;
 
@@ -46,8 +44,4 @@ public class WarningRecord {
     private LocalDateTime handleTime;
 
     private String handleResult;
-
-    private LocalDateTime createTime;
-
-    private LocalDateTime updateTime;
 }

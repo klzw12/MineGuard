@@ -7,8 +7,10 @@ import com.klzw.common.auth.util.PasswordUtils;
 import com.klzw.common.core.enums.UserStatusEnum;
 import com.klzw.common.file.service.OcrService;
 import com.klzw.common.file.service.StorageService;
+import com.klzw.common.file.util.ImageUtils;
 import com.klzw.common.redis.service.RedisCacheService;
 import com.klzw.service.user.dto.AdminVerifyDTO;
+import com.klzw.service.user.dto.IdCardVerifyDTO;
 import com.klzw.service.user.dto.RefreshTokenDTO;
 import com.klzw.service.user.dto.UserLoginDTO;
 import com.klzw.service.user.dto.UserRegisterDTO;
@@ -21,6 +23,7 @@ import com.klzw.service.user.constant.UserResultCode;
 import com.klzw.service.user.mapper.RoleMapper;
 import com.klzw.service.user.mapper.UserMapper;
 import com.klzw.service.user.service.AuthService;
+import com.klzw.service.user.service.QualificationService;
 import com.klzw.service.user.service.UserService;
 import com.klzw.service.user.service.sms.SmsService;
 import com.klzw.service.user.vo.CaptchaVO;
@@ -35,9 +38,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.util.Base64;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -53,10 +54,9 @@ public class AuthServiceImpl implements AuthService {
     private final UserMapper userMapper;
     private final PasswordUtils passwordUtils;
     private final JwtUtils jwtUtils;
-    private final RedisCacheService redisCacheService;
     private final StorageService storageService;
-    private final OcrService ocrService;
     private final SmsService smsService;
+    private final QualificationService qualificationService;
 
     @Override
     public UserVO register(UserRegisterDTO dto) {
@@ -72,7 +72,7 @@ public class AuthServiceImpl implements AuthService {
 
         boolean smsVerified = smsService.verifySmsCode(dto.getPhone(), dto.getSmsCode());
         if (!smsVerified) {
-            throw new UserException(UserResultCode.SMS_VERIFY_FAILED, "短信验证码错误或已过期");
+            throw new UserException(UserResultCode.SMS_VERIFY_FAILED, "短信验证码错误");
         }
 
         User user = new User();
@@ -216,7 +216,7 @@ public class AuthServiceImpl implements AuthService {
     public void resetPasswordByPhone(ResetPasswordDTO dto) {
         boolean smsVerified = smsService.verifySmsCode(dto.getPhone(), dto.getSmsCode());
         if (!smsVerified) {
-            throw new UserException(UserResultCode.SMS_VERIFY_FAILED, "短信验证码错误或已过期");
+            throw new UserException(UserResultCode.SMS_VERIFY_FAILED, "短信验证码错误");
         }
 
         User user = userService.getByPhone(dto.getPhone());
@@ -233,7 +233,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public UserVO verifyAdmin(AdminVerifyDTO dto) {
-        log.info("管理员认证，用户ID：{}", dto.getUserId());
+        log.info("管理员认证，用户 ID：{}", dto.getUserId());
         
         Long userId = Long.parseLong(dto.getUserId());
         User user = userMapper.selectById(userId);
@@ -245,67 +245,24 @@ public class AuthServiceImpl implements AuthService {
             throw new UserException(UserResultCode.PARAM_ERROR, "非管理员用户无法进行管理员认证");
         }
         
-        // 先识别身份证，再上传到OSS
-        byte[] frontImageBytes = decodeBase64Image(dto.getIdCardFrontBase64());
-        String ocrResult = ocrService.recognizeIdCard(frontImageBytes);
-        Map<String, String> idCardInfo = ocrService.parseIdCard(ocrResult);
+        // 调用普通实名认证方法处理身份证验证
+        IdCardVerifyDTO idCardVerifyDTO = new IdCardVerifyDTO();
+        idCardVerifyDTO.setUserId(userId);
+        idCardVerifyDTO.setRealName(dto.getRealName());
+        idCardVerifyDTO.setIdCard(dto.getIdCard());
+        idCardVerifyDTO.setIdCardFrontBase64(dto.getIdCardFrontBase64());
+        idCardVerifyDTO.setIdCardBackBase64(dto.getIdCardBackBase64());
         
-        if (idCardInfo == null || idCardInfo.isEmpty()) {
-            throw new UserException(UserResultCode.ID_CARD_INVALID, "身份证识别失败");
-        }
+        qualificationService.verifyIdCard(idCardVerifyDTO);
         
-        String actualName = idCardInfo.get("name");
-        String actualIdCard = idCardInfo.get("idNumber");
-        if (actualIdCard == null || actualIdCard.isEmpty()) {
-            throw new UserException(UserResultCode.ID_CARD_INVALID, "身份证识别失败：无法识别身份证号");
-        }
-        
-        if (actualName == null || actualName.isEmpty()) {
-            throw new UserException(UserResultCode.ID_CARD_INVALID, "身份证识别失败：无法识别姓名");
-        }
-        
-        // 验证姓名：如果用户已有姓名，验证是否一致
-        if (user.getRealName() != null && !user.getRealName().isEmpty()) {
-            if (!actualName.equals(user.getRealName())) {
-                throw new UserException(UserResultCode.ID_CARD_INVALID, "身份证姓名与账号姓名不一致");
-            }
-        } else if (dto.getRealName() != null && !dto.getRealName().isEmpty()) {
-            // 如果用户没有姓名但传入了姓名，验证是否一致
-            if (!actualName.equals(dto.getRealName())) {
-                throw new UserException(UserResultCode.ID_CARD_INVALID, "身份证姓名与提交姓名不一致");
-            }
-            user.setRealName(dto.getRealName());
-        } else {
-            // 使用 OCR 识别的姓名
-            user.setRealName(actualName);
-        }
-        
-        // 验证身份证号：如果用户传入了身份证号，验证是否一致
-        if (dto.getIdCard() != null && !dto.getIdCard().isEmpty()) {
-            if (!actualIdCard.equals(dto.getIdCard())) {
-                throw new UserException(UserResultCode.ID_CARD_INVALID, "身份证号与提交的不一致");
-            }
-        }
-        
-        // OCR识别成功后，上传图片到OSS
-        String idCardFrontUrl = uploadImageFromBytes(frontImageBytes, "admin_verify");
-        String idCardBackUrl = null;
-        if (dto.getIdCardBackBase64() != null && !dto.getIdCardBackBase64().isEmpty()) {
-            byte[] backImageBytes = decodeBase64Image(dto.getIdCardBackBase64());
-            idCardBackUrl = uploadImageFromBytes(backImageBytes, "admin_verify");
-        }
-        
-        user.setIdCard(actualIdCard);
-        user.setIdCardFrontUrl(idCardFrontUrl);
-        if (idCardBackUrl != null) {
-            user.setIdCardBackUrl(idCardBackUrl);
-        }
+        // 管理员特殊处理：确保状态为启用
+        user = userMapper.selectById(userId);
         user.setStatus(UserStatusEnum.ENABLED.getValue());
         userMapper.updateById(user);
         
         userService.clearUserCache(user.getId());
         
-        log.info("管理员认证成功，用户ID：{}", dto.getUserId());
+        log.info("管理员认证成功，用户 ID：{}", dto.getUserId());
         
         UserVO userVO = userService.getUserVOById(user.getId());
         String accessToken = jwtUtils.generateToken(user.getId(), user.getUsername());
@@ -317,36 +274,8 @@ public class AuthServiceImpl implements AuthService {
         return userVO;
     }
     
-    private String uploadImage(String base64Image, String folder) {
-        if (base64Image == null || base64Image.isEmpty()) {
-            throw new UserException(UserResultCode.PARAM_ERROR, "图片不能为空");
-        }
-        
-        try {
-            byte[] imageBytes = decodeBase64Image(base64Image);
-            return uploadImageFromBytes(imageBytes, folder);
-            
-        } catch (Exception e) {
-            log.error("图片上传失败", e);
-            throw new UserException(UserResultCode.QUALIFICATION_VERIFY_FAILED, "图片上传失败");
-        }
-    }
-    
     private byte[] decodeBase64Image(String base64Image) {
-        if (base64Image == null || base64Image.isEmpty()) {
-            throw new UserException(UserResultCode.PARAM_ERROR, "图片不能为空");
-        }
-        
-        try {
-            String base64Data = base64Image;
-            if (base64Image.contains(",")) {
-                base64Data = base64Image.split(",")[1];
-            }
-            return Base64.getDecoder().decode(base64Data);
-        } catch (Exception e) {
-            log.error("Base64解码失败", e);
-            throw new UserException(UserResultCode.PARAM_ERROR, "图片格式错误");
-        }
+        return ImageUtils.decodeBase64Image(base64Image);
     }
     
     private String uploadImageFromBytes(byte[] imageBytes, String folder) {

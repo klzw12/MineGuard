@@ -101,6 +101,7 @@ CREATE TABLE IF NOT EXISTS `role_permission` (
 
 -- =====================================================
 -- 5. 司机信息表
+-- 说明：司机信息通过实名认证+资格认证被动创建，不可主动创建
 -- =====================================================
 CREATE TABLE IF NOT EXISTS `driver` (
     `id` BIGINT PRIMARY KEY COMMENT '主键ID',
@@ -116,44 +117,79 @@ CREATE TABLE IF NOT EXISTS `driver` (
     `address` VARCHAR(255) COMMENT '住址',
     `birth_date` VARCHAR(20) COMMENT '出生日期',
     `first_issue_date` VARCHAR(20) COMMENT '初次领证日期',
+    `driving_years` INTEGER COMMENT '驾龄（年）',
     `valid_period` VARCHAR(50) COMMENT '有效期限',
     `license_number` VARCHAR(50) COMMENT '驾驶证号',
     `status` TINYINT DEFAULT 1 COMMENT '状态：0-离职，1-在职',
+    `score` INT DEFAULT 10 COMMENT '司机评分：默认10分，最低10分，满分100分',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `create_by` BIGINT COMMENT '创建人ID',
     `update_by` BIGINT COMMENT '更新人ID',
     `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
     `remark` VARCHAR(500) COMMENT '备注',
-    INDEX `idx_user_id` (`user_id`),
+    UNIQUE KEY `uk_user_id` (`user_id`),
     INDEX `idx_status` (`status`),
+    INDEX `idx_score` (`score`),
     INDEX `idx_belonging_team` (`belonging_team`),
     INDEX `idx_deleted` (`deleted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='司机信息表';
 
 -- =====================================================
--- 6. 司机出勤记录表
+-- 5.1 司机常用车辆关系表
+-- 说明：记录司机与车辆的常用关系，一个司机可以有多个常用车辆
 -- =====================================================
-CREATE TABLE IF NOT EXISTS `driver_attendance` (
+CREATE TABLE IF NOT EXISTS `driver_vehicle` (
     `id` BIGINT PRIMARY KEY COMMENT '主键ID',
     `driver_id` BIGINT NOT NULL COMMENT '司机ID',
+    `vehicle_id` BIGINT NOT NULL COMMENT '车辆ID',
+    `use_count` INT DEFAULT 0 COMMENT '使用次数',
+    `last_use_time` DATETIME COMMENT '最后使用时间',
+    `is_default` TINYINT DEFAULT 0 COMMENT '是否默认车辆：0-否，1-是',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by` BIGINT COMMENT '创建人ID',
+    `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+    `remark` VARCHAR(500) COMMENT '备注',
+    UNIQUE KEY `uk_driver_vehicle` (`driver_id`, `vehicle_id`),
+    INDEX `idx_driver_id` (`driver_id`),
+    INDEX `idx_vehicle_id` (`vehicle_id`),
+    INDEX `idx_is_default` (`is_default`),
+    INDEX `idx_deleted` (`deleted`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='司机常用车辆关系表';
+
+-- =====================================================
+-- 6. 用户出勤记录表
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `user_attendance` (
+    `id` BIGINT PRIMARY KEY COMMENT '主键ID',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
     `attendance_date` DATE NOT NULL COMMENT '出勤日期',
     `check_in_time` DATETIME COMMENT '上班时间',
     `check_out_time` DATETIME COMMENT '下班时间',
-    `status` TINYINT DEFAULT 1 COMMENT '出勤状态：1-正常，2-迟到，3-早退，4-缺勤',
+    `check_in_latitude` DOUBLE COMMENT '上班打卡纬度',
+    `check_in_longitude` DOUBLE COMMENT '上班打卡经度',
+    `check_in_address` VARCHAR(255) COMMENT '上班打卡地址',
+    `check_out_latitude` DOUBLE COMMENT '下班打卡纬度',
+    `check_out_longitude` DOUBLE COMMENT '下班打卡经度',
+    `check_out_address` VARCHAR(255) COMMENT '下班打卡地址',
+    `status` TINYINT DEFAULT 1 COMMENT '出勤状态：1-正常，2-迟到，3-早退，4-缺勤，5-请假',
     `late_minutes` INT DEFAULT 0 COMMENT '迟到分钟数',
     `early_leave_minutes` INT DEFAULT 0 COMMENT '早退分钟数',
+    `leave_type` TINYINT COMMENT '请假类型：1-事假，2-病假，3-年假，4-调休',
+    `leave_start_time` DATETIME COMMENT '请假开始时间',
+    `leave_end_time` DATETIME COMMENT '请假结束时间',
     `remark` VARCHAR(255) COMMENT '备注',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `create_by` BIGINT COMMENT '创建人ID',
     `update_by` BIGINT COMMENT '更新人ID',
     `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
-    INDEX `idx_driver_id` (`driver_id`),
+    INDEX `idx_user_id` (`user_id`),
     INDEX `idx_attendance_date` (`attendance_date`),
     INDEX `idx_status` (`status`),
     INDEX `idx_deleted` (`deleted`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='司机出勤记录表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户出勤记录表';
 
 -- =====================================================
 -- 7. 安全员信息表
@@ -270,6 +306,34 @@ CREATE TABLE IF NOT EXISTS `user_appeal` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户申诉表';
 
 -- =====================================================
+-- 11. 用户通知表
+-- 说明：存储用户的系统通知消息
+-- =====================================================
+CREATE TABLE IF NOT EXISTS `user_notification` (
+    `id` BIGINT PRIMARY KEY COMMENT '主键ID',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `title` VARCHAR(100) NOT NULL COMMENT '通知标题',
+    `content` TEXT COMMENT '通知内容',
+    `type` INT COMMENT '通知类型：1-系统通知，2-预警通知，3-调度通知，4-审批通知',
+    `business_id` BIGINT COMMENT '业务ID（如行程ID、车辆ID等）',
+    `business_type` VARCHAR(50) COMMENT '业务类型：TRIP-行程，VEHICLE-车辆，DRIVER-司机，DISPATCH-调度',
+    `is_read` TINYINT DEFAULT 0 COMMENT '是否已读：0-未读，1-已读',
+    `read_time` DATETIME COMMENT '阅读时间',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by` BIGINT COMMENT '创建人ID',
+    `update_by` BIGINT COMMENT '更新人ID',
+    `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
+    `remark` VARCHAR(500) COMMENT '备注',
+    INDEX `idx_user_id` (`user_id`),
+    INDEX `idx_type` (`type`),
+    INDEX `idx_business` (`business_id`, `business_type`),
+    INDEX `idx_is_read` (`is_read`),
+    INDEX `idx_create_time` (`create_time`),
+    INDEX `idx_deleted` (`deleted`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户通知表';
+
+-- =====================================================
 -- 初始化数据
 -- =====================================================
 
@@ -287,7 +351,7 @@ INSERT INTO `role` (`id`, `role_name`, `role_code`, `description`) VALUES
 -- 推荐使用系统提供的密码设置功能，确保与系统加密逻辑一致
 
 -- =====================================================
--- 11. 站内消息表（MongoDB）
+-- 12. 站内消息表（MongoDB）
 -- =====================================================
 -- 消息存储在MongoDB中，集合名称：messages
 -- 字段说明：

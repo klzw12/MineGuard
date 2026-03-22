@@ -3,6 +3,8 @@ package com.klzw.common.core.util;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -108,6 +110,43 @@ public class HttpUtils {
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
                 return reader.lines().collect(Collectors.joining("\n"));
+            }
+        } else {
+            throw new Exception("HTTP POST 请求失败，状态码: " + responseCode);
+        }
+    }
+
+    /**
+     * 发送 JSON POST 请求并返回字节数组
+     * @param urlStr 请求 URL
+     * @param jsonData JSON 数据
+     * @return 响应字节数组
+     * @throws Exception 异常
+     */
+    public static byte[] postJsonForBytes(String urlStr, String jsonData) throws Exception {
+        URI uri = new URI(urlStr);
+        HttpURLConnection connection = (HttpURLConnection) uri.toURL().openConnection();
+        connection.setRequestMethod("POST");
+        connection.setConnectTimeout(10000);
+        connection.setReadTimeout(30000);
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/json");
+
+        try (OutputStream os = connection.getOutputStream()) {
+            os.write(jsonData.getBytes(StandardCharsets.UTF_8));
+            os.flush();
+        }
+
+        int responseCode = connection.getResponseCode();
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            try (InputStream is = connection.getInputStream();
+                 ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = is.read(buffer)) != -1) {
+                    baos.write(buffer, 0, bytesRead);
+                }
+                return baos.toByteArray();
             }
         } else {
             throw new Exception("HTTP POST 请求失败，状态码: " + responseCode);

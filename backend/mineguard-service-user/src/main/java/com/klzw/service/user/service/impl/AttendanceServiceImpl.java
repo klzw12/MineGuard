@@ -1,15 +1,18 @@
 package com.klzw.service.user.service.impl;
 
+import com.klzw.common.core.client.DispatchClient;
 import com.klzw.service.user.config.AttendanceProperties;
 import com.klzw.service.user.dto.CheckInDTO;
 import com.klzw.service.user.dto.CheckOutDTO;
 import com.klzw.service.user.entity.Driver;
-import com.klzw.service.user.entity.DriverAttendance;
+import com.klzw.service.user.entity.User;
+import com.klzw.service.user.entity.UserAttendance;
 import com.klzw.service.user.enums.AttendanceStatusEnum;
 import com.klzw.service.user.exception.UserException;
 import com.klzw.service.user.constant.UserResultCode;
-import com.klzw.service.user.mapper.DriverAttendanceMapper;
 import com.klzw.service.user.mapper.DriverMapper;
+import com.klzw.service.user.mapper.UserAttendanceMapper;
+import com.klzw.service.user.mapper.UserMapper;
 import com.klzw.service.user.service.AttendanceService;
 import com.klzw.service.user.vo.AttendanceStatisticsVO;
 import com.klzw.service.user.vo.AttendanceVO;
@@ -26,49 +29,45 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * 考勤服务实现类
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AttendanceServiceImpl implements AttendanceService {
 
-    private final DriverAttendanceMapper attendanceMapper;
-    private final DriverMapper driverMapper;
+    private final UserAttendanceMapper attendanceMapper;
+    private final UserMapper userMapper;
     private final AttendanceProperties attendanceProperties;
+    private final DriverMapper driverMapper;
+    private final DispatchClient dispatchClient;
 
     @Override
     @Transactional
     public AttendanceVO checkIn(CheckInDTO dto) {
-        Long userId = dto.getUserId();
-        log.info("司机上班打卡，用户ID：{}", userId);
+        Long userId = getCurrentUserId();
+        log.info("用户上班打卡，用户ID：{}", userId);
 
-        // 验证司机是否存在
-        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
-        if (driver == null) {
-            throw new UserException(UserResultCode.USER_NOT_FOUND, "司机不存在");
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserException(UserResultCode.USER_NOT_FOUND, "用户不存在");
         }
 
         LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
 
-        // 查询今天是否已有出勤记录
-        DriverAttendance attendance = attendanceMapper.selectByDriverIdAndDate(driver.getId(), today);
+        UserAttendance attendance = attendanceMapper.selectByUserIdAndDate(userId, today);
 
         if (attendance == null) {
-            // 创建新的出勤记录
-            attendance = new DriverAttendance();
-            // 使用雪花算法生成Long类型的id
-            attendance.setDriverId(driver.getId());
+            attendance = new UserAttendance();
+            attendance.setUserId(userId);
             attendance.setAttendanceDate(today);
             attendance.setCheckInTime(now);
+            attendance.setCheckInLatitude(dto.getLatitude());
+            attendance.setCheckInLongitude(dto.getLongitude());
+            attendance.setCheckInAddress(dto.getAddress());
             attendance.setCreateTime(now);
 
-            // 判断迟到状态
             LocalDateTime workStart = LocalDateTime.of(today, attendanceProperties.getWorkStartTime());
             if (now.isAfter(workStart.plusMinutes(attendanceProperties.getLateThreshold()))) {
-                // 迟到超过阈值
                 attendance.setStatus(AttendanceStatusEnum.LATE.getValue());
                 attendance.setLateMinutes((int) ChronoUnit.MINUTES.between(workStart, now));
             } else {
@@ -78,10 +77,11 @@ public class AttendanceServiceImpl implements AttendanceService {
             attendance.setRemark(dto.getRemark());
             attendanceMapper.insert(attendance);
         } else {
-            // 更新上班时间（重复打卡）
             attendance.setCheckInTime(now);
+            attendance.setCheckInLatitude(dto.getLatitude());
+            attendance.setCheckInLongitude(dto.getLongitude());
+            attendance.setCheckInAddress(dto.getAddress());
             
-            // 重新判断迟到状态
             LocalDateTime workStart = LocalDateTime.of(today, attendanceProperties.getWorkStartTime());
             if (now.isAfter(workStart.plusMinutes(attendanceProperties.getLateThreshold()))) {
                 attendance.setStatus(AttendanceStatusEnum.LATE.getValue());
@@ -97,49 +97,47 @@ public class AttendanceServiceImpl implements AttendanceService {
             attendanceMapper.updateById(attendance);
         }
 
-        log.info("司机上班打卡成功，用户ID：{}，司机ID：{}，状态：{}", userId, driver.getId(), attendance.getStatus());
-        return convertToVO(attendance, driver.getDriverName());
+        log.info("用户上班打卡成功，用户ID：{}，状态：{}", userId, attendance.getStatus());
+        return convertToVO(attendance, user.getRealName());
     }
 
     @Override
     @Transactional
     public AttendanceVO checkOut(CheckOutDTO dto) {
-        Long userId = dto.getUserId();
-        log.info("司机下班打卡，用户ID：{}", userId);
+        Long userId = getCurrentUserId();
+        log.info("用户下班打卡，用户ID：{}", userId);
 
-        // 验证司机是否存在
-        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
-        if (driver == null) {
-            throw new UserException(UserResultCode.USER_NOT_FOUND, "司机不存在");
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserException(UserResultCode.USER_NOT_FOUND, "用户不存在");
         }
 
         LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
 
-        // 查询今天的出勤记录
-        DriverAttendance attendance = attendanceMapper.selectByDriverIdAndDate(driver.getId(), today);
+        UserAttendance attendance = attendanceMapper.selectByUserIdAndDate(userId, today);
 
         if (attendance == null) {
-            // 没有上班记录，创建新的出勤记录（异常打卡）
-            attendance = new DriverAttendance();
-            // 使用雪花算法生成Long类型的id
-            attendance.setDriverId(driver.getId());
+            attendance = new UserAttendance();
+            attendance.setUserId(userId);
             attendance.setAttendanceDate(today);
             attendance.setCheckOutTime(now);
+            attendance.setCheckOutLatitude(dto.getLatitude());
+            attendance.setCheckOutLongitude(dto.getLongitude());
+            attendance.setCheckOutAddress(dto.getAddress());
             attendance.setStatus(AttendanceStatusEnum.ABSENT.getValue());
             attendance.setRemark("未打上班卡，直接打下班卡");
             attendance.setCreateTime(now);
             attendanceMapper.insert(attendance);
         } else {
-            // 更新下班时间
             attendance.setCheckOutTime(now);
+            attendance.setCheckOutLatitude(dto.getLatitude());
+            attendance.setCheckOutLongitude(dto.getLongitude());
+            attendance.setCheckOutAddress(dto.getAddress());
 
-            // 判断早退状态
             LocalDateTime workEnd = LocalDateTime.of(today, attendanceProperties.getWorkEndTime());
             if (now.isBefore(workEnd.minusMinutes(attendanceProperties.getEarlyLeaveThreshold()))) {
-                // 早退超过阈值
                 attendance.setEarlyLeaveMinutes((int) ChronoUnit.MINUTES.between(now, workEnd));
-                // 如果之前是正常状态，改为早退
                 if (attendance.getStatus() == AttendanceStatusEnum.NORMAL.getValue()) {
                     attendance.setStatus(AttendanceStatusEnum.EARLY_LEAVE.getValue());
                 }
@@ -151,90 +149,81 @@ public class AttendanceServiceImpl implements AttendanceService {
             attendanceMapper.updateById(attendance);
         }
 
-        log.info("司机下班打卡成功，用户ID：{}，司机ID：{}，状态：{}", userId, driver.getId(), attendance.getStatus());
-        return convertToVO(attendance, driver.getDriverName());
+        log.info("用户下班打卡成功，用户ID：{}，状态：{}", userId, attendance.getStatus());
+        return convertToVO(attendance, user.getRealName());
     }
 
     @Override
-    public AttendanceVO getAttendanceByDate(Long driverId, LocalDate date) {
-        DriverAttendance attendance = attendanceMapper.selectByDriverIdAndDate(driverId, date);
+    public AttendanceVO getAttendanceByDate(Long userId, LocalDate date) {
+        UserAttendance attendance = attendanceMapper.selectByUserIdAndDate(userId, date);
         if (attendance == null) {
             return null;
         }
 
-        Driver driver = driverMapper.selectById(driverId);
-        String driverName = driver != null ? driver.getDriverName() : null;
+        User user = userMapper.selectById(userId);
+        String userName = user != null ? user.getRealName() : null;
 
-        return convertToVO(attendance, driverName);
+        return convertToVO(attendance, userName);
     }
 
     @Override
-    public List<AttendanceVO> getAttendanceListByMonth(Long driverId, String yearMonth) {
-        // 解析年月
+    public List<AttendanceVO> getAttendanceListByMonth(Long userId, String yearMonth) {
         YearMonth ym = YearMonth.parse(yearMonth, DateTimeFormatter.ofPattern("yyyy-MM"));
         LocalDate startDate = ym.atDay(1);
         LocalDate endDate = ym.atEndOfMonth();
 
-        List<DriverAttendance> list = attendanceMapper.selectByDriverIdAndMonth(driverId, startDate, endDate);
+        List<UserAttendance> list = attendanceMapper.selectByUserIdAndMonth(userId, startDate, endDate);
 
-        Driver driver = driverMapper.selectById(driverId);
-        String driverName = driver != null ? driver.getDriverName() : null;
+        User user = userMapper.selectById(userId);
+        String userName = user != null ? user.getRealName() : null;
 
         return list.stream()
-                .map(attendance -> convertToVO(attendance, driverName))
+                .map(attendance -> convertToVO(attendance, userName))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public AttendanceStatisticsVO getAttendanceStatistics(Long driverId, String yearMonth) {
-        // 解析年月
+    public AttendanceStatisticsVO getAttendanceStatistics(Long userId, String yearMonth) {
         YearMonth ym = YearMonth.parse(yearMonth, DateTimeFormatter.ofPattern("yyyy-MM"));
         LocalDate startDate = ym.atDay(1);
         LocalDate endDate = ym.atEndOfMonth();
 
-        // 应出勤天数（工作日）
         int shouldAttendanceDays = calculateWorkDays(startDate, endDate);
 
-        // 实际出勤天数
-        Integer actualAttendanceDays = attendanceMapper.countAttendanceDays(driverId, startDate, endDate);
+        Integer actualAttendanceDays = attendanceMapper.countAttendanceDays(userId, startDate, endDate);
         if (actualAttendanceDays == null) {
             actualAttendanceDays = 0;
         }
 
-        // 迟到次数
-        Integer lateTimes = attendanceMapper.countLateTimes(driverId, startDate, endDate);
+        Integer lateTimes = attendanceMapper.countLateTimes(userId, startDate, endDate);
         if (lateTimes == null) {
             lateTimes = 0;
         }
 
-        // 早退次数
-        Integer earlyLeaveTimes = attendanceMapper.countEarlyLeaveTimes(driverId, startDate, endDate);
+        Integer earlyLeaveTimes = attendanceMapper.countEarlyLeaveTimes(userId, startDate, endDate);
         if (earlyLeaveTimes == null) {
             earlyLeaveTimes = 0;
         }
 
-        // 缺勤天数 = 应出勤天数 - 实际出勤天数
         int absentDays = shouldAttendanceDays - actualAttendanceDays;
         if (absentDays < 0) {
             absentDays = 0;
         }
 
-        // 正常出勤天数 = 实际出勤天数 - 迟到次数 - 早退次数
         int normalDays = actualAttendanceDays - lateTimes - earlyLeaveTimes;
         if (normalDays < 0) {
             normalDays = 0;
         }
 
-        // 出勤率
         double attendanceRate = shouldAttendanceDays > 0 
                 ? (double) actualAttendanceDays / shouldAttendanceDays * 100 
                 : 0;
 
-        Driver driver = driverMapper.selectById(driverId);
+        User user = userMapper.selectById(userId);
 
         AttendanceStatisticsVO statistics = new AttendanceStatisticsVO();
-        statistics.setDriverId(driverId != null ? driverId.toString() : null);
-        statistics.setDriverName(driver != null ? driver.getDriverName() : null);
+        statistics.setUserId(userId != null ? userId.toString() : null);
+        statistics.setUserName(user != null ? user.getRealName() : null);
         statistics.setMonth(yearMonth);
         statistics.setShouldAttendanceDays(shouldAttendanceDays);
         statistics.setActualAttendanceDays(actualAttendanceDays);
@@ -249,17 +238,17 @@ public class AttendanceServiceImpl implements AttendanceService {
 
     @Override
     @Transactional
-    public AttendanceVO supplementAttendance(Long attendanceId, LocalDate checkInTime, LocalDate checkOutTime, Integer status, String remark) {
-        DriverAttendance attendance = attendanceMapper.selectById(attendanceId);
+    public AttendanceVO supplementAttendance(Long attendanceId, LocalDateTime checkInTime, LocalDateTime checkOutTime, Integer status, String remark) {
+        UserAttendance attendance = attendanceMapper.selectById(attendanceId);
         if (attendance == null) {
             throw new UserException(UserResultCode.USER_NOT_FOUND, "出勤记录不存在");
         }
 
         if (checkInTime != null) {
-            attendance.setCheckInTime(checkInTime.atStartOfDay());
+            attendance.setCheckInTime(checkInTime);
         }
         if (checkOutTime != null) {
-            attendance.setCheckOutTime(checkOutTime.atStartOfDay());
+            attendance.setCheckOutTime(checkOutTime);
         }
         if (status != null) {
             attendance.setStatus(status);
@@ -270,29 +259,176 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         attendanceMapper.updateById(attendance);
 
-        Driver driver = driverMapper.selectById(attendance.getDriverId());
-        String driverName = driver != null ? driver.getDriverName() : null;
+        User user = userMapper.selectById(attendance.getUserId());
+        String userName = user != null ? user.getRealName() : null;
 
         log.info("补卡成功，出勤记录ID：{}", attendanceId);
-        return convertToVO(attendance, driverName);
+        return convertToVO(attendance, userName);
+    }
+
+    @Override
+    @Transactional
+    public AttendanceVO applyLeave(Long userId, Integer leaveType, LocalDateTime startTime, LocalDateTime endTime, String reason) {
+        log.info("用户请假申请：用户ID={}, 请假类型={}, 开始时间={}, 结束时间={}", userId, leaveType, startTime, endTime);
+        
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserException(UserResultCode.USER_NOT_FOUND, "用户不存在");
+        }
+        
+        LocalDate startDate = startTime.toLocalDate();
+        LocalDate endDate = endTime.toLocalDate();
+        
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            UserAttendance existingAttendance = attendanceMapper.selectByUserIdAndDate(userId, currentDate);
+            
+            if (existingAttendance != null && existingAttendance.getStatus() != AttendanceStatusEnum.ABSENT.getValue()) {
+                currentDate = currentDate.plusDays(1);
+                continue;
+            }
+            
+            UserAttendance leaveAttendance = existingAttendance != null ? existingAttendance : new UserAttendance();
+            leaveAttendance.setUserId(userId);
+            leaveAttendance.setAttendanceDate(currentDate);
+            leaveAttendance.setStatus(AttendanceStatusEnum.LEAVE.getValue());
+            leaveAttendance.setLeaveType(leaveType);
+            leaveAttendance.setLeaveStartTime(currentDate.equals(startDate) ? startTime : null);
+            leaveAttendance.setLeaveEndTime(currentDate.equals(endDate) ? endTime : null);
+            leaveAttendance.setRemark(reason);
+            leaveAttendance.setUpdateTime(LocalDateTime.now());
+            
+            if (existingAttendance == null) {
+                leaveAttendance.setCreateTime(LocalDateTime.now());
+                attendanceMapper.insert(leaveAttendance);
+            } else {
+                attendanceMapper.updateById(leaveAttendance);
+            }
+            
+            currentDate = currentDate.plusDays(1);
+        }
+        
+        UserAttendance firstLeaveRecord = attendanceMapper.selectByUserIdAndDate(userId, startDate);
+        log.info("请假申请成功：用户ID={}, 请假天数={}", userId, ChronoUnit.DAYS.between(startDate, endDate) + 1);
+        
+        reassignDriverTasks(userId);
+        
+        return convertToVO(firstLeaveRecord, user.getRealName());
+    }
+    
+    private void reassignDriverTasks(Long userId) {
+        try {
+            String roleCode = userMapper.selectRoleCodeByUserId(userId);
+            if (roleCode == null) {
+                log.info("用户无角色，无需重新分配任务：userId={}", userId);
+                return;
+            }
+            
+            log.info("用户请假，尝试重新分配任务：userId={}, roleCode={}", userId, roleCode);
+            
+            dispatchClient.reassignTasksByUserLeave(userId, roleCode);
+            log.info("用户请假任务重新分配完成：userId={}, roleCode={}", userId, roleCode);
+        } catch (Exception e) {
+            log.error("重新分配用户任务失败：userId={}, 错误={}", userId, e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public boolean cancelLeave(Long attendanceId) {
+        UserAttendance attendance = attendanceMapper.selectById(attendanceId);
+        if (attendance == null) {
+            throw new UserException(UserResultCode.USER_NOT_FOUND, "出勤记录不存在");
+        }
+        
+        if (attendance.getStatus() != AttendanceStatusEnum.LEAVE.getValue()) {
+            throw new UserException(UserResultCode.PARAM_ERROR, "该记录不是请假记录");
+        }
+        
+        attendance.setStatus(AttendanceStatusEnum.ABSENT.getValue());
+        attendance.setLeaveType(null);
+        attendance.setLeaveStartTime(null);
+        attendance.setLeaveEndTime(null);
+        attendance.setRemark("已取消请假");
+        attendance.setUpdateTime(LocalDateTime.now());
+        
+        attendanceMapper.updateById(attendance);
+        log.info("取消请假成功：出勤记录ID={}", attendanceId);
+        
+        return true;
+    }
+
+    @Override
+    public List<AttendanceVO> getLeaveList(Long userId, String yearMonth) {
+        YearMonth ym = YearMonth.parse(yearMonth, DateTimeFormatter.ofPattern("yyyy-MM"));
+        LocalDate startDate = ym.atDay(1);
+        LocalDate endDate = ym.atEndOfMonth();
+        
+        List<UserAttendance> list = attendanceMapper.selectByUserIdAndMonth(userId, startDate, endDate);
+        
+        User user = userMapper.selectById(userId);
+        String userName = user != null ? user.getRealName() : null;
+        
+        return list.stream()
+                .filter(a -> a.getStatus() == AttendanceStatusEnum.LEAVE.getValue())
+                .map(attendance -> convertToVO(attendance, userName))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Long> getAvailableDriverIds() {
+        LocalDate today = LocalDate.now();
+        
+        List<UserAttendance> leaveRecords = attendanceMapper.selectList(
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<UserAttendance>()
+                .eq(UserAttendance::getAttendanceDate, today)
+                .eq(UserAttendance::getStatus, AttendanceStatusEnum.LEAVE.getValue())
+        );
+        
+        List<Long> leaveUserIds = leaveRecords.stream()
+                .map(UserAttendance::getUserId)
+                .collect(Collectors.toList());
+        
+        List<User> allDrivers = userMapper.selectList(
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<User>()
+                .isNotNull(User::getRoleId)
+                .eq(User::getStatus, 1)
+        );
+        
+        return allDrivers.stream()
+                .map(User::getId)
+                .filter(id -> !leaveUserIds.contains(id))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 获取当前登录用户ID
+     */
+    private Long getCurrentUserId() {
+        return com.klzw.common.auth.context.UserContext.getUserId();
     }
 
     /**
      * 转换为 VO
      */
-    private AttendanceVO convertToVO(DriverAttendance attendance, String driverName) {
+    private AttendanceVO convertToVO(UserAttendance attendance, String userName) {
         AttendanceVO vo = new AttendanceVO();
         vo.setId(attendance.getId() != null ? attendance.getId().toString() : null);
-        vo.setDriverId(attendance.getDriverId() != null ? attendance.getDriverId().toString() : null);
-        vo.setDriverName(driverName);
+        vo.setUserId(attendance.getUserId() != null ? attendance.getUserId().toString() : null);
+        vo.setUserName(userName);
         vo.setAttendanceDate(attendance.getAttendanceDate());
         vo.setCheckInTime(attendance.getCheckInTime());
         vo.setCheckOutTime(attendance.getCheckOutTime());
+        vo.setCheckInLatitude(attendance.getCheckInLatitude());
+        vo.setCheckInLongitude(attendance.getCheckInLongitude());
+        vo.setCheckInAddress(attendance.getCheckInAddress());
+        vo.setCheckOutLatitude(attendance.getCheckOutLatitude());
+        vo.setCheckOutLongitude(attendance.getCheckOutLongitude());
+        vo.setCheckOutAddress(attendance.getCheckOutAddress());
         vo.setStatus(attendance.getStatus());
         vo.setLateMinutes(attendance.getLateMinutes());
         vo.setEarlyLeaveMinutes(attendance.getEarlyLeaveMinutes());
         vo.setRemark(attendance.getRemark());
-        vo.setCreateTime(attendance.getCreateTime());
 
         AttendanceStatusEnum statusEnum = AttendanceStatusEnum.getByValue(attendance.getStatus());
         if (statusEnum != null) {
@@ -309,7 +445,6 @@ public class AttendanceServiceImpl implements AttendanceService {
         int workDays = 0;
         LocalDate date = startDate;
         while (!date.isAfter(endDate)) {
-            // 周一到周五为工作日
             if (date.getDayOfWeek().getValue() <= 5) {
                 workDays++;
             }

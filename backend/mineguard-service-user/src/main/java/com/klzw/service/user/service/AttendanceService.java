@@ -6,6 +6,7 @@ import com.klzw.service.user.vo.AttendanceStatisticsVO;
 import com.klzw.service.user.vo.AttendanceVO;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -30,31 +31,31 @@ public interface AttendanceService {
     AttendanceVO checkOut(CheckOutDTO dto);
 
     /**
-     * 获取司机某天的出勤记录
+     * 获取用户某天的出勤记录
      *
-     * @param driverId 司机ID
+     * @param userId 用户ID
      * @param date 日期
      * @return 出勤记录
      */
-    AttendanceVO getAttendanceByDate(Long driverId, LocalDate date);
+    AttendanceVO getAttendanceByDate(Long userId, LocalDate date);
 
     /**
-     * 获取司机某月的出勤记录列表
+     * 获取用户某月的出勤记录列表
      *
-     * @param driverId 司机ID
+     * @param userId 用户ID
      * @param yearMonth 年月（格式：yyyy-MM）
      * @return 出勤记录列表
      */
-    List<AttendanceVO> getAttendanceListByMonth(Long driverId, String yearMonth);
+    List<AttendanceVO> getAttendanceListByMonth(Long userId, String yearMonth);
 
     /**
-     * 获取司机某月的出勤统计
+     * 获取用户某月的出勤统计
      *
-     * @param driverId 司机ID
+     * @param userId 用户ID
      * @param yearMonth 年月（格式：yyyy-MM）
      * @return 出勤统计
      */
-    AttendanceStatisticsVO getAttendanceStatistics(Long driverId, String yearMonth);
+    AttendanceStatisticsVO getAttendanceStatistics(Long userId, String yearMonth);
 
     /**
      * 补卡（管理员功能）
@@ -66,5 +67,41 @@ public interface AttendanceService {
      * @param remark 备注
      * @return 出勤记录
      */
-    AttendanceVO supplementAttendance(Long attendanceId, LocalDate checkInTime, LocalDate checkOutTime, Integer status, String remark);
+    AttendanceVO supplementAttendance(Long attendanceId, LocalDateTime checkInTime, LocalDateTime checkOutTime, Integer status, String remark);
+
+    /**
+     * 请假申请
+     *
+     * @param userId 用户ID
+     * @param leaveType 请假类型：1-事假 2-病假 3-年假 4-调休
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @param reason 请假原因
+     * @return 出勤记录
+     */
+    AttendanceVO applyLeave(Long userId, Integer leaveType, LocalDateTime startTime, LocalDateTime endTime, String reason);
+
+    /**
+     * 取消请假
+     *
+     * @param attendanceId 出勤记录ID
+     * @return 是否成功
+     */
+    boolean cancelLeave(Long attendanceId);
+
+    /**
+     * 获取请假记录列表
+     *
+     * @param userId 用户ID
+     * @param yearMonth 年月（格式：yyyy-MM）
+     * @return 请假记录列表
+     */
+    List<AttendanceVO> getLeaveList(Long userId, String yearMonth);
+
+    /**
+     * 获取可用司机ID列表（排除请假中的司机）
+     *
+     * @return 可用司机ID列表
+     */
+    List<Long> getAvailableDriverIds();
 }

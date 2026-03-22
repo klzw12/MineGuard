@@ -8,13 +8,11 @@ import lombok.Data;
 @Data
 public class CheckOutDTO {
 
-    /**
-     * 用户ID
-     */
-    private Long userId;
+    private Double latitude;
 
-    /**
-     * 备注
-     */
+    private Double longitude;
+
+    private String address;
+
     private String remark;
 }

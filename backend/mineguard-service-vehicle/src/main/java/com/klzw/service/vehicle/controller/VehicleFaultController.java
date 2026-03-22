@@ -2,6 +2,7 @@ package com.klzw.service.vehicle.controller;
 
 import com.klzw.common.core.result.Result;
 import com.klzw.service.vehicle.dto.VehicleFaultDTO;
+import com.klzw.service.vehicle.dto.VehicleFaultStatisticsResponseDTO;
 import com.klzw.service.vehicle.entity.VehicleFault;
 import com.klzw.service.vehicle.service.VehicleFaultService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,6 +47,14 @@ public class VehicleFaultController {
             @RequestParam(defaultValue = "10") int size) {
         List<VehicleFault> records = vehicleFaultService.getFaultRecords(vehicleId, status, page, size);
         return Result.success(records);
+    }
+    
+    @Operation(summary = "按日期范围查询故障统计（供 statistics 服务调用）")
+    @GetMapping("/statistics")
+    public Result<VehicleFaultStatisticsResponseDTO> getFaultStatistics(
+            @RequestParam("startDate") String startDate,
+            @RequestParam("endDate") String endDate) {
+        return Result.success(vehicleFaultService.getFaultStatistics(startDate, endDate));
     }
     
 }

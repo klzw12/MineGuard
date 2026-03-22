@@ -8,13 +8,11 @@ import lombok.Data;
 @Data
 public class CheckInDTO {
 
-    /**
-     * 用户ID
-     */
-    private Long userId;
+    private Double latitude;
 
-    /**
-     * 备注
-     */
+    private Double longitude;
+
+    private String address;
+
     private String remark;
 }

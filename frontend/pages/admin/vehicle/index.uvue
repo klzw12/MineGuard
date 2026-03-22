@@ -3,51 +3,104 @@
 		<view class="page-header">
 			<text class="page-title">车辆管理</text>
 			<view class="header-actions">
-				<button class="primary-btn">添加车辆</button>
-				<button class="secondary-btn">批量操作</button>
+				<button class="primary-btn" @click="showAddModal = true">添加车辆</button>
 			</view>
 		</view>
 		
 		<view class="filter-section">
 			<view class="search-box">
 				<text class="search-icon">🔍</text>
-				<input type="text" placeholder="搜索车辆编号或司机" placeholder-style="color: rgba(255,255,255,0.4)" />
+				<input type="text" v-model="searchKeyword" placeholder="搜索车牌号" placeholder-style="color: rgba(255,255,255,0.4)" @confirm="handleSearch" />
 			</view>
 			<view class="filter-buttons">
-				<button class="filter-btn active">全部</button>
-				<button class="filter-btn">在线</button>
-				<button class="filter-btn">离线</button>
+				<button class="filter-btn" :class="{'active': currentStatus === null}" @click="filterByStatus(null)">全部</button>
+				<button class="filter-btn" :class="{'active': currentStatus === 0}" @click="filterByStatus(0)">空闲</button>
+				<button class="filter-btn" :class="{'active': currentStatus === 1}" @click="filterByStatus(1)">运行中</button>
+				<button class="filter-btn" :class="{'active': currentStatus === 2}" @click="filterByStatus(2)">维护中</button>
+				<button class="filter-btn" :class="{'active': currentStatus === 3}" @click="filterByStatus(3)">故障</button>
 			</view>
 		</view>
 		
 		<view class="vehicle-card">
 			<view class="vehicle-list">
-				<view class="vehicle-item" v-for="i in 6" :key="i">
+				<view class="vehicle-item" v-for="(vehicle, index) in vehicleList" :key="vehicle.id">
 					<view class="vehicle-left">
 						<view class="vehicle-header">
-							<text class="vehicle-plate">🚚 京A{{ 12340 + i }}</text>
-							<view class="vehicle-status" :class="i % 3 === 0 ? 'offline' : i % 3 === 1 ? 'maintenance' : 'online'">
+							<text class="vehicle-plate">🚚 {{ vehicle.vehicleNo }}</text>
+							<view class="vehicle-status" :class="getStatusClass(vehicle.status)">
 								<text class="status-dot"></text>
-								<text class="status-text">{{ i % 3 === 0 ? '离线' : i % 3 === 1 ? '维修中' : '在线' }}</text>
+								<text class="status-text">{{ getStatusText(vehicle.status) }}</text>
 							</view>
 						</view>
-						<text class="vehicle-type">重型卡车</text>
-						<text class="vehicle-driver">司机：{{ ['张三','李四','王五','赵六','钱七','孙八'][i-1] }}</text>
-						<text class="vehicle-location">当前位置：{{ ['北京市朝阳区','上海市浦东新区','广州市天河区','深圳市南山区','杭州市西湖区','成都市武侯区'][i-1] }}</text>
-						<view class="progress-container">
-							<text class="progress-label">今日任务</text>
-							<view class="progress-bar">
-								<view class="progress-fill" :style="{width: (30 + i * 10) + '%'}"></view>
-							</view>
-							<text class="progress-percent">{{ i }}/{{ 6 + i }}</text>
+						<text class="vehicle-type">{{ vehicle.brand }} {{ vehicle.model }}</text>
+						<text class="vehicle-driver">绑定司机：{{ vehicle.userName || '未绑定' }}</text>
+						<view class="vehicle-info">
+							<text class="info-item">发动机号：{{ vehicle.engineNumber || '-' }}</text>
+							<text class="info-item">车架号：{{ vehicle.vin || '-' }}</text>
 						</view>
 					</view>
 					<view class="vehicle-right">
 						<view class="action-buttons">
-							<button class="action-btn">详情</button>
-							<button class="action-btn secondary">编辑</button>
+							<button class="action-btn" @click="viewDetail(vehicle)">详情</button>
+							<button class="action-btn secondary" @click="editVehicle(vehicle)">编辑</button>
+							<button class="action-btn warning" @click="bindDriver(vehicle)">{{ vehicle.userId ? '换绑' : '绑定' }}</button>
 						</view>
 					</view>
+				</view>
+				
+				<view class="empty-state" v-if="vehicleList.length === 0">
+					<text class="empty-text">暂无车辆数据</text>
+				</view>
+			</view>
+		</view>
+		
+		<view class="pagination" v-if="total > pageSize">
+			<button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">上一页</button>
+			<text class="page-info">{{ currentPage }} / {{ totalPages }}</text>
+			<button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">下一页</button>
+		</view>
+		
+		<view class="modal-overlay" v-if="showAddModal" @click="showAddModal = false">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">{{ editingVehicle ? '编辑车辆' : '添加车辆' }}</text>
+					<text class="modal-close" @click="closeModal">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="form-label">车牌号 *</text>
+						<input type="text" v-model="formData.vehicleNo" class="form-input" placeholder="请输入车牌号" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">车辆类型</text>
+						<input type="number" v-model="formData.vehicleType" class="form-input" placeholder="请输入车辆类型" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">品牌</text>
+						<input type="text" v-model="formData.brand" class="form-input" placeholder="请输入品牌" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">型号</text>
+						<input type="text" v-model="formData.model" class="form-input" placeholder="请输入型号" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">上传行驶证正面（自动识别）</text>
+						<view class="upload-area" @click="uploadLicenseFront">
+							<text class="upload-text" v-if="!formData.licenseFrontUrl">点击上传行驶证正面</text>
+							<image v-else :src="formData.licenseFrontUrl" class="preview-image" mode="aspectFit" />
+						</view>
+					</view>
+					<view class="form-item">
+						<text class="form-label">上传行驶证反面</text>
+						<view class="upload-area" @click="uploadLicenseBack">
+							<text class="upload-text" v-if="!formData.licenseBackUrl">点击上传行驶证反面</text>
+							<image v-else :src="formData.licenseBackUrl" class="preview-image" mode="aspectFit" />
+						</view>
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="closeModal">取消</button>
+					<button class="confirm-btn" @click="submitForm">确定</button>
 				</view>
 			</view>
 		</view>
@@ -56,6 +109,245 @@
 
 <script setup lang="uts">
 	import AdminLayout from '../../../components/AdminLayout.uvue'
+	import { ref, computed, onMounted } from 'vue'
+	import { request } from '../../../utils/request'
+
+	type VehicleVO = {
+		id: string | null,
+		vehicleNo: string,
+		vehicleType: number | null,
+		brand: string,
+		model: string,
+		userId: string | null,
+		userName: string | null,
+		status: number,
+		photoUrl: string | null,
+		licenseFrontUrl: string | null,
+		licenseBackUrl: string | null,
+		engineNumber: string | null,
+		vin: string | null
+	}
+
+	const vehicleList = ref<VehicleVO[]>([])
+	const currentPage = ref(1)
+	const pageSize = ref(10)
+	const total = ref(0)
+	const searchKeyword = ref('')
+	const currentStatus = ref<number | null>(null)
+	const showAddModal = ref(false)
+	const editingVehicle = ref<VehicleVO | null>(null)
+
+	const formData = ref({
+		vehicleNo: '',
+		vehicleType: null as number | null,
+		brand: '',
+		model: '',
+		licenseFrontUrl: '',
+		licenseBackUrl: ''
+	})
+
+	const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+
+	const getStatusClass = (status: number): string => {
+		const statusMap: Record<number, string> = {
+			0: 'idle',
+			1: 'online',
+			2: 'maintenance',
+			3: 'fault',
+			4: 'scrapped'
+		}
+		return statusMap[status] || 'idle'
+	}
+
+	const getStatusText = (status: number): string => {
+		const statusMap: Record<number, string> = {
+			0: '空闲',
+			1: '运行中',
+			2: '维护中',
+			3: '故障',
+			4: '报废'
+		}
+		return statusMap[status] || '未知'
+	}
+
+	const fetchVehicleList = async () => {
+		try {
+			const res = await request({
+				url: '/api/vehicle/page',
+				method: 'GET',
+				data: {
+					page: currentPage.value,
+					size: pageSize.value,
+					vehicleNo: searchKeyword.value || undefined,
+					status: currentStatus.value !== null ? currentStatus.value : undefined
+				}
+			})
+			if (res.code === 200) {
+				vehicleList.value = res.data || []
+				total.value = res.total || 0
+			}
+		} catch (e) {
+			console.error('获取车辆列表失败', e)
+		}
+	}
+
+	const handleSearch = () => {
+		currentPage.value = 1
+		fetchVehicleList()
+	}
+
+	const filterByStatus = (status: number | null) => {
+		currentStatus.value = status
+		currentPage.value = 1
+		fetchVehicleList()
+	}
+
+	const changePage = (page: number) => {
+		currentPage.value = page
+		fetchVehicleList()
+	}
+
+	const viewDetail = (vehicle: VehicleVO) => {
+		uni.navigateTo({
+			url: `/pages/admin/vehicle/detail?id=${vehicle.id}`
+		})
+	}
+
+	const editVehicle = (vehicle: VehicleVO) => {
+		editingVehicle.value = vehicle
+		formData.value = {
+			vehicleNo: vehicle.vehicleNo,
+			vehicleType: vehicle.vehicleType,
+			brand: vehicle.brand,
+			model: vehicle.model,
+			licenseFrontUrl: vehicle.licenseFrontUrl || '',
+			licenseBackUrl: vehicle.licenseBackUrl || ''
+		}
+		showAddModal.value = true
+	}
+
+	const bindDriver = (vehicle: VehicleVO) => {
+		uni.showModal({
+			title: vehicle.userId ? '换绑司机' : '绑定司机',
+			editable: true,
+			placeholderText: '请输入司机ID',
+			success: async (res) => {
+				if (res.confirm && res.content) {
+					try {
+						const result = await request({
+							url: `/api/vehicle/${vehicle.id}/bind`,
+							method: 'POST',
+							data: { userId: res.content }
+						})
+						if (result.code === 200) {
+							uni.showToast({ title: '绑定成功', icon: 'success' })
+							fetchVehicleList()
+						}
+					} catch (e) {
+						uni.showToast({ title: '绑定失败', icon: 'none' })
+					}
+				}
+			}
+		})
+	}
+
+	const uploadLicenseFront = () => {
+		uni.chooseImage({
+			count: 1,
+			success: async (res) => {
+				const tempPath = res.tempFilePaths[0]
+				uni.showLoading({ title: '识别中...' })
+				try {
+					const uploadRes = await request({
+						url: `/api/vehicle/${editingVehicle.value?.id || 0}/license/front`,
+						method: 'POST',
+						filePath: tempPath,
+						name: 'file'
+					})
+					if (uploadRes.code === 200) {
+						formData.value.licenseFrontUrl = uploadRes.data.licenseFrontUrl
+						formData.value.vehicleNo = uploadRes.data.vehicleNo || formData.value.vehicleNo
+						formData.value.brand = uploadRes.data.brand || formData.value.brand
+						formData.value.model = uploadRes.data.model || formData.value.model
+						uni.showToast({ title: '识别成功', icon: 'success' })
+					}
+				} catch (e) {
+					uni.showToast({ title: '上传失败', icon: 'none' })
+				} finally {
+					uni.hideLoading()
+				}
+			}
+		})
+	}
+
+	const uploadLicenseBack = () => {
+		uni.chooseImage({
+			count: 1,
+			success: async (res) => {
+				const tempPath = res.tempFilePaths[0]
+				uni.showLoading({ title: '识别中...' })
+				try {
+					const uploadRes = await request({
+						url: `/api/vehicle/${editingVehicle.value?.id || 0}/license/back`,
+						method: 'POST',
+						filePath: tempPath,
+						name: 'file'
+					})
+					if (uploadRes.code === 200) {
+						formData.value.licenseBackUrl = uploadRes.data.licenseBackUrl
+						uni.showToast({ title: '识别成功', icon: 'success' })
+					}
+				} catch (e) {
+					uni.showToast({ title: '上传失败', icon: 'none' })
+				} finally {
+					uni.hideLoading()
+				}
+			}
+		})
+	}
+
+	const submitForm = async () => {
+		if (!formData.value.vehicleNo) {
+			uni.showToast({ title: '请输入车牌号', icon: 'none' })
+			return
+		}
+
+		try {
+			const url = editingVehicle.value ? `/api/vehicle/${editingVehicle.value.id}` : '/api/vehicle'
+			const method = editingVehicle.value ? 'PUT' : 'POST'
+			
+			const res = await request({
+				url,
+				method,
+				data: formData.value
+			})
+			
+			if (res.code === 200) {
+				uni.showToast({ title: editingVehicle.value ? '更新成功' : '添加成功', icon: 'success' })
+				closeModal()
+				fetchVehicleList()
+			}
+		} catch (e) {
+			uni.showToast({ title: '操作失败', icon: 'none' })
+		}
+	}
+
+	const closeModal = () => {
+		showAddModal.value = false
+		editingVehicle.value = null
+		formData.value = {
+			vehicleNo: '',
+			vehicleType: null,
+			brand: '',
+			model: '',
+			licenseFrontUrl: '',
+			licenseBackUrl: ''
+		}
+	}
+
+	onMounted(() => {
+		fetchVehicleList()
+	})
 </script>
 
 <style lang="scss">
@@ -73,10 +365,6 @@
 		}
 		
 		.header-actions {
-			display: flex;
-			flex-direction: row;
-			gap: 20rpx;
-			
 			.primary-btn {
 				padding: 20rpx 40rpx;
 				background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
@@ -84,17 +372,6 @@
 				font-size: 24rpx;
 				font-weight: 500;
 				border-radius: 12rpx;
-				box-shadow: 0 4rpx 20rpx rgba(0, 122, 255, 0.3);
-			}
-			
-			.secondary-btn {
-				padding: 20rpx 40rpx;
-				background-color: #2a3347;
-				color: #fff;
-				font-size: 24rpx;
-				font-weight: 500;
-				border-radius: 12rpx;
-				border: 1rpx solid rgba(255, 255, 255, 0.1);
 			}
 		}
 	}
@@ -133,17 +410,15 @@
 			gap: 15rpx;
 			
 			.filter-btn {
-				padding: 15rpx 30rpx;
+				padding: 15rpx 25rpx;
 				background-color: #2a3347;
 				color: rgba(255, 255, 255, 0.7);
-				font-size: 24rpx;
+				font-size: 22rpx;
 				border-radius: 12rpx;
-				border: 1rpx solid rgba(255, 255, 255, 0.1);
 				
 				&.active {
 					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
 					color: #fff;
-					border: none;
 				}
 			}
 		}
@@ -152,7 +427,6 @@
 	.vehicle-card {
 		background-color: #2a3347;
 		border-radius: 24rpx;
-		border: 1rpx solid rgba(255, 255, 255, 0.08);
 		overflow: hidden;
 		
 		.vehicle-list {
@@ -162,7 +436,6 @@
 				display: flex;
 				flex-direction: row;
 				justify-content: space-between;
-				align-items: flex-start;
 				
 				&:last-child {
 					border-bottom: none;
@@ -191,20 +464,11 @@
 							padding: 8rpx 20rpx;
 							border-radius: 20rpx;
 							
-							&.online {
-								background-color: rgba(52, 199, 89, 0.2);
-								color: #34C759;
-							}
-							
-							&.offline {
-								background-color: rgba(255, 255, 255, 0.1);
-								color: rgba(255, 255, 255, 0.5);
-							}
-							
-							&.maintenance {
-								background-color: rgba(255, 149, 0, 0.2);
-								color: #FF9500;
-							}
+							&.idle { background-color: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.5); }
+							&.online { background-color: rgba(52, 199, 89, 0.2); color: #34C759; }
+							&.maintenance { background-color: rgba(255, 149, 0, 0.2); color: #FF9500; }
+							&.fault { background-color: rgba(255, 59, 48, 0.2); color: #FF3B30; }
+							&.scrapped { background-color: rgba(142, 142, 147, 0.2); color: #8E8E93; }
 							
 							.status-dot {
 								width: 12rpx;
@@ -216,7 +480,6 @@
 							
 							.status-text {
 								font-size: 22rpx;
-								font-weight: 500;
 							}
 						}
 					}
@@ -235,50 +498,19 @@
 						display: block;
 					}
 					
-					.vehicle-location {
-						font-size: 22rpx;
-						color: rgba(255, 255, 255, 0.5);
-						margin-bottom: 20rpx;
-						display: block;
-					}
-					
-					.progress-container {
+					.vehicle-info {
 						display: flex;
-						flex-direction: row;
-						align-items: center;
-						gap: 15rpx;
+						flex-direction: column;
+						gap: 6rpx;
 						
-						.progress-label {
-							font-size: 22rpx;
-							color: rgba(255, 255, 255, 0.6);
-						}
-						
-						.progress-bar {
-							flex: 1;
-							height: 10rpx;
-							background-color: rgba(255, 255, 255, 0.1);
-							border-radius: 5rpx;
-							overflow: hidden;
-							
-							.progress-fill {
-								height: 100%;
-								background: linear-gradient(90deg, #007AFF 0%, #0056b3 100%);
-								border-radius: 5rpx;
-							}
-						}
-						
-						.progress-percent {
-							font-size: 22rpx;
-							color: rgba(255, 255, 255, 0.7);
+						.info-item {
+							font-size: 20rpx;
+							color: rgba(255, 255, 255, 0.5);
 						}
 					}
 				}
 				
 				.vehicle-right {
-					display: flex;
-					flex-direction: column;
-					align-items: flex-end;
-					
 					.action-buttons {
 						display: flex;
 						flex-direction: column;
@@ -293,10 +525,162 @@
 							
 							&.secondary {
 								background-color: rgba(255, 255, 255, 0.1);
-								border: 1rpx solid rgba(255, 255, 255, 0.2);
+							}
+							
+							&.warning {
+								background: linear-gradient(135deg, #FF9500 0%, #FF6600 100%);
 							}
 						}
 					}
+				}
+			}
+			
+			.empty-state {
+				padding: 80rpx;
+				text-align: center;
+				
+				.empty-text {
+					color: rgba(255, 255, 255, 0.5);
+					font-size: 28rpx;
+				}
+			}
+		}
+	}
+	
+	.pagination {
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		gap: 30rpx;
+		margin-top: 30rpx;
+		
+		.page-btn {
+			padding: 15rpx 30rpx;
+			background-color: #2a3347;
+			color: #fff;
+			font-size: 24rpx;
+			border-radius: 10rpx;
+			
+			&:disabled {
+				opacity: 0.5;
+			}
+		}
+		
+		.page-info {
+			color: rgba(255, 255, 255, 0.7);
+			font-size: 24rpx;
+		}
+	}
+	
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.7);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+		
+		.modal-content {
+			width: 80%;
+			max-height: 80%;
+			background-color: #1e2536;
+			border-radius: 20rpx;
+			overflow: hidden;
+			
+			.modal-header {
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				align-items: center;
+				padding: 30rpx;
+				border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+				
+				.modal-title {
+					font-size: 32rpx;
+					font-weight: bold;
+					color: #fff;
+				}
+				
+				.modal-close {
+					font-size: 40rpx;
+					color: rgba(255, 255, 255, 0.6);
+				}
+			}
+			
+			.modal-body {
+				padding: 30rpx;
+				max-height: 600rpx;
+				overflow-y: auto;
+				
+				.form-item {
+					margin-bottom: 25rpx;
+					
+					.form-label {
+						display: block;
+						font-size: 26rpx;
+						color: rgba(255, 255, 255, 0.8);
+						margin-bottom: 15rpx;
+					}
+					
+					.form-input {
+						width: 100%;
+						padding: 20rpx;
+						background-color: #2a3347;
+						border-radius: 10rpx;
+						color: #fff;
+						font-size: 26rpx;
+					}
+					
+					.upload-area {
+						width: 100%;
+						height: 200rpx;
+						background-color: #2a3347;
+						border-radius: 10rpx;
+						border: 2rpx dashed rgba(255, 255, 255, 0.2);
+						display: flex;
+						justify-content: center;
+						align-items: center;
+						
+						.upload-text {
+							color: rgba(255, 255, 255, 0.5);
+							font-size: 26rpx;
+						}
+						
+						.preview-image {
+							width: 100%;
+							height: 100%;
+						}
+					}
+				}
+			}
+			
+			.modal-footer {
+				display: flex;
+				flex-direction: row;
+				gap: 20rpx;
+				padding: 30rpx;
+				border-top: 1rpx solid rgba(255, 255, 255, 0.1);
+				
+				.cancel-btn, .confirm-btn {
+					flex: 1;
+					padding: 20rpx;
+					border-radius: 10rpx;
+					font-size: 28rpx;
+				}
+				
+				.cancel-btn {
+					background-color: #2a3347;
+					color: rgba(255, 255, 255, 0.8);
+				}
+				
+				.confirm-btn {
+					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+					color: #fff;
 				}
 			}
 		}

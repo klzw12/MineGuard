@@ -2,6 +2,7 @@ package com.klzw.service.vehicle.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.klzw.service.vehicle.dto.VehicleFaultDTO;
+import com.klzw.service.vehicle.dto.VehicleFaultStatisticsResponseDTO;
 import com.klzw.service.vehicle.entity.VehicleFault;
 
 import java.util.List;
@@ -34,5 +35,10 @@ public interface VehicleFaultService extends IService<VehicleFault> {
      * @return 故障记录列表
      */
     List<VehicleFault> getFaultRecords(Long vehicleId, Integer status, int page, int size);
+    
+    /**
+     * 按日期范围查询故障统计（供 statistics 服务调用）
+     */
+    VehicleFaultStatisticsResponseDTO getFaultStatistics(String startDate, String endDate);
     
 }

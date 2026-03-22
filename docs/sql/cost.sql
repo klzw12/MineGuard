@@ -1,37 +1,85 @@
--- =====================================================
--- MineGuard 成本域数据库设计
--- 模块: cost-service
--- 版本: 1.1
--- 日期: 2026-03-15
--- 说明: 成本域相关表结构，包含成本明细等
--- =====================================================
-
--- =====================================================
--- 1. 成本明细表
--- =====================================================
+-- 成本明细表
 CREATE TABLE IF NOT EXISTS `cost_detail` (
-    `id` BIGINT PRIMARY KEY COMMENT '主键ID',
+    `id` BIGINT NOT NULL COMMENT '主键ID',
     `cost_no` VARCHAR(50) NOT NULL COMMENT '成本编号',
-    `cost_type` INT NOT NULL COMMENT '成本类型',
+    `cost_type` INT NOT NULL COMMENT '成本类型：1-燃油成本 2-维修成本 3-人工成本 4-保险成本 5-折旧成本 6-管理成本 7-其他成本',
     `cost_name` VARCHAR(100) NOT NULL COMMENT '成本名称',
-    `amount` DECIMAL(10,2) NOT NULL COMMENT '金额',
+    `amount` DECIMAL(12,2) NOT NULL COMMENT '金额',
     `vehicle_id` BIGINT COMMENT '车辆ID',
     `trip_id` BIGINT COMMENT '行程ID',
-    `description` TEXT COMMENT '描述',
+    `user_id` BIGINT COMMENT '操作人ID',
+    `cost_date` DATE NOT NULL COMMENT '成本日期',
     `payment_method` VARCHAR(50) COMMENT '支付方式',
-    `cost_date` DATETIME NOT NULL COMMENT '成本日期',
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    UNIQUE KEY `uk_cost_no` (`cost_no`),
-    INDEX `idx_cost_type` (`cost_type`),
-    INDEX `idx_vehicle_id` (`vehicle_id`),
-    INDEX `idx_trip_id` (`trip_id`),
-    INDEX `idx_cost_date` (`cost_date`)
+    `invoice_no` VARCHAR(100) COMMENT '发票号',
+    `description` VARCHAR(500) COMMENT '描述',
+    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by` BIGINT COMMENT '创建人',
+    `update_by` BIGINT COMMENT '更新人',
+    `deleted` INT NOT NULL DEFAULT 0 COMMENT '删除标记：0-未删除 1-已删除',
+    `remark` VARCHAR(500) COMMENT '备注',
+    PRIMARY KEY (`id`),
+    KEY `idx_cost_no` (`cost_no`),
+    KEY `idx_cost_type` (`cost_type`),
+    KEY `idx_vehicle_id` (`vehicle_id`),
+    KEY `idx_cost_date` (`cost_date`),
+    KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='成本明细表';
 
--- =====================================================
--- 初始化数据
--- =====================================================
+-- 薪资配置表
+CREATE TABLE IF NOT EXISTS `salary_config` (
+    `id` BIGINT NOT NULL COMMENT '主键ID',
+    `role_code` VARCHAR(50) NOT NULL COMMENT '角色编码',
+    `role_name` VARCHAR(100) NOT NULL COMMENT '角色名称',
+    `base_salary` DECIMAL(12,2) COMMENT '基本工资',
+    `daily_salary` DECIMAL(12,2) COMMENT '日工资',
+    `hourly_salary` DECIMAL(12,2) COMMENT '时工资',
+    `overtime_rate` DECIMAL(5,2) COMMENT '加班费率',
+    `performance_bonus` DECIMAL(12,2) COMMENT '绩效奖金',
+    `status` INT NOT NULL DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
+    `effective_date` DATE COMMENT '生效日期',
+    `expiry_date` DATE COMMENT '失效日期',
+    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by` BIGINT COMMENT '创建人',
+    `update_by` BIGINT COMMENT '更新人',
+    `deleted` INT NOT NULL DEFAULT 0 COMMENT '删除标记：0-未删除 1-已删除',
+    `remark` VARCHAR(500) COMMENT '备注',
+    PRIMARY KEY (`id`),
+    KEY `idx_role_code` (`role_code`),
+    KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='薪资配置表';
 
--- 注意：成本数据应通过系统的成本管理界面或API创建
--- 避免在数据库文件中直接插入成本数据
+-- 成本预算表
+CREATE TABLE IF NOT EXISTS `cost_budget` (
+    `id` BIGINT NOT NULL COMMENT '主键ID',
+    `budget_no` VARCHAR(50) NOT NULL COMMENT '预算编号',
+    `budget_name` VARCHAR(100) NOT NULL COMMENT '预算名称',
+    `budget_type` INT NOT NULL COMMENT '预算类型：1-月度 2-季度 3-年度',
+    `budget_year` INT NOT NULL COMMENT '预算年份',
+    `budget_month` INT COMMENT '预算月份',
+    `budget_quarter` INT COMMENT '预算季度',
+    `start_date` DATE COMMENT '开始日期',
+    `end_date` DATE COMMENT '结束日期',
+    `fuel_budget` DECIMAL(12,2) DEFAULT 0 COMMENT '燃油预算',
+    `maintenance_budget` DECIMAL(12,2) DEFAULT 0 COMMENT '维修预算',
+    `labor_budget` DECIMAL(12,2) DEFAULT 0 COMMENT '人工预算',
+    `insurance_budget` DECIMAL(12,2) DEFAULT 0 COMMENT '保险预算',
+    `depreciation_budget` DECIMAL(12,2) DEFAULT 0 COMMENT '折旧预算',
+    `management_budget` DECIMAL(12,2) DEFAULT 0 COMMENT '管理预算',
+    `other_budget` DECIMAL(12,2) DEFAULT 0 COMMENT '其他预算',
+    `total_budget` DECIMAL(12,2) NOT NULL COMMENT '总预算',
+    `status` INT NOT NULL DEFAULT 0 COMMENT '状态：0-草稿 1-已审批 2-生效中 3-执行中 4-已完成 5-已过期',
+    `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by` BIGINT COMMENT '创建人',
+    `update_by` BIGINT COMMENT '更新人',
+    `deleted` INT NOT NULL DEFAULT 0 COMMENT '删除标记：0-未删除 1-已删除',
+    `remark` VARCHAR(500) COMMENT '备注',
+    PRIMARY KEY (`id`),
+    KEY `idx_budget_no` (`budget_no`),
+    KEY `idx_budget_type` (`budget_type`),
+    KEY `idx_budget_year` (`budget_year`),
+    KEY `idx_status` (`status`),
+    KEY `idx_date_range` (`start_date`, `end_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='成本预算表';

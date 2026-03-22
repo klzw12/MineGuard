@@ -1,7 +1,9 @@
 package com.klzw.service.vehicle.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.klzw.service.vehicle.dto.BestVehicleQueryDTO;
 import com.klzw.service.vehicle.entity.Vehicle;
+import com.klzw.service.vehicle.vo.BestVehicleVO;
 import com.klzw.service.vehicle.vo.VehicleVO;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -125,4 +127,18 @@ public interface VehicleService extends IService<Vehicle> {
      */
     com.klzw.service.vehicle.entity.VehicleInsurance uploadInsuranceInfo(Long id, com.klzw.service.vehicle.entity.VehicleInsurance insurance);
     
+    /**
+     * 选择最佳车辆
+     * 根据货物重量、车辆状态、油量等因素综合评估推荐最佳车辆
+     * @param query 查询条件
+     * @return 推荐的最佳车辆列表（按得分降序）
+     */
+    List<BestVehicleVO> selectBestVehicles(BestVehicleQueryDTO query);
+    
+    /**
+     * 获取所有可用车辆（空闲状态）
+     * @return 可用车辆列表
+     */
+    List<VehicleVO> getAvailableVehicles();
+
 } 

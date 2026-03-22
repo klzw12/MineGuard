@@ -1,178 +1,628 @@
 package com.klzw.service.statistics.service.impl;
 
-import com.klzw.service.statistics.entity.TripStatistics;
-import com.klzw.service.statistics.entity.CostStatistics;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.klzw.common.core.client.StatisticsClient;
+import com.klzw.service.statistics.dto.StatisticsQueryDTO;
+import com.klzw.service.statistics.entity.*;
+import com.klzw.service.statistics.mapper.*;
 import com.klzw.service.statistics.service.StatisticsService;
+import com.klzw.service.statistics.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+/**
+ * 统计服务实现类（使用 StatisticsClient 调用其他服务 + Redis 缓存）
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class StatisticsServiceImpl implements StatisticsService {
 
-    @Override
-    public TripStatistics calculateTripStatistics(LocalDate date) {
-        TripStatistics statistics = new TripStatistics();
-        statistics.setStatisticsDate(date);
-        statistics.setTripCount(10); // 模拟数据
-        statistics.setTotalDistance(new BigDecimal(500)); // 模拟数据
-        statistics.setTotalDuration(new BigDecimal(10)); // 模拟数据
-        statistics.setCompletedTripCount(8); // 模拟数据
-        statistics.setCancelledTripCount(2); // 模拟数据
-        statistics.setAverageSpeed(new BigDecimal(50)); // 模拟数据
-        statistics.setFuelConsumption(new BigDecimal(50)); // 模拟数据
-        statistics.setCreateTime(LocalDateTime.now());
-        statistics.setUpdateTime(LocalDateTime.now());
-        
-        log.info("计算行程统计数据：日期={}, 行程数={}, 总距离={}", 
-                date, statistics.getTripCount(), statistics.getTotalDistance());
-        
-        // 这里应该使用MyBatis-Plus或其他ORM框架保存到数据库
-        // 暂时返回模拟数据
-        return statistics;
-    }
+    private final TripStatisticsMapper tripStatisticsMapper;
+    private final CostStatisticsMapper costStatisticsMapper;
+    private final VehicleStatisticsMapper vehicleStatisticsMapper;
+    private final DriverStatisticsMapper driverStatisticsMapper;
+    private final TransportStatisticsMapper transportStatisticsMapper;
+    private final StatisticsClient statisticsClient;
+    private final RedisTemplate<String, Object> redisTemplate;
+    
+    private static final long CACHE_EXPIRE_DAYS = 1; // 缓存过期时间：1 天
 
     @Override
-    public CostStatistics calculateCostStatistics(LocalDate date) {
-        CostStatistics statistics = new CostStatistics();
-        statistics.setStatisticsDate(date);
-        statistics.setFuelCost(new BigDecimal(2000)); // 模拟数据
-        statistics.setMaintenanceCost(new BigDecimal(500)); // 模拟数据
-        statistics.setLaborCost(new BigDecimal(3000)); // 模拟数据
-        statistics.setOtherCost(new BigDecimal(500)); // 模拟数据
-        statistics.setTotalCost(statistics.getFuelCost().add(statistics.getMaintenanceCost())
-                .add(statistics.getLaborCost()).add(statistics.getOtherCost()));
-        statistics.setCreateTime(LocalDateTime.now());
-        statistics.setUpdateTime(LocalDateTime.now());
+    public TripStatisticsVO calculateTripStatistics(String date) {
+        LocalDate statisticsDate = LocalDate.parse(date);
         
-        log.info("计算成本统计数据：日期={}, 总成本={}", 
-                date, statistics.getTotalCost());
+        // 删除旧缓存
+        String cacheKey = "statistics:trip:" + date;
+        redisTemplate.delete(cacheKey);
         
-        // 这里应该使用MyBatis-Plus或其他ORM框架保存到数据库
-        // 暂时返回模拟数据
-        return statistics;
-    }
-
-    @Override
-    public List<TripStatistics> getTripStatistics(LocalDate startDate, LocalDate endDate) {
-        List<TripStatistics> statisticsList = new ArrayList<>();
-        LocalDate currentDate = startDate;
+        TripStatistics existing = tripStatisticsMapper.selectOne(
+            new LambdaQueryWrapper<TripStatistics>()
+                .eq(TripStatistics::getStatisticsDate, statisticsDate)
+        );
         
-        while (!currentDate.isAfter(endDate)) {
-            TripStatistics statistics = calculateTripStatistics(currentDate);
-            statisticsList.add(statistics);
-            currentDate = currentDate.plusDays(1);
+        if (existing != null) {
+            tripStatisticsMapper.deleteById(existing.getId());
         }
         
-        return statisticsList;
-    }
-
-    @Override
-    public List<CostStatistics> getCostStatistics(LocalDate startDate, LocalDate endDate) {
-        List<CostStatistics> statisticsList = new ArrayList<>();
-        LocalDate currentDate = startDate;
+        TripStatistics entity = new TripStatistics();
+        entity.setStatisticsDate(statisticsDate);
         
-        while (!currentDate.isAfter(endDate)) {
-            CostStatistics statistics = calculateCostStatistics(currentDate);
-            statisticsList.add(statistics);
-            currentDate = currentDate.plusDays(1);
+        try {
+            // 使用 StatisticsClient 调用 trip-service
+            java.util.Map<String, Object> tripStats = statisticsClient.getTripStatistics(date, date);
+            
+            if (tripStats != null) {
+                Object tripCountObj = tripStats.get("tripCount");
+                Object totalDistanceObj = tripStats.get("totalDistance");
+                Object totalDurationObj = tripStats.get("totalDuration");
+                Object completedTripCountObj = tripStats.get("completedTripCount");
+                Object cancelledTripCountObj = tripStats.get("cancelledTripCount");
+                Object averageSpeedObj = tripStats.get("averageSpeed");
+                Object fuelConsumptionObj = tripStats.get("fuelConsumption");
+                Object cargoWeightObj = tripStats.get("cargoWeight");
+                
+                entity.setTripCount(tripCountObj != null ? ((Number) tripCountObj).intValue() : 0);
+                entity.setTotalDistance(totalDistanceObj != null ? new BigDecimal(totalDistanceObj.toString()) : BigDecimal.ZERO);
+                entity.setTotalDuration(totalDurationObj != null ? new BigDecimal(totalDurationObj.toString()) : BigDecimal.ZERO);
+                entity.setCompletedTripCount(completedTripCountObj != null ? ((Number) completedTripCountObj).intValue() : 0);
+                entity.setCancelledTripCount(cancelledTripCountObj != null ? ((Number) cancelledTripCountObj).intValue() : 0);
+                entity.setAverageSpeed(averageSpeedObj != null ? new BigDecimal(averageSpeedObj.toString()) : BigDecimal.ZERO);
+                entity.setFuelConsumption(fuelConsumptionObj != null ? new BigDecimal(fuelConsumptionObj.toString()) : BigDecimal.ZERO);
+                entity.setCargoWeight(cargoWeightObj != null ? new BigDecimal(cargoWeightObj.toString()) : BigDecimal.ZERO);
+            }
+        } catch (Exception e) {
+            log.warn("从行程服务获取统计数据失败，使用默认值：{}", e.getMessage());
+            entity.setTripCount(0);
+            entity.setTotalDistance(BigDecimal.ZERO);
+            entity.setTotalDuration(BigDecimal.ZERO);
+            entity.setCompletedTripCount(0);
+            entity.setCancelledTripCount(0);
+            entity.setAverageSpeed(BigDecimal.ZERO);
+            entity.setFuelConsumption(BigDecimal.ZERO);
+            entity.setCargoWeight(BigDecimal.ZERO);
         }
         
-        return statisticsList;
+        entity.setCreateTime(LocalDateTime.now());
+        entity.setUpdateTime(LocalDateTime.now());
+        
+        tripStatisticsMapper.insert(entity);
+        log.info("计算行程统计数据：日期={}, 行程数={}", date, entity.getTripCount());
+        
+        TripStatisticsVO vo = convertToTripStatisticsVO(entity);
+        
+        // 写入缓存
+        redisTemplate.opsForValue().set(cacheKey, vo, CACHE_EXPIRE_DAYS, TimeUnit.DAYS);
+        
+        return vo;
     }
 
     @Override
-    public Object getOverallStatistics(LocalDate startDate, LocalDate endDate) {
-        List<TripStatistics> tripStatisticsList = getTripStatistics(startDate, endDate);
-        List<CostStatistics> costStatisticsList = getCostStatistics(startDate, endDate);
+    public CostStatisticsVO calculateCostStatistics(String date) {
+        LocalDate statisticsDate = LocalDate.parse(date);
         
-        // 计算总体统计数据
+        // 删除旧缓存
+        String cacheKey = "statistics:cost:" + date;
+        redisTemplate.delete(cacheKey);
+        
+        CostStatistics existing = costStatisticsMapper.selectOne(
+            new LambdaQueryWrapper<CostStatistics>()
+                .eq(CostStatistics::getStatisticsDate, statisticsDate)
+        );
+        
+        if (existing != null) {
+            costStatisticsMapper.deleteById(existing.getId());
+        }
+        
+        CostStatistics entity = new CostStatistics();
+        entity.setStatisticsDate(statisticsDate);
+        
+        try {
+            // 调用 cost-service 获取成本统计数据
+            java.util.Map<String, Object> costStats = statisticsClient.getCostStatistics(date, date);
+            
+            if (costStats != null) {
+                entity.setFuelCost(getBigDecimalValue(costStats, "fuelCost"));
+                entity.setMaintenanceCost(getBigDecimalValue(costStats, "maintenanceCost"));
+                entity.setLaborCost(getBigDecimalValue(costStats, "laborCost"));
+                entity.setInsuranceCost(getBigDecimalValue(costStats, "insuranceCost"));
+                entity.setDepreciationCost(getBigDecimalValue(costStats, "depreciationCost"));
+                entity.setManagementCost(getBigDecimalValue(costStats, "managementCost"));
+                entity.setOtherCost(getBigDecimalValue(costStats, "otherCost"));
+                
+                BigDecimal totalCost = entity.getFuelCost()
+                    .add(entity.getMaintenanceCost())
+                    .add(entity.getLaborCost())
+                    .add(entity.getInsuranceCost())
+                    .add(entity.getDepreciationCost())
+                    .add(entity.getManagementCost())
+                    .add(entity.getOtherCost());
+                entity.setTotalCost(totalCost);
+            }
+        } catch (Exception e) {
+            log.warn("从成本服务获取统计数据失败，使用默认值：{}", e.getMessage());
+            entity.setFuelCost(BigDecimal.ZERO);
+            entity.setMaintenanceCost(BigDecimal.ZERO);
+            entity.setLaborCost(BigDecimal.ZERO);
+            entity.setInsuranceCost(BigDecimal.ZERO);
+            entity.setDepreciationCost(BigDecimal.ZERO);
+            entity.setManagementCost(BigDecimal.ZERO);
+            entity.setOtherCost(BigDecimal.ZERO);
+            entity.setTotalCost(BigDecimal.ZERO);
+        }
+        
+        entity.setCreateTime(LocalDateTime.now());
+        entity.setUpdateTime(LocalDateTime.now());
+        
+        costStatisticsMapper.insert(entity);
+        log.info("计算成本统计数据：日期={}, 总成本={}", date, entity.getTotalCost());
+        
+        CostStatisticsVO vo = convertToCostStatisticsVO(entity);
+        
+        // 写入缓存
+        redisTemplate.opsForValue().set(cacheKey, vo, CACHE_EXPIRE_DAYS, TimeUnit.DAYS);
+        
+        return vo;
+    }
+
+    @Override
+    public VehicleStatisticsVO calculateVehicleStatistics(Long vehicleId, String date) {
+        LocalDate statisticsDate = LocalDate.parse(date);
+        
+        // 删除旧缓存
+        String cacheKey = "statistics:vehicle:" + vehicleId + ":" + date;
+        redisTemplate.delete(cacheKey);
+        
+        VehicleStatistics existing = vehicleStatisticsMapper.selectOne(
+            new LambdaQueryWrapper<VehicleStatistics>()
+                .eq(VehicleStatistics::getVehicleId, vehicleId)
+                .eq(VehicleStatistics::getStatisticsDate, statisticsDate)
+        );
+        
+        if (existing != null) {
+            vehicleStatisticsMapper.deleteById(existing.getId());
+        }
+        
+        VehicleStatistics entity = new VehicleStatistics();
+        entity.setVehicleId(vehicleId);
+        entity.setStatisticsDate(statisticsDate);
+        entity.setTripCount(0);
+        entity.setTotalDistance(BigDecimal.ZERO);
+        entity.setTotalDuration(BigDecimal.ZERO);
+        entity.setCargoWeight(BigDecimal.ZERO);
+        entity.setFuelConsumption(BigDecimal.ZERO);
+        entity.setFuelCost(BigDecimal.ZERO);
+        entity.setMaintenanceCount(0);
+        entity.setMaintenanceCost(BigDecimal.ZERO);
+        entity.setWarningCount(0);
+        entity.setViolationCount(0);
+        entity.setIdleDuration(BigDecimal.ZERO);
+        entity.setIdleDistance(BigDecimal.ZERO);
+        entity.setCreateTime(LocalDateTime.now());
+        entity.setUpdateTime(LocalDateTime.now());
+        
+        vehicleStatisticsMapper.insert(entity);
+        log.info("计算车辆统计数据：车辆 ID={}, 日期={}", vehicleId, date);
+        
+        VehicleStatisticsVO vo = convertToVehicleStatisticsVO(entity);
+        
+        // 写入缓存
+        redisTemplate.opsForValue().set(cacheKey, vo, CACHE_EXPIRE_DAYS, TimeUnit.DAYS);
+        
+        return vo;
+    }
+
+    @Override
+    public DriverStatisticsVO calculateDriverStatistics(Long userId, String date) {
+        LocalDate statisticsDate = LocalDate.parse(date);
+        
+        // 删除旧缓存
+        String cacheKey = "statistics:driver:" + userId + ":" + date;
+        redisTemplate.delete(cacheKey);
+        
+        DriverStatistics existing = driverStatisticsMapper.selectOne(
+            new LambdaQueryWrapper<DriverStatistics>()
+                .eq(DriverStatistics::getUserId, userId)
+                .eq(DriverStatistics::getStatisticsDate, statisticsDate)
+        );
+        
+        if (existing != null) {
+            driverStatisticsMapper.deleteById(existing.getId());
+        }
+        
+        DriverStatistics entity = new DriverStatistics();
+        entity.setUserId(userId);
+        entity.setStatisticsDate(statisticsDate);
+        entity.setAttendanceDays(0);
+        entity.setAttendanceHours(BigDecimal.ZERO);
+        entity.setTripCount(0);
+        entity.setTotalDistance(BigDecimal.ZERO);
+        entity.setCargoWeight(BigDecimal.ZERO);
+        entity.setLateCount(0);
+        entity.setEarlyLeaveCount(0);
+        entity.setWarningCount(0);
+        entity.setViolationCount(0);
+        entity.setOverSpeedCount(0);
+        entity.setRouteDeviationCount(0);
+        entity.setPerformanceScore(BigDecimal.valueOf(100));
+        entity.setCreateTime(LocalDateTime.now());
+        entity.setUpdateTime(LocalDateTime.now());
+        
+        driverStatisticsMapper.insert(entity);
+        log.info("计算司机统计数据：用户 ID={}, 日期={}", userId, date);
+        
+        DriverStatisticsVO vo = convertToDriverStatisticsVO(entity);
+        
+        // 写入缓存
+        redisTemplate.opsForValue().set(cacheKey, vo, CACHE_EXPIRE_DAYS, TimeUnit.DAYS);
+        
+        return vo;
+    }
+
+    @Override
+    public List<TripStatisticsVO> getTripStatistics(StatisticsQueryDTO queryDTO) {
+        // 先尝试从缓存读取（如果是单个日期查询）
+        if (queryDTO.getStartDate() != null && queryDTO.getStartDate().equals(queryDTO.getEndDate())) {
+            String cacheKey = "statistics:trip:" + queryDTO.getStartDate();
+            @SuppressWarnings("unchecked")
+            TripStatisticsVO cached = (TripStatisticsVO) redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.debug("缓存命中：{}", cacheKey);
+                return List.of(cached);
+            }
+        }
+        
+        LambdaQueryWrapper<TripStatistics> wrapper = new LambdaQueryWrapper<>();
+        
+        if (queryDTO.getStartDate() != null) {
+            wrapper.ge(TripStatistics::getStatisticsDate, queryDTO.getStartDate());
+        }
+        if (queryDTO.getEndDate() != null) {
+            wrapper.le(TripStatistics::getStatisticsDate, queryDTO.getEndDate());
+        }
+        
+        wrapper.orderByDesc(TripStatistics::getStatisticsDate);
+        
+        List<TripStatistics> list = tripStatisticsMapper.selectList(wrapper);
+        return list.stream().map(this::convertToTripStatisticsVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CostStatisticsVO> getCostStatistics(StatisticsQueryDTO queryDTO) {
+        // 先尝试从缓存读取（如果是单个日期查询）
+        if (queryDTO.getStartDate() != null && queryDTO.getStartDate().equals(queryDTO.getEndDate())) {
+            String cacheKey = "statistics:cost:" + queryDTO.getStartDate();
+            @SuppressWarnings("unchecked")
+            CostStatisticsVO cached = (CostStatisticsVO) redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.debug("缓存命中：{}", cacheKey);
+                return List.of(cached);
+            }
+        }
+        
+        LambdaQueryWrapper<CostStatistics> wrapper = new LambdaQueryWrapper<>();
+        
+        if (queryDTO.getStartDate() != null) {
+            wrapper.ge(CostStatistics::getStatisticsDate, queryDTO.getStartDate());
+        }
+        if (queryDTO.getEndDate() != null) {
+            wrapper.le(CostStatistics::getStatisticsDate, queryDTO.getEndDate());
+        }
+        
+        wrapper.orderByDesc(CostStatistics::getStatisticsDate);
+        
+        List<CostStatistics> list = costStatisticsMapper.selectList(wrapper);
+        return list.stream().map(this::convertToCostStatisticsVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<VehicleStatisticsVO> getVehicleStatistics(StatisticsQueryDTO queryDTO) {
+        LambdaQueryWrapper<VehicleStatistics> wrapper = new LambdaQueryWrapper<>();
+        
+        if (queryDTO.getVehicleId() != null) {
+            wrapper.eq(VehicleStatistics::getVehicleId, queryDTO.getVehicleId());
+        }
+        if (queryDTO.getStartDate() != null) {
+            wrapper.ge(VehicleStatistics::getStatisticsDate, queryDTO.getStartDate());
+        }
+        if (queryDTO.getEndDate() != null) {
+            wrapper.le(VehicleStatistics::getStatisticsDate, queryDTO.getEndDate());
+        }
+        
+        wrapper.orderByDesc(VehicleStatistics::getStatisticsDate);
+        
+        List<VehicleStatistics> list = vehicleStatisticsMapper.selectList(wrapper);
+        return list.stream().map(this::convertToVehicleStatisticsVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<DriverStatisticsVO> getDriverStatistics(StatisticsQueryDTO queryDTO) {
+        LambdaQueryWrapper<DriverStatistics> wrapper = new LambdaQueryWrapper<>();
+        
+        if (queryDTO.getUserId() != null) {
+            wrapper.eq(DriverStatistics::getUserId, queryDTO.getUserId());
+        }
+        if (queryDTO.getStartDate() != null) {
+            wrapper.ge(DriverStatistics::getStatisticsDate, queryDTO.getStartDate());
+        }
+        if (queryDTO.getEndDate() != null) {
+            wrapper.le(DriverStatistics::getStatisticsDate, queryDTO.getEndDate());
+        }
+        
+        wrapper.orderByDesc(DriverStatistics::getStatisticsDate);
+        
+        List<DriverStatistics> list = driverStatisticsMapper.selectList(wrapper);
+        return list.stream().map(this::convertToDriverStatisticsVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public OverallStatisticsVO getOverallStatistics(StatisticsQueryDTO queryDTO) {
+        List<TripStatisticsVO> tripList = getTripStatistics(queryDTO);
+        List<CostStatisticsVO> costList = getCostStatistics(queryDTO);
+        
         int totalTripCount = 0;
         BigDecimal totalDistance = BigDecimal.ZERO;
         BigDecimal totalDuration = BigDecimal.ZERO;
         int totalCompletedTripCount = 0;
         int totalCancelledTripCount = 0;
+        BigDecimal totalCargoWeight = BigDecimal.ZERO;
+        
+        for (TripStatisticsVO trip : tripList) {
+            if (trip.getTripCount() != null) totalTripCount += trip.getTripCount();
+            if (trip.getTotalDistance() != null) totalDistance = totalDistance.add(trip.getTotalDistance());
+            if (trip.getTotalDuration() != null) totalDuration = totalDuration.add(trip.getTotalDuration());
+            if (trip.getCompletedTripCount() != null) totalCompletedTripCount += trip.getCompletedTripCount();
+            if (trip.getCancelledTripCount() != null) totalCancelledTripCount += trip.getCancelledTripCount();
+            if (trip.getCargoWeight() != null) totalCargoWeight = totalCargoWeight.add(trip.getCargoWeight());
+        }
+        
         BigDecimal totalFuelCost = BigDecimal.ZERO;
         BigDecimal totalMaintenanceCost = BigDecimal.ZERO;
         BigDecimal totalLaborCost = BigDecimal.ZERO;
         BigDecimal totalOtherCost = BigDecimal.ZERO;
         BigDecimal totalCost = BigDecimal.ZERO;
         
-        for (TripStatistics tripStats : tripStatisticsList) {
-            totalTripCount += tripStats.getTripCount();
-            totalDistance = totalDistance.add(tripStats.getTotalDistance());
-            totalDuration = totalDuration.add(tripStats.getTotalDuration());
-            totalCompletedTripCount += tripStats.getCompletedTripCount();
-            totalCancelledTripCount += tripStats.getCancelledTripCount();
+        for (CostStatisticsVO cost : costList) {
+            if (cost.getFuelCost() != null) totalFuelCost = totalFuelCost.add(cost.getFuelCost());
+            if (cost.getMaintenanceCost() != null) totalMaintenanceCost = totalMaintenanceCost.add(cost.getMaintenanceCost());
+            if (cost.getLaborCost() != null) totalLaborCost = totalLaborCost.add(cost.getLaborCost());
+            if (cost.getOtherCost() != null) totalOtherCost = totalOtherCost.add(cost.getOtherCost());
+            if (cost.getTotalCost() != null) totalCost = totalCost.add(cost.getTotalCost());
         }
         
-        for (CostStatistics costStats : costStatisticsList) {
-            totalFuelCost = totalFuelCost.add(costStats.getFuelCost());
-            totalMaintenanceCost = totalMaintenanceCost.add(costStats.getMaintenanceCost());
-            totalLaborCost = totalLaborCost.add(costStats.getLaborCost());
-            totalOtherCost = totalOtherCost.add(costStats.getOtherCost());
-            totalCost = totalCost.add(costStats.getTotalCost());
+        OverallStatisticsVO vo = new OverallStatisticsVO();
+        vo.setStartDate(queryDTO.getStartDate());
+        vo.setEndDate(queryDTO.getEndDate());
+        vo.setTotalTripCount(totalTripCount);
+        vo.setTotalDistance(totalDistance);
+        vo.setTotalDuration(totalDuration);
+        vo.setTotalCompletedTripCount(totalCompletedTripCount);
+        vo.setTotalCancelledTripCount(totalCancelledTripCount);
+        vo.setTotalCargoWeight(totalCargoWeight);
+        vo.setTotalFuelCost(totalFuelCost);
+        vo.setTotalMaintenanceCost(totalMaintenanceCost);
+        vo.setTotalLaborCost(totalLaborCost);
+        vo.setTotalOtherCost(totalOtherCost);
+        vo.setTotalCost(totalCost);
+        vo.setTripStatisticsList(tripList);
+        vo.setCostStatisticsList(costList);
+        
+        return vo;
+    }
+
+    @Override
+    public TransportStatisticsVO calculateTransportStatistics(String date) {
+        LocalDate statisticsDate = LocalDate.parse(date);
+        
+        // 删除旧缓存
+        String cacheKey = "statistics:transport:" + date;
+        redisTemplate.delete(cacheKey);
+        
+        TransportStatistics existing = transportStatisticsMapper.selectOne(
+            new LambdaQueryWrapper<TransportStatistics>()
+                .eq(TransportStatistics::getStatisticsDate, statisticsDate)
+        );
+        
+        if (existing != null) {
+            transportStatisticsMapper.deleteById(existing.getId());
         }
         
-        // 构建返回结果
-        Map<String, Object> result = new HashMap<>();
-        result.put("startDate", startDate);
-        result.put("endDate", endDate);
-        result.put("totalTripCount", totalTripCount);
-        result.put("totalDistance", totalDistance);
-        result.put("totalDuration", totalDuration);
-        result.put("totalCompletedTripCount", totalCompletedTripCount);
-        result.put("totalCancelledTripCount", totalCancelledTripCount);
-        result.put("totalFuelCost", totalFuelCost);
-        result.put("totalMaintenanceCost", totalMaintenanceCost);
-        result.put("totalLaborCost", totalLaborCost);
-        result.put("totalOtherCost", totalOtherCost);
-        result.put("totalCost", totalCost);
+        TransportStatistics entity = new TransportStatistics();
+        entity.setStatisticsDate(statisticsDate);
         
-        // 调用 Python 服务进行数据清洗
         try {
-            // 准备分析数据
-            List<Map<String, Object>> statisticsData = new ArrayList<>();
-            for (TripStatistics tripStats : tripStatisticsList) {
-                Map<String, Object> data = new HashMap<>();
-                data.put("date", tripStats.getStatisticsDate().toString());
-                data.put("tripCount", tripStats.getTripCount());
-                data.put("distance", tripStats.getTotalDistance().doubleValue());
-                data.put("duration", tripStats.getTotalDuration().doubleValue());
-                statisticsData.add(data);
+            List<TripStatistics> tripStats = tripStatisticsMapper.selectList(
+                new LambdaQueryWrapper<TripStatistics>()
+                    .eq(TripStatistics::getStatisticsDate, statisticsDate)
+            );
+            
+            BigDecimal totalCargoWeight = BigDecimal.ZERO;
+            int totalTrips = 0;
+            
+            for (TripStatistics ts : tripStats) {
+                if (ts.getCargoWeight() != null) {
+                    totalCargoWeight = totalCargoWeight.add(ts.getCargoWeight());
+                }
+                if (ts.getTripCount() != null) {
+                    totalTrips += ts.getTripCount();
+                }
             }
             
-            // 构建请求数据
-            Map<String, Object> requestData = new HashMap<>();
-            requestData.put("data", statisticsData);
+            entity.setTotalCargoWeight(totalCargoWeight);
+            entity.setTotalTrips(totalTrips);
             
-            // 转换为 JSON
-            String jsonData = com.klzw.common.core.util.JsonUtils.toJson(requestData);
+            // 这里可以继续调用其他服务获取车辆数量和司机数量
+            // 为简化实现，暂时设为 0
+            entity.setTotalVehicles(0);
+            entity.setTotalDrivers(0);
             
-            // 调用 Python 服务进行数据清洗
-            String url = "http://python-service:8008/api/clean/statistics-data";
-            String response = com.klzw.common.core.util.HttpUtils.postJson(url, jsonData);
+            if (totalTrips > 0) {
+                entity.setAvgCargoPerTrip(totalCargoWeight.divide(BigDecimal.valueOf(totalTrips), 2, RoundingMode.HALF_UP));
+            } else {
+                entity.setAvgCargoPerTrip(BigDecimal.ZERO);
+            }
             
-            // 解析响应
-            Map<String, Object> cleanResult = com.klzw.common.core.util.JsonUtils.fromJson(response, Map.class);
-            result.put("cleaning_report", cleanResult.get("cleaning_report"));
+            if (entity.getTotalVehicles() != null && entity.getTotalVehicles() > 0) {
+                entity.setAvgTripsPerVehicle(BigDecimal.valueOf(totalTrips).divide(BigDecimal.valueOf(entity.getTotalVehicles()), 2, RoundingMode.HALF_UP));
+            } else {
+                entity.setAvgTripsPerVehicle(BigDecimal.ZERO);
+            }
             
-            log.info("调用 Python 服务进行数据清洗成功");
         } catch (Exception e) {
-            log.warn("调用 Python 服务进行数据清洗失败: {}", e.getMessage());
-            // 失败时不影响原有功能
+            log.warn("计算运输统计数据失败，使用默认值：{}", e.getMessage());
+            entity.setTotalCargoWeight(BigDecimal.ZERO);
+            entity.setTotalTrips(0);
+            entity.setTotalVehicles(0);
+            entity.setTotalDrivers(0);
+            entity.setAvgCargoPerTrip(BigDecimal.ZERO);
+            entity.setAvgTripsPerVehicle(BigDecimal.ZERO);
         }
         
-        return result;
+        entity.setCreateTime(LocalDateTime.now());
+        entity.setUpdateTime(LocalDateTime.now());
+        
+        transportStatisticsMapper.insert(entity);
+        log.info("计算运输统计数据：日期={}, 行程数={}", date, entity.getTotalTrips());
+        
+        TransportStatisticsVO vo = convertToTransportStatisticsVO(entity);
+        
+        // 写入缓存
+        redisTemplate.opsForValue().set(cacheKey, vo, CACHE_EXPIRE_DAYS, TimeUnit.DAYS);
+        
+        return vo;
+    }
+
+    @Override
+    public List<TransportStatisticsVO> getTransportStatistics(StatisticsQueryDTO queryDTO) {
+        LambdaQueryWrapper<TransportStatistics> wrapper = new LambdaQueryWrapper<>();
+        
+        if (queryDTO.getStartDate() != null) {
+            wrapper.ge(TransportStatistics::getStatisticsDate, queryDTO.getStartDate());
+        }
+        if (queryDTO.getEndDate() != null) {
+            wrapper.le(TransportStatistics::getStatisticsDate, queryDTO.getEndDate());
+        }
+        
+        wrapper.orderByDesc(TransportStatistics::getStatisticsDate);
+        
+        List<TransportStatistics> list = transportStatisticsMapper.selectList(wrapper);
+        return list.stream().map(this::convertToTransportStatisticsVO).collect(Collectors.toList());
+    }
+    
+    @Override
+    public FaultStatisticsVO calculateFaultStatistics(Long vehicleId, String date) {
+        // 删除旧缓存
+        String cacheKey = "statistics:fault:" + vehicleId + ":" + date;
+        redisTemplate.delete(cacheKey);
+        
+        // 调用 fault statistics service
+        FaultStatisticsVO vo = new FaultStatisticsVO();
+        // TODO: 实现故障统计计算逻辑
+        
+        // 写入缓存
+        redisTemplate.opsForValue().set(cacheKey, vo, CACHE_EXPIRE_DAYS, TimeUnit.DAYS);
+        
+        return vo;
+    }
+    
+    @Override
+    public List<FaultStatisticsVO> getFaultStatistics(StatisticsQueryDTO queryDTO) {
+        // 实现故障统计查询逻辑
+        return List.of();
+    }
+
+    private TripStatisticsVO convertToTripStatisticsVO(TripStatistics entity) {
+        TripStatisticsVO vo = new TripStatisticsVO();
+        BeanUtils.copyProperties(entity, vo);
+        return vo;
+    }
+
+    private CostStatisticsVO convertToCostStatisticsVO(CostStatistics entity) {
+        CostStatisticsVO vo = new CostStatisticsVO();
+        BeanUtils.copyProperties(entity, vo);
+        return vo;
+    }
+
+    private VehicleStatisticsVO convertToVehicleStatisticsVO(VehicleStatistics entity) {
+        VehicleStatisticsVO vo = new VehicleStatisticsVO();
+        BeanUtils.copyProperties(entity, vo);
+        
+        if (entity.getTotalDuration() != null && entity.getTotalDuration().compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal utilizationRate = entity.getTotalDistance()
+                    .divide(entity.getTotalDuration(), 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+            vo.setUtilizationRate(utilizationRate);
+        } else {
+            vo.setUtilizationRate(BigDecimal.ZERO);
+        }
+        
+        return vo;
+    }
+
+    private DriverStatisticsVO convertToDriverStatisticsVO(DriverStatistics entity) {
+        DriverStatisticsVO vo = new DriverStatisticsVO();
+        BeanUtils.copyProperties(entity, vo);
+        return vo;
+    }
+
+    private TransportStatisticsVO convertToTransportStatisticsVO(TransportStatistics entity) {
+        TransportStatisticsVO vo = new TransportStatisticsVO();
+        BeanUtils.copyProperties(entity, vo);
+        return vo;
+    }
+    
+    /**
+     * 从 Map 中获取 BigDecimal 值
+     */
+    private BigDecimal getBigDecimalValue(java.util.Map<String, Object> map, String key) {
+        Object obj = map.get(key);
+        if (obj == null) {
+            return BigDecimal.ZERO;
+        }
+        if (obj instanceof BigDecimal) {
+            return (BigDecimal) obj;
+        }
+        if (obj instanceof Number) {
+            return new BigDecimal(obj.toString());
+        }
+        try {
+            return new BigDecimal(obj.toString());
+        } catch (Exception e) {
+            log.warn("转换 BigDecimal 失败：key={}, value={}", key, obj);
+            return BigDecimal.ZERO;
+        }
+    }
+    
+    /**
+     * 从 Map 中获取 Integer 值
+     */
+    private Integer getIntegerValue(java.util.Map<String, Object> map, String key) {
+        Object obj = map.get(key);
+        if (obj == null) {
+            return 0;
+        }
+        if (obj instanceof Integer) {
+            return (Integer) obj;
+        }
+        if (obj instanceof Number) {
+            return ((Number) obj).intValue();
+        }
+        try {
+            return Integer.parseInt(obj.toString());
+        } catch (Exception e) {
+            log.warn("转换 Integer 失败：key={}, value={}", key, obj);
+            return 0;
+        }
     }
 }

@@ -13,14 +13,9 @@ import lombok.Data;
 public class CertVerifyDTO {
 
     /**
-     * 用户ID
+     * 用户 ID
      */
     private Long userId;
-
-    /**
-     * 人员类型：1-司机，2-安全员，3-维修员
-     */
-    private Integer personType;
 
     /**
      * 证书编号（必填）

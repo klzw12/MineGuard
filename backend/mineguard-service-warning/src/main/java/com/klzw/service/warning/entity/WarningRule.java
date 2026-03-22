@@ -1,6 +1,5 @@
 package com.klzw.service.warning.entity;
 
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.klzw.common.database.domain.BaseEntity;
 import lombok.Data;
@@ -20,6 +19,10 @@ public class WarningRule extends BaseEntity {
     private Integer warningLevel;
 
     private String thresholdValue;
+
+    private String pushRoles;
+
+    private String ruleConfig;
 
     private Integer status;
 

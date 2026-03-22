@@ -50,12 +50,28 @@ export const vehicleApi = {
     return http.get<PageResult<VehicleVO>>('/api/vehicle/page', params)
   },
 
-  bindUser: (id: number, userId: number): Promise<void | null> => {
-    return http.post<void>(`/api/vehicle/${id}/bind`, { userId })
+  // 管理端专用接口
+  uploadVehiclePhoto: (id: number, file: any): Promise<string | null> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return http.post<string>(`/api/vehicle/${id}/photo`, formData)
   },
 
-  unbindUser: (id: number): Promise<void | null> => {
-    return http.post<void>(`/api/vehicle/${id}/unbind`)
+  uploadLicenseFrontAndOCR: (id: number, file: any): Promise<VehicleVO | null> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return http.post<VehicleVO>(`/api/vehicle/${id}/license/front`, formData)
+  },
+
+  uploadLicenseBack: (id: number, file: any): Promise<VehicleVO | null> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return http.post<VehicleVO>(`/api/vehicle/${id}/license/back`, formData)
+  },
+
+  // 更新车辆维修状态（维修员端使用）
+  updateMaintenanceStatus: (id: number, maintenanceStatus: number): Promise<VehicleVO | null> => {
+    return http.put<VehicleVO>(`/api/vehicle/${id}/maintenance`, { maintenanceStatus })
   }
 }
 
@@ -108,5 +124,18 @@ export const insuranceApi = {
 
   getCurrentInsurance: (vehicleId: number): Promise<any | null> => {
     return http.get<any>(`/api/vehicle/insurance/vehicle/${vehicleId}/current`)
+  },
+
+  // 上传车辆保险信息（简化版，用于表单录入）
+  uploadInsuranceInfo: (vehicleId: number, data: {
+    insuranceCompany: string
+    policyNo: string
+    insuranceType: number
+    insuranceAmount: number
+    startDate: string
+    expiryDate: string
+    remark?: string
+  }): Promise<void | null> => {
+    return http.post<void>(`/api/vehicle/${vehicleId}/insurance`, data)
   }
 }

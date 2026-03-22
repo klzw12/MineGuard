@@ -15,7 +15,8 @@ public enum MessageTypeEnum {
     SUBSCRIBE("subscribe", "订阅消息", MessagePriority.HIGH),
     ACK("ack", "确认消息", MessagePriority.HIGH),
     ERROR("error", "错误消息", MessagePriority.HIGH),
-    ONLINE_STATUS("online_status", "在线状态", MessagePriority.MEDIUM);
+    ONLINE_STATUS("online_status", "在线状态", MessagePriority.MEDIUM),
+    NOTIFICATION("notification", "通知消息", MessagePriority.MEDIUM);
 
     private final String code;
     private final String description;

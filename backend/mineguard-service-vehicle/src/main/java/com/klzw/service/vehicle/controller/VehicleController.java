@@ -1,8 +1,10 @@
 package com.klzw.service.vehicle.controller;
 
 import com.klzw.common.core.result.Result;
+import com.klzw.service.vehicle.dto.BestVehicleQueryDTO;
 import com.klzw.service.vehicle.entity.Vehicle;
 import com.klzw.service.vehicle.service.VehicleService;
+import com.klzw.service.vehicle.vo.BestVehicleVO;
 import com.klzw.service.vehicle.vo.VehicleVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -51,26 +53,12 @@ public class VehicleController {
     @Operation(summary = "分页查询车辆")
     @GetMapping("/page")
     public Result<List<VehicleVO>> getVehiclePage(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize,
             @RequestParam(required = false) String vehicleNo,
             @RequestParam(required = false) Integer status) {
-        List<VehicleVO> vehicles = vehicleService.getVehiclePage(page, size, vehicleNo, status);
+        List<VehicleVO> vehicles = vehicleService.getVehiclePage(pageNum, pageSize, vehicleNo, status);
         return Result.success(vehicles);
-    }
-    
-    @Operation(summary = "绑定用户")
-    @PostMapping("/{id}/bind")
-    public Result<Boolean> bindUser(@PathVariable Long id, @RequestParam Long userId) {
-        boolean result = vehicleService.bindUser(id, userId);
-        return Result.success(result);
-    }
-    
-    @Operation(summary = "解绑用户")
-    @PostMapping("/{id}/unbind")
-    public Result<Boolean> unbindUser(@PathVariable Long id) {
-        boolean result = vehicleService.unbindUser(id);
-        return Result.success(result);
     }
     
     @Operation(summary = "上传车辆照片")
@@ -115,6 +103,20 @@ public class VehicleController {
     public Result<Vehicle> updateMaintenanceStatus(@PathVariable Long id, @RequestParam Integer maintenanceStatus) {
         Vehicle vehicle = vehicleService.updateMaintenanceStatus(id, maintenanceStatus);
         return Result.success(vehicle);
+    }
+    
+    @Operation(summary = "选择最佳车辆", description = "根据货物重量、车辆状态、油量等因素综合评估推荐最佳车辆")
+    @PostMapping("/best")
+    public Result<List<BestVehicleVO>> selectBestVehicles(@RequestBody BestVehicleQueryDTO query) {
+        List<BestVehicleVO> vehicles = vehicleService.selectBestVehicles(query);
+        return Result.success(vehicles);
+    }
+    
+    @Operation(summary = "获取所有可用车辆", description = "获取所有空闲状态的车辆列表")
+    @GetMapping("/available")
+    public Result<List<VehicleVO>> getAvailableVehicles() {
+        List<VehicleVO> vehicles = vehicleService.getAvailableVehicles();
+        return Result.success(vehicles);
     }
     
 }

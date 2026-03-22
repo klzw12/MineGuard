@@ -2,11 +2,15 @@ package com.klzw.service.vehicle.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.klzw.common.file.service.OcrService;
+import com.klzw.service.vehicle.dto.BestVehicleQueryDTO;
 import com.klzw.service.vehicle.entity.Vehicle;
 import com.klzw.service.vehicle.enums.InsuranceTypeEnum;
 import com.klzw.service.vehicle.enums.VehicleStatusEnum;
 import com.klzw.service.vehicle.mapper.VehicleMapper;
 import com.klzw.service.vehicle.service.VehicleService;
+import com.klzw.service.vehicle.exception.VehicleException;
+import com.klzw.service.vehicle.exception.VehicleResultCode;
+import com.klzw.service.vehicle.vo.BestVehicleVO;
 import com.klzw.service.vehicle.vo.VehicleVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,9 +20,11 @@ import javax.annotation.Resource;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * 车辆服务实现类
@@ -67,30 +73,39 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     @Override
     public List<VehicleVO> getVehiclePage(int page, int size, String vehicleNo, Integer status) {
         log.info("分页查询车辆: page={}, size={}, vehicleNo={}, status={}", page, size, vehicleNo, status);
-        // TODO: 实现分页查询逻辑
-        return null;
+        
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Vehicle> pageObj = 
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, size);
+        
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        
+        if (vehicleNo != null && !vehicleNo.isEmpty()) {
+            wrapper.like(Vehicle::getVehicleNo, vehicleNo);
+        }
+        if (status != null) {
+            wrapper.eq(Vehicle::getStatus, status);
+        }
+        wrapper.orderByDesc(Vehicle::getCreateTime);
+        
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Vehicle> result = 
+                getBaseMapper().selectPage(pageObj, wrapper);
+        
+        return result.getRecords().stream()
+                .map(this::convertToVO)
+                .collect(java.util.stream.Collectors.toList());
     }
     
     @Override
     public boolean bindUser(Long id, Long userId) {
-        log.info("绑定用户: vehicleId={}, userId={}", id, userId);
-        Vehicle vehicle = getById(id);
-        if (vehicle == null) {
-            return false;
-        }
-        vehicle.setUserId(userId);
-        return updateById(vehicle);
+        log.info("绑定用户功能已废弃，车辆通过调度动态分配: vehicleId={}, userId={}", id, userId);
+        return true;
     }
     
     @Override
     public boolean unbindUser(Long id) {
-        log.info("解绑用户: vehicleId={}", id);
-        Vehicle vehicle = getById(id);
-        if (vehicle == null) {
-            return false;
-        }
-        vehicle.setUserId(null);
-        return updateById(vehicle);
+        log.info("解绑用户功能已废弃，车辆通过调度动态分配: vehicleId={}", id);
+        return true;
     }
     
     @Override
@@ -98,7 +113,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         log.info("上传车辆照片: vehicleId={}, fileName={}", id, file.getOriginalFilename());
         Vehicle vehicle = getById(id);
         if (vehicle == null) {
-            throw new RuntimeException("车辆不存在");
+            throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
         }
         
         // 生成唯一文件名
@@ -112,7 +127,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             file.transferTo(dest);
         } catch (IOException e) {
             log.error("上传车辆照片失败", e);
-            throw new RuntimeException("上传照片失败");
+            throw new VehicleException(VehicleResultCode.OPERATION_FAILED, "上传照片失败：" + file.getOriginalFilename(), e);
         }
         
         // 更新车辆照片URL
@@ -134,7 +149,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         log.info("上传行驶证正面并进行OCR识别: vehicleId={}", id);
         Vehicle vehicle = getById(id);
         if (vehicle == null) {
-            throw new RuntimeException("车辆不存在");
+            throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
         }
         
         // 上传行驶证正面文件
@@ -147,7 +162,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             file.transferTo(dest);
         } catch (IOException e) {
             log.error("上传行驶证正面失败", e);
-            throw new RuntimeException("上传行驶证正面失败");
+            throw new VehicleException(VehicleResultCode.OPERATION_FAILED, "上传行驶证正面失败：" + file.getOriginalFilename(), e);
         }
         
         // 更新行驶证正面URL
@@ -223,7 +238,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         log.info("上传行驶证反面: vehicleId={}", id);
         Vehicle vehicle = getById(id);
         if (vehicle == null) {
-            throw new RuntimeException("车辆不存在");
+            throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
         }
         
         // 上传行驶证反面文件
@@ -236,7 +251,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             file.transferTo(dest);
         } catch (IOException e) {
             log.error("上传行驶证反面失败", e);
-            throw new RuntimeException("上传行驶证反面失败");
+            throw new VehicleException(VehicleResultCode.OPERATION_FAILED, "上传行驶证反面失败：" + file.getOriginalFilename(), e);
         }
         
         // 更新行驶证反面URL
@@ -288,7 +303,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         log.info("上传车辆保险信息: vehicleId={}, insuranceCompany={}, policyNo={}", id, insuranceCompany, policyNo);
         Vehicle vehicle = getById(id);
         if (vehicle == null) {
-            throw new RuntimeException("车辆不存在");
+            throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
         }
         
         // 创建保险DTO
@@ -310,7 +325,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         log.info("上传车辆保险信息: vehicleId={}, insuranceCompany={}", id, insurance.getInsuranceCompany());
         Vehicle vehicle = getById(id);
         if (vehicle == null) {
-            throw new RuntimeException("车辆不存在");
+            throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
         }
         
         // 转换实体类为DTO
@@ -332,14 +347,125 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         log.info("更新车辆维修状态: vehicleId={}, maintenanceStatus={}", id, maintenanceStatus);
         Vehicle vehicle = getById(id);
         if (vehicle == null) {
-            throw new RuntimeException("车辆不存在");
+            throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
         }
         
-        // 更新维修状态
         vehicle.setStatus(maintenanceStatus);
         updateById(vehicle);
         
         return vehicle;
+    }
+    
+    @Override
+    public List<BestVehicleVO> selectBestVehicles(com.klzw.service.vehicle.dto.BestVehicleQueryDTO query) {
+        log.info("选择最佳车辆: cargoWeight={}, vehicleType={}", query.getCargoWeight(), query.getVehicleType());
+        
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        
+        wrapper.eq(Vehicle::getStatus, VehicleStatusEnum.IDLE.getCode());
+        
+        if (query.getVehicleType() != null) {
+            wrapper.eq(Vehicle::getVehicleType, query.getVehicleType());
+        }
+        
+        if (query.getExcludeVehicleIds() != null && !query.getExcludeVehicleIds().isEmpty()) {
+            wrapper.notIn(Vehicle::getId, query.getExcludeVehicleIds());
+        }
+        
+        wrapper.orderByDesc(Vehicle::getFuelLevel);
+        
+        List<Vehicle> vehicles = list(wrapper);
+        
+        List<BestVehicleVO> result = new ArrayList<>();
+        for (Vehicle vehicle : vehicles) {
+            BestVehicleVO vo = new BestVehicleVO();
+            vo.setVehicleId(vehicle.getId());
+            vo.setVehicleNo(vehicle.getVehicleNo());
+            vo.setVehicleType(vehicle.getVehicleType());
+            vo.setBrand(vehicle.getBrand());
+            vo.setModel(vehicle.getModel());
+            vo.setRatedLoad(vehicle.getRatedLoad());
+            vo.setFuelLevel(vehicle.getFuelLevel());
+            vo.setStatus(vehicle.getStatus());
+            
+            int score = calculateVehicleScore(vehicle, query);
+            vo.setScore(score);
+            vo.setReason(generateRecommendReason(vehicle, score));
+            
+            result.add(vo);
+        }
+        
+        result.sort((a, b) -> b.getScore().compareTo(a.getScore()));
+        
+        return result.stream().limit(5).collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<VehicleVO> getAvailableVehicles() {
+        log.info("获取所有可用车辆");
+        
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(Vehicle::getStatus, VehicleStatusEnum.IDLE.getCode());
+        wrapper.orderByDesc(Vehicle::getFuelLevel);
+        
+        List<Vehicle> vehicles = list(wrapper);
+        return vehicles.stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+    }
+    
+    private int calculateVehicleScore(Vehicle vehicle, com.klzw.service.vehicle.dto.BestVehicleQueryDTO query) {
+        int score = 0;
+        
+        if (vehicle.getFuelLevel() != null) {
+            score += vehicle.getFuelLevel();
+        }
+        
+        if (query.getCargoWeight() != null && vehicle.getRatedLoad() != null) {
+            try {
+                String ratedLoadStr = vehicle.getRatedLoad();
+                if (ratedLoadStr.contains("kg") || ratedLoadStr.contains("KG")) {
+                    ratedLoadStr = ratedLoadStr.replaceAll("[^0-9.]", "");
+                    double ratedLoadKg = Double.parseDouble(ratedLoadStr);
+                    double ratedLoadTon = ratedLoadKg / 1000;
+                    if (ratedLoadTon >= query.getCargoWeight().doubleValue()) {
+                        score += 30;
+                        double loadRate = query.getCargoWeight().doubleValue() / ratedLoadTon;
+                        if (loadRate >= 0.7 && loadRate <= 0.9) {
+                            score += 20;
+                        }
+                    } else {
+                        score -= 50;
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("解析额定载重失败: {}", vehicle.getRatedLoad());
+            }
+        }
+        
+        return Math.max(0, score);
+    }
+    
+    private String generateRecommendReason(Vehicle vehicle, int score) {
+        StringBuilder reason = new StringBuilder();
+        
+        if (vehicle.getFuelLevel() != null) {
+            if (vehicle.getFuelLevel() >= 70) {
+                reason.append("油量充足(").append(vehicle.getFuelLevel()).append("%); ");
+            } else if (vehicle.getFuelLevel() >= 40) {
+                reason.append("油量适中(").append(vehicle.getFuelLevel()).append("%); ");
+            } else {
+                reason.append("油量较低(").append(vehicle.getFuelLevel()).append("%); ");
+            }
+        }
+        
+        if (vehicle.getRatedLoad() != null) {
+            reason.append("额定载重: ").append(vehicle.getRatedLoad());
+        }
+        
+        return reason.toString();
     }
     
     /**
@@ -354,8 +480,8 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         vo.setVehicleType(vehicle.getVehicleType());
         vo.setBrand(vehicle.getBrand());
         vo.setModel(vehicle.getModel());
-        vo.setUserId(vehicle.getUserId() != null ? vehicle.getUserId().toString() : null);
         vo.setStatus(vehicle.getStatus());
+        vo.setFuelLevel(vehicle.getFuelLevel());
         vo.setPhotoUrl(vehicle.getPhotoUrl());
         vo.setLicenseFrontUrl(vehicle.getLicenseFrontUrl());
         vo.setLicenseBackUrl(vehicle.getLicenseBackUrl());
@@ -375,14 +501,28 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         vo.setDimensions(vehicle.getDimensions());
         vo.setRemarks(vehicle.getRemarks());
         vo.setInspectionRecord(vehicle.getInspectionRecord());
-        // 保险相关字段
-        // 这里需要从保险表或其他地方获取保险信息
-        // 暂时设置为null，实际实现时需要根据业务逻辑获取
-        vo.setInsuranceNo(null);
-        vo.setInsuranceCompany(null);
-        vo.setInsuranceStartDate(null);
-        vo.setInsuranceEndDate(null);
-        vo.setInsuranceStatus(null);
+        
+        // 查询保险信息并填充
+        try {
+            List<com.klzw.service.vehicle.entity.VehicleInsurance> insurances = vehicleInsuranceService.getVehicleInsurance(vehicle.getId());
+            if (insurances != null && !insurances.isEmpty()) {
+                // 获取当前有效的保险（状态为 1 且未过期）
+                com.klzw.service.vehicle.entity.VehicleInsurance currentInsurance = insurances.stream()
+                    .filter(ins -> ins.getStatus() == 1 && 
+                                   !ins.getExpiryDate().isBefore(java.time.LocalDate.now()))
+                    .findFirst()
+                    .orElse(insurances.get(0));
+                
+                vo.setInsuranceNo(currentInsurance.getInsuranceNumber());
+                vo.setInsuranceCompany(currentInsurance.getInsuranceCompany());
+                vo.setInsuranceStartDate(currentInsurance.getStartDate());
+                vo.setInsuranceEndDate(currentInsurance.getExpiryDate());
+                vo.setInsuranceStatus(currentInsurance.getStatus().toString());
+            }
+        } catch (Exception e) {
+            log.warn("查询车辆保险信息失败：vehicleId={}", vehicle.getId());
+        }
+        
         vo.setCreateTime(vehicle.getCreateTime());
         vo.setUpdateTime(vehicle.getUpdateTime());
         return vo;

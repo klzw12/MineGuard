@@ -14,14 +14,14 @@ import com.klzw.service.trip.service.TripTrackService;
 import com.klzw.service.trip.service.TripService;
 import com.klzw.service.trip.vo.TripVO;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.TextMessage;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.URI;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Component("tripWebSocketHandler")
@@ -29,9 +29,6 @@ public class TripWebSocketHandler extends WebSocketHandler {
 
     private final TripTrackService tripTrackService;
     private final TripService tripService;
-    private final RestClient restClient = RestClient.create();
-
-    private static final String WARNING_SERVICE_URL = "http://mineguard-service-warning:8080/api/warning/process-event";
 
     public TripWebSocketHandler(ConnectionManager connectionManager, 
                            OnlineUserManager onlineUserManager,
@@ -101,7 +98,7 @@ public class TripWebSocketHandler extends WebSocketHandler {
                     try {
                         return Long.parseLong(param.substring(7));
                     } catch (NumberFormatException e) {
-                        log.warn("无效的tripId参数: {}", param.substring(7));
+                        log.warn("无效的 tripId 参数：{}", param.substring(7));
                     }
                 }
             }
@@ -109,5 +106,61 @@ public class TripWebSocketHandler extends WebSocketHandler {
         return null;
     }
 
-
+    @Override
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
+        try {
+            Long tripId = getTripIdFromSession(session);
+            if (tripId == null) {
+                log.warn("WebSocket 消息处理失败：tripId 为空");
+                return;
+            }
+            
+            // 解析前端发送的轨迹数据
+            String payload = message.getPayload();
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readTree(payload);
+            
+            // 构建 TripTrackDTO
+            TripTrackDTO trackDTO = new TripTrackDTO();
+            trackDTO.setTripId(tripId);
+            
+            // 从 JSON 中提取数据
+            if (jsonNode.has("longitude")) {
+                trackDTO.setLongitude(jsonNode.get("longitude").asDouble());
+            }
+            if (jsonNode.has("latitude")) {
+                trackDTO.setLatitude(jsonNode.get("latitude").asDouble());
+            }
+            if (jsonNode.has("speed")) {
+                trackDTO.setSpeed(jsonNode.get("speed").asDouble());
+            }
+            if (jsonNode.has("direction")) {
+                trackDTO.setDirection(jsonNode.get("direction").asDouble());
+            }
+            if (jsonNode.has("altitude")) {
+                trackDTO.setAltitude(jsonNode.get("altitude").asDouble());
+            }
+            if (jsonNode.has("recordTime")) {
+                trackDTO.setRecordTime(jsonNode.get("recordTime").asLong());
+            } else {
+                // 如果没有时间戳，使用当前时间
+                trackDTO.setRecordTime(System.currentTimeMillis());
+            }
+            
+            // 从行程中获取 vehicleId
+            TripVO trip = tripService.getById(tripId);
+            if (trip != null && trip.getVehicleId() != null) {
+                trackDTO.setVehicleId(trip.getVehicleId());
+            }
+            
+            // 存储到 Redis（实时轨迹数据，供预警、vehicle 等模块读取）
+            tripTrackService.uploadTrack(trackDTO);
+            
+            log.debug("WebSocket 轨迹数据接收成功：tripId={}, vehicleId={}, 位置=({}, {}), 速度={}", 
+                tripId, trackDTO.getVehicleId(), trackDTO.getLongitude(), trackDTO.getLatitude(), trackDTO.getSpeed());
+            
+        } catch (Exception e) {
+            log.error("处理 WebSocket 消息失败", e);
+        }
+    }
 }

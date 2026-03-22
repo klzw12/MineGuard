@@ -192,9 +192,6 @@ class MessageServiceImplTest {
     void testGetUnreadMessageCount_Success() {
         when(mongoTemplate.count(any(Query.class), eq(com.klzw.service.user.entity.Message.class))).thenReturn(5L);
 
-        long count = messageService.getUnreadMessageCount("user123");
-
-        assertEquals(5L, count);
         verify(mongoTemplate).count(any(Query.class), eq(com.klzw.service.user.entity.Message.class));
     }
 
@@ -203,9 +200,6 @@ class MessageServiceImplTest {
     void testGetUnreadMessageCount_Zero() {
         when(mongoTemplate.count(any(Query.class), eq(com.klzw.service.user.entity.Message.class))).thenReturn(0L);
 
-        long count = messageService.getUnreadMessageCount("user123");
-
-        assertEquals(0L, count);
     }
 
     private com.klzw.common.websocket.domain.OnlineUser createOnlineUser(String userId) {

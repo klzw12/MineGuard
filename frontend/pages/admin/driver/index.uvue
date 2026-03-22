@@ -1,58 +1,150 @@
 <template>
 	<view class="admin-container">
-		<!-- 左侧导航菜单 - 使用组件 -->
 		<AdminSidebar />
 		
-		<!-- 主内容区域 -->
 		<view class="admin-content">
-			<!-- 头部区域 -->
 			<view class="header-section">
 				<text class="page-title">司机管理</text>
 			</view>
 			
-			<!-- 搜索和筛选 -->
 			<view class="search-filter-section">
 				<view class="search-bar">
 					<text class="search-icon">🔍</text>
-					<input type="text" placeholder="搜索司机姓名或账号" placeholder-style="color: #999" />
+					<input type="text" v-model="searchName" placeholder="搜索司机姓名" placeholder-style="color: #999" @confirm="handleSearch" />
 				</view>
 				<view class="filter-buttons">
-					<button class="filter-btn">全部</button>
-					<button class="filter-btn active">在岗</button>
-					<button class="filter-btn">休息</button>
+					<button class="filter-btn" :class="{ active: statusFilter === null }" @click="statusFilter = null; loadDrivers()">全部</button>
+					<button class="filter-btn" :class="{ active: statusFilter === 1 }" @click="statusFilter = 1; loadDrivers()">在职</button>
+					<button class="filter-btn" :class="{ active: statusFilter === 2 }" @click="statusFilter = 2; loadDrivers()">休假</button>
+					<button class="filter-btn" :class="{ active: statusFilter === 3 }" @click="statusFilter = 3; loadDrivers()">停职</button>
 				</view>
 			</view>
 			
-			<!-- 司机列表 -->
 			<view class="driver-list-section">
-				<text class="section-title">司机列表</text>
-				<view class="driver-list">
-					<view class="driver-item" v-for="i in 5" :key="i">
+				<text class="section-title">司机列表 (共{{ drivers.length }}人)</text>
+				<view class="driver-list" v-if="drivers.length > 0">
+					<view class="driver-item" v-for="(driver, index) in drivers" :key="driver.id" @click="showDriverDetail(driver)">
 						<view class="driver-info">
-							<text class="driver-name">张三{{i}}</text>
-							<text class="driver-id">账号：driver{{i}}</text>
-							<text class="driver-vehicle">车辆：豫A-1234{{i}}</text>
+							<text class="driver-name">{{ driver.driverName }}</text>
+							<text class="driver-id">驾照类型：{{ driver.licenseType || '未录入' }}</text>
+							<text class="driver-vehicle">驾龄：{{ driver.drivingYears || 0 }}年 | 班组：{{ driver.belongingTeam || '未分配' }}</text>
 						</view>
-						<view class="driver-status online">
+						<view class="driver-status" :class="getStatusClass(driver.status)">
 							<text class="status-dot"></text>
-							<text class="status-text">在岗</text>
+							<text class="status-text">{{ driver.statusName }}</text>
 						</view>
 					</view>
 				</view>
+				<view class="empty-list" v-else>
+					<text class="empty-text">暂无司机数据</text>
+				</view>
 			</view>
-			
-			<!-- 操作按钮 -->
-			<view class="action-buttons">
-				<button class="primary-btn">添加司机</button>
-				<button class="secondary-btn">批量操作</button>
+		</view>
+		
+		<view class="driver-detail-modal" v-if="selectedDriver" @click="selectedDriver = null">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">司机详情</text>
+					<text class="modal-close" @click="selectedDriver = null">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="detail-row">
+						<text class="detail-label">姓名：</text>
+						<text class="detail-value">{{ selectedDriver.driverName }}</text>
+					</view>
+					<view class="detail-row">
+						<text class="detail-label">性别：</text>
+						<text class="detail-value">{{ selectedDriver.genderName }}</text>
+					</view>
+					<view class="detail-row">
+						<text class="detail-label">驾照类型：</text>
+						<text class="detail-value">{{ selectedDriver.licenseType || '未录入' }}</text>
+					</view>
+					<view class="detail-row">
+						<text class="detail-label">驾龄：</text>
+						<text class="detail-value">{{ selectedDriver.drivingYears || 0 }}年</text>
+					</view>
+					<view class="detail-row">
+						<text class="detail-label">班组：</text>
+						<text class="detail-value">{{ selectedDriver.belongingTeam || '未分配' }}</text>
+					</view>
+					<view class="detail-row">
+						<text class="detail-label">状态：</text>
+						<text class="detail-value">{{ selectedDriver.statusName }}</text>
+					</view>
+					
+					<view class="common-vehicles-section" v-if="selectedDriver.commonVehicles && selectedDriver.commonVehicles.length > 0">
+						<text class="section-subtitle">常用车辆</text>
+						<view class="vehicle-item" v-for="v in selectedDriver.commonVehicles" :key="v.vehicleId">
+							<text class="vehicle-no">{{ v.vehicleNo }}</text>
+							<text class="vehicle-use">使用{{ v.useCount }}次</text>
+							<text class="vehicle-default" v-if="v.isDefault">默认</text>
+						</view>
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="btn-status" @click="changeStatus(1)" v-if="selectedDriver.status !== 1">设为在职</button>
+					<button class="btn-status" @click="changeStatus(2)" v-if="selectedDriver.status !== 2">设为休假</button>
+					<button class="btn-status danger" @click="changeStatus(3)" v-if="selectedDriver.status !== 3">设为停职</button>
+				</view>
 			</view>
 		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
+	import { ref, onMounted } from 'vue'
 	import AdminSidebar from '../../../components/AdminSidebar.uvue'
-	// 司机管理页面逻辑
+	import { getDriverList, updateDriverStatus } from '../../../api/driver'
+	import type { DriverVO } from '../../../types/user'
+
+	const searchName = ref('')
+	const statusFilter = ref<number | null>(null)
+	const drivers = ref<DriverVO[]>([])
+	const selectedDriver = ref<DriverVO | null>(null)
+
+	const loadDrivers = async () => {
+		try {
+			const result = await getDriverList({
+				driverName: searchName.value || undefined,
+				status: statusFilter.value || undefined
+			})
+			drivers.value = result || []
+		} catch (e) {
+			console.error('加载司机列表失败', e)
+		}
+	}
+
+	const handleSearch = () => {
+		loadDrivers()
+	}
+
+	const showDriverDetail = (driver: DriverVO) => {
+		selectedDriver.value = driver
+	}
+
+	const getStatusClass = (status: number): string => {
+		if (status === 1) return 'online'
+		if (status === 2) return 'vacation'
+		if (status === 3) return 'stopped'
+		return 'offline'
+	}
+
+	const changeStatus = async (newStatus: number) => {
+		if (!selectedDriver.value) return
+		try {
+			await updateDriverStatus(Number(selectedDriver.value.id), newStatus)
+			selectedDriver.value.status = newStatus
+			selectedDriver.value.statusName = newStatus === 1 ? '在职' : newStatus === 2 ? '休假' : '停职'
+			loadDrivers()
+		} catch (e) {
+			console.error('更新状态失败', e)
+		}
+	}
+
+	onMounted(() => {
+		loadDrivers()
+	})
 </script>
 
 <style>
@@ -71,11 +163,6 @@
 		min-height: 100vh;
 	}
 	
-	.admin-driver {
-		background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-	}
-	
-	/* 头部区域 */
 	.header-section {
 		margin-bottom: 30rpx;
 	}
@@ -86,7 +173,6 @@
 		color: #0056b3;
 	}
 	
-	/* 搜索和筛选 */
 	.search-filter-section {
 		margin-bottom: 40rpx;
 	}
@@ -135,7 +221,6 @@
 		color: #fff;
 	}
 	
-	/* 司机列表 */
 	.driver-list-section {
 		margin-bottom: 60rpx;
 	}
@@ -204,6 +289,16 @@
 		color: #fff;
 	}
 	
+	.driver-status.vacation {
+		background-color: #FF9500;
+		color: #fff;
+	}
+	
+	.driver-status.stopped {
+		background-color: #FF3B30;
+		color: #fff;
+	}
+	
 	.driver-status.offline {
 		background-color: #999;
 		color: #fff;
@@ -221,55 +316,133 @@
 		font-size: 22rpx;
 	}
 	
-	/* 操作按钮 */
-	.action-buttons {
+	.empty-list {
+		padding: 60rpx;
+		text-align: center;
+	}
+	
+	.empty-text {
+		color: #999;
+		font-size: 28rpx;
+	}
+	
+	.driver-detail-modal {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+	}
+	
+	.modal-content {
+		width: 600rpx;
+		background-color: #fff;
+		border-radius: 20rpx;
+		overflow: hidden;
+	}
+	
+	.modal-header {
 		display: flex;
 		flex-direction: row;
-		gap: 20rpx;
-		margin-top: 40rpx;
+		justify-content: space-between;
+		align-items: center;
 		padding: 30rpx;
-		background-color: #fff;
-		border-radius: 15rpx;
-		box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+		background-color: #007AFF;
 	}
 	
-	.primary-btn {
-		flex: 1;
-		padding: 25rpx;
-		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+	.modal-title {
+		font-size: 32rpx;
+		font-weight: bold;
 		color: #fff;
-		font-size: 28rpx;
-		font-weight: bold;
-		border-radius: 15rpx;
-		box-shadow: 0 4rpx 20rpx rgba(0, 122, 255, 0.3);
 	}
 	
-	.secondary-btn {
+	.modal-close {
+		font-size: 40rpx;
+		color: #fff;
+	}
+	
+	.modal-body {
+		padding: 30rpx;
+	}
+	
+	.detail-row {
+		display: flex;
+		flex-direction: row;
+		margin-bottom: 20rpx;
+	}
+	
+	.detail-label {
+		width: 160rpx;
+		font-size: 28rpx;
+		color: #666;
+	}
+	
+	.detail-value {
 		flex: 1;
-		padding: 25rpx;
-		background-color: #fff;
-		color: #007AFF;
+		font-size: 28rpx;
+		color: #333;
+	}
+	
+	.section-subtitle {
 		font-size: 28rpx;
 		font-weight: bold;
-		border-radius: 15rpx;
-		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+		color: #0056b3;
+		margin: 20rpx 0 15rpx 0;
+		display: block;
 	}
 	
-	/* 响应式设计 */
-	@media (max-width: 768px) {
-		.admin-content {
-			margin-left: 200rpx;
-			padding: 30rpx;
-		}
+	.vehicle-item {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 15rpx;
+		background-color: #f5f5f5;
+		border-radius: 10rpx;
+		margin-bottom: 10rpx;
 	}
 	
-	@media (min-width: 1024px) {
-		.admin-content {
-			padding: 50rpx;
-		}
-		
-		.action-buttons {
-			padding: 40rpx;
-		}
+	.vehicle-no {
+		font-size: 26rpx;
+		color: #333;
+		flex: 1;
+	}
+	
+	.vehicle-use {
+		font-size: 24rpx;
+		color: #666;
+		margin-right: 15rpx;
+	}
+	
+	.vehicle-default {
+		font-size: 22rpx;
+		color: #007AFF;
+		padding: 4rpx 12rpx;
+		border: 1rpx solid #007AFF;
+		border-radius: 10rpx;
+	}
+	
+	.modal-footer {
+		display: flex;
+		flex-direction: row;
+		gap: 15rpx;
+		padding: 20rpx 30rpx 30rpx;
+	}
+	
+	.btn-status {
+		flex: 1;
+		padding: 20rpx;
+		background-color: #007AFF;
+		color: #fff;
+		font-size: 26rpx;
+		border-radius: 10rpx;
+	}
+	
+	.btn-status.danger {
+		background-color: #FF3B30;
 	}
 </style>

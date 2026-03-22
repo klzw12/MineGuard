@@ -3,10 +3,6 @@ package com.klzw.service.ai.adapter.impl;
 import com.klzw.service.ai.adapter.AiAdapter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.ChatClientResponse;
-import org.springframework.ai.chat.messages.UserMessage;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -20,10 +16,9 @@ public class DeepSeekAdapter implements AiAdapter {
 
     private final ChatClient chatClient;
 
-    @Value("${ai.deepseek.model}")
+    @Value("${ai.deepseek.model:deepseek-V3.2}")
     private String model;
 
-    @Autowired
     public DeepSeekAdapter(@Qualifier("deepSeekChatClient") ChatClient chatClient) {
         this.chatClient = chatClient;
     }
@@ -33,13 +28,13 @@ public class DeepSeekAdapter implements AiAdapter {
         try {
             log.debug("发送请求到DeepSeek API: {}", prompt);
             
-            // 使用Spring AI的ChatClient发送请求
-            Prompt aiPrompt = new Prompt(new UserMessage(prompt));
-            ChatClientResponse response = chatClient.call(aiPrompt);
+            String content = chatClient.prompt()
+                    .user(prompt)
+                    .call()
+                    .content();
             
-            // 构建响应映射
             Map<String, Object> result = new HashMap<>();
-            result.put("content", response.getResult().getOutput().getContent());
+            result.put("content", content);
             result.put("model", model);
             result.put("created", System.currentTimeMillis() / 1000);
             
@@ -76,7 +71,6 @@ public class DeepSeekAdapter implements AiAdapter {
         try {
             log.debug("解析DeepSeek API响应");
             
-            // 解析DeepSeek API响应
             Map<String, Object> result = new HashMap<>();
             result.put("content", response.get("content"));
             result.put("status", "success");

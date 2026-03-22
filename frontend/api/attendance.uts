@@ -1,5 +1,5 @@
-import { http } from '@/utils/request.uts'
-import type { AttendanceVO } from '@/types/user.uts'
+import { request } from '@/utils/request'
+import type { AttendanceVO, AttendanceStatisticsVO, LeaveApplyDTO } from '@/types/user'
 
 export type CheckInDTO = {
   userId: string
@@ -11,18 +11,78 @@ export type CheckOutDTO = {
   remark?: string
 }
 
-export function checkInApi(dto: CheckInDTO): Promise<AttendanceVO | null> {
-  return http.post<AttendanceVO>('/api/attendance/check-in', dto)
+export function checkInApi(dto: CheckInDTO): Promise<AttendanceVO> {
+  return request({
+    url: '/api/attendance/check-in',
+    method: 'POST',
+    data: dto
+  })
 }
 
-export function checkOutApi(dto: CheckOutDTO): Promise<AttendanceVO | null> {
-  return http.post<AttendanceVO>('/api/attendance/check-out', dto)
+export function checkOutApi(dto: CheckOutDTO): Promise<AttendanceVO> {
+  return request({
+    url: '/api/attendance/check-out',
+    method: 'POST',
+    data: dto
+  })
 }
 
-export function getAttendanceByDate(userId: string, date: string): Promise<AttendanceVO | null> {
-  return http.get<AttendanceVO>(`/api/attendance/user/${userId}?date=${date}`)
+export function getAttendanceByDate(userId: string, date: string): Promise<AttendanceVO> {
+  return request({
+    url: `/api/attendance/user/${userId}`,
+    method: 'GET',
+    data: { date }
+  })
 }
 
-export function getAttendanceListByMonth(userId: string, yearMonth: string): Promise<AttendanceVO[] | null> {
-  return http.get<AttendanceVO[]>(`/api/attendance/user/${userId}/list?yearMonth=${yearMonth}`)
+export function getAttendanceListByMonth(userId: string, yearMonth: string): Promise<AttendanceVO[]> {
+  return request({
+    url: `/api/attendance/user/${userId}/list`,
+    method: 'GET',
+    data: { yearMonth }
+  })
+}
+
+export function getAttendanceStatistics(userId: string, yearMonth: string): Promise<AttendanceStatisticsVO> {
+  return request({
+    url: `/api/attendance/user/${userId}/statistics`,
+    method: 'GET',
+    data: { yearMonth }
+  })
+}
+
+export function supplementAttendance(attendanceId: string, data: {
+  checkInTime?: string
+  checkOutTime?: string
+  status?: number
+  remark?: string
+}): Promise<AttendanceVO> {
+  return request({
+    url: `/api/attendance/${attendanceId}/supplement`,
+    method: 'PUT',
+    data
+  })
+}
+
+export function applyLeave(dto: LeaveApplyDTO): Promise<AttendanceVO> {
+  return request({
+    url: '/api/attendance/leave',
+    method: 'POST',
+    data: dto
+  })
+}
+
+export function cancelLeave(attendanceId: string): Promise<void> {
+  return request({
+    url: `/api/attendance/leave/${attendanceId}`,
+    method: 'DELETE'
+  })
+}
+
+export function getLeaveList(userId: string, yearMonth: string): Promise<AttendanceVO[]> {
+  return request({
+    url: `/api/attendance/leave/${userId}/list`,
+    method: 'GET',
+    data: { yearMonth }
+  })
 }

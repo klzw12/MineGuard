@@ -1,0 +1,685 @@
+<template>
+	<view class="track-playback-page">
+		<view class="page-header">
+			<text class="page-title">轨迹回放</text>
+		</view>
+
+		<view class="filter-section">
+			<view class="filter-row">
+				<view class="filter-item">
+					<text class="filter-label">行程ID：</text>
+					<input class="filter-input" v-model="tripId" placeholder="请输入行程ID" type="number" />
+				</view>
+				<button class="search-btn" @click="loadTrackData">加载轨迹</button>
+			</view>
+		</view>
+
+		<view class="map-container" v-if="tracks.length > 0">
+			<map 
+				class="track-map"
+				:longitude="currentPosition.longitude"
+				:latitude="currentPosition.latitude"
+				:scale="mapScale"
+				:markers="markers"
+				:polyline="polyline"
+				@regionchange="onMapRegionChange"
+			></map>
+		</view>
+
+		<view class="empty-state" v-else>
+			<text class="empty-text">请输入行程ID加载轨迹数据</text>
+		</view>
+
+		<view class="playback-control" v-if="tracks.length > 0">
+			<view class="progress-section">
+				<text class="time-label">{{ formatTime(currentTime) }}</text>
+				<slider 
+					class="progress-slider"
+					:value="progressValue"
+					:max="100"
+					:block-size="14"
+					@change="onProgressChange"
+				/>
+				<text class="time-label">{{ formatTime(totalTime) }}</text>
+			</view>
+
+			<view class="control-buttons">
+				<view class="speed-selector">
+					<text class="speed-label">速度：</text>
+					<picker mode="selector" :range="speedOptions" range-key="label" @change="onSpeedChange">
+						<view class="speed-picker">
+							<text>{{ currentSpeedLabel }}</text>
+						</view>
+					</picker>
+				</view>
+
+				<view class="play-buttons">
+					<button class="control-btn" @click="skipBackward">
+						<text class="btn-icon">⏪</text>
+					</button>
+					<button class="control-btn play-btn" @click="togglePlay">
+						<text class="btn-icon">{{ isPlaying ? '⏸' : '▶' }}</text>
+					</button>
+					<button class="control-btn" @click="skipForward">
+						<text class="btn-icon">⏩</text>
+					</button>
+					<button class="control-btn" @click="resetPlayback">
+						<text class="btn-icon">🔄</text>
+					</button>
+				</view>
+			</view>
+		</view>
+
+		<view class="track-info" v-if="currentTrackInfo">
+			<view class="info-row">
+				<view class="info-item">
+					<text class="info-label">当前速度</text>
+					<text class="info-value">{{ currentTrackInfo.speed || 0 }} km/h</text>
+				</view>
+				<view class="info-item">
+					<text class="info-label">当前位置</text>
+					<text class="info-value">{{ formatCoordinate(currentTrackInfo.longitude, currentTrackInfo.latitude) }}</text>
+				</view>
+				<view class="info-item">
+					<text class="info-label">记录时间</text>
+					<text class="info-value">{{ currentTrackInfo.recordTime || '-' }}</text>
+				</view>
+			</view>
+		</view>
+
+		<view class="stop-points-section" v-if="stopPoints.length > 0">
+			<view class="section-header">
+				<text class="section-title">停靠点列表</text>
+			</view>
+			<view class="stop-points-list">
+				<view class="stop-point-item" v-for="(point, index) in stopPoints" :key="index" @click="jumpToStopPoint(point)">
+					<view class="stop-index">{{ index + 1 }}</view>
+					<view class="stop-info">
+						<text class="stop-time">停靠时间：{{ point.stopTime }}</text>
+						<text class="stop-duration">停留时长：{{ point.duration }}分钟</text>
+					</view>
+					<view class="stop-arrow">→</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref, computed, onMounted, onUnmounted } from 'vue'
+	import { getTripTrack } from '@/api/trip'
+
+	interface TrackPoint {
+		id: number
+		tripId: number
+		longitude: number
+		latitude: number
+		speed: number
+		direction: number
+		recordTime: string
+		mileage: number
+		fuelLevel: number
+		status: number
+	}
+
+	interface StopPoint {
+		longitude: number
+		latitude: number
+		stopTime: string
+		duration: number
+	}
+
+	const tripId = ref<number>(0)
+	const tracks = ref<TrackPoint[]>([])
+	const currentIndex = ref<number>(0)
+	const isPlaying = ref<boolean>(false)
+	const playTimer = ref<number | null>(null)
+
+	const speedOptions = [
+		{ label: '0.5x', value: 0.5 },
+		{ label: '1x', value: 1 },
+		{ label: '2x', value: 2 },
+		{ label: '4x', value: 4 },
+		{ label: '8x', value: 8 }
+	]
+	const currentSpeedIndex = ref<number>(1)
+	const mapScale = ref<number>(14)
+
+	const currentPosition = computed(() => {
+		if (tracks.value.length === 0) {
+			return { longitude: 116.397428, latitude: 39.90923 }
+		}
+		const track = tracks.value[currentIndex.value]
+		return {
+			longitude: track.longitude,
+			latitude: track.latitude
+		}
+	})
+
+	const currentTrackInfo = computed(() => {
+		if (tracks.value.length === 0) return null
+		return tracks.value[currentIndex.value]
+	})
+
+	const progressValue = computed(() => {
+		if (tracks.value.length === 0) return 0
+		return (currentIndex.value / (tracks.value.length - 1)) * 100
+	})
+
+	const totalTime = computed(() => {
+		if (tracks.value.length < 2) return 0
+		const start = new Date(tracks.value[0].recordTime).getTime()
+		const end = new Date(tracks.value[tracks.value.length - 1].recordTime).getTime()
+		return Math.floor((end - start) / 1000)
+	})
+
+	const currentTime = computed(() => {
+		if (tracks.value.length === 0) return 0
+		const start = new Date(tracks.value[0].recordTime).getTime()
+		const current = new Date(tracks.value[currentIndex.value].recordTime).getTime()
+		return Math.floor((current - start) / 1000)
+	})
+
+	const currentSpeedLabel = computed(() => {
+		return speedOptions[currentSpeedIndex.value].label
+	})
+
+	const markers = computed(() => {
+		if (tracks.value.length === 0) return []
+
+		const startTrack = tracks.value[0]
+		const endTrack = tracks.value[tracks.value.length - 1]
+		const currentTrack = tracks.value[currentIndex.value]
+
+		const markerList = []
+
+		markerList.push({
+			id: 1,
+			longitude: startTrack.longitude,
+			latitude: startTrack.latitude,
+			title: '起点',
+			iconPath: '/static/icons/start.png',
+			width: 30,
+			height: 30
+		})
+
+		markerList.push({
+			id: 2,
+			longitude: endTrack.longitude,
+			latitude: endTrack.latitude,
+			title: '终点',
+			iconPath: '/static/icons/end.png',
+			width: 30,
+			height: 30
+		})
+
+		markerList.push({
+			id: 3,
+			longitude: currentTrack.longitude,
+			latitude: currentTrack.latitude,
+			title: '当前位置',
+			iconPath: '/static/icons/car.png',
+			width: 35,
+			height: 35,
+			rotate: currentTrack.direction || 0
+		})
+
+		return markerList
+	})
+
+	const polyline = computed(() => {
+		if (tracks.value.length === 0) return []
+
+		const points = tracks.value.map(track => ({
+			longitude: track.longitude,
+			latitude: track.latitude
+		}))
+
+		return [{
+			points: points,
+			color: '#007AFF',
+			width: 4,
+			arrowLine: true
+		}]
+	})
+
+	const stopPoints = ref<StopPoint[]>([])
+
+	const loadTrackData = async () => {
+		if (!tripId.value) {
+			uni.showToast({ title: '请输入行程ID', icon: 'none' })
+			return
+		}
+
+		try {
+			uni.showLoading({ title: '加载中...' })
+			const result = await getTripTrack(tripId.value)
+			
+			if (result && Array.isArray(result)) {
+				tracks.value = result
+				currentIndex.value = 0
+				detectStopPoints()
+				uni.showToast({ title: '加载成功', icon: 'success' })
+			} else {
+				uni.showToast({ title: '暂无轨迹数据', icon: 'none' })
+			}
+		} catch (e) {
+			uni.showToast({ title: '加载失败', icon: 'none' })
+			console.error('加载轨迹数据失败:', e)
+		} finally {
+			uni.hideLoading()
+		}
+	}
+
+	const detectStopPoints = () => {
+		stopPoints.value = []
+		if (tracks.value.length < 5) return
+
+		let stopStartIndex = -1
+		const stopThreshold = 5
+
+		for (let i = 1; i < tracks.value.length; i++) {
+			const prev = tracks.value[i - 1]
+			const curr = tracks.value[i]
+			const distance = calculateDistance(
+				prev.longitude, prev.latitude,
+				curr.longitude, curr.latitude
+			)
+
+			if (distance < stopThreshold) {
+				if (stopStartIndex === -1) {
+					stopStartIndex = i - 1
+				}
+			} else {
+				if (stopStartIndex !== -1) {
+					const duration = i - stopStartIndex
+					if (duration >= 3) {
+						const stopTrack = tracks.value[stopStartIndex]
+						stopPoints.value.push({
+							longitude: stopTrack.longitude,
+							latitude: stopTrack.latitude,
+							stopTime: stopTrack.recordTime,
+							duration: duration
+						})
+					}
+					stopStartIndex = -1
+				}
+			}
+		}
+	}
+
+	const calculateDistance = (lon1: number, lat1: number, lon2: number, lat2: number): number => {
+		const R = 6371000
+		const dLat = (lat2 - lat1) * Math.PI / 180
+		const dLon = (lon2 - lon1) * Math.PI / 180
+		const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+			Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+			Math.sin(dLon / 2) * Math.sin(dLon / 2)
+		const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+		return R * c
+	}
+
+	const togglePlay = () => {
+		if (isPlaying.value) {
+			pausePlayback()
+		} else {
+			startPlayback()
+		}
+	}
+
+	const startPlayback = () => {
+		if (tracks.value.length === 0) return
+		isPlaying.value = true
+
+		const speed = speedOptions[currentSpeedIndex.value].value
+		const interval = Math.floor(100 / speed)
+
+		playTimer.value = setInterval(() => {
+			if (currentIndex.value < tracks.value.length - 1) {
+				currentIndex.value++
+			} else {
+				pausePlayback()
+				currentIndex.value = 0
+			}
+		}, interval)
+	}
+
+	const pausePlayback = () => {
+		isPlaying.value = false
+		if (playTimer.value !== null) {
+			clearInterval(playTimer.value)
+			playTimer.value = null
+		}
+	}
+
+	const resetPlayback = () => {
+		pausePlayback()
+		currentIndex.value = 0
+	}
+
+	const skipBackward = () => {
+		const skip = Math.max(1, Math.floor(tracks.value.length * 0.1))
+		currentIndex.value = Math.max(0, currentIndex.value - skip)
+	}
+
+	const skipForward = () => {
+		const skip = Math.max(1, Math.floor(tracks.value.length * 0.1))
+		currentIndex.value = Math.min(tracks.value.length - 1, currentIndex.value + skip)
+	}
+
+	const onProgressChange = (e: any) => {
+		const value = e.detail.value
+		currentIndex.value = Math.floor((value / 100) * (tracks.value.length - 1))
+	}
+
+	const onSpeedChange = (e: any) => {
+		currentSpeedIndex.value = e.detail.value
+		if (isPlaying.value) {
+			pausePlayback()
+			startPlayback()
+		}
+	}
+
+	const jumpToStopPoint = (point: StopPoint) => {
+		const index = tracks.value.findIndex(t => 
+			t.longitude === point.longitude && t.latitude === point.latitude
+		)
+		if (index !== -1) {
+			currentIndex.value = index
+		}
+	}
+
+	const formatTime = (seconds: number): string => {
+		if (seconds <= 0) return '00:00'
+		const mins = Math.floor(seconds / 60)
+		const secs = seconds % 60
+		return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+	}
+
+	const formatCoordinate = (lon: number, lat: number): string => {
+		return `${lon.toFixed(4)}, ${lat.toFixed(4)}`
+	}
+
+	const onMapRegionChange = (e: any) => {
+		if (e.type === 'end') {
+			mapScale.value = e.detail.scale
+		}
+	}
+
+	onUnmounted(() => {
+		pausePlayback()
+	})
+</script>
+
+<style lang="scss">
+	.track-playback-page {
+		min-height: 100vh;
+		background-color: #1a1f2e;
+		padding: 20rpx;
+
+		.page-header {
+			padding: 20rpx 0;
+
+			.page-title {
+				font-size: 36rpx;
+				font-weight: bold;
+				color: #fff;
+			}
+		}
+
+		.filter-section {
+			background-color: #2a3347;
+			border-radius: 16rpx;
+			padding: 20rpx;
+			margin-bottom: 20rpx;
+
+			.filter-row {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+
+				.filter-item {
+					flex: 1;
+					display: flex;
+					flex-direction: row;
+					align-items: center;
+					margin-right: 20rpx;
+
+					.filter-label {
+						font-size: 26rpx;
+						color: rgba(255, 255, 255, 0.7);
+						margin-right: 10rpx;
+					}
+
+					.filter-input {
+						flex: 1;
+						height: 60rpx;
+						background-color: rgba(255, 255, 255, 0.1);
+						border-radius: 10rpx;
+						padding: 0 20rpx;
+						font-size: 26rpx;
+						color: #fff;
+					}
+				}
+
+				.search-btn {
+					background-color: #007AFF;
+					color: #fff;
+					font-size: 26rpx;
+					padding: 0 30rpx;
+					height: 60rpx;
+					line-height: 60rpx;
+					border-radius: 10rpx;
+				}
+			}
+		}
+
+		.map-container {
+			background-color: #2a3347;
+			border-radius: 16rpx;
+			overflow: hidden;
+			margin-bottom: 20rpx;
+
+			.track-map {
+				width: 100%;
+				height: 500rpx;
+			}
+		}
+
+		.empty-state {
+			background-color: #2a3347;
+			border-radius: 16rpx;
+			padding: 100rpx;
+			text-align: center;
+			margin-bottom: 20rpx;
+
+			.empty-text {
+				font-size: 28rpx;
+				color: rgba(255, 255, 255, 0.5);
+			}
+		}
+
+		.playback-control {
+			background-color: #2a3347;
+			border-radius: 16rpx;
+			padding: 20rpx;
+			margin-bottom: 20rpx;
+
+			.progress-section {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				margin-bottom: 20rpx;
+
+				.time-label {
+					font-size: 24rpx;
+					color: rgba(255, 255, 255, 0.7);
+					width: 100rpx;
+					text-align: center;
+				}
+
+				.progress-slider {
+					flex: 1;
+					margin: 0 20rpx;
+				}
+			}
+
+			.control-buttons {
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				align-items: center;
+
+				.speed-selector {
+					display: flex;
+					flex-direction: row;
+					align-items: center;
+
+					.speed-label {
+						font-size: 24rpx;
+						color: rgba(255, 255, 255, 0.7);
+						margin-right: 10rpx;
+					}
+
+					.speed-picker {
+						background-color: rgba(255, 255, 255, 0.1);
+						padding: 10rpx 20rpx;
+						border-radius: 10rpx;
+
+						text {
+							font-size: 24rpx;
+							color: #007AFF;
+						}
+					}
+				}
+
+				.play-buttons {
+					display: flex;
+					flex-direction: row;
+					gap: 15rpx;
+
+					.control-btn {
+						width: 70rpx;
+						height: 70rpx;
+						background-color: rgba(255, 255, 255, 0.1);
+						border-radius: 50%;
+						display: flex;
+						justify-content: center;
+						align-items: center;
+						padding: 0;
+
+						&.play-btn {
+							background-color: #007AFF;
+							width: 90rpx;
+							height: 90rpx;
+						}
+
+						.btn-icon {
+							font-size: 28rpx;
+							color: #fff;
+						}
+					}
+				}
+			}
+		}
+
+		.track-info {
+			background-color: #2a3347;
+			border-radius: 16rpx;
+			padding: 20rpx;
+			margin-bottom: 20rpx;
+
+			.info-row {
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+
+				.info-item {
+					flex: 1;
+					text-align: center;
+
+					.info-label {
+						display: block;
+						font-size: 22rpx;
+						color: rgba(255, 255, 255, 0.5);
+						margin-bottom: 8rpx;
+					}
+
+					.info-value {
+						display: block;
+						font-size: 26rpx;
+						color: #fff;
+						font-weight: bold;
+					}
+				}
+			}
+		}
+
+		.stop-points-section {
+			background-color: #2a3347;
+			border-radius: 16rpx;
+			padding: 20rpx;
+
+			.section-header {
+				margin-bottom: 20rpx;
+
+				.section-title {
+					font-size: 28rpx;
+					font-weight: bold;
+					color: #fff;
+				}
+			}
+
+			.stop-points-list {
+				.stop-point-item {
+					display: flex;
+					flex-direction: row;
+					align-items: center;
+					padding: 20rpx;
+					background-color: rgba(255, 255, 255, 0.05);
+					border-radius: 10rpx;
+					margin-bottom: 15rpx;
+
+					&:last-child {
+						margin-bottom: 0;
+					}
+
+					.stop-index {
+						width: 50rpx;
+						height: 50rpx;
+						background-color: #007AFF;
+						border-radius: 50%;
+						display: flex;
+						justify-content: center;
+						align-items: center;
+						font-size: 24rpx;
+						color: #fff;
+						margin-right: 20rpx;
+					}
+
+					.stop-info {
+						flex: 1;
+
+						.stop-time {
+							display: block;
+							font-size: 24rpx;
+							color: #fff;
+							margin-bottom: 5rpx;
+						}
+
+						.stop-duration {
+							display: block;
+							font-size: 22rpx;
+							color: rgba(255, 255, 255, 0.5);
+						}
+					}
+
+					.stop-arrow {
+						font-size: 28rpx;
+						color: rgba(255, 255, 255, 0.5);
+					}
+				}
+			}
+		}
+	}
+</style>

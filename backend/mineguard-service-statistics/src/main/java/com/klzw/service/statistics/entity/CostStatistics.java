@@ -24,6 +24,12 @@ public class CostStatistics {
 
     private BigDecimal laborCost;
 
+    private BigDecimal insuranceCost;
+
+    private BigDecimal depreciationCost;
+
+    private BigDecimal managementCost;
+
     private BigDecimal otherCost;
 
     private BigDecimal totalCost;

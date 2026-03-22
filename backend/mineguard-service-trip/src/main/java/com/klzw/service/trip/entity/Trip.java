@@ -15,15 +15,23 @@ public class Trip extends BaseEntity {
 
     private String tripNo;
 
+    private Long dispatchTaskId;
+
     private Long vehicleId;
 
     private Long driverId;
 
-    private Long routeId;
-
     private String startLocation;
 
+    private Double startLongitude;
+
+    private Double startLatitude;
+
     private String endLocation;
+
+    private Double endLongitude;
+
+    private Double endLatitude;
 
     private LocalDateTime estimatedStartTime;
 
@@ -49,15 +57,11 @@ public class Trip extends BaseEntity {
 
     private Double averageSpeed;
 
+    private BigDecimal cargoWeight;
+    
+    private BigDecimal estimatedCommissionAmount;  // 预计提成金额（调度时设定）
+    
     private String cancellationReason;
-
-    private Double startLongitude;
-
-    private Double startLatitude;
-
-    private Double endLongitude;
-
-    private Double endLatitude;
 
     private String remark;
 }

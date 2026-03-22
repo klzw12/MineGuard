@@ -200,6 +200,48 @@
 			"style": {
 				"navigationBarTitleText": "司机报表"
 			}
+		},
+		{
+			"path": "pages/admin/track/playback",
+			"style": {
+				"navigationBarTitleText": "轨迹回放"
+			}
+		},
+		{
+			"path": "pages/admin/warning/index",
+			"style": {
+				"navigationBarTitleText": "预警管理"
+			}
+		},
+		{
+			"path": "pages/admin/route/index",
+			"style": {
+				"navigationBarTitleText": "路线管理"
+			}
+		},
+		{
+			"path": "pages/admin/trip/index",
+			"style": {
+				"navigationBarTitleText": "行程管理"
+			}
+		},
+		{
+			"path": "pages/admin/cost/index",
+			"style": {
+				"navigationBarTitleText": "成本管理"
+			}
+		},
+		{
+			"path": "pages/admin/statistics/index",
+			"style": {
+				"navigationBarTitleText": "统计分析"
+			}
+		},
+		{
+			"path": "pages/admin/attendance/index",
+			"style": {
+				"navigationBarTitleText": "出勤管理"
+			}
 		}
 	],
 	"globalStyle": {

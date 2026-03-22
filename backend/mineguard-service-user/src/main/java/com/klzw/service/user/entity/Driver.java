@@ -35,9 +35,15 @@ public class Driver extends BaseEntity {
 
     private String firstIssueDate;
 
+    private Integer drivingYears;
+
     private String validPeriod;
 
     private String licenseNumber;
 
     private Integer status;
+
+    private Integer score;
+
+    private String remark;
 }

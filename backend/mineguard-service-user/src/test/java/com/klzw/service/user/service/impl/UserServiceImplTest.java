@@ -164,8 +164,8 @@ class UserServiceImplTest {
         UserRegisterDTO dto = new UserRegisterDTO();
         dto.setUsername("newuser");
         dto.setPassword("Test123");
-        dto.setRealName("新用户");
         dto.setPhone("13800138001");
+        dto.setSmsCode("1234");
 
         when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
         when(passwordUtils.encode("Test123")).thenReturn("encodedPassword");
@@ -189,7 +189,8 @@ class UserServiceImplTest {
         UserRegisterDTO dto = new UserRegisterDTO();
         dto.setUsername("testuser");
         dto.setPassword("Test123");
-        dto.setRealName("新用户");
+        dto.setPhone("13800138001");
+        dto.setSmsCode("1234");
 
         when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(testUser);
 
@@ -200,8 +201,8 @@ class UserServiceImplTest {
     @DisplayName("更新用户信息 - 成功")
     void updateUserInfo_Success() {
         UserUpdateDTO dto = new UserUpdateDTO();
-        dto.setRealName("更新后的姓名");
-        dto.setPhone("13800138002");
+        dto.setUsername("updateduser");
+        dto.setEmail("updated@test.com");
 
         when(userMapper.selectById(1L)).thenReturn(testUser);
         when(userMapper.updateById(any(User.class))).thenReturn(1);
@@ -210,7 +211,6 @@ class UserServiceImplTest {
         UserVO result = userService.updateUserInfo(1L, dto);
 
         assertNotNull(result);
-        assertEquals("更新后的姓名", result.getRealName());
         verify(redisCacheService).delete("user:info:1");
     }
 
@@ -218,7 +218,7 @@ class UserServiceImplTest {
     @DisplayName("更新用户信息 - 用户不存在")
     void updateUserInfo_UserNotFound() {
         UserUpdateDTO dto = new UserUpdateDTO();
-        dto.setRealName("更新后的姓名");
+        dto.setUsername("updateduser");
 
         when(userMapper.selectById(999L)).thenReturn(null);
 

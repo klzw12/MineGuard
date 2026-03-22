@@ -35,6 +35,10 @@ public class JsonUtils {
         }
     }
     
+    public static <T> T parseObject(String json, Class<T> clazz) {
+        return fromJson(json, clazz);
+    }
+    
     public static <T> T fromJson(String json, TypeReference<T> typeReference) {
         if (json == null || json.trim().isEmpty()) {
             return null;

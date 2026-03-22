@@ -8,30 +8,25 @@ import com.klzw.service.vehicle.service.VehicleRefuelingService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
 import java.util.List;
 
 @Slf4j
 @Service
 public class VehicleRefuelingServiceImpl extends ServiceImpl<VehicleRefuelingMapper, VehicleRefueling> implements VehicleRefuelingService {
     
-    @Resource
-    private VehicleRefuelingMapper vehicleRefuelingMapper;
-    
     @Override
     public VehicleRefueling addRefuelingRecord(VehicleRefuelingDTO refuelingDTO) {
         log.info("添加车辆加油记录: vehicleId={}, refuelingDate={}", refuelingDTO.getVehicleId(), refuelingDTO.getRefuelingDate());
-        // 转换DTO为实体类
         VehicleRefueling refueling = new VehicleRefueling();
         refueling.setVehicleId(refuelingDTO.getVehicleId());
         refueling.setDriverId(refuelingDTO.getDriverId());
         refueling.setRefuelingDate(refuelingDTO.getRefuelingDate());
+        refueling.setRefuelingStation(refuelingDTO.getRefuelingStation());
         refueling.setFuelType(refuelingDTO.getFuelType());
-        refueling.setFuelAmount(refuelingDTO.getFuelAmount());
-        refueling.setFuelPrice(refuelingDTO.getFuelPrice());
+        refueling.setRefuelingAmount(refuelingDTO.getRefuelingAmount());
+        refueling.setUnitPrice(refuelingDTO.getUnitPrice());
         refueling.setTotalCost(refuelingDTO.getTotalCost());
-        refueling.setMileage(refuelingDTO.getMileage());
-        refueling.setGasStation(refuelingDTO.getGasStation());
+        refueling.setCurrentMileage(refuelingDTO.getCurrentMileage());
         refueling.setRemark(refuelingDTO.getRemark());
         save(refueling);
         return refueling;
@@ -40,9 +35,19 @@ public class VehicleRefuelingServiceImpl extends ServiceImpl<VehicleRefuelingMap
     @Override
     public List<VehicleRefueling> getRefuelingRecords(Long vehicleId, int page, int size) {
         log.info("获取车辆加油记录: vehicleId={}, page={}, size={}", vehicleId, page, size);
-        // 这里可以使用MyBatis Plus的分页查询
-        // 暂时返回所有记录
-        return list();
+        
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<VehicleRefueling> pageObj = 
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, size);
+        
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<VehicleRefueling> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(VehicleRefueling::getVehicleId, vehicleId)
+               .orderByDesc(VehicleRefueling::getRefuelingDate);
+        
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<VehicleRefueling> result = 
+                getBaseMapper().selectPage(pageObj, wrapper);
+        
+        return result.getRecords();
     }
     
 }

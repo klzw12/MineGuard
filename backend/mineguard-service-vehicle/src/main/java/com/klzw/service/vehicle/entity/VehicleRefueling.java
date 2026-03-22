@@ -19,18 +19,16 @@ public class VehicleRefueling extends BaseEntity {
     
     private LocalDateTime refuelingDate;
     
+    private String refuelingStation;
+    
     private String fuelType;
     
-    private BigDecimal fuelAmount;
+    private BigDecimal refuelingAmount;
     
-    private BigDecimal fuelPrice;
+    private BigDecimal unitPrice;
     
     private BigDecimal totalCost;
     
-    private BigDecimal mileage;
-    
-    private String gasStation;
-    
-    private String remark;
+    private Integer currentMileage;
     
 }

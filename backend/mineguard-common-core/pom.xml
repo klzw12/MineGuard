@@ -30,6 +30,19 @@
             <version>${spring-boot.version}</version>
         </dependency>
 
+        <!-- Spring Boot Starter WebFlux (for WebClient) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+            <version>${spring-boot.version}</version>
+        </dependency>
+
+        <!-- Spring Cloud OpenFeign (for HttpExchange) -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+
         <!-- 解决 tools.jackson 依赖问题 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

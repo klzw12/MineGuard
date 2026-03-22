@@ -1,0 +1,11 @@
+package com.klzw.service.trip.repository;
+
+import com.klzw.common.mongodb.repository.BaseMongoRepository;
+import com.klzw.service.trip.document.TripTrackDocument;
+
+/**
+ * 行程轨迹MongoDB Repository
+ */
+public interface TripTrackMongoRepository extends BaseMongoRepository<TripTrackDocument, String> {
+    
+}

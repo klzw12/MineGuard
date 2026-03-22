@@ -32,6 +32,8 @@ public class TripStatistics {
 
     private BigDecimal fuelConsumption;
 
+    private BigDecimal cargoWeight;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

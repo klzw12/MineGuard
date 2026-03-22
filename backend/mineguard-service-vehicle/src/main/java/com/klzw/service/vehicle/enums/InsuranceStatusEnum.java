@@ -1,45 +1,40 @@
 package com.klzw.service.vehicle.enums;
 
 /**
- * 保险状态枚举
+ * 车辆保险状态枚举
  */
 public enum InsuranceStatusEnum {
-    /**
-     * 未投保
-     */
+    
     NOT_INSURED(0, "未投保"),
-    /**
-     * 已投保
-     */
-    INSURED(1, "已投保"),
-    /**
-     * 已过期
-     */
+    INSURED(1, "已投保/有效"),
     EXPIRED(2, "已过期"),
-    /**
-     * 理赔中
-     */
     CLAIMING(3, "理赔中");
-
-    private final int code;
-    private final String name;
-
-    InsuranceStatusEnum(int code, String name) {
-        this.code = code;
-        this.name = name;
+    
+    private final Integer value;
+    private final String label;
+    
+    InsuranceStatusEnum(Integer value, String label) {
+        this.value = value;
+        this.label = label;
     }
-
-    public int getCode() {
-        return code;
+    
+    public Integer getValue() {
+        return value;
     }
-
-    public String getName() {
-        return name;
+    
+    public String getLabel() {
+        return label;
     }
-
-    public static InsuranceStatusEnum getByCode(int code) {
+    
+    /**
+     * 根据值获取枚举
+     */
+    public static InsuranceStatusEnum valueOf(Integer value) {
+        if (value == null) {
+            return null;
+        }
         for (InsuranceStatusEnum status : values()) {
-            if (status.code == code) {
+            if (status.getValue().equals(value)) {
                 return status;
             }
         }

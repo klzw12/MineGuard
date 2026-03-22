@@ -4,6 +4,7 @@ import com.klzw.common.core.domain.PageRequest;
 import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.result.Result;
 import com.klzw.common.core.domain.dto.TripResponse;
+import com.klzw.common.core.domain.dto.TripCreateRequest;
 import com.klzw.service.trip.dto.TripDTO;
 import com.klzw.service.trip.service.TripService;
 import com.klzw.service.trip.vo.TripStatisticsVO;
@@ -41,6 +42,12 @@ public class TripController {
     @Operation(summary = "创建行程")
     public Result<Long> create(@Valid @RequestBody TripDTO dto) {
         return Result.success(tripService.create(dto));
+    }
+    
+    @PostMapping("/dispatch/create")
+    @Operation(summary = "调度任务创建行程（内部调用）")
+    public Result<Long> createFromDispatch(@RequestBody TripCreateRequest request) {
+        return Result.success(tripService.createFromDispatch(request));
     }
 
     @PutMapping("/{id}")
@@ -111,6 +118,13 @@ public class TripController {
         tripService.pauseTrip(id);
         return Result.success();
     }
+    
+    @PostMapping("/{id}/end")
+    @Operation(summary = "结束行程（预警触发）")
+    public Result<Void> endTrip(@PathVariable Long id) {
+        tripService.endTrip(id, null, null);
+        return Result.success();
+    }
 
     @PostMapping("/{id}/resume")
     @Operation(summary = "恢复行程")
@@ -123,5 +137,13 @@ public class TripController {
     @Operation(summary = "获取行程统计")
     public Result<TripStatisticsVO> getTripStatistics(@PathVariable Long id) {
         return Result.success(tripService.getTripStatistics(id));
+    }
+    
+    @GetMapping("/statistics")
+    @Operation(summary = "按日期范围查询行程统计（供 statistics 服务调用）")
+    public Result<TripStatisticsResponseDTO> getStatisticsByDateRange(
+            @RequestParam("startDate") String startDate,
+            @RequestParam("endDate") String endDate) {
+        return Result.success(tripService.getStatisticsByDateRange(startDate, endDate));
     }
 }

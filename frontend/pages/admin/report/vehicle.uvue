@@ -4,33 +4,24 @@
 		<view class="admin-content">
 			<view class="page-header">
 				<text class="page-title">车辆报表</text>
-				<view class="header-actions">
-					<view class="action-btn" @click="exportReport">
-						<text class="action-text">导出报表</text>
-					</view>
-				</view>
 			</view>
 			
 			<view class="stats-grid">
 				<view class="stat-card">
-					<text class="stat-value">168</text>
+					<text class="stat-value">{{ stats.total }}</text>
 					<text class="stat-label">车辆总数</text>
-					<text class="stat-trend positive">↑ 5%</text>
 				</view>
 				<view class="stat-card">
-					<text class="stat-value">142</text>
+					<text class="stat-value">{{ stats.operating }}</text>
 					<text class="stat-label">运营中</text>
-					<text class="stat-trend positive">↑ 12%</text>
 				</view>
 				<view class="stat-card">
-					<text class="stat-value">15</text>
+					<text class="stat-value">{{ stats.maintenance }}</text>
 					<text class="stat-label">维修中</text>
-					<text class="stat-trend negative">↓ 3%</text>
 				</view>
 				<view class="stat-card">
-					<text class="stat-value">11</text>
+					<text class="stat-value">{{ stats.stopped }}</text>
 					<text class="stat-label">停运</text>
-					<text class="stat-trend">-</text>
 				</view>
 			</view>
 			
@@ -83,29 +74,99 @@
 </template>
 
 <script setup lang="uts">
-	import { ref } from 'vue'
+	import { ref, onMounted } from 'vue'
 	import AdminSidebar from '@/components/AdminSidebar.uvue'
+	import { vehicleApi, type VehicleVO, type PageResult } from '@/api/vehicle.uts'
+	
+	// 统计数据
+	const stats = ref({
+		total: 0,
+		operating: 0,
+		maintenance: 0,
+		stopped: 0
+	})
 	
 	const chartData = ref([
-		{ label: '周一', value: 85 },
-		{ label: '周二', value: 92 },
-		{ label: '周三', value: 78 },
-		{ label: '周四', value: 88 },
-		{ label: '周五', value: 95 },
-		{ label: '周六', value: 70 },
-		{ label: '周日', value: 65 }
+		{ label: '周一', value: 0 },
+		{ label: '周二', value: 0 },
+		{ label: '周三', value: 0 },
+		{ label: '周四', value: 0 },
+		{ label: '周五', value: 0 },
+		{ label: '周六', value: 0 },
+		{ label: '周日', value: 0 }
 	])
 	
-	const vehicleStats = ref([
-		{ plate: '京A12345', days: 28, mileage: 12580, fuel: 1256, status: '运营中', statusClass: 'active' },
-		{ plate: '京B67890', days: 25, mileage: 10230, fuel: 1023, status: '运营中', statusClass: 'active' },
-		{ plate: '京C11111', days: 20, mileage: 8560, fuel: 856, status: '维修中', statusClass: 'maintenance' },
-		{ plate: '京D22222', days: 30, mileage: 15680, fuel: 1568, status: '运营中', statusClass: 'active' },
-		{ plate: '京E33333', days: 15, mileage: 6230, fuel: 623, status: '停运', statusClass: 'stopped' }
-	])
+	const vehicleStats = ref<Array<{
+		plate: string
+		days: number
+		mileage: number
+		fuel: number
+		status: string
+		statusClass: string
+	}>>([])
 	
-	function exportReport() {
-		uni.showToast({ title: '导出功能开发中', icon: 'none' })
+	// 加载数据
+	onMounted(async () => {
+		await loadVehicleData()
+	})
+	
+	// 加载车辆数据
+	async function loadVehicleData() {
+		try {
+			const result = await vehicleApi.getVehiclePage({ pageNum: 1, pageSize: 100 })
+			if (result && result.records) {
+				const vehicles = result.records
+				
+				// 统计数据
+				stats.value.total = vehicles.length
+				stats.value.operating = vehicles.filter(v => v.status === 1).length
+				stats.value.maintenance = vehicles.filter(v => v.status === 2).length
+				stats.value.stopped = vehicles.filter(v => v.status === 3 || v.status === 4).length
+				
+				// 生成车辆状态明细
+				vehicleStats.value = vehicles.map(v => ({
+					plate: v.vehicleNo,
+					days: 30, // 暂时用固定值，实际应该从后端获取
+					mileage: 0, // 需要从行程服务获取
+					fuel: 0, // 需要从加油记录获取
+					status: getStatusText(v.status),
+					statusClass: getStatusClass(v.status)
+				}))
+				
+				// 生成图表数据（按状态统计）
+				updateChartData()
+			}
+		} catch (e) {
+			console.error('加载车辆数据失败', e)
+		}
+	}
+	
+	// 更新图表数据
+	function updateChartData() {
+		// 这里简单模拟，实际应该按日期统计
+		chartData.value = chartData.value.map(item => ({
+			...item,
+			value: Math.floor(Math.random() * 40) + 60 // 临时数据
+		}))
+	}
+	
+	// 获取状态文本
+	function getStatusText(status: number): string {
+		const statusMap: Record<number, string> = {
+			0: '空闲',
+			1: '运营中',
+			2: '维修中',
+			3: '故障',
+			4: '停运'
+		}
+		return statusMap[status] || '未知'
+	}
+	
+	// 获取状态样式
+	function getStatusClass(status: number): string {
+		if (status === 1) return 'active'
+		if (status === 2) return 'maintenance'
+		return 'stopped'
 	}
 </script>
 

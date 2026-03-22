@@ -1,0 +1,82 @@
+import { request } from '@/utils/request'
+import type { DriverVO, DriverVehicleVO } from '@/types/user'
+
+export function getDriverById(id: number): Promise<DriverVO> {
+  return request({
+    url: `/api/driver/${id}`,
+    method: 'GET'
+  })
+}
+
+export function getDriverByUserId(userId: number): Promise<DriverVO> {
+  return request({
+    url: `/api/driver/user/${userId}`,
+    method: 'GET'
+  })
+}
+
+export function getDriverList(params: {
+  driverName?: string
+  status?: number
+}): Promise<DriverVO[]> {
+  return request({
+    url: '/api/driver/list',
+    method: 'GET',
+    data: params
+  })
+}
+
+export function updateDriverStatus(driverId: number, status: number): Promise<void> {
+  return request({
+    url: `/api/driver/${driverId}/status`,
+    method: 'PUT',
+    data: { status }
+  })
+}
+
+export function getAvailableDrivers(): Promise<DriverVO[]> {
+  return request({
+    url: '/api/driver/available',
+    method: 'GET'
+  })
+}
+
+export function selectBestDriver(params: {
+  vehicleId?: number
+  scheduledTime?: string
+}): Promise<DriverVO> {
+  return request({
+    url: '/api/driver/best',
+    method: 'POST',
+    data: params
+  })
+}
+
+export function addCommonVehicle(driverId: number, vehicleId: number): Promise<void> {
+  return request({
+    url: `/api/driver/${driverId}/common-vehicle`,
+    method: 'POST',
+    data: { vehicleId }
+  })
+}
+
+export function removeCommonVehicle(driverId: number, vehicleId: number): Promise<void> {
+  return request({
+    url: `/api/driver/${driverId}/common-vehicle/${vehicleId}`,
+    method: 'DELETE'
+  })
+}
+
+export function setDefaultVehicle(driverId: number, vehicleId: number): Promise<void> {
+  return request({
+    url: `/api/driver/${driverId}/common-vehicle/${vehicleId}/default`,
+    method: 'PUT'
+  })
+}
+
+export function getCommonVehicles(driverId: number): Promise<DriverVehicleVO[]> {
+  return request({
+    url: `/api/driver/${driverId}/common-vehicles`,
+    method: 'GET'
+  })
+}

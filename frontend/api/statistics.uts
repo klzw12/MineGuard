@@ -1,0 +1,181 @@
+import { http } from '@/utils/request.uts'
+
+export interface TripStatisticsVO {
+  id: number
+  statisticsDate: string
+  tripCount: number
+  totalDistance: number
+  totalDuration: number
+  completedTripCount: number
+  cancelledTripCount: number
+  averageSpeed: number
+  fuelConsumption: number
+  cargoWeight: number
+}
+
+export interface CostStatisticsVO {
+  id: number
+  statisticsDate: string
+  fuelCost: number
+  maintenanceCost: number
+  laborCost: number
+  insuranceCost: number
+  depreciationCost: number
+  managementCost: number
+  otherCost: number
+  totalCost: number
+}
+
+export interface VehicleStatisticsVO {
+  id: number
+  vehicleId: number
+  vehicleNo: string
+  statisticsDate: string
+  tripCount: number
+  totalDistance: number
+  totalDuration: number
+  cargoWeight: number
+  fuelConsumption: number
+  fuelCost: number
+  maintenanceCount: number
+  maintenanceCost: number
+  warningCount: number
+  violationCount: number
+  idleDuration: number
+  idleDistance: number
+  utilizationRate: number
+}
+
+export interface DriverStatisticsVO {
+  id: number
+  userId: number
+  userName: string
+  statisticsDate: string
+  attendanceDays: number
+  attendanceHours: number
+  tripCount: number
+  totalDistance: number
+  cargoWeight: number
+  lateCount: number
+  earlyLeaveCount: number
+  warningCount: number
+  violationCount: number
+  overSpeedCount: number
+  routeDeviationCount: number
+  performanceScore: number
+}
+
+export interface FaultStatisticsVO {
+  id: number
+  vehicleId: number
+  vehicleNo: string
+  statisticsDate: string
+  faultCount: number
+  minorFaultCount: number
+  majorFaultCount: number
+  criticalFaultCount: number
+  totalRepairCost: number
+  avgRepairTime: number
+  topFaultType: string
+  topFaultCount: number
+  repairedCount: number
+  pendingCount: number
+  totalFaultCount?: number
+  totalCost?: number
+  faultLevelDistribution?: Record<string, number>
+  faultTypeDistribution?: FaultTypeDistribution[]
+  faultTrend?: FaultTrendItem[]
+}
+
+export interface FaultTypeDistribution {
+  faultType: string
+  count: number
+  percentage: number
+}
+
+export interface FaultTrendItem {
+  date: string
+  faultCount: number
+  repairCost: number
+}
+
+export interface TransportStatisticsVO {
+  id: number
+  statisticsDate: string
+  totalCargoWeight: number
+  totalTrips: number
+  totalVehicles: number
+  totalDrivers: number
+  avgCargoPerTrip: number
+  avgTripsPerVehicle: number
+}
+
+export interface OverallStatisticsVO {
+  startDate: string
+  endDate: string
+  totalTripCount: number
+  totalDistance: number
+  totalDuration: number
+  totalCompletedTripCount: number
+  totalCancelledTripCount: number
+  totalCargoWeight: number
+  totalFuelCost: number
+  totalMaintenanceCost: number
+  totalLaborCost: number
+  totalOtherCost: number
+  totalCost: number
+  totalVehicles: number
+  totalDrivers: number
+  tripStatisticsList: TripStatisticsVO[]
+  costStatisticsList: CostStatisticsVO[]
+}
+
+export const statisticsApi = {
+  getTripStatistics: (params: any): Promise<TripStatisticsVO[] | null> => {
+    return http.get<TripStatisticsVO[]>('/api/statistics/trip', params)
+  },
+
+  getCostStatistics: (params: any): Promise<CostStatisticsVO[] | null> => {
+    return http.get<CostStatisticsVO[]>('/api/statistics/cost', params)
+  },
+
+  getVehicleStatistics: (params: any): Promise<VehicleStatisticsVO[] | null> => {
+    return http.get<VehicleStatisticsVO[]>('/api/statistics/vehicle', params)
+  },
+
+  getDriverStatistics: (params: any): Promise<DriverStatisticsVO[] | null> => {
+    return http.get<DriverStatisticsVO[]>('/api/statistics/driver', params)
+  },
+
+  getOverallStatistics: (params: any): Promise<OverallStatisticsVO | null> => {
+    return http.get<OverallStatisticsVO>('/api/statistics/overall', params)
+  },
+
+  calculateTripStatistics: (date: string): Promise<TripStatisticsVO | null> => {
+    return http.post<TripStatisticsVO>('/api/statistics/trip/calculate', { date })
+  },
+
+  calculateCostStatistics: (date: string): Promise<CostStatisticsVO | null> => {
+    return http.post<CostStatisticsVO>('/api/statistics/cost/calculate', { date })
+  },
+
+  calculateVehicleStatistics: (vehicleId: number, date: string): Promise<VehicleStatisticsVO | null> => {
+    return http.post<VehicleStatisticsVO>(`/api/statistics/vehicle/calculate?vehicleId=${vehicleId}&date=${date}`, {})
+  },
+
+  calculateDriverStatistics: (userId: number, date: string): Promise<DriverStatisticsVO | null> => {
+    return http.post<DriverStatisticsVO>(`/api/statistics/driver/calculate?userId=${userId}&date=${date}`, {})
+  },
+
+  getFaultStatistics: (params: any): Promise<FaultStatisticsVO[] | null> => {
+    return http.get<FaultStatisticsVO[]>('/api/statistics/fault', params)
+  },
+
+  getFaultOverallStatistics: (params: any): Promise<FaultStatisticsVO | null> => {
+    return http.get<FaultStatisticsVO>('/api/statistics/fault/overall', params)
+  },
+
+  getTransportStatistics: (params: any): Promise<TransportStatisticsVO[] | null> => {
+    return http.get<TransportStatisticsVO[]>('/api/statistics/transport', params)
+  }
+}

@@ -1,0 +1,909 @@
+<template>
+	<UserLayout>
+		<view class="page-header">
+			<text class="page-title">维修保养管理</text>
+		</view>
+		
+		<view class="tab-section">
+			<view class="tab-buttons">
+				<view class="tab-btn" :class="{'active': currentTab === 'fault'}" @click="currentTab = 'fault'">
+					<text class="tab-text">故障处理</text>
+				</view>
+				<view class="tab-btn" :class="{'active': currentTab === 'maintenance'}" @click="currentTab = 'maintenance'">
+					<text class="tab-text">保养记录</text>
+				</view>
+				<view class="tab-btn" :class="{'active': currentTab === 'insurance'}" @click="currentTab = 'insurance'">
+					<text class="tab-text">保险管理</text>
+				</view>
+			</view>
+		</view>
+		
+		<view class="content-section" v-if="currentTab === 'fault'">
+			<view class="action-bar">
+				<button class="primary-btn" @click="showFaultModal = true">报告故障</button>
+			</view>
+			
+			<view class="card-list">
+				<view class="card-item" v-for="(fault, index) in faultList" :key="fault.id">
+					<view class="card-header">
+						<text class="card-title">车辆: {{ fault.vehicleNo }}</text>
+						<view class="status-badge" :class="getFaultStatusClass(fault.status)">
+							<text class="status-text">{{ getFaultStatusText(fault.status) }}</text>
+						</view>
+					</view>
+					<view class="card-body">
+						<text class="info-row">故障类型: {{ fault.faultType }}</text>
+						<text class="info-row">故障描述: {{ fault.faultDescription }}</text>
+						<text class="info-row">严重程度: {{ getSeverityText(fault.severity) }}</text>
+						<text class="info-row">报告时间: {{ fault.faultDate }}</text>
+					</view>
+					<view class="card-footer" v-if="fault.status === 0 || fault.status === 1">
+						<button class="action-btn" @click="handleFault(fault)">处理故障</button>
+					</view>
+				</view>
+				
+				<view class="empty-state" v-if="faultList.length === 0">
+					<text class="empty-text">暂无故障记录</text>
+				</view>
+			</view>
+		</view>
+		
+		<view class="content-section" v-if="currentTab === 'maintenance'">
+			<view class="action-bar">
+				<button class="primary-btn" @click="showMaintenanceModal = true">添加保养记录</button>
+			</view>
+			
+			<view class="card-list">
+				<view class="card-item" v-for="(record, index) in maintenanceList" :key="record.id">
+					<view class="card-header">
+						<text class="card-title">车辆: {{ record.vehicleNo }}</text>
+						<view class="type-badge">
+							<text class="type-text">{{ getMaintenanceTypeText(record.maintenanceType) }}</text>
+						</view>
+					</view>
+					<view class="card-body">
+						<text class="info-row">保养日期: {{ record.maintenanceDate }}</text>
+						<text class="info-row">维修厂: {{ record.maintenanceShop }}</text>
+						<text class="info-row">保养内容: {{ record.maintenanceContent }}</text>
+						<text class="info-row">保养费用: ¥{{ record.maintenanceCost }}</text>
+						<text class="info-row" v-if="record.nextMaintenanceDate">下次保养: {{ record.nextMaintenanceDate }}</text>
+					</view>
+				</view>
+				
+				<view class="empty-state" v-if="maintenanceList.length === 0">
+					<text class="empty-text">暂无保养记录</text>
+				</view>
+			</view>
+		</view>
+		
+		<view class="content-section" v-if="currentTab === 'insurance'">
+			<view class="action-bar">
+				<button class="primary-btn" @click="showInsuranceModal = true">添加保险</button>
+			</view>
+			
+			<view class="card-list">
+				<view class="card-item" v-for="(insurance, index) in insuranceList" :key="insurance.id">
+					<view class="card-header">
+						<text class="card-title">车辆: {{ insurance.vehicleNo }}</text>
+						<view class="status-badge" :class="getInsuranceStatusClass(insurance.status)">
+							<text class="status-text">{{ getInsuranceStatusText(insurance.status) }}</text>
+						</view>
+					</view>
+					<view class="card-body">
+						<text class="info-row">保险公司: {{ insurance.insuranceCompany }}</text>
+						<text class="info-row">保单号: {{ insurance.insuranceNumber }}</text>
+						<text class="info-row">保险类型: {{ getInsuranceTypeText(insurance.insuranceType) }}</text>
+						<text class="info-row">保险金额: ¥{{ insurance.insuranceAmount }}</text>
+						<text class="info-row">有效期: {{ insurance.startDate }} 至 {{ insurance.expiryDate }}</text>
+					</view>
+				</view>
+				
+				<view class="empty-state" v-if="insuranceList.length === 0">
+					<text class="empty-text">暂无保险记录</text>
+				</view>
+			</view>
+		</view>
+		
+		<view class="modal-overlay" v-if="showFaultModal" @click="showFaultModal = false">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">报告故障</text>
+					<text class="modal-close" @click="showFaultModal = false">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="form-label">选择车辆 *</text>
+						<picker mode="selector" :range="vehicleOptions" range-key="vehicleNo" @change="onVehicleChange">
+							<view class="picker-input">
+								<text class="picker-text">{{ faultForm.vehicleId ? getVehicleNo(faultForm.vehicleId) : '请选择车辆' }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">故障类型 *</text>
+						<input type="text" v-model="faultForm.faultType" class="form-input" placeholder="请输入故障类型" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">故障描述</text>
+						<textarea v-model="faultForm.faultDescription" class="form-textarea" placeholder="请输入故障描述" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">严重程度</text>
+						<picker mode="selector" :range="severityOptions" range-key="label" @change="onSeverityChange">
+							<view class="picker-input">
+								<text class="picker-text">{{ getSeverityLabel(faultForm.severity) }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="showFaultModal = false">取消</button>
+					<button class="confirm-btn" @click="submitFault">提交</button>
+				</view>
+			</view>
+		</view>
+		
+		<view class="modal-overlay" v-if="showMaintenanceModal" @click="showMaintenanceModal = false">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">添加保养记录</text>
+					<text class="modal-close" @click="showMaintenanceModal = false">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="form-label">选择车辆 *</text>
+						<picker mode="selector" :range="vehicleOptions" range-key="vehicleNo" @change="onMaintVehicleChange">
+							<view class="picker-input">
+								<text class="picker-text">{{ maintenanceForm.vehicleId ? getVehicleNo(maintenanceForm.vehicleId) : '请选择车辆' }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">保养类型</text>
+						<picker mode="selector" :range="maintenanceTypeOptions" range-key="label" @change="onMaintTypeChange">
+							<view class="picker-input">
+								<text class="picker-text">{{ getMaintenanceTypeLabel(maintenanceForm.maintenanceType) }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">保养日期</text>
+						<picker mode="date" @change="onMaintDateChange">
+							<view class="picker-input">
+								<text class="picker-text">{{ maintenanceForm.maintenanceDate || '请选择日期' }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">维修厂</text>
+						<input type="text" v-model="maintenanceForm.maintenanceShop" class="form-input" placeholder="请输入维修厂" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">保养内容</text>
+						<textarea v-model="maintenanceForm.maintenanceContent" class="form-textarea" placeholder="请输入保养内容" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">保养费用</text>
+						<input type="number" v-model="maintenanceForm.maintenanceCost" class="form-input" placeholder="请输入费用" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">下次保养日期</text>
+						<picker mode="date" @change="onNextMaintDateChange">
+							<view class="picker-input">
+								<text class="picker-text">{{ maintenanceForm.nextMaintenanceDate || '请选择日期' }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="showMaintenanceModal = false">取消</button>
+					<button class="confirm-btn" @click="submitMaintenance">提交</button>
+				</view>
+			</view>
+		</view>
+		
+		<view class="modal-overlay" v-if="showInsuranceModal" @click="showInsuranceModal = false">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">添加保险</text>
+					<text class="modal-close" @click="showInsuranceModal = false">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="form-label">选择车辆 *</text>
+						<picker mode="selector" :range="vehicleOptions" range-key="vehicleNo" @change="onInsVehicleChange">
+							<view class="picker-input">
+								<text class="picker-text">{{ insuranceForm.vehicleId ? getVehicleNo(insuranceForm.vehicleId) : '请选择车辆' }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">保险公司 *</text>
+						<input type="text" v-model="insuranceForm.insuranceCompany" class="form-input" placeholder="请输入保险公司" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">保单号 *</text>
+						<input type="text" v-model="insuranceForm.insuranceNumber" class="form-input" placeholder="请输入保单号" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">保险类型</text>
+						<picker mode="selector" :range="insuranceTypeOptions" range-key="label" @change="onInsTypeChange">
+							<view class="picker-input">
+								<text class="picker-text">{{ getInsuranceTypeLabel(insuranceForm.insuranceType) }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">保险金额</text>
+						<input type="number" v-model="insuranceForm.insuranceAmount" class="form-input" placeholder="请输入金额" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">开始日期</text>
+						<picker mode="date" @change="onInsStartDateChange">
+							<view class="picker-input">
+								<text class="picker-text">{{ insuranceForm.startDate || '请选择日期' }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">到期日期</text>
+						<picker mode="date" @change="onInsExpiryDateChange">
+							<view class="picker-input">
+								<text class="picker-text">{{ insuranceForm.expiryDate || '请选择日期' }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="showInsuranceModal = false">取消</button>
+					<button class="confirm-btn" @click="submitInsurance">提交</button>
+				</view>
+			</view>
+		</view>
+		
+		<view class="modal-overlay" v-if="showHandleModal" @click="showHandleModal = false">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">处理故障</text>
+					<text class="modal-close" @click="showHandleModal = false">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="form-label">维修内容</text>
+						<textarea v-model="handleForm.repairContent" class="form-textarea" placeholder="请输入维修内容" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">维修费用</text>
+						<input type="number" v-model="handleForm.repairCost" class="form-input" placeholder="请输入费用" />
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="showHandleModal = false">取消</button>
+					<button class="confirm-btn" @click="submitHandle">完成处理</button>
+				</view>
+			</view>
+		</view>
+	</UserLayout>
+</template>
+
+<script setup lang="uts">
+	import UserLayout from '../../../components/UserLayout.uvue'
+	import { ref, onMounted } from 'vue'
+	import { request } from '../../../utils/request'
+
+	type VehicleOption = {
+		id: string,
+		vehicleNo: string
+	}
+
+	type FaultRecord = {
+		id: string,
+		vehicleId: string,
+		vehicleNo: string,
+		faultType: string,
+		faultDescription: string,
+		severity: number,
+		status: number,
+		faultDate: string
+	}
+
+	type MaintenanceRecord = {
+		id: string,
+		vehicleId: string,
+		vehicleNo: string,
+		maintenanceType: number,
+		maintenanceDate: string,
+		maintenanceShop: string,
+		maintenanceContent: string,
+		maintenanceCost: number,
+		nextMaintenanceDate: string | null
+	}
+
+	type InsuranceRecord = {
+		id: string,
+		vehicleId: string,
+		vehicleNo: string,
+		insuranceCompany: string,
+		insuranceNumber: string,
+		insuranceType: number,
+		insuranceAmount: number,
+		startDate: string,
+		expiryDate: string,
+		status: number
+	}
+
+	const currentTab = ref('fault')
+	const vehicleOptions = ref<VehicleOption[]>([])
+	const faultList = ref<FaultRecord[]>([])
+	const maintenanceList = ref<MaintenanceRecord[]>([])
+	const insuranceList = ref<InsuranceRecord[]>([])
+
+	const showFaultModal = ref(false)
+	const showMaintenanceModal = ref(false)
+	const showInsuranceModal = ref(false)
+	const showHandleModal = ref(false)
+	const currentFault = ref<FaultRecord | null>(null)
+
+	const faultForm = ref({
+		vehicleId: '',
+		faultType: '',
+		faultDescription: '',
+		severity: 1
+	})
+
+	const maintenanceForm = ref({
+		vehicleId: '',
+		maintenanceType: 1,
+		maintenanceDate: '',
+		maintenanceShop: '',
+		maintenanceContent: '',
+		maintenanceCost: 0,
+		nextMaintenanceDate: ''
+	})
+
+	const insuranceForm = ref({
+		vehicleId: '',
+		insuranceCompany: '',
+		insuranceNumber: '',
+		insuranceType: 1,
+		insuranceAmount: 0,
+		startDate: '',
+		expiryDate: ''
+	})
+
+	const handleForm = ref({
+		repairContent: '',
+		repairCost: 0
+	})
+
+	const severityOptions = [
+		{ value: 1, label: '轻微' },
+		{ value: 2, label: '中等' },
+		{ value: 3, label: '严重' },
+		{ value: 4, label: '紧急' }
+	]
+
+	const maintenanceTypeOptions = [
+		{ value: 1, label: '常规保养' },
+		{ value: 2, label: '小修' },
+		{ value: 3, label: '中修' },
+		{ value: 4, label: '大修' },
+		{ value: 5, label: '年检' }
+	]
+
+	const insuranceTypeOptions = [
+		{ value: 1, label: '交强险' },
+		{ value: 2, label: '商业险' },
+		{ value: 3, label: '第三者责任险' },
+		{ value: 4, label: '车辆损失险' },
+		{ value: 5, label: '盗抢险' }
+	]
+
+	const getVehicleNo = (id: string): string => {
+		const vehicle = vehicleOptions.value.find(v => v.id === id)
+		return vehicle ? vehicle.vehicleNo : ''
+	}
+
+	const getFaultStatusClass = (status: number): string => {
+		const map: Record<number, string> = { 0: 'pending', 1: 'processing', 2: 'resolved', 3: 'closed' }
+		return map[status] || 'pending'
+	}
+
+	const getFaultStatusText = (status: number): string => {
+		const map: Record<number, string> = { 0: '待处理', 1: '处理中', 2: '已解决', 3: '已关闭' }
+		return map[status] || '未知'
+	}
+
+	const getSeverityText = (severity: number): string => {
+		const map: Record<number, string> = { 1: '轻微', 2: '中等', 3: '严重', 4: '紧急' }
+		return map[severity] || '未知'
+	}
+
+	const getSeverityLabel = (severity: number): string => {
+		const option = severityOptions.find(o => o.value === severity)
+		return option ? option.label : '轻微'
+	}
+
+	const getMaintenanceTypeText = (type: number): string => {
+		const map: Record<number, string> = { 1: '常规保养', 2: '小修', 3: '中修', 4: '大修', 5: '年检' }
+		return map[type] || '未知'
+	}
+
+	const getMaintenanceTypeLabel = (type: number): string => {
+		const option = maintenanceTypeOptions.find(o => o.value === type)
+		return option ? option.label : '常规保养'
+	}
+
+	const getInsuranceStatusClass = (status: number): string => {
+		const map: Record<number, string> = { 0: 'inactive', 1: 'active', 2: 'expired', 3: 'claiming' }
+		return map[status] || 'inactive'
+	}
+
+	const getInsuranceStatusText = (status: number): string => {
+		const map: Record<number, string> = { 0: '未投保', 1: '有效', 2: '已过期', 3: '理赔中' }
+		return map[status] || '未知'
+	}
+
+	const getInsuranceTypeText = (type: number): string => {
+		const map: Record<number, string> = { 1: '交强险', 2: '商业险', 3: '第三者责任险', 4: '车辆损失险', 5: '盗抢险' }
+		return map[type] || '未知'
+	}
+
+	const getInsuranceTypeLabel = (type: number): string => {
+		const option = insuranceTypeOptions.find(o => o.value === type)
+		return option ? option.label : '交强险'
+	}
+
+	const fetchVehicles = async () => {
+		try {
+			const res = await request({ url: '/api/vehicle/page', method: 'GET', data: { page: 1, size: 100 } })
+			if (res.code === 200) {
+				vehicleOptions.value = (res.data || []).map((v: any) => ({ id: v.id, vehicleNo: v.vehicleNo }))
+			}
+		} catch (e) {
+			console.error('获取车辆列表失败', e)
+		}
+	}
+
+	const fetchFaultList = async () => {
+		try {
+			const res = await request({ url: '/api/vehicle/fault/list', method: 'GET' })
+			if (res.code === 200) {
+				faultList.value = res.data || []
+			}
+		} catch (e) {
+			console.error('获取故障列表失败', e)
+		}
+	}
+
+	const fetchMaintenanceList = async () => {
+		try {
+			const res = await request({ url: '/api/vehicle/maintenance/list', method: 'GET' })
+			if (res.code === 200) {
+				maintenanceList.value = res.data || []
+			}
+		} catch (e) {
+			console.error('获取保养列表失败', e)
+		}
+	}
+
+	const fetchInsuranceList = async () => {
+		try {
+			const res = await request({ url: '/api/vehicle/insurance/list', method: 'GET' })
+			if (res.code === 200) {
+				insuranceList.value = res.data || []
+			}
+		} catch (e) {
+			console.error('获取保险列表失败', e)
+		}
+	}
+
+	const onVehicleChange = (e: any) => {
+		faultForm.value.vehicleId = vehicleOptions.value[e.detail.value].id
+	}
+
+	const onSeverityChange = (e: any) => {
+		faultForm.value.severity = severityOptions[e.detail.value].value
+	}
+
+	const onMaintVehicleChange = (e: any) => {
+		maintenanceForm.value.vehicleId = vehicleOptions.value[e.detail.value].id
+	}
+
+	const onMaintTypeChange = (e: any) => {
+		maintenanceForm.value.maintenanceType = maintenanceTypeOptions[e.detail.value].value
+	}
+
+	const onMaintDateChange = (e: any) => {
+		maintenanceForm.value.maintenanceDate = e.detail.value
+	}
+
+	const onNextMaintDateChange = (e: any) => {
+		maintenanceForm.value.nextMaintenanceDate = e.detail.value
+	}
+
+	const onInsVehicleChange = (e: any) => {
+		insuranceForm.value.vehicleId = vehicleOptions.value[e.detail.value].id
+	}
+
+	const onInsTypeChange = (e: any) => {
+		insuranceForm.value.insuranceType = insuranceTypeOptions[e.detail.value].value
+	}
+
+	const onInsStartDateChange = (e: any) => {
+		insuranceForm.value.startDate = e.detail.value
+	}
+
+	const onInsExpiryDateChange = (e: any) => {
+		insuranceForm.value.expiryDate = e.detail.value
+	}
+
+	const submitFault = async () => {
+		if (!faultForm.value.vehicleId || !faultForm.value.faultType) {
+			uni.showToast({ title: '请填写必填项', icon: 'none' })
+			return
+		}
+		try {
+			const res = await request({
+				url: '/api/vehicle/fault',
+				method: 'POST',
+				data: faultForm.value
+			})
+			if (res.code === 200) {
+				uni.showToast({ title: '提交成功', icon: 'success' })
+				showFaultModal.value = false
+				fetchFaultList()
+			}
+		} catch (e) {
+			uni.showToast({ title: '提交失败', icon: 'none' })
+		}
+	}
+
+	const submitMaintenance = async () => {
+		if (!maintenanceForm.value.vehicleId) {
+			uni.showToast({ title: '请选择车辆', icon: 'none' })
+			return
+		}
+		try {
+			const res = await request({
+				url: '/api/vehicle/maintenance',
+				method: 'POST',
+				data: maintenanceForm.value
+			})
+			if (res.code === 200) {
+				uni.showToast({ title: '提交成功', icon: 'success' })
+				showMaintenanceModal.value = false
+				fetchMaintenanceList()
+			}
+		} catch (e) {
+			uni.showToast({ title: '提交失败', icon: 'none' })
+		}
+	}
+
+	const submitInsurance = async () => {
+		if (!insuranceForm.value.vehicleId || !insuranceForm.value.insuranceCompany || !insuranceForm.value.insuranceNumber) {
+			uni.showToast({ title: '请填写必填项', icon: 'none' })
+			return
+		}
+		try {
+			const res = await request({
+				url: '/api/vehicle/insurance',
+				method: 'POST',
+				data: insuranceForm.value
+			})
+			if (res.code === 200) {
+				uni.showToast({ title: '提交成功', icon: 'success' })
+				showInsuranceModal.value = false
+				fetchInsuranceList()
+			}
+		} catch (e) {
+			uni.showToast({ title: '提交失败', icon: 'none' })
+		}
+	}
+
+	const handleFault = (fault: FaultRecord) => {
+		currentFault.value = fault
+		handleForm.value = { repairContent: '', repairCost: 0 }
+		showHandleModal.value = true
+	}
+
+	const submitHandle = async () => {
+		if (!currentFault.value) return
+		try {
+			const res = await request({
+				url: `/api/vehicle/fault/${currentFault.value.id}/handle`,
+				method: 'PUT',
+				data: handleForm.value
+			})
+			if (res.code === 200) {
+				uni.showToast({ title: '处理成功', icon: 'success' })
+				showHandleModal.value = false
+				fetchFaultList()
+			}
+		} catch (e) {
+			uni.showToast({ title: '处理失败', icon: 'none' })
+		}
+	}
+
+	onMounted(() => {
+		fetchVehicles()
+		fetchFaultList()
+		fetchMaintenanceList()
+		fetchInsuranceList()
+	})
+</script>
+
+<style lang="scss">
+	.page-header {
+		padding: 30rpx;
+		
+		.page-title {
+			font-size: 36rpx;
+			font-weight: bold;
+			color: #fff;
+		}
+	}
+	
+	.tab-section {
+		padding: 0 30rpx;
+		margin-bottom: 30rpx;
+		
+		.tab-buttons {
+			display: flex;
+			flex-direction: row;
+			background-color: #2a3347;
+			border-radius: 16rpx;
+			padding: 8rpx;
+			
+			.tab-btn {
+				flex: 1;
+				padding: 20rpx;
+				text-align: center;
+				border-radius: 12rpx;
+				
+				&.active {
+					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+				}
+				
+				.tab-text {
+					font-size: 26rpx;
+					color: #fff;
+				}
+			}
+		}
+	}
+	
+	.content-section {
+		padding: 0 30rpx;
+		
+		.action-bar {
+			margin-bottom: 30rpx;
+			
+			.primary-btn {
+				padding: 20rpx 40rpx;
+				background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+				color: #fff;
+				font-size: 26rpx;
+				border-radius: 12rpx;
+			}
+		}
+	}
+	
+	.card-list {
+		.card-item {
+			background-color: #2a3347;
+			border-radius: 16rpx;
+			padding: 30rpx;
+			margin-bottom: 20rpx;
+			
+			.card-header {
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 20rpx;
+				
+				.card-title {
+					font-size: 30rpx;
+					font-weight: bold;
+					color: #fff;
+				}
+				
+				.status-badge {
+					padding: 8rpx 20rpx;
+					border-radius: 20rpx;
+					
+					&.pending { background-color: rgba(255, 149, 0, 0.2); }
+					&.processing { background-color: rgba(0, 122, 255, 0.2); }
+					&.resolved { background-color: rgba(52, 199, 89, 0.2); }
+					&.closed { background-color: rgba(142, 142, 147, 0.2); }
+					&.active { background-color: rgba(52, 199, 89, 0.2); }
+					&.expired { background-color: rgba(255, 59, 48, 0.2); }
+					&.inactive { background-color: rgba(142, 142, 147, 0.2); }
+					&.claiming { background-color: rgba(255, 149, 0, 0.2); }
+					
+					.status-text {
+						font-size: 22rpx;
+						color: #fff;
+					}
+				}
+				
+				.type-badge {
+					padding: 8rpx 20rpx;
+					background-color: rgba(0, 122, 255, 0.2);
+					border-radius: 20rpx;
+					
+					.type-text {
+						font-size: 22rpx;
+						color: #007AFF;
+					}
+				}
+			}
+			
+			.card-body {
+				.info-row {
+					display: block;
+					font-size: 24rpx;
+					color: rgba(255, 255, 255, 0.7);
+					margin-bottom: 10rpx;
+				}
+			}
+			
+			.card-footer {
+				margin-top: 20rpx;
+				padding-top: 20rpx;
+				border-top: 1rpx solid rgba(255, 255, 255, 0.1);
+				
+				.action-btn {
+					padding: 15rpx 40rpx;
+					background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+					color: #fff;
+					font-size: 24rpx;
+					border-radius: 10rpx;
+				}
+			}
+		}
+		
+		.empty-state {
+			padding: 80rpx;
+			text-align: center;
+			
+			.empty-text {
+				color: rgba(255, 255, 255, 0.5);
+				font-size: 28rpx;
+			}
+		}
+	}
+	
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.7);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+		
+		.modal-content {
+			width: 85%;
+			max-height: 80%;
+			background-color: #1e2536;
+			border-radius: 20rpx;
+			overflow: hidden;
+			
+			.modal-header {
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				align-items: center;
+				padding: 30rpx;
+				border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+				
+				.modal-title {
+					font-size: 32rpx;
+					font-weight: bold;
+					color: #fff;
+				}
+				
+				.modal-close {
+					font-size: 40rpx;
+					color: rgba(255, 255, 255, 0.6);
+				}
+			}
+			
+			.modal-body {
+				padding: 30rpx;
+				max-height: 600rpx;
+				overflow-y: auto;
+				
+				.form-item {
+					margin-bottom: 25rpx;
+					
+					.form-label {
+						display: block;
+						font-size: 26rpx;
+						color: rgba(255, 255, 255, 0.8);
+						margin-bottom: 15rpx;
+					}
+					
+					.form-input {
+						width: 100%;
+						padding: 20rpx;
+						background-color: #2a3347;
+						border-radius: 10rpx;
+						color: #fff;
+						font-size: 26rpx;
+					}
+					
+					.form-textarea {
+						width: 100%;
+						height: 150rpx;
+						padding: 20rpx;
+						background-color: #2a3347;
+						border-radius: 10rpx;
+						color: #fff;
+						font-size: 26rpx;
+					}
+					
+					.picker-input {
+						display: flex;
+						flex-direction: row;
+						justify-content: space-between;
+						align-items: center;
+						padding: 20rpx;
+						background-color: #2a3347;
+						border-radius: 10rpx;
+						
+						.picker-text {
+							font-size: 26rpx;
+							color: #fff;
+						}
+						
+						.picker-arrow {
+							font-size: 20rpx;
+							color: rgba(255, 255, 255, 0.5);
+						}
+					}
+				}
+			}
+			
+			.modal-footer {
+				display: flex;
+				flex-direction: row;
+				gap: 20rpx;
+				padding: 30rpx;
+				border-top: 1rpx solid rgba(255, 255, 255, 0.1);
+				
+				.cancel-btn, .confirm-btn {
+					flex: 1;
+					padding: 20rpx;
+					border-radius: 10rpx;
+					font-size: 28rpx;
+				}
+				
+				.cancel-btn {
+					background-color: #2a3347;
+					color: rgba(255, 255, 255, 0.8);
+				}
+				
+				.confirm-btn {
+					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+					color: #fff;
+				}
+			}
+		}
+	}
+</style>

@@ -5,6 +5,7 @@ import com.klzw.common.database.domain.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.math.BigDecimal;
 
@@ -17,17 +18,21 @@ public class VehicleMaintenance extends BaseEntity {
     
     private Integer maintenanceType;
     
-    private LocalDate maintenanceDate;
+    private LocalDateTime maintenanceDate;
     
-    private String maintenanceContent;
+    private String maintenanceShop;
     
     private BigDecimal maintenanceCost;
     
-    private Long repairmanId;
+    private String maintenanceContent;
+    
+    private String maintenanceResult;
+    
+    private Integer mileage;
     
     private LocalDate nextMaintenanceDate;
     
-    private BigDecimal mileage;
+    private Integer nextMaintenanceMileage;
     
     private String remark;
     

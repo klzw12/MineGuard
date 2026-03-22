@@ -1,0 +1,667 @@
+<template>
+	<AdminLayout>
+		<view class="page-header">
+			<text class="page-title">行程管理</text>
+			<view class="header-actions">
+				<button class="primary-btn" @click="showAddModal = true">创建行程</button>
+			</view>
+		</view>
+		
+		<view class="filter-section">
+			<view class="filter-buttons">
+				<button class="filter-btn" :class="{'active': currentStatus === null}" @click="filterByStatus(null)">全部</button>
+				<button class="filter-btn" :class="{'active': currentStatus === 0}" @click="filterByStatus(0)">待开始</button>
+				<button class="filter-btn" :class="{'active': currentStatus === 1}" @click="filterByStatus(1)">已接单</button>
+				<button class="filter-btn" :class="{'active': currentStatus === 2}" @click="filterByStatus(2)">进行中</button>
+				<button class="filter-btn" :class="{'active': currentStatus === 3}" @click="filterByStatus(3)">已完成</button>
+			</view>
+		</view>
+		
+		<view class="trip-card">
+			<view class="trip-list">
+				<view class="trip-item" v-for="(trip, index) in tripList" :key="trip.id">
+					<view class="trip-left">
+						<view class="trip-header">
+							<text class="trip-no">📋 {{ trip.tripNo }}</text>
+							<view class="trip-status" :class="getStatusClass(trip.status)">
+								<text class="status-dot"></text>
+								<text class="status-text">{{ getStatusText(trip.status) }}</text>
+							</view>
+						</view>
+						<view class="trip-route">
+							<text class="route-text">📍 {{ trip.startLocation }}</text>
+							<text class="route-arrow">→</text>
+							<text class="route-text">📍 {{ trip.endLocation }}</text>
+						</view>
+						<view class="trip-info">
+							<text class="info-item">🚚 车辆：{{ trip.vehicleNo || trip.vehicleId }}</text>
+							<text class="info-item">👤 司机：{{ trip.driverName || trip.driverId }}</text>
+						</view>
+						<view class="trip-time">
+							<text class="time-item">预计：{{ trip.estimatedStartTime }} ~ {{ trip.estimatedEndTime }}</text>
+							<text class="time-item" v-if="trip.actualStartTime">实际：{{ trip.actualStartTime }}</text>
+						</view>
+					</view>
+					<view class="trip-right">
+						<view class="action-buttons">
+							<button class="action-btn" @click="viewDetail(trip)">详情</button>
+							<button class="action-btn success" v-if="trip.status === 0" @click="acceptTrip(trip)">接单</button>
+							<button class="action-btn warning" v-if="trip.status === 1" @click="startTrip(trip)">开始</button>
+							<button class="action-btn danger" v-if="trip.status === 2" @click="endTrip(trip)">结束</button>
+						</view>
+					</view>
+				</view>
+				
+				<view class="empty-state" v-if="tripList.length === 0">
+					<text class="empty-text">暂无行程数据</text>
+				</view>
+			</view>
+		</view>
+		
+		<view class="pagination" v-if="total > pageSize">
+			<button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">上一页</button>
+			<text class="page-info">{{ currentPage }} / {{ totalPages }}</text>
+			<button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">下一页</button>
+		</view>
+		
+		<view class="modal-overlay" v-if="showAddModal" @click="showAddModal = false">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">创建行程</text>
+					<text class="modal-close" @click="showAddModal = false">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="form-label">选择车辆 *</text>
+						<picker mode="selector" :range="vehicleOptions" range-key="vehicleNo" @change="onVehicleChange">
+							<view class="picker-input">
+								<text class="picker-text">{{ formData.vehicleId ? getVehicleNo(formData.vehicleId) : '请选择车辆' }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">选择司机 *</text>
+						<picker mode="selector" :range="driverOptions" range-key="name" @change="onDriverChange">
+							<view class="picker-input">
+								<text class="picker-text">{{ formData.driverId ? getDriverName(formData.driverId) : '请选择司机' }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">选择路线</text>
+						<picker mode="selector" :range="routeOptions" range-key="routeName" @change="onRouteChange">
+							<view class="picker-input">
+								<text class="picker-text">{{ formData.routeId ? getRouteName(formData.routeId) : '请选择路线' }}</text>
+								<text class="picker-arrow">▼</text>
+							</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">起始位置</text>
+						<input type="text" v-model="formData.startLocation" class="form-input" placeholder="请输入起始位置" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">结束位置</text>
+						<input type="text" v-model="formData.endLocation" class="form-input" placeholder="请输入结束位置" />
+					</view>
+					<view class="form-row">
+						<view class="form-item half">
+							<text class="form-label">预计开始时间</text>
+							<picker mode="date" @change="onStartDateChange">
+								<view class="picker-input">
+									<text class="picker-text">{{ formData.estimatedStartTime || '请选择日期' }}</text>
+								</view>
+							</picker>
+						</view>
+						<view class="form-item half">
+							<text class="form-label">预计结束时间</text>
+							<picker mode="date" @change="onEndDateChange">
+								<view class="picker-input">
+									<text class="picker-text">{{ formData.estimatedEndTime || '请选择日期' }}</text>
+								</view>
+							</picker>
+						</view>
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="showAddModal = false">取消</button>
+					<button class="confirm-btn" @click="submitForm">创建</button>
+				</view>
+			</view>
+		</view>
+	</AdminLayout>
+</template>
+
+<script setup lang="uts">
+	import AdminLayout from '../../../components/AdminLayout.uvue'
+	import { ref, computed, onMounted } from 'vue'
+	import { request } from '../../../utils/request'
+
+	type TripVO = {
+		id: string,
+		tripNo: string,
+		vehicleId: string,
+		vehicleNo: string | null,
+		driverId: string,
+		driverName: string | null,
+		routeId: string | null,
+		startLocation: string,
+		endLocation: string,
+		estimatedStartTime: string,
+		estimatedEndTime: string,
+		actualStartTime: string | null,
+		actualEndTime: string | null,
+		status: number,
+		estimatedMileage: number | null,
+		actualMileage: number | null
+	}
+
+	type VehicleOption = { id: string, vehicleNo: string }
+	type DriverOption = { id: string, name: string }
+	type RouteOption = { id: string, routeName: string }
+
+	const tripList = ref<TripVO[]>([])
+	const currentPage = ref(1)
+	const pageSize = ref(10)
+	const total = ref(0)
+	const currentStatus = ref<number | null>(null)
+	const showAddModal = ref(false)
+
+	const vehicleOptions = ref<VehicleOption[]>([])
+	const driverOptions = ref<DriverOption[]>([])
+	const routeOptions = ref<RouteOption[]>([])
+
+	const formData = ref({
+		vehicleId: '',
+		driverId: '',
+		routeId: '',
+		startLocation: '',
+		endLocation: '',
+		estimatedStartTime: '',
+		estimatedEndTime: ''
+	})
+
+	const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+
+	const getStatusClass = (status: number): string => {
+		const map: Record<number, string> = {
+			0: 'pending', 1: 'accepted', 2: 'in-progress', 3: 'completed', 4: 'cancelled'
+		}
+		return map[status] || 'pending'
+	}
+
+	const getStatusText = (status: number): string => {
+		const map: Record<number, string> = {
+			0: '待开始', 1: '已接单', 2: '进行中', 3: '已完成', 4: '已取消'
+		}
+		return map[status] || '未知'
+	}
+
+	const getVehicleNo = (id: string): string => {
+		const v = vehicleOptions.value.find(item => item.id === id)
+		return v ? v.vehicleNo : ''
+	}
+
+	const getDriverName = (id: string): string => {
+		const d = driverOptions.value.find(item => item.id === id)
+		return d ? d.name : ''
+	}
+
+	const getRouteName = (id: string): string => {
+		const r = routeOptions.value.find(item => item.id === id)
+		return r ? r.routeName : ''
+	}
+
+	const fetchTripList = async () => {
+		try {
+			const res = await request({
+				url: '/api/trip/page',
+				method: 'GET',
+				data: { page: currentPage.value, size: pageSize.value, status: currentStatus.value }
+			})
+			if (res.code === 200) {
+				tripList.value = res.data?.records || []
+				total.value = res.data?.total || 0
+			}
+		} catch (e) {
+			console.error('获取行程列表失败', e)
+		}
+	}
+
+	const fetchOptions = async () => {
+		try {
+			const [vehicleRes, driverRes, routeRes] = await Promise.all([
+				request({ url: '/api/vehicle/page', method: 'GET', data: { page: 1, size: 100 } }),
+				request({ url: '/api/user/driver/list', method: 'GET' }),
+				request({ url: '/api/route/list', method: 'GET' })
+			])
+			if (vehicleRes.code === 200) {
+				vehicleOptions.value = (vehicleRes.data?.records || []).map((v: any) => ({ id: v.id, vehicleNo: v.vehicleNo }))
+			}
+			if (driverRes.code === 200) {
+				driverOptions.value = (driverRes.data || []).map((d: any) => ({ id: d.id, name: d.realName || d.username }))
+			}
+			if (routeRes.code === 200) {
+				routeOptions.value = (routeRes.data || []).map((r: any) => ({ id: r.id, routeName: r.routeName }))
+			}
+		} catch (e) {
+			console.error('获取选项失败', e)
+		}
+	}
+
+	const filterByStatus = (status: number | null) => {
+		currentStatus.value = status
+		currentPage.value = 1
+		fetchTripList()
+	}
+
+	const changePage = (page: number) => {
+		currentPage.value = page
+		fetchTripList()
+	}
+
+	const viewDetail = (trip: TripVO) => {
+		uni.navigateTo({ url: `/pages/admin/trip/detail?id=${trip.id}` })
+	}
+
+	const acceptTrip = async (trip: TripVO) => {
+		try {
+			const res = await request({ url: `/api/trip/${trip.id}/accept`, method: 'POST' })
+			if (res.code === 200) {
+				uni.showToast({ title: '接单成功', icon: 'success' })
+				fetchTripList()
+			}
+		} catch (e) {
+			uni.showToast({ title: '接单失败', icon: 'none' })
+		}
+	}
+
+	const startTrip = async (trip: TripVO) => {
+		try {
+			const res = await request({ url: `/api/trip/${trip.id}/start`, method: 'POST' })
+			if (res.code === 200) {
+				uni.showToast({ title: '行程开始', icon: 'success' })
+				fetchTripList()
+			}
+		} catch (e) {
+			uni.showToast({ title: '操作失败', icon: 'none' })
+		}
+	}
+
+	const endTrip = async (trip: TripVO) => {
+		uni.showModal({
+			title: '确认结束',
+			content: '确定要结束该行程吗？',
+			success: async (res) => {
+				if (res.confirm) {
+					try {
+						const result = await request({ url: `/api/trip/${trip.id}/end`, method: 'POST' })
+						if (result.code === 200) {
+							uni.showToast({ title: '行程已结束', icon: 'success' })
+							fetchTripList()
+						}
+					} catch (e) {
+						uni.showToast({ title: '操作失败', icon: 'none' })
+					}
+				}
+			}
+		})
+	}
+
+	const onVehicleChange = (e: any) => { formData.value.vehicleId = vehicleOptions.value[e.detail.value].id }
+	const onDriverChange = (e: any) => { formData.value.driverId = driverOptions.value[e.detail.value].id }
+	const onRouteChange = (e: any) => { formData.value.routeId = routeOptions.value[e.detail.value].id }
+	const onStartDateChange = (e: any) => { formData.value.estimatedStartTime = e.detail.value }
+	const onEndDateChange = (e: any) => { formData.value.estimatedEndTime = e.detail.value }
+
+	const submitForm = async () => {
+		if (!formData.value.vehicleId || !formData.value.driverId) {
+			uni.showToast({ title: '请选择车辆和司机', icon: 'none' })
+			return
+		}
+		try {
+			const res = await request({ url: '/api/trip', method: 'POST', data: formData.value })
+			if (res.code === 200) {
+				uni.showToast({ title: '创建成功', icon: 'success' })
+				showAddModal.value = false
+				fetchTripList()
+			}
+		} catch (e) {
+			uni.showToast({ title: '创建失败', icon: 'none' })
+		}
+	}
+
+	onMounted(() => {
+		fetchTripList()
+		fetchOptions()
+	})
+</script>
+
+<style lang="scss">
+	.page-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 30rpx;
+		
+		.page-title {
+			font-size: 36rpx;
+			font-weight: bold;
+			color: #fff;
+		}
+		
+		.header-actions {
+			.primary-btn {
+				padding: 20rpx 40rpx;
+				background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+				color: #fff;
+				font-size: 24rpx;
+				font-weight: 500;
+				border-radius: 12rpx;
+			}
+		}
+	}
+	
+	.filter-section {
+		margin-bottom: 30rpx;
+		
+		.filter-buttons {
+			display: flex;
+			flex-direction: row;
+			gap: 15rpx;
+			
+			.filter-btn {
+				padding: 15rpx 25rpx;
+				background-color: #2a3347;
+				color: rgba(255, 255, 255, 0.7);
+				font-size: 22rpx;
+				border-radius: 12rpx;
+				
+				&.active {
+					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+					color: #fff;
+				}
+			}
+		}
+	}
+	
+	.trip-card {
+		background-color: #2a3347;
+		border-radius: 24rpx;
+		overflow: hidden;
+		
+		.trip-list {
+			.trip-item {
+				padding: 35rpx;
+				border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				
+				&:last-child { border-bottom: none; }
+				
+				.trip-left {
+					flex: 1;
+					
+					.trip-header {
+						display: flex;
+						flex-direction: row;
+						align-items: center;
+						justify-content: space-between;
+						margin-bottom: 15rpx;
+						
+						.trip-no {
+							font-size: 28rpx;
+							font-weight: bold;
+							color: #fff;
+						}
+						
+						.trip-status {
+							display: flex;
+							flex-direction: row;
+							align-items: center;
+							padding: 8rpx 20rpx;
+							border-radius: 20rpx;
+							
+							&.pending { background-color: rgba(255, 149, 0, 0.2); color: #FF9500; }
+							&.accepted { background-color: rgba(0, 122, 255, 0.2); color: #007AFF; }
+							&.in-progress { background-color: rgba(52, 199, 89, 0.2); color: #34C759; }
+							&.completed { background-color: rgba(142, 142, 147, 0.2); color: #8E8E93; }
+							&.cancelled { background-color: rgba(255, 59, 48, 0.2); color: #FF3B30; }
+							
+							.status-dot {
+								width: 12rpx;
+								height: 12rpx;
+								border-radius: 50%;
+								background-color: currentColor;
+								margin-right: 10rpx;
+							}
+							
+							.status-text { font-size: 22rpx; }
+						}
+					}
+					
+					.trip-route {
+						display: flex;
+						flex-direction: row;
+						align-items: center;
+						margin-bottom: 15rpx;
+						
+						.route-text {
+							font-size: 26rpx;
+							color: rgba(255, 255, 255, 0.8);
+						}
+						
+						.route-arrow {
+							margin: 0 15rpx;
+							color: #007AFF;
+							font-size: 24rpx;
+						}
+					}
+					
+					.trip-info {
+						display: flex;
+						flex-direction: row;
+						gap: 30rpx;
+						margin-bottom: 10rpx;
+						
+						.info-item {
+							font-size: 24rpx;
+							color: rgba(255, 255, 255, 0.6);
+						}
+					}
+					
+					.trip-time {
+						display: flex;
+						flex-direction: column;
+						gap: 6rpx;
+						
+						.time-item {
+							font-size: 22rpx;
+							color: rgba(255, 255, 255, 0.5);
+						}
+					}
+				}
+				
+				.trip-right {
+					.action-buttons {
+						display: flex;
+						flex-direction: column;
+						gap: 15rpx;
+						
+						.action-btn {
+							padding: 12rpx 30rpx;
+							background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+							color: #fff;
+							font-size: 22rpx;
+							border-radius: 10rpx;
+							
+							&.success { background: linear-gradient(135deg, #34C759 0%, #28a745 100%); }
+							&.warning { background: linear-gradient(135deg, #FF9500 0%, #FF6600 100%); }
+							&.danger { background: linear-gradient(135deg, #FF3B30 0%, #d32f2f 100%); }
+						}
+					}
+				}
+			}
+			
+			.empty-state {
+				padding: 80rpx;
+				text-align: center;
+				
+				.empty-text {
+					color: rgba(255, 255, 255, 0.5);
+					font-size: 28rpx;
+				}
+			}
+		}
+	}
+	
+	.pagination {
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		gap: 30rpx;
+		margin-top: 30rpx;
+		
+		.page-btn {
+			padding: 15rpx 30rpx;
+			background-color: #2a3347;
+			color: #fff;
+			font-size: 24rpx;
+			border-radius: 10rpx;
+			
+			&:disabled { opacity: 0.5; }
+		}
+		
+		.page-info {
+			color: rgba(255, 255, 255, 0.7);
+			font-size: 24rpx;
+		}
+	}
+	
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.7);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+		
+		.modal-content {
+			width: 85%;
+			max-height: 80%;
+			background-color: #1e2536;
+			border-radius: 20rpx;
+			overflow: hidden;
+			
+			.modal-header {
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				align-items: center;
+				padding: 30rpx;
+				border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+				
+				.modal-title {
+					font-size: 32rpx;
+					font-weight: bold;
+					color: #fff;
+				}
+				
+				.modal-close {
+					font-size: 40rpx;
+					color: rgba(255, 255, 255, 0.6);
+				}
+			}
+			
+			.modal-body {
+				padding: 30rpx;
+				max-height: 600rpx;
+				overflow-y: auto;
+				
+				.form-item {
+					margin-bottom: 25rpx;
+					
+					.form-label {
+						display: block;
+						font-size: 26rpx;
+						color: rgba(255, 255, 255, 0.8);
+						margin-bottom: 15rpx;
+					}
+					
+					.form-input {
+						width: 100%;
+						padding: 20rpx;
+						background-color: #2a3347;
+						border-radius: 10rpx;
+						color: #fff;
+						font-size: 26rpx;
+					}
+					
+					.picker-input {
+						display: flex;
+						flex-direction: row;
+						justify-content: space-between;
+						align-items: center;
+						padding: 20rpx;
+						background-color: #2a3347;
+						border-radius: 10rpx;
+						
+						.picker-text {
+							font-size: 26rpx;
+							color: #fff;
+						}
+						
+						.picker-arrow {
+							font-size: 20rpx;
+							color: rgba(255, 255, 255, 0.5);
+						}
+					}
+				}
+				
+				.form-row {
+					display: flex;
+					flex-direction: row;
+					gap: 20rpx;
+					
+					.form-item.half {
+						flex: 1;
+					}
+				}
+			}
+			
+			.modal-footer {
+				display: flex;
+				flex-direction: row;
+				gap: 20rpx;
+				padding: 30rpx;
+				border-top: 1rpx solid rgba(255, 255, 255, 0.1);
+				
+				.cancel-btn, .confirm-btn {
+					flex: 1;
+					padding: 20rpx;
+					border-radius: 10rpx;
+					font-size: 28rpx;
+				}
+				
+				.cancel-btn {
+					background-color: #2a3347;
+					color: rgba(255, 255, 255, 0.8);
+				}
+				
+				.confirm-btn {
+					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+					color: #fff;
+				}
+			}
+		}
+	}
+</style>

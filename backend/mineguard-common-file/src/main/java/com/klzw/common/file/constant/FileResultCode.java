@@ -25,6 +25,7 @@ public enum FileResultCode {
     STORAGE_CONNECTION_FAILED(1200, "存储连接失败"),
     STORAGE_TIMEOUT(1201, "存储操作超时"),
     STORAGE_DATA_ERROR(1202, "存储数据错误"),
+    PARAM_ERROR(1299, "参数错误"),
 
     /**
      * 存储桶相关错误

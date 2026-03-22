@@ -14,12 +14,13 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
  * 考勤管理控制器
  */
-@Tag(name = "考勤管理", description = "司机考勤打卡、查询、统计")
+@Tag(name = "考勤管理", description = "用户考勤打卡、查询、统计")
 @RestController
 @RequestMapping("/attendance")
 @RequiredArgsConstructor
@@ -42,29 +43,29 @@ public class AttendanceController {
     }
 
     @Operation(summary = "获取某日考勤记录")
-    @GetMapping("/{driverId}")
+    @GetMapping("/{userId}")
     public Result<AttendanceVO> getAttendanceByDate(
-            @Parameter(description = "司机ID") @PathVariable Long driverId,
+            @Parameter(description = "用户ID") @PathVariable Long userId,
             @Parameter(description = "日期") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        AttendanceVO vo = attendanceService.getAttendanceByDate(driverId, date);
+        AttendanceVO vo = attendanceService.getAttendanceByDate(userId, date);
         return Result.success(vo);
     }
 
     @Operation(summary = "获取某月考勤记录列表")
-    @GetMapping("/{driverId}/list")
+    @GetMapping("/{userId}/list")
     public Result<List<AttendanceVO>> getAttendanceListByMonth(
-            @Parameter(description = "司机ID") @PathVariable Long driverId,
+            @Parameter(description = "用户ID") @PathVariable Long userId,
             @Parameter(description = "年月(yyyy-MM)") @RequestParam String yearMonth) {
-        List<AttendanceVO> list = attendanceService.getAttendanceListByMonth(driverId, yearMonth);
+        List<AttendanceVO> list = attendanceService.getAttendanceListByMonth(userId, yearMonth);
         return Result.success(list);
     }
 
     @Operation(summary = "获取某月考勤统计")
-    @GetMapping("/{driverId}/statistics")
+    @GetMapping("/{userId}/statistics")
     public Result<AttendanceStatisticsVO> getAttendanceStatistics(
-            @Parameter(description = "司机ID") @PathVariable Long driverId,
+            @Parameter(description = "用户ID") @PathVariable Long userId,
             @Parameter(description = "年月(yyyy-MM)") @RequestParam String yearMonth) {
-        AttendanceStatisticsVO statistics = attendanceService.getAttendanceStatistics(driverId, yearMonth);
+        AttendanceStatisticsVO statistics = attendanceService.getAttendanceStatistics(userId, yearMonth);
         return Result.success(statistics);
     }
 
@@ -72,11 +73,43 @@ public class AttendanceController {
     @PutMapping("/{attendanceId}/supplement")
     public Result<AttendanceVO> supplementAttendance(
             @Parameter(description = "出勤记录ID") @PathVariable Long attendanceId,
-            @Parameter(description = "上班时间") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkInTime,
-            @Parameter(description = "下班时间") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOutTime,
+            @Parameter(description = "上班时间") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime checkInTime,
+            @Parameter(description = "下班时间") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime checkOutTime,
             @Parameter(description = "状态(1-正常,2-迟到,3-早退,4-缺勤)") @RequestParam(required = false) Integer status,
             @Parameter(description = "备注") @RequestParam(required = false) String remark) {
         AttendanceVO vo = attendanceService.supplementAttendance(attendanceId, checkInTime, checkOutTime, status, remark);
         return Result.success(vo);
+    }
+
+    @Operation(summary = "请假申请")
+    @PostMapping("/leave")
+    public Result<AttendanceVO> applyLeave(
+            @Parameter(description = "用户ID") @RequestParam Long userId,
+            @Parameter(description = "请假类型：1-事假 2-病假 3-年假 4-调休") @RequestParam Integer leaveType,
+            @Parameter(description = "开始时间") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+            @Parameter(description = "结束时间") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
+            @Parameter(description = "请假原因") @RequestParam(required = false) String reason) {
+        AttendanceVO vo = attendanceService.applyLeave(userId, leaveType, startTime, endTime, reason);
+        return Result.success(vo);
+    }
+
+    @Operation(summary = "取消请假")
+    @DeleteMapping("/leave/{attendanceId}")
+    public Result<Boolean> cancelLeave(@PathVariable Long attendanceId) {
+        return Result.success(attendanceService.cancelLeave(attendanceId));
+    }
+
+    @Operation(summary = "获取请假记录列表")
+    @GetMapping("/{userId}/leave-list")
+    public Result<List<AttendanceVO>> getLeaveList(
+            @Parameter(description = "用户ID") @PathVariable Long userId,
+            @Parameter(description = "年月(yyyy-MM)") @RequestParam String yearMonth) {
+        return Result.success(attendanceService.getLeaveList(userId, yearMonth));
+    }
+
+    @Operation(summary = "获取可用司机ID列表")
+    @GetMapping("/available-drivers")
+    public Result<List<Long>> getAvailableDriverIds() {
+        return Result.success(attendanceService.getAvailableDriverIds());
     }
 }

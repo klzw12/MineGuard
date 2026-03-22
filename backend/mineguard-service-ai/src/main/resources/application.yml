@@ -6,7 +6,7 @@ spring:
   cloud:
     nacos:
       discovery:
-        server-addr: 127.0.0.1:8848
+        server-addr: :8848
         service: ${spring.application.name}
       config:
         server-addr: 127.0.0.1:8848
@@ -17,19 +17,5 @@ spring:
 server:
   port: 8086
 
-# AI配置
-ai:
-  providers: # 支持的AI提供商列表
-    - deepseek
-    - minimax
-  default-provider: deepseek # 默认使用的AI提供商
-  deepseek:
-    api-key: ${DEEPSEEK_API_KEY}
-    model: deepseek-chat
-  minimax:
-    api-key: ${MINIMAX_API_KEY}
-    model: Minimax-5.5
 
-logging:
-  level:
-    com.klzw.service.ai: debug
+

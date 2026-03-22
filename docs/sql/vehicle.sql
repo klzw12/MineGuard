@@ -8,6 +8,7 @@
 
 -- =====================================================
 -- 1. 车辆表
+-- 说明：车辆属于矿山，通过调度动态分配给司机
 -- =====================================================
 CREATE TABLE IF NOT EXISTS `vehicle` (
     `id` BIGINT PRIMARY KEY COMMENT '主键ID',
@@ -15,8 +16,8 @@ CREATE TABLE IF NOT EXISTS `vehicle` (
     `vehicle_type` INTEGER COMMENT '车辆类型',
     `brand` VARCHAR(50) COMMENT '品牌',
     `model` VARCHAR(50) COMMENT '型号',
-    `user_id` BIGINT COMMENT '用户ID',
     `status` INTEGER DEFAULT 0 COMMENT '状态：0-空闲，1-运行中，2-维护中，3-故障，4-报废',
+    `fuel_level` INTEGER COMMENT '油量百分比(0-100)',
     `photo_url` VARCHAR(255) COMMENT '车辆照片URL',
     `license_front_url` VARCHAR(255) COMMENT '行驶证正面URL',
     `license_back_url` VARCHAR(255) COMMENT '行驶证背面URL',
@@ -42,7 +43,6 @@ CREATE TABLE IF NOT EXISTS `vehicle` (
     `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
     `remark` VARCHAR(500) COMMENT '备注',
     UNIQUE KEY `uk_vehicle_no` (`vehicle_no`),
-    INDEX `idx_user_id` (`user_id`),
     INDEX `idx_status` (`status`),
     INDEX `idx_deleted` (`deleted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='车辆表';
@@ -134,6 +134,7 @@ CREATE TABLE IF NOT EXISTS `vehicle_maintenance` (
 CREATE TABLE IF NOT EXISTS `vehicle_refueling` (
     `id` BIGINT PRIMARY KEY COMMENT '主键ID',
     `vehicle_id` BIGINT NOT NULL COMMENT '车辆ID',
+    `driver_id` BIGINT COMMENT '司机ID',
     `refueling_date` DATETIME COMMENT '加油日期',
     `refueling_station` VARCHAR(100) COMMENT '加油站',
     `fuel_type` VARCHAR(20) COMMENT '燃油类型',
@@ -148,6 +149,7 @@ CREATE TABLE IF NOT EXISTS `vehicle_refueling` (
     `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
     `remark` VARCHAR(500) COMMENT '备注',
     INDEX `idx_vehicle_id` (`vehicle_id`),
+    INDEX `idx_driver_id` (`driver_id`),
     INDEX `idx_refueling_date` (`refueling_date`),
     INDEX `idx_deleted` (`deleted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='车辆加油表';
@@ -158,13 +160,17 @@ CREATE TABLE IF NOT EXISTS `vehicle_refueling` (
 CREATE TABLE IF NOT EXISTS `vehicle_status` (
     `id` BIGINT PRIMARY KEY COMMENT '主键ID',
     `vehicle_id` BIGINT NOT NULL COMMENT '车辆ID',
+    `trip_id` BIGINT COMMENT '行程ID',
     `status` INTEGER COMMENT '状态：0-空闲，1-运行中，2-维护中，3-故障，4-报废',
     `status_time` DATETIME COMMENT '状态时间',
     `longitude` DOUBLE COMMENT '经度',
     `latitude` DOUBLE COMMENT '纬度',
-    `speed` DOUBLE COMMENT '速度',
-    `direction` DOUBLE COMMENT '方向',
+    `speed` DOUBLE COMMENT '速度(km/h)',
+    `direction` DOUBLE COMMENT '方向(度)',
     `altitude` DOUBLE COMMENT '海拔',
+    `mileage` DOUBLE COMMENT '里程(km)',
+    `fuel_level` INTEGER COMMENT '油量百分比(0-100)',
+    `report_time` DATETIME COMMENT '上报时间',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `create_by` BIGINT COMMENT '创建人ID',
@@ -172,20 +178,10 @@ CREATE TABLE IF NOT EXISTS `vehicle_status` (
     `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
     `remark` VARCHAR(500) COMMENT '备注',
     INDEX `idx_vehicle_id` (`vehicle_id`),
+    INDEX `idx_trip_id` (`trip_id`),
     INDEX `idx_status` (`status`),
     INDEX `idx_status_time` (`status_time`),
     INDEX `idx_deleted` (`deleted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='车辆状态表';
 
 -- =====================================================
--- 初始化数据
--- =====================================================
-
--- 初始化车辆状态数据
-INSERT INTO `vehicle` (`id`, `vehicle_no`, `vehicle_type`, `brand`, `model`, `status`) VALUES
-(1, '京A12345', 1, '奥迪', 'A6L', 0),
-(2, '京B67890', 2, '宝马', '5系', 0),
-(3, '京C24680', 3, '奔驰', 'E级', 0);
-
--- 注意：其他数据请通过系统的初始化脚本或管理界面创建
--- 避免在数据库文件中直接存储敏感信息

@@ -1,29 +1,13 @@
 package com.klzw.service.warning.enums;
 
-/**
- * 预警类型枚举
- */
 public enum WarningTypeEnum {
-    /**
-     * 路线偏离
-     */
-    ROUTE_DEVIATION(1, "路线偏离"),
-    /**
-     * 长时间停留
-     */
-    LONG_STAY(2, "长时间停留"),
-    /**
-     * 车辆故障
-     */
-    VEHICLE_FAULT(3, "车辆故障"),
-    /**
-     * 异常行为
-     */
-    ABNORMAL_BEHAVIOR(4, "异常行为"),
-    /**
-     * 危险区域
-     */
-    DANGER_ZONE(5, "危险区域");
+    VEHICLE_FAULT(1, "车辆故障"),
+    ROUTE_DEVIATION(2, "路线偏离"),
+    LONG_STAY(3, "长时间停留"),
+    DANGER_ZONE(4, "危险区域"),
+    SPEED_ABNORMAL(5, "速度异常"),
+    ABNORMAL_BEHAVIOR(6, "异常行为"),
+    FATIGUE_DRIVING(7, "疲劳驾驶");
 
     private final int code;
     private final String name;

@@ -175,6 +175,7 @@
 	import { verifyIdCard, uploadDriverCert, uploadSafetyOfficerCert, uploadRepairmanCert } from '@/api/qualification.uts'
 	import { getIdCardSignedUrls, getAllRoles, type IdCardVO } from '@/api/user.uts'
 	import { toast } from '@/utils/toast.uts'
+	import { imageToBase64 } from '@/utils/image.uts'
 	import type { RoleVO } from '@/types/user.uts'
 	
 	const userStore = useUserStore()
@@ -314,46 +315,7 @@
 		showCertTypePicker.value = false
 	}
 	
-	function fileToBase64(filePath: string): Promise<string> {
-		return new Promise((resolve, reject) => {
-			// #ifdef H5
-			const xhr = new XMLHttpRequest()
-			xhr.open('GET', filePath, true)
-			xhr.responseType = 'blob'
-			xhr.onload = function() {
-				if (xhr.status === 200) {
-					const reader = new FileReader()
-					reader.onloadend = function() {
-						resolve(reader.result as string)
-					}
-					reader.onerror = function(err) {
-						reject(err)
-					}
-					reader.readAsDataURL(xhr.response)
-				} else {
-					reject(new Error('文件加载失败'))
-				}
-			}
-			xhr.onerror = function(err) {
-				reject(err)
-			}
-			xhr.send()
-			// #endif
-			
-			// #ifndef H5
-			uni.getFileSystemManager().readFile({
-				filePath: filePath,
-				encoding: 'base64',
-				success: (res) => {
-					resolve('data:image/jpeg;base64,' + res.data as string)
-				},
-				fail: (err) => {
-					reject(err)
-				}
-			})
-			// #endif
-		})
-	}
+	
 	
 	async function submitAuth() {
 		if (!realName.value.trim()) {
@@ -386,10 +348,10 @@
 		toast.loading('提交中...')
 		
 		try {
-			const frontBase64 = await fileToBase64(frontFilePath.value)
+			const frontBase64 = await imageToBase64(frontFilePath.value)
 			let backBase64 = ''
 			if (backFilePath.value) {
-				backBase64 = await fileToBase64(backFilePath.value)
+				backBase64 = await imageToBase64(backFilePath.value)
 			}
 			
 			const result = await verifyIdCard({
@@ -441,11 +403,10 @@
 		toast.loading('提交中...')
 		
 		try {
-			const certBase64 = await fileToBase64(certFilePath.value)
+			const certBase64 = await imageToBase64(certFilePath.value)
 			
 			const certData = {
 				userId: uid,
-				personType: undefined as number | undefined,
 				certNumber: certNumber.value || undefined,
 				drivingLicenseBase64: undefined as string | undefined,
 				emergencyCertBase64: undefined as string | undefined,

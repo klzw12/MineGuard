@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.klzw.service.user.entity.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 /**
@@ -17,5 +18,8 @@ public interface UserMapper extends BaseMapper<User> {
 
     @Update("DELETE FROM user WHERE username = #{username}")
     int physicallyDeleteByUsername(@Param("username") String username);
+
+    @Select("SELECT r.role_code FROM user_role ur JOIN role r ON ur.role_id = r.id WHERE ur.user_id = #{userId} LIMIT 1")
+    String selectRoleCodeByUserId(@Param("userId") Long userId);
 
 }

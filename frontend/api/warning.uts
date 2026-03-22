@@ -1,0 +1,234 @@
+import { request } from '@/utils/request'
+
+export interface WarningRecord {
+  id: number
+  warningNo: string
+  ruleId: number
+  warningType: number
+  warningTypeName: string
+  warningLevel: number
+  warningLevelName: string
+  vehicleId: number
+  vehicleNo: string
+  driverId: number
+  driverName: string
+  tripId: number
+  longitude: number
+  latitude: number
+  speed: number
+  warningContent: string
+  warningTime: string
+  status: number
+  statusName: string
+  handleTime: string
+  handlerId: number
+  handlerName: string
+  handleResult: string
+  createTime: string
+}
+
+export interface WarningRule {
+  id: number
+  ruleName: string
+  ruleCode: string
+  warningType: number
+  warningTypeName: string
+  warningLevel: number
+  warningLevelName: string
+  thresholdValue: string
+  status: number
+  statusName: string
+  description: string
+  createTime: string
+  updateTime: string
+}
+
+export interface WarningHandleDTO {
+  handleResult: string
+  handlerId?: number
+}
+
+export interface WarningStatistics {
+  totalWarnings: number
+  pendingCount: number
+  processingCount: number
+  resolvedCount: number
+  ignoredCount: number
+  highLevelCount: number
+  mediumLevelCount: number
+  lowLevelCount: number
+  typeDistribution: TypeDistribution[]
+  levelDistribution: { [key: string]: number }
+  trendData: TrendItem[]
+}
+
+export interface TypeDistribution {
+  warningType: number
+  typeName: string
+  count: number
+  percentage: number
+}
+
+export interface TrendItem {
+  date: string
+  count: number
+}
+
+export function getWarningRecordPage(params: {
+  page?: number
+  size?: number
+  vehicleId?: number
+  driverId?: number
+  warningType?: number
+  warningLevel?: number
+  status?: number
+  startTime?: string
+  endTime?: string
+}): Promise<{ list: WarningRecord[], total: number } | null> {
+  return request({
+    url: '/api/warning/record/page',
+    method: 'GET',
+    params
+  })
+}
+
+export function getWarningRecordById(id: number): Promise<WarningRecord | null> {
+  return request({
+    url: `/api/warning/record/${id}`,
+    method: 'GET'
+  })
+}
+
+export function getWarningRecordsByTripId(tripId: number): Promise<WarningRecord[] | null> {
+  return request({
+    url: '/api/warning/record/trip',
+    method: 'GET',
+    params: { tripId }
+  })
+}
+
+export function handleWarningRecord(id: number, data: WarningHandleDTO): Promise<WarningRecord | null> {
+  return request({
+    url: `/api/warning/record/${id}/handle`,
+    method: 'PUT',
+    data
+  })
+}
+
+export function ignoreWarningRecord(id: number): Promise<WarningRecord | null> {
+  return request({
+    url: `/api/warning/record/${id}/ignore`,
+    method: 'PUT'
+  })
+}
+
+export function getWarningStatistics(startTime: string, endTime: string): Promise<WarningStatistics | null> {
+  return request({
+    url: '/api/warning/statistics',
+    method: 'GET',
+    params: { startTime, endTime }
+  })
+}
+
+export function getWarningTrend(startTime: string, endTime: string): Promise<TrendItem[] | null> {
+  return request({
+    url: '/api/warning/trend',
+    method: 'GET',
+    params: { startTime, endTime }
+  })
+}
+
+export function getWarningTypeStatistics(startTime: string, endTime: string): Promise<TypeDistribution[] | null> {
+  return request({
+    url: '/api/warning/statistics/type',
+    method: 'GET',
+    params: { startTime, endTime }
+  })
+}
+
+export function getWarningLevelStatistics(startTime: string, endTime: string): Promise<{ [key: string]: number } | null> {
+  return request({
+    url: '/api/warning/statistics/level',
+    method: 'GET',
+    params: { startTime, endTime }
+  })
+}
+
+export function getWarningRuleList(params: {
+  warningType?: number
+  status?: number
+}): Promise<WarningRule[] | null> {
+  return request({
+    url: '/api/warning/rule/list',
+    method: 'GET',
+    params
+  })
+}
+
+export function getWarningRuleById(id: number): Promise<WarningRule | null> {
+  return request({
+    url: `/api/warning/rule/${id}`,
+    method: 'GET'
+  })
+}
+
+export function createWarningRule(data: WarningRule): Promise<WarningRule | null> {
+  return request({
+    url: '/api/warning/rule',
+    method: 'POST',
+    data
+  })
+}
+
+export function updateWarningRule(data: WarningRule): Promise<WarningRule | null> {
+  return request({
+    url: '/api/warning/rule',
+    method: 'PUT',
+    data
+  })
+}
+
+export function deleteWarningRule(id: number): Promise<void> {
+  return request({
+    url: `/api/warning/rule/${id}`,
+    method: 'DELETE'
+  })
+}
+
+export function enableWarningRule(id: number): Promise<void> {
+  return request({
+    url: `/api/warning/rule/${id}/enable`,
+    method: 'PUT'
+  })
+}
+
+export function disableWarningRule(id: number): Promise<void> {
+  return request({
+    url: `/api/warning/rule/${id}/disable`,
+    method: 'PUT'
+  })
+}
+
+export function markPhoneUnanswered(vehicleId: number): Promise<void> {
+  return request({
+    url: '/api/warning/phone/unanswered',
+    method: 'POST',
+    params: { vehicleId }
+  })
+}
+
+export function clearPhoneUnanswered(vehicleId: number): Promise<void> {
+  return request({
+    url: '/api/warning/phone/unanswered/clear',
+    method: 'DELETE',
+    params: { vehicleId }
+  })
+}
+
+export function markVehicleInSafeZone(vehicleId: number, inSafeZone: boolean): Promise<void> {
+  return request({
+    url: '/api/warning/safe-zone/mark',
+    method: 'POST',
+    params: { vehicleId, inSafeZone }
+  })
+}

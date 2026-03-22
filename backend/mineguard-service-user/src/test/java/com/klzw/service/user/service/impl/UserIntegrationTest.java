@@ -60,8 +60,8 @@ class UserIntegrationTest extends AbstractIntegrationTest {
         UserRegisterDTO dto = new UserRegisterDTO();
         dto.setUsername("integration_test_user");
         dto.setPassword("Test123456");
-        dto.setRealName("测试用户");
         dto.setPhone(getUniquePhone());
+        dto.setSmsCode("1234");
 
         UserVO result = authService.register(dto);
 

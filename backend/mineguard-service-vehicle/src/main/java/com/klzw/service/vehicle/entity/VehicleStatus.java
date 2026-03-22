@@ -16,6 +16,10 @@ public class VehicleStatus extends BaseEntity {
     
     private Long tripId;
     
+    private Integer status;
+    
+    private LocalDateTime statusTime;
+    
     private Double longitude;
     
     private Double latitude;
@@ -24,11 +28,11 @@ public class VehicleStatus extends BaseEntity {
     
     private Double direction;
     
+    private Double altitude;
+    
     private Double mileage;
     
     private Integer fuelLevel;
-    
-    private Integer status;
     
     private LocalDateTime reportTime;
     

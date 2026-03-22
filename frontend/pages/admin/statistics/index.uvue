@@ -1,0 +1,1075 @@
+<template>
+	<AdminLayout>
+		<view class="page-header">
+			<text class="page-title">统计分析</text>
+			<view class="header-actions">
+				<button class="export-btn" @click="exportData">导出报表</button>
+				<button class="refresh-btn" @click="refreshData">刷新数据</button>
+			</view>
+		</view>
+		
+		<view class="date-filter">
+			<view class="date-picker">
+				<text class="date-label">日期范围：</text>
+				<picker mode="date" :value="startDate" @change="onStartDateChange">
+					<view class="date-value">{{ startDate }}</view>
+				</picker>
+				<text class="date-separator">至</text>
+				<picker mode="date" :value="endDate" @change="onEndDateChange">
+					<view class="date-value">{{ endDate }}</view>
+				</picker>
+			</view>
+		</view>
+		
+		<view class="overview-cards">
+			<view class="overview-item">
+				<view class="overview-icon trips">
+					<text class="icon-text">🚗</text>
+				</view>
+				<view class="overview-content">
+					<text class="overview-value">{{ overall.totalTripCount || 0 }}</text>
+					<text class="overview-label">总行程数</text>
+				</view>
+			</view>
+			<view class="overview-item">
+				<view class="overview-icon distance">
+					<text class="icon-text">📍</text>
+				</view>
+				<view class="overview-content">
+					<text class="overview-value">{{ (overall.totalDistance || 0).toFixed(1) }}</text>
+					<text class="overview-label">总里程(km)</text>
+				</view>
+			</view>
+			<view class="overview-item">
+				<view class="overview-icon cargo">
+					<text class="icon-text">📦</text>
+				</view>
+				<view class="overview-content">
+					<text class="overview-value">{{ (overall.totalCargoWeight || 0).toFixed(1) }}</text>
+					<text class="overview-label">货运量(吨)</text>
+				</view>
+			</view>
+			<view class="overview-item">
+				<view class="overview-icon cost">
+					<text class="icon-text">💰</text>
+				</view>
+				<view class="overview-content">
+					<text class="overview-value">¥{{ ((overall.totalCost || 0) / 10000).toFixed(2) }}万</text>
+					<text class="overview-label">总成本</text>
+				</view>
+			</view>
+		</view>
+		
+		<view class="charts-section">
+			<view class="chart-card">
+				<text class="chart-title">成本分布</text>
+				<ECharts :option="costPieOption" :height="400" :showLegend="true" />
+			</view>
+			
+			<view class="chart-card">
+				<text class="chart-title">行程趋势</text>
+				<ECharts :option="tripTrendOption" :height="400" :showLegend="true" />
+			</view>
+			
+			<view class="chart-card">
+				<text class="chart-title">成本趋势</text>
+				<ECharts :option="costTrendOption" :height="400" :showLegend="true" />
+			</view>
+		</view>
+		
+		<view class="tabs">
+			<view class="tab-item" :class="{'active': currentTab === 'trip'}" @click="switchTab('trip')">
+				<text class="tab-text">行程统计</text>
+			</view>
+			<view class="tab-item" :class="{'active': currentTab === 'cost'}" @click="switchTab('cost')">
+				<text class="tab-text">成本统计</text>
+			</view>
+			<view class="tab-item" :class="{'active': currentTab === 'vehicle'}" @click="switchTab('vehicle')">
+				<text class="tab-text">车辆统计</text>
+			</view>
+			<view class="tab-item" :class="{'active': currentTab === 'driver'}" @click="switchTab('driver')">
+				<text class="tab-text">司机统计</text>
+			</view>
+			<view class="tab-item" :class="{'active': currentTab === 'fault'}" @click="switchTab('fault')">
+				<text class="tab-text">故障统计</text>
+			</view>
+		</view>
+		
+		<view v-if="currentTab === 'trip'" class="statistics-card">
+			<view class="card-header">
+				<text class="card-title">行程统计明细</text>
+			</view>
+			<view class="trip-list">
+				<view class="trip-item" v-for="(item, index) in tripStatistics" :key="item.id">
+					<view class="trip-date">{{ item.statisticsDate }}</view>
+					<view class="trip-data">
+						<view class="data-item">
+							<text class="data-value">{{ item.tripCount }}</text>
+							<text class="data-label">行程数</text>
+						</view>
+						<view class="data-item">
+							<text class="data-value">{{ item.totalDistance.toFixed(1) }}</text>
+							<text class="data-label">里程(km)</text>
+						</view>
+						<view class="data-item">
+							<text class="data-value">{{ item.totalDuration.toFixed(1) }}</text>
+							<text class="data-label">时长(h)</text>
+						</view>
+						<view class="data-item">
+							<text class="data-value">{{ item.cargoWeight.toFixed(1) }}</text>
+							<text class="data-label">货运(吨)</text>
+						</view>
+					</view>
+					<view class="trip-status">
+						<text class="completed">完成 {{ item.completedTripCount }}</text>
+						<text class="cancelled">取消 {{ item.cancelledTripCount }}</text>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<view v-if="currentTab === 'cost'" class="statistics-card">
+			<view class="card-header">
+				<text class="card-title">成本统计明细</text>
+			</view>
+			<view class="cost-list">
+				<view class="cost-item" v-for="(item, index) in costStatistics" :key="item.id">
+					<view class="cost-date">{{ item.statisticsDate }}</view>
+					<view class="cost-data">
+						<view class="data-row">
+							<text class="data-label">燃油成本</text>
+							<text class="data-value">¥{{ item.fuelCost.toFixed(2) }}</text>
+						</view>
+						<view class="data-row">
+							<text class="data-label">维修成本</text>
+							<text class="data-value">¥{{ item.maintenanceCost.toFixed(2) }}</text>
+						</view>
+						<view class="data-row">
+							<text class="data-label">人工成本</text>
+							<text class="data-value">¥{{ item.laborCost.toFixed(2) }}</text>
+						</view>
+						<view class="data-row total">
+							<text class="data-label">总成本</text>
+							<text class="data-value">¥{{ item.totalCost.toFixed(2) }}</text>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<view v-if="currentTab === 'vehicle'" class="statistics-card">
+			<view class="card-header">
+				<text class="card-title">车辆运营统计</text>
+			</view>
+			<view class="vehicle-list">
+				<view class="vehicle-item" v-for="(item, index) in vehicleStatistics" :key="item.id">
+					<view class="vehicle-header">
+						<text class="vehicle-no">🚚 {{ item.vehicleNo }}</text>
+						<text class="vehicle-date">{{ item.statisticsDate }}</text>
+					</view>
+					<view class="vehicle-stats">
+						<view class="stat-item">
+							<text class="stat-value">{{ item.tripCount }}</text>
+							<text class="stat-label">行程数</text>
+						</view>
+						<view class="stat-item">
+							<text class="stat-value">{{ item.totalDistance.toFixed(1) }}</text>
+							<text class="stat-label">里程(km)</text>
+						</view>
+						<view class="stat-item">
+							<text class="stat-value">{{ item.cargoWeight.toFixed(1) }}</text>
+							<text class="stat-label">货运(吨)</text>
+						</view>
+						<view class="stat-item">
+							<text class="stat-value">{{ item.utilizationRate.toFixed(1) }}%</text>
+							<text class="stat-label">利用率</text>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<view v-if="currentTab === 'driver'" class="statistics-card">
+			<view class="card-header">
+				<text class="card-title">司机绩效统计</text>
+			</view>
+			<view class="driver-list">
+				<view class="driver-item" v-for="(item, index) in driverStatistics" :key="item.id">
+					<view class="driver-header">
+						<text class="driver-name">👤 {{ item.userName }}</text>
+						<view class="performance-score" :class="getScoreClass(item.performanceScore)">
+							<text class="score-value">{{ item.performanceScore.toFixed(0) }}</text>
+							<text class="score-label">分</text>
+						</view>
+					</view>
+					<view class="driver-stats">
+						<view class="stat-row">
+							<text class="stat-label">出勤天数</text>
+							<text class="stat-value">{{ item.attendanceDays }}天</text>
+						</view>
+						<view class="stat-row">
+							<text class="stat-label">行程数量</text>
+							<text class="stat-value">{{ item.tripCount }}次</text>
+						</view>
+						<view class="stat-row">
+							<text class="stat-label">行驶里程</text>
+							<text class="stat-value">{{ item.totalDistance.toFixed(1) }}km</text>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<view v-if="currentTab === 'fault'" class="statistics-card">
+			<view class="card-header">
+				<text class="card-title">故障统计分析</text>
+			</view>
+			<view class="fault-summary">
+				<view class="summary-item">
+					<text class="summary-value">{{ faultOverall.totalFaultCount || 0 }}</text>
+					<text class="summary-label">故障总数</text>
+				</view>
+				<view class="summary-item">
+					<text class="summary-value warning">{{ faultOverall.minorFaultCount || 0 }}</text>
+					<text class="summary-label">轻微故障</text>
+				</view>
+				<view class="summary-item">
+					<text class="summary-value danger">{{ faultOverall.majorFaultCount || 0 }}</text>
+					<text class="summary-label">一般故障</text>
+				</view>
+				<view class="summary-item">
+					<text class="summary-value critical">{{ faultOverall.criticalFaultCount || 0 }}</text>
+					<text class="summary-label">严重故障</text>
+				</view>
+			</view>
+			<view class="fault-cost">
+				<text class="cost-label">总维修成本</text>
+				<text class="cost-value">¥{{ (faultOverall.totalCost || 0).toFixed(2) }}</text>
+			</view>
+			<view class="fault-list">
+				<view class="fault-item" v-for="(item, index) in faultStatistics" :key="item.id">
+					<view class="fault-header">
+						<text class="vehicle-no">🚚 {{ item.vehicleNo }}</text>
+						<text class="fault-date">{{ item.statisticsDate }}</text>
+					</view>
+					<view class="fault-stats">
+						<view class="stat-item">
+							<text class="stat-value">{{ item.faultCount }}</text>
+							<text class="stat-label">故障数</text>
+						</view>
+						<view class="stat-item">
+							<text class="stat-value">¥{{ item.totalRepairCost.toFixed(2) }}</text>
+							<text class="stat-label">维修成本</text>
+						</view>
+						<view class="stat-item">
+							<text class="stat-value">{{ item.avgRepairTime.toFixed(1) }}h</text>
+							<text class="stat-label">平均维修时间</text>
+						</view>
+						<view class="stat-item">
+							<text class="stat-value">{{ item.repairedCount }}/{{ item.pendingCount }}</text>
+							<text class="stat-label">已修/待修</text>
+						</view>
+					</view>
+					<view class="fault-type" v-if="item.topFaultType">
+						<text class="type-label">主要故障:</text>
+						<text class="type-value">{{ item.topFaultType }} ({{ item.topFaultCount }}次)</text>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<view class="empty-state" v-if="isEmpty">
+			<text class="empty-text">暂无统计数据</text>
+		</view>
+	</AdminLayout>
+</template>
+
+<script setup lang="uts">
+	import AdminLayout from '../../../components/AdminLayout.uvue'
+	import ECharts from '../../../components/ECharts.uvue'
+	import { ref, computed, onMounted } from 'vue'
+	import { request } from '../../../utils/request'
+
+	type TripStatisticsVO = {
+		id: number,
+		statisticsDate: string,
+		tripCount: number,
+		totalDistance: number,
+		totalDuration: number,
+		completedTripCount: number,
+		cancelledTripCount: number,
+		averageSpeed: number,
+		fuelConsumption: number,
+		cargoWeight: number
+	}
+
+	type CostStatisticsVO = {
+		id: number,
+		statisticsDate: string,
+		fuelCost: number,
+		maintenanceCost: number,
+		laborCost: number,
+		insuranceCost: number,
+		depreciationCost: number,
+		managementCost: number,
+		otherCost: number,
+		totalCost: number
+	}
+
+	type VehicleStatisticsVO = {
+		id: number,
+		vehicleId: number,
+		vehicleNo: string,
+		statisticsDate: string,
+		tripCount: number,
+		totalDistance: number,
+		totalDuration: number,
+		cargoWeight: number,
+		fuelConsumption: number,
+		fuelCost: number,
+		maintenanceCount: number,
+		maintenanceCost: number,
+		warningCount: number,
+		violationCount: number,
+		idleDuration: number,
+		idleDistance: number,
+		utilizationRate: number
+	}
+
+	type DriverStatisticsVO = {
+		id: number,
+		userId: number,
+		userName: string,
+		statisticsDate: string,
+		attendanceDays: number,
+		attendanceHours: number,
+		tripCount: number,
+		totalDistance: number,
+		cargoWeight: number,
+		lateCount: number,
+		earlyLeaveCount: number,
+		warningCount: number,
+		violationCount: number,
+		overSpeedCount: number,
+		routeDeviationCount: number,
+		performanceScore: number
+	}
+
+	type FaultStatisticsVO = {
+		id: number,
+		vehicleId: number,
+		vehicleNo: string,
+		statisticsDate: string,
+		faultCount: number,
+		minorFaultCount: number,
+		majorFaultCount: number,
+		criticalFaultCount: number,
+		totalRepairCost: number,
+		avgRepairTime: number,
+		topFaultType: string,
+		topFaultCount: number,
+		repairedCount: number,
+		pendingCount: number
+	}
+
+	type FaultOverallVO = {
+		totalFaultCount: number,
+		minorFaultCount: number,
+		majorFaultCount: number,
+		criticalFaultCount: number,
+		totalCost: number
+	}
+
+	type OverallStatisticsVO = {
+		totalTripCount: number,
+		totalDistance: number,
+		totalDuration: number,
+		totalCompletedTripCount: number,
+		totalCancelledTripCount: number,
+		totalCargoWeight: number,
+		totalFuelCost: number,
+		totalMaintenanceCost: number,
+		totalLaborCost: number,
+		totalOtherCost: number,
+		totalCost: number,
+		totalVehicles: number,
+		totalDrivers: number
+	}
+
+	const currentTab = ref('trip')
+	const startDate = ref('')
+	const endDate = ref('')
+	const tripStatistics = ref<TripStatisticsVO[]>([])
+	const costStatistics = ref<CostStatisticsVO[]>([])
+	const vehicleStatistics = ref<VehicleStatisticsVO[]>([])
+	const driverStatistics = ref<DriverStatisticsVO[]>([])
+	const faultStatistics = ref<FaultStatisticsVO[]>([])
+	const faultOverall = ref<FaultOverallVO>({
+		totalFaultCount: 0,
+		minorFaultCount: 0,
+		majorFaultCount: 0,
+		criticalFaultCount: 0,
+		totalCost: 0
+	})
+	const overall = ref<OverallStatisticsVO>({
+		totalTripCount: 0,
+		totalDistance: 0,
+		totalDuration: 0,
+		totalCompletedTripCount: 0,
+		totalCancelledTripCount: 0,
+		totalCargoWeight: 0,
+		totalFuelCost: 0,
+		totalMaintenanceCost: 0,
+		totalLaborCost: 0,
+		totalOtherCost: 0,
+		totalCost: 0,
+		totalVehicles: 0,
+		totalDrivers: 0
+	})
+
+	const costPieOption = computed(() => ({
+		series: [{
+			type: 'pie',
+			data: [
+				{ name: '燃油成本', value: overall.value.totalFuelCost || 0 },
+				{ name: '维修成本', value: overall.value.totalMaintenanceCost || 0 },
+				{ name: '人工成本', value: overall.value.totalLaborCost || 0 },
+				{ name: '其他成本', value: overall.value.totalOtherCost || 0 }
+			]
+		}]
+	}))
+
+	const tripTrendOption = computed(() => {
+		const dates = tripStatistics.value.map(t => t.statisticsDate.slice(5)).reverse()
+		const counts = tripStatistics.value.map(t => t.tripCount).reverse()
+		const distances = tripStatistics.value.map(t => t.totalDistance).reverse()
+		
+		return {
+			xAxis: { data: dates },
+			series: [
+				{ name: '行程数', type: 'line', data: counts },
+				{ name: '里程(km)', type: 'line', data: distances }
+			]
+		}
+	})
+
+	const costTrendOption = computed(() => {
+		const dates = costStatistics.value.map(c => c.statisticsDate.slice(5)).reverse()
+		const fuelCosts = costStatistics.value.map(c => c.fuelCost).reverse()
+		const maintenanceCosts = costStatistics.value.map(c => c.maintenanceCost).reverse()
+		const laborCosts = costStatistics.value.map(c => c.laborCost).reverse()
+		
+		return {
+			xAxis: { data: dates },
+			series: [
+				{ name: '燃油', type: 'bar', data: fuelCosts },
+				{ name: '维修', type: 'bar', data: maintenanceCosts },
+				{ name: '人工', type: 'bar', data: laborCosts }
+			]
+		}
+	})
+
+	const isEmpty = computed(() => {
+		if (currentTab.value === 'trip') return tripStatistics.value.length === 0
+		if (currentTab.value === 'cost') return costStatistics.value.length === 0
+		if (currentTab.value === 'vehicle') return vehicleStatistics.value.length === 0
+		if (currentTab.value === 'driver') return driverStatistics.value.length === 0
+		if (currentTab.value === 'fault') return faultStatistics.value.length === 0
+		return true
+	})
+
+	const switchTab = (tab: string) => {
+		currentTab.value = tab
+		fetchData()
+	}
+
+	const onStartDateChange = (e: any) => {
+		startDate.value = e.detail.value
+		fetchData()
+	}
+
+	const onEndDateChange = (e: any) => {
+		endDate.value = e.detail.value
+		fetchData()
+	}
+
+	const fetchData = async () => {
+		const params: any = {}
+		if (startDate.value) params.startDate = startDate.value
+		if (endDate.value) params.endDate = endDate.value
+
+		try {
+			const overallRes = await request({
+				url: '/api/statistics/overall',
+				method: 'GET',
+				data: params
+			})
+			if (overallRes.code === 200) {
+				overall.value = overallRes.data || overall.value
+			}
+
+			if (currentTab.value === 'trip') {
+				const res = await request({
+					url: '/api/statistics/trip',
+					method: 'GET',
+					data: params
+				})
+				if (res.code === 200) {
+					tripStatistics.value = res.data || []
+				}
+			} else if (currentTab.value === 'cost') {
+				const res = await request({
+					url: '/api/statistics/cost',
+					method: 'GET',
+					data: params
+				})
+				if (res.code === 200) {
+					costStatistics.value = res.data || []
+				}
+			} else if (currentTab.value === 'vehicle') {
+				const res = await request({
+					url: '/api/statistics/vehicle',
+					method: 'GET',
+					data: params
+				})
+				if (res.code === 200) {
+					vehicleStatistics.value = res.data || []
+				}
+			} else if (currentTab.value === 'driver') {
+				const res = await request({
+					url: '/api/statistics/driver',
+					method: 'GET',
+					data: params
+				})
+				if (res.code === 200) {
+					driverStatistics.value = res.data || []
+				}
+			} else if (currentTab.value === 'fault') {
+				const res = await request({
+					url: '/api/statistics/fault',
+					method: 'GET',
+					data: params
+				})
+				if (res.code === 200) {
+					faultStatistics.value = res.data || []
+				}
+				
+				const overallRes = await request({
+					url: '/api/statistics/fault/overall',
+					method: 'GET',
+					data: params
+				})
+				if (overallRes.code === 200 && overallRes.data) {
+					faultOverall.value = overallRes.data
+				}
+			}
+		} catch (e) {
+			console.error('获取统计数据失败', e)
+		}
+	}
+
+	const refreshData = () => {
+		fetchData()
+		uni.showToast({ title: '数据已刷新', icon: 'success' })
+	}
+
+	const exportData = () => {
+		uni.showActionSheet({
+			itemList: ['导出Excel', '导出PDF', '导出CSV'],
+			success: (res) => {
+				const format = ['excel', 'pdf', 'csv'][res.tapIndex]
+				doExport(format)
+			}
+		})
+	}
+
+	const doExport = (format: string) => {
+		uni.showToast({ title: `正在导出${format.toUpperCase()}...`, icon: 'loading' })
+		
+		setTimeout(() => {
+			uni.hideToast()
+			uni.showToast({ title: '导出成功', icon: 'success' })
+		}, 1500)
+	}
+
+	const getScoreClass = (score: number): string => {
+		if (score >= 90) return 'excellent'
+		if (score >= 80) return 'good'
+		if (score >= 60) return 'average'
+		return 'poor'
+	}
+
+	onMounted(() => {
+		const today = new Date()
+		const year = today.getFullYear()
+		const month = String(today.getMonth() + 1).padStart(2, '0')
+		const day = String(today.getDate()).padStart(2, '0')
+		endDate.value = `${year}-${month}-${day}`
+		startDate.value = `${year}-${month}-01`
+
+		fetchData()
+	})
+</script>
+
+<style lang="scss">
+	.page-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 30rpx;
+
+		.page-title {
+			font-size: 36rpx;
+			font-weight: bold;
+			color: #fff;
+		}
+
+		.header-actions {
+			display: flex;
+			flex-direction: row;
+			gap: 15rpx;
+
+			.export-btn, .refresh-btn {
+				padding: 15rpx 30rpx;
+				background-color: #2a3347;
+				color: #fff;
+				font-size: 24rpx;
+				border-radius: 12rpx;
+			}
+
+			.export-btn {
+				background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+			}
+		}
+	}
+
+	.date-filter {
+		margin-bottom: 30rpx;
+
+		.date-picker {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+
+			.date-label {
+				font-size: 24rpx;
+				color: rgba(255, 255, 255, 0.7);
+				margin-right: 15rpx;
+			}
+
+			.date-value {
+				padding: 15rpx 25rpx;
+				background-color: #2a3347;
+				border-radius: 10rpx;
+				font-size: 24rpx;
+				color: #fff;
+			}
+
+			.date-separator {
+				margin: 0 15rpx;
+				font-size: 24rpx;
+				color: rgba(255, 255, 255, 0.5);
+			}
+		}
+	}
+
+	.overview-cards {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 20rpx;
+		margin-bottom: 30rpx;
+
+		.overview-item {
+			flex: 1;
+			min-width: 45%;
+			background-color: #2a3347;
+			border-radius: 20rpx;
+			padding: 25rpx;
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+
+			.overview-icon {
+				width: 80rpx;
+				height: 80rpx;
+				border-radius: 16rpx;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				margin-right: 20rpx;
+
+				&.trips { background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%); }
+				&.distance { background: linear-gradient(135deg, #34C759 0%, #28a745 100%); }
+				&.cargo { background: linear-gradient(135deg, #FF9500 0%, #FF6600 100%); }
+				&.cost { background: linear-gradient(135deg, #FF3B30 0%, #CC0000 100%); }
+
+				.icon-text { font-size: 36rpx; }
+			}
+
+			.overview-content {
+				flex: 1;
+
+				.overview-value {
+					display: block;
+					font-size: 32rpx;
+					font-weight: bold;
+					color: #fff;
+					margin-bottom: 5rpx;
+				}
+
+				.overview-label {
+					display: block;
+					font-size: 22rpx;
+					color: rgba(255, 255, 255, 0.6);
+				}
+			}
+		}
+	}
+
+	.charts-section {
+		margin-bottom: 30rpx;
+
+		.chart-card {
+			background-color: #2a3347;
+			border-radius: 20rpx;
+			padding: 25rpx;
+			margin-bottom: 20rpx;
+
+			.chart-title {
+				font-size: 28rpx;
+				font-weight: bold;
+				color: #fff;
+				margin-bottom: 20rpx;
+				display: block;
+			}
+		}
+	}
+
+	.tabs {
+		display: flex;
+		flex-direction: row;
+		background-color: #2a3347;
+		border-radius: 16rpx;
+		padding: 8rpx;
+		margin-bottom: 30rpx;
+
+		.tab-item {
+			flex: 1;
+			padding: 20rpx;
+			text-align: center;
+			border-radius: 12rpx;
+
+			&.active {
+				background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+				.tab-text { color: #fff; }
+			}
+
+			.tab-text {
+				font-size: 24rpx;
+				color: rgba(255, 255, 255, 0.6);
+			}
+		}
+	}
+
+	.statistics-card {
+		background-color: #2a3347;
+		border-radius: 24rpx;
+		overflow: hidden;
+
+		.card-header {
+			padding: 25rpx 30rpx;
+			border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+
+			.card-title {
+				font-size: 28rpx;
+				font-weight: bold;
+				color: #fff;
+			}
+		}
+	}
+
+	.trip-list, .cost-list, .vehicle-list, .driver-list {
+		.trip-item, .cost-item, .vehicle-item, .driver-item {
+			padding: 25rpx 30rpx;
+			border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+			&:last-child { border-bottom: none; }
+		}
+	}
+
+	.trip-item {
+		.trip-date {
+			font-size: 24rpx;
+			color: rgba(255, 255, 255, 0.5);
+			margin-bottom: 15rpx;
+		}
+
+		.trip-data {
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+			margin-bottom: 15rpx;
+
+			.data-item {
+				text-align: center;
+
+				.data-value {
+					display: block;
+					font-size: 28rpx;
+					font-weight: bold;
+					color: #fff;
+					margin-bottom: 5rpx;
+				}
+
+				.data-label {
+					display: block;
+					font-size: 20rpx;
+					color: rgba(255, 255, 255, 0.5);
+				}
+			}
+		}
+
+		.trip-status {
+			display: flex;
+			flex-direction: row;
+			gap: 20rpx;
+
+			.completed { font-size: 22rpx; color: #34C759; }
+			.cancelled { font-size: 22rpx; color: #FF3B30; }
+		}
+	}
+
+	.cost-item {
+		.cost-date {
+			font-size: 24rpx;
+			color: rgba(255, 255, 255, 0.5);
+			margin-bottom: 15rpx;
+		}
+
+		.cost-data {
+			.data-row {
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				padding: 8rpx 0;
+
+				&.total {
+					border-top: 1rpx solid rgba(255, 255, 255, 0.1);
+					margin-top: 8rpx;
+					padding-top: 15rpx;
+					.data-label, .data-value {
+						font-weight: bold;
+						color: #FF9500;
+					}
+				}
+
+				.data-label { font-size: 22rpx; color: rgba(255, 255, 255, 0.6); }
+				.data-value { font-size: 22rpx; color: #fff; }
+			}
+		}
+	}
+
+	.vehicle-item {
+		.vehicle-header {
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 15rpx;
+
+			.vehicle-no { font-size: 28rpx; font-weight: bold; color: #fff; }
+			.vehicle-date { font-size: 22rpx; color: rgba(255, 255, 255, 0.5); }
+		}
+
+		.vehicle-stats {
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+
+			.stat-item {
+				text-align: center;
+
+				.stat-value {
+					display: block;
+					font-size: 26rpx;
+					font-weight: bold;
+					color: #fff;
+					margin-bottom: 5rpx;
+				}
+
+				.stat-label {
+					display: block;
+					font-size: 20rpx;
+					color: rgba(255, 255, 255, 0.5);
+				}
+			}
+		}
+	}
+
+	.driver-item {
+		.driver-header {
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 15rpx;
+
+			.driver-name { font-size: 28rpx; font-weight: bold; color: #fff; }
+
+			.performance-score {
+				display: flex;
+				flex-direction: row;
+				align-items: baseline;
+				padding: 8rpx 20rpx;
+				border-radius: 20rpx;
+
+				&.excellent { background-color: rgba(52, 199, 89, 0.2); color: #34C759; }
+				&.good { background-color: rgba(0, 122, 255, 0.2); color: #007AFF; }
+				&.average { background-color: rgba(255, 149, 0, 0.2); color: #FF9500; }
+				&.poor { background-color: rgba(255, 59, 48, 0.2); color: #FF3B30; }
+
+				.score-value { font-size: 28rpx; font-weight: bold; }
+				.score-label { font-size: 18rpx; margin-left: 5rpx; }
+			}
+		}
+
+		.driver-stats {
+			.stat-row {
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				padding: 8rpx 0;
+
+				.stat-label { font-size: 22rpx; color: rgba(255, 255, 255, 0.6); }
+				.stat-value { font-size: 22rpx; color: #fff; }
+			}
+		}
+	}
+
+	.fault-summary {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		padding: 30rpx;
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+
+		.summary-item {
+			flex: 1;
+			text-align: center;
+
+			.summary-value {
+				display: block;
+				font-size: 36rpx;
+				font-weight: bold;
+				color: #fff;
+				margin-bottom: 10rpx;
+
+				&.warning { color: #FF9500; }
+				&.danger { color: #FF6600; }
+				&.critical { color: #FF3B30; }
+			}
+
+			.summary-label {
+				display: block;
+				font-size: 22rpx;
+				color: rgba(255, 255, 255, 0.6);
+			}
+		}
+	}
+
+	.fault-cost {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		padding: 25rpx 30rpx;
+		background-color: rgba(255, 149, 0, 0.1);
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+
+		.cost-label {
+			font-size: 26rpx;
+			color: rgba(255, 255, 255, 0.8);
+		}
+
+		.cost-value {
+			font-size: 32rpx;
+			font-weight: bold;
+			color: #FF9500;
+		}
+	}
+
+	.fault-list {
+		.fault-item {
+			padding: 25rpx 30rpx;
+			border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+
+			&:last-child { border-bottom: none; }
+
+			.fault-header {
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 15rpx;
+
+				.vehicle-no { font-size: 28rpx; font-weight: bold; color: #fff; }
+				.fault-date { font-size: 22rpx; color: rgba(255, 255, 255, 0.5); }
+			}
+
+			.fault-stats {
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				margin-bottom: 15rpx;
+
+				.stat-item {
+					text-align: center;
+
+					.stat-value {
+						display: block;
+						font-size: 24rpx;
+						font-weight: bold;
+						color: #fff;
+						margin-bottom: 5rpx;
+					}
+
+					.stat-label {
+						display: block;
+						font-size: 18rpx;
+						color: rgba(255, 255, 255, 0.5);
+					}
+				}
+			}
+
+			.fault-type {
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+				padding: 10rpx 15rpx;
+				background-color: rgba(255, 255, 255, 0.05);
+				border-radius: 10rpx;
+
+				.type-label {
+					font-size: 22rpx;
+					color: rgba(255, 255, 255, 0.6);
+					margin-right: 10rpx;
+				}
+
+				.type-value {
+					font-size: 22rpx;
+					color: #FF9500;
+				}
+			}
+		}
+	}
+
+	.empty-state {
+		padding: 80rpx;
+		text-align: center;
+
+		.empty-text {
+			color: rgba(255, 255, 255, 0.5);
+			font-size: 28rpx;
+		}
+	}
+</style>

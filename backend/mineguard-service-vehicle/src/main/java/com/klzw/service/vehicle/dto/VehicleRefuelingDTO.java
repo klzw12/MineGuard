@@ -11,15 +11,24 @@ import java.time.LocalDateTime;
 @Data
 public class VehicleRefuelingDTO {
     
-    private Long vehicleId; // 车辆ID
-    private Long driverId; // 司机ID
-    private LocalDateTime refuelingDate; // 加油日期
-    private String fuelType; // 燃油类型
-    private BigDecimal fuelAmount; // 加油量
-    private BigDecimal fuelPrice; // 燃油价格
-    private BigDecimal totalCost; // 总费用
-    private BigDecimal mileage; // 里程
-    private String gasStation; // 加油站
-    private String remark; // 备注
+    private Long vehicleId;
+    
+    private Long driverId;
+    
+    private LocalDateTime refuelingDate;
+    
+    private String refuelingStation;
+    
+    private String fuelType;
+    
+    private BigDecimal refuelingAmount;
+    
+    private BigDecimal unitPrice;
+    
+    private BigDecimal totalCost;
+    
+    private Integer currentMileage;
+    
+    private String remark;
     
 }

@@ -3,6 +3,7 @@ package com.klzw.service.user.service.impl;
 import com.klzw.common.core.enums.UserStatusEnum;
 import com.klzw.common.file.service.OcrService;
 import com.klzw.common.file.service.StorageService;
+import com.klzw.common.file.util.ImageUtils;
 import com.klzw.common.auth.util.PasswordUtils;
 import com.klzw.service.user.dto.CertVerifyDTO;
 import com.klzw.service.user.dto.IdCardVerifyDTO;
@@ -29,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayInputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Base64;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -87,19 +87,7 @@ public class QualificationServiceImpl implements QualificationService {
     }
     
     private byte[] decodeBase64Image(String base64Image) {
-        if (base64Image == null || base64Image.isEmpty()) {
-            throw new UserException(UserResultCode.PARAM_ERROR, "图片不能为空");
-        }
-        try {
-            String base64Data = base64Image;
-            if (base64Image.contains(",")) {
-                base64Data = base64Image.split(",")[1];
-            }
-            return Base64.getDecoder().decode(base64Data);
-        } catch (Exception e) {
-            log.error("Base64解码失败", e);
-            throw new UserException(UserResultCode.PARAM_ERROR, "图片格式错误");
-        }
+        return ImageUtils.decodeBase64Image(base64Image);
     }
     
     private String uploadImageFromBytes(byte[] imageBytes, String folder) {

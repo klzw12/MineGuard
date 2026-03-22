@@ -1,0 +1,562 @@
+<template>
+	<AdminLayout>
+		<view class="page-header">
+			<text class="page-title">路线管理</text>
+			<view class="header-actions">
+				<button class="primary-btn" @click="showAddModal = true">添加路线</button>
+			</view>
+		</view>
+		
+		<view class="filter-section">
+			<view class="filter-buttons">
+				<button class="filter-btn" :class="{'active': currentStatus === null}" @click="filterByStatus(null)">全部</button>
+				<button class="filter-btn" :class="{'active': currentStatus === 1}" @click="filterByStatus(1)">启用</button>
+				<button class="filter-btn" :class="{'active': currentStatus === 2}" @click="filterByStatus(2)">禁用</button>
+			</view>
+		</view>
+		
+		<view class="route-card">
+			<view class="route-list">
+				<view class="route-item" v-for="(route, index) in routeList" :key="route.id">
+					<view class="route-left">
+						<view class="route-header">
+							<text class="route-name">🛤️ {{ route.routeName }}</text>
+							<view class="route-status" :class="route.status === 1 ? 'enabled' : 'disabled'">
+								<text class="status-text">{{ route.status === 1 ? '启用' : '禁用' }}</text>
+							</view>
+						</view>
+						<view class="route-path">
+							<text class="path-text">📍 {{ route.startLocation }}</text>
+							<text class="path-arrow">→</text>
+							<text class="path-text">📍 {{ route.endLocation }}</text>
+						</view>
+						<view class="route-info">
+							<text class="info-item">📏 距离：{{ route.distance ? route.distance + ' km' : '-' }}</text>
+							<text class="info-item">⏱️ 预计时长：{{ route.estimatedDuration ? route.estimatedDuration + ' 分钟' : '-' }}</text>
+						</view>
+					</view>
+					<view class="route-right">
+						<view class="action-buttons">
+							<button class="action-btn" @click="viewDetail(route)">详情</button>
+							<button class="action-btn secondary" @click="editRoute(route)">编辑</button>
+							<button class="action-btn" :class="route.status === 1 ? 'warning' : 'success'" @click="toggleStatus(route)">
+								{{ route.status === 1 ? '禁用' : '启用' }}
+							</button>
+						</view>
+					</view>
+				</view>
+				
+				<view class="empty-state" v-if="routeList.length === 0">
+					<text class="empty-text">暂无路线数据</text>
+				</view>
+			</view>
+		</view>
+		
+		<view class="pagination" v-if="total > pageSize">
+			<button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">上一页</button>
+			<text class="page-info">{{ currentPage }} / {{ totalPages }}</text>
+			<button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">下一页</button>
+		</view>
+		
+		<view class="modal-overlay" v-if="showAddModal" @click="showAddModal = false">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">{{ editingRoute ? '编辑路线' : '添加路线' }}</text>
+					<text class="modal-close" @click="closeModal">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="form-label">路线名称 *</text>
+						<input type="text" v-model="formData.routeName" class="form-input" placeholder="请输入路线名称" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">起始位置 *</text>
+						<input type="text" v-model="formData.startLocation" class="form-input" placeholder="请输入起始位置" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">结束位置 *</text>
+						<input type="text" v-model="formData.endLocation" class="form-input" placeholder="请输入结束位置" />
+					</view>
+					<view class="form-row">
+						<view class="form-item half">
+							<text class="form-label">起始经度</text>
+							<input type="number" v-model="formData.startLongitude" class="form-input" placeholder="经度" />
+						</view>
+						<view class="form-item half">
+							<text class="form-label">起始纬度</text>
+							<input type="number" v-model="formData.startLatitude" class="form-input" placeholder="纬度" />
+						</view>
+					</view>
+					<view class="form-row">
+						<view class="form-item half">
+							<text class="form-label">结束经度</text>
+							<input type="number" v-model="formData.endLongitude" class="form-input" placeholder="经度" />
+						</view>
+						<view class="form-item half">
+							<text class="form-label">结束纬度</text>
+							<input type="number" v-model="formData.endLatitude" class="form-input" placeholder="纬度" />
+						</view>
+					</view>
+					<view class="form-row">
+						<view class="form-item half">
+							<text class="form-label">距离(km)</text>
+							<input type="number" v-model="formData.distance" class="form-input" placeholder="距离" />
+						</view>
+						<view class="form-item half">
+							<text class="form-label">预计时长(分钟)</text>
+							<input type="number" v-model="formData.estimatedDuration" class="form-input" placeholder="时长" />
+						</view>
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="closeModal">取消</button>
+					<button class="confirm-btn" @click="submitForm">确定</button>
+				</view>
+			</view>
+		</view>
+	</AdminLayout>
+</template>
+
+<script setup lang="uts">
+	import AdminLayout from '../../../components/AdminLayout.uvue'
+	import { ref, computed, onMounted } from 'vue'
+	import { request } from '../../../utils/request'
+
+	type RouteVO = {
+		id: string,
+		routeName: string,
+		startLocation: string,
+		endLocation: string,
+		startLongitude: number,
+		startLatitude: number,
+		endLongitude: number,
+		endLatitude: number,
+		distance: number | null,
+		estimatedDuration: number | null,
+		status: number
+	}
+
+	const routeList = ref<RouteVO[]>([])
+	const currentPage = ref(1)
+	const pageSize = ref(10)
+	const total = ref(0)
+	const currentStatus = ref<number | null>(null)
+	const showAddModal = ref(false)
+	const editingRoute = ref<RouteVO | null>(null)
+
+	const formData = ref({
+		routeName: '',
+		startLocation: '',
+		endLocation: '',
+		startLongitude: 0,
+		startLatitude: 0,
+		endLongitude: 0,
+		endLatitude: 0,
+		distance: 0,
+		estimatedDuration: 0
+	})
+
+	const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+
+	const fetchRouteList = async () => {
+		try {
+			const res = await request({
+				url: '/api/route/page',
+				method: 'GET',
+				data: { page: currentPage.value, size: pageSize.value, status: currentStatus.value }
+			})
+			if (res.code === 200) {
+				routeList.value = res.data?.records || []
+				total.value = res.data?.total || 0
+			}
+		} catch (e) {
+			console.error('获取路线列表失败', e)
+		}
+	}
+
+	const filterByStatus = (status: number | null) => {
+		currentStatus.value = status
+		currentPage.value = 1
+		fetchRouteList()
+	}
+
+	const changePage = (page: number) => {
+		currentPage.value = page
+		fetchRouteList()
+	}
+
+	const viewDetail = (route: RouteVO) => {
+		uni.showModal({
+			title: route.routeName,
+			content: `起始：${route.startLocation}\n结束：${route.endLocation}\n距离：${route.distance || '-'} km\n预计时长：${route.estimatedDuration || '-'} 分钟`,
+			showCancel: false
+		})
+	}
+
+	const editRoute = (route: RouteVO) => {
+		editingRoute.value = route
+		formData.value = {
+			routeName: route.routeName,
+			startLocation: route.startLocation,
+			endLocation: route.endLocation,
+			startLongitude: route.startLongitude,
+			startLatitude: route.startLatitude,
+			endLongitude: route.endLongitude,
+			endLatitude: route.endLatitude,
+			distance: route.distance || 0,
+			estimatedDuration: route.estimatedDuration || 0
+		}
+		showAddModal.value = true
+	}
+
+	const toggleStatus = async (route: RouteVO) => {
+		const newStatus = route.status === 1 ? 2 : 1
+		const action = newStatus === 1 ? '启用' : '禁用'
+		
+		uni.showModal({
+			title: '确认操作',
+			content: `确定要${action}该路线吗？`,
+			success: async (res) => {
+				if (res.confirm) {
+					try {
+						const result = await request({
+							url: `/api/route/${route.id}/${newStatus === 1 ? 'enable' : 'disable'}`,
+							method: 'PUT'
+						})
+						if (result.code === 200) {
+							uni.showToast({ title: `${action}成功`, icon: 'success' })
+							fetchRouteList()
+						}
+					} catch (e) {
+						uni.showToast({ title: `${action}失败`, icon: 'none' })
+					}
+				}
+			}
+		})
+	}
+
+	const closeModal = () => {
+		showAddModal.value = false
+		editingRoute.value = null
+		formData.value = {
+			routeName: '',
+			startLocation: '',
+			endLocation: '',
+			startLongitude: 0,
+			startLatitude: 0,
+			endLongitude: 0,
+			endLatitude: 0,
+			distance: 0,
+			estimatedDuration: 0
+		}
+	}
+
+	const submitForm = async () => {
+		if (!formData.value.routeName || !formData.value.startLocation || !formData.value.endLocation) {
+			uni.showToast({ title: '请填写必填项', icon: 'none' })
+			return
+		}
+
+		try {
+			const url = editingRoute.value ? `/api/route/${editingRoute.value.id}` : '/api/route'
+			const method = editingRoute.value ? 'PUT' : 'POST'
+			
+			const res = await request({ url, method, data: formData.value })
+			if (res.code === 200) {
+				uni.showToast({ title: editingRoute.value ? '更新成功' : '创建成功', icon: 'success' })
+				closeModal()
+				fetchRouteList()
+			}
+		} catch (e) {
+			uni.showToast({ title: '操作失败', icon: 'none' })
+		}
+	}
+
+	onMounted(() => {
+		fetchRouteList()
+	})
+</script>
+
+<style lang="scss">
+	.page-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 30rpx;
+		
+		.page-title {
+			font-size: 36rpx;
+			font-weight: bold;
+			color: #fff;
+		}
+		
+		.header-actions {
+			.primary-btn {
+				padding: 20rpx 40rpx;
+				background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+				color: #fff;
+				font-size: 24rpx;
+				font-weight: 500;
+				border-radius: 12rpx;
+			}
+		}
+	}
+	
+	.filter-section {
+		margin-bottom: 30rpx;
+		
+		.filter-buttons {
+			display: flex;
+			flex-direction: row;
+			gap: 15rpx;
+			
+			.filter-btn {
+				padding: 15rpx 25rpx;
+				background-color: #2a3347;
+				color: rgba(255, 255, 255, 0.7);
+				font-size: 22rpx;
+				border-radius: 12rpx;
+				
+				&.active {
+					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+					color: #fff;
+				}
+			}
+		}
+	}
+	
+	.route-card {
+		background-color: #2a3347;
+		border-radius: 24rpx;
+		overflow: hidden;
+		
+		.route-list {
+			.route-item {
+				padding: 35rpx;
+				border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				
+				&:last-child { border-bottom: none; }
+				
+				.route-left {
+					flex: 1;
+					
+					.route-header {
+						display: flex;
+						flex-direction: row;
+						align-items: center;
+						justify-content: space-between;
+						margin-bottom: 15rpx;
+						
+						.route-name {
+							font-size: 30rpx;
+							font-weight: bold;
+							color: #fff;
+						}
+						
+						.route-status {
+							padding: 8rpx 20rpx;
+							border-radius: 20rpx;
+							
+							&.enabled { background-color: rgba(52, 199, 89, 0.2); }
+							&.disabled { background-color: rgba(142, 142, 147, 0.2); }
+							
+							.status-text {
+								font-size: 22rpx;
+								color: #fff;
+							}
+						}
+					}
+					
+					.route-path {
+						display: flex;
+						flex-direction: row;
+						align-items: center;
+						margin-bottom: 15rpx;
+						
+						.path-text {
+							font-size: 26rpx;
+							color: rgba(255, 255, 255, 0.8);
+						}
+						
+						.path-arrow {
+							margin: 0 15rpx;
+							color: #007AFF;
+							font-size: 24rpx;
+						}
+					}
+					
+					.route-info {
+						display: flex;
+						flex-direction: row;
+						gap: 30rpx;
+						
+						.info-item {
+							font-size: 24rpx;
+							color: rgba(255, 255, 255, 0.6);
+						}
+					}
+				}
+				
+				.route-right {
+					.action-buttons {
+						display: flex;
+						flex-direction: column;
+						gap: 15rpx;
+						
+						.action-btn {
+							padding: 12rpx 30rpx;
+							background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+							color: #fff;
+							font-size: 22rpx;
+							border-radius: 10rpx;
+							
+							&.secondary { background-color: rgba(255, 255, 255, 0.1); }
+							&.success { background: linear-gradient(135deg, #34C759 0%, #28a745 100%); }
+							&.warning { background: linear-gradient(135deg, #FF9500 0%, #FF6600 100%); }
+						}
+					}
+				}
+			}
+			
+			.empty-state {
+				padding: 80rpx;
+				text-align: center;
+				
+				.empty-text {
+					color: rgba(255, 255, 255, 0.5);
+					font-size: 28rpx;
+				}
+			}
+		}
+	}
+	
+	.pagination {
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		gap: 30rpx;
+		margin-top: 30rpx;
+		
+		.page-btn {
+			padding: 15rpx 30rpx;
+			background-color: #2a3347;
+			color: #fff;
+			font-size: 24rpx;
+			border-radius: 10rpx;
+			
+			&:disabled { opacity: 0.5; }
+		}
+		
+		.page-info {
+			color: rgba(255, 255, 255, 0.7);
+			font-size: 24rpx;
+		}
+	}
+	
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.7);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+		
+		.modal-content {
+			width: 85%;
+			max-height: 80%;
+			background-color: #1e2536;
+			border-radius: 20rpx;
+			overflow: hidden;
+			
+			.modal-header {
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				align-items: center;
+				padding: 30rpx;
+				border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+				
+				.modal-title {
+					font-size: 32rpx;
+					font-weight: bold;
+					color: #fff;
+				}
+				
+				.modal-close {
+					font-size: 40rpx;
+					color: rgba(255, 255, 255, 0.6);
+				}
+			}
+			
+			.modal-body {
+				padding: 30rpx;
+				max-height: 600rpx;
+				overflow-y: auto;
+				
+				.form-item {
+					margin-bottom: 25rpx;
+					
+					.form-label {
+						display: block;
+						font-size: 26rpx;
+						color: rgba(255, 255, 255, 0.8);
+						margin-bottom: 15rpx;
+					}
+					
+					.form-input {
+						width: 100%;
+						padding: 20rpx;
+						background-color: #2a3347;
+						border-radius: 10rpx;
+						color: #fff;
+						font-size: 26rpx;
+					}
+				}
+				
+				.form-row {
+					display: flex;
+					flex-direction: row;
+					gap: 20rpx;
+					
+					.form-item.half {
+						flex: 1;
+					}
+				}
+			}
+			
+			.modal-footer {
+				display: flex;
+				flex-direction: row;
+				gap: 20rpx;
+				padding: 30rpx;
+				border-top: 1rpx solid rgba(255, 255, 255, 0.1);
+				
+				.cancel-btn, .confirm-btn {
+					flex: 1;
+					padding: 20rpx;
+					border-radius: 10rpx;
+					font-size: 28rpx;
+				}
+				
+				.cancel-btn {
+					background-color: #2a3347;
+					color: rgba(255, 255, 255, 0.8);
+				}
+				
+				.confirm-btn {
+					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+					color: #fff;
+				}
+			}
+		}
+	}
+</style>

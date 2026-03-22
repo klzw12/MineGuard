@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.klzw.common.core.domain.PageRequest;
 import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.domain.dto.TripResponse;
+import com.klzw.common.core.domain.dto.TripCreateRequest;
 import com.klzw.service.trip.dto.TripDTO;
 import com.klzw.service.trip.entity.Trip;
 import com.klzw.service.trip.vo.TripStatisticsVO;
@@ -18,6 +19,8 @@ public interface TripService extends IService<Trip> {
     TripVO getById(Long id);
 
     Long create(TripDTO dto);
+    
+    Long createFromDispatch(TripCreateRequest request);
 
     void update(Long id, TripDTO dto);
 
@@ -42,4 +45,9 @@ public interface TripService extends IService<Trip> {
     void resumeTrip(Long id);
     
     TripStatisticsVO getTripStatistics(Long id);
+    
+    /**
+     * 按日期范围查询行程统计（供 statistics 服务调用）
+     */
+    TripStatisticsResponseDTO getStatisticsByDateRange(String startDate, String endDate);
 }

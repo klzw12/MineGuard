@@ -116,7 +116,6 @@ export type IdCardVerifyDTO = {
 
 export type CertVerifyDTO = {
   userId: string
-  personType?: number
   certNumber?: string
   drivingLicenseBase64?: string
   emergencyCertBase64?: string
@@ -252,3 +251,102 @@ export type SupplementAttendanceDTO = {
   status: number
   remark?: string
 }
+
+export type DriverVehicleVO = {
+  id: string
+  driverId: string
+  vehicleId: string
+  vehicleNo: string
+  vehicleType: string
+  useCount: number
+  lastUseTime: string
+  isDefault: boolean
+}
+
+export type DriverVO = {
+  id: string
+  userId: string
+  driverName: string
+  gender: number
+  genderName: string
+  idCardMasked: string
+  idCardFrontUrl: string
+  idCardBackUrl: string
+  drivingLicenseUrl: string
+  licenseType: string
+  belongingTeam: string
+  address: string
+  birthDate: string
+  firstIssueDate: string
+  drivingYears: number
+  validPeriod: string
+  licenseNumber: string
+  status: number
+  statusName: string
+  commonVehicles: DriverVehicleVO[]
+  score: number
+  createTime: string
+  updateTime: string
+  remark: string
+}
+
+export type LeaveApplyDTO = {
+  userId: string
+  leaveType: number
+  startTime: string
+  endTime: string
+  reason: string
+}
+
+export type DispatchTaskVO = {
+  id: number
+  taskNo: string
+  planId: number | null
+  planName: string | null
+  taskSequence: number | null
+  vehicleId: number | null
+  vehicleNo: string | null
+  driverId: number | null
+  driverName: string | null
+  startLocation: string
+  startLongitude: number | null
+  startLatitude: number | null
+  endLocation: string
+  endLongitude: number | null
+  endLatitude: number | null
+  scheduledStartTime: string | null
+  scheduledEndTime: string | null
+  actualStartTime: string | null
+  actualEndTime: string | null
+  cargoWeight: number | null
+  status: number
+  statusName: string | null
+  priority: string | null
+  pushTime: string | null
+  acceptTime: string | null
+  description: string | null
+  remark: string | null
+  createTime: string | null
+}
+
+export type DispatchTaskDTO = {
+  id?: number
+  planId?: number
+  taskSequence?: number
+  vehicleId?: number
+  driverId?: number
+  startLocation?: string
+  startLongitude?: number
+  startLatitude?: number
+  endLocation?: string
+  endLongitude?: number
+  endLatitude?: number
+  scheduledStartTime?: string
+  scheduledEndTime?: string
+  cargoWeight?: number
+  priority?: string
+  description?: string
+  remark?: string
+}
+
+

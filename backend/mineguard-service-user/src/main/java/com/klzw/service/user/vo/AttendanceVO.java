@@ -13,15 +13,27 @@ public class AttendanceVO {
 
     private String id;
 
-    private String driverId;
+    private String userId;
 
-    private String driverName;
+    private String userName;
 
     private LocalDate attendanceDate;
 
     private LocalDateTime checkInTime;
 
     private LocalDateTime checkOutTime;
+
+    private Double checkInLatitude;
+
+    private Double checkInLongitude;
+
+    private String checkInAddress;
+
+    private Double checkOutLatitude;
+
+    private Double checkOutLongitude;
+
+    private String checkOutAddress;
 
     private Integer status;
 
@@ -32,6 +44,4 @@ public class AttendanceVO {
     private Integer earlyLeaveMinutes;
 
     private String remark;
-
-    private LocalDateTime createTime;
 }
