@@ -5,8 +5,8 @@ import com.klzw.common.redis.service.RedisCacheService;
 import com.klzw.service.trip.document.TripTrackDocument;
 import com.klzw.service.trip.exception.TripException;
 import com.klzw.service.trip.repository.TripTrackMongoRepository;
-import com.klzw.service.trip.service.TripService;
 import com.klzw.service.trip.service.TripTrackService;
+import com.klzw.service.trip.service.TripValidatorService;
 import com.klzw.service.trip.vo.TripTrackVO;
 import com.klzw.service.trip.vo.TripVO;
 import com.klzw.service.trip.constant.TripResultCode;
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 public class TripTrackServiceImpl implements TripTrackService {
 
     private final RedisCacheService redisCacheService;
-    private final TripService tripService;
+    private final TripValidatorService tripValidatorService;
     private final TripTrackMongoRepository tripTrackMongoRepository;
     private final MongoTemplate mongoTemplate;
 
@@ -103,19 +103,7 @@ public class TripTrackServiceImpl implements TripTrackService {
     }
     
     private void validateTripStatus(Long tripId) {
-        try {
-            TripVO trip = tripService.getById(tripId);
-            if (trip == null) {
-                throw new TripException(TripResultCode.TRIP_NOT_FOUND);
-            }
-            if (trip.getStatus() != TripStatusEnum.IN_PROGRESS.getCode()) {
-                throw new TripException(TripResultCode.TRIP_STATUS_ERROR, "只有进行中的行程可以上传轨迹");
-            }
-        } catch (TripException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new TripException(TripResultCode.TRIP_STATUS_ERROR, "验证行程状态失败");
-        }
+        tripValidatorService.validateTripInProgress(tripId);
     }
 
     @Override

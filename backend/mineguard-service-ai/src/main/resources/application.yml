@@ -1,21 +1,11 @@
 spring:
   application:
-    name: mineguard-service-ai
-  profiles:
-    active: dev
-  cloud:
-    nacos:
-      discovery:
-        server-addr: :8848
-        service: ${spring.application.name}
-      config:
-        server-addr: 127.0.0.1:8848
-        group: DEFAULT_GROUP
-        file-extension: yml
-        prefix: ${spring.application.name}
+    name: ai-service
 
 server:
-  port: 8086
+  port: 8088
+
+
 
 
 

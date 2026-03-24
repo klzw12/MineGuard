@@ -12,7 +12,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/statistics")
+@RequestMapping("/statistics")
 @RequiredArgsConstructor
 public class StatisticsController {
 
@@ -86,10 +86,10 @@ public class StatisticsController {
     }
     
     @GetMapping("/fault")
-    public Result<List<FaultStatisticsVO>> getFaultStatistics(StatisticsQueryDTO queryDTO) {
+    public Result<FaultStatisticsVO> getFaultStatistics(StatisticsQueryDTO queryDTO) {
         log.debug("获取故障统计数据：{}", queryDTO);
-        List<FaultStatisticsVO> list = statisticsService.getFaultStatistics(queryDTO);
-        return Result.success(list);
+        FaultStatisticsVO vo = statisticsService.getFaultStatistics(queryDTO);
+        return Result.success(vo);
     }
     
     @GetMapping("/transport")
@@ -100,12 +100,12 @@ public class StatisticsController {
     }
     
     @PostMapping("/fault/calculate")
-    public Result<FaultStatisticsVO> calculateFaultStatistics(
+    public Result<Void> calculateFaultStatistics(
             @RequestParam("vehicleId") Long vehicleId,
             @RequestParam("date") String date) {
         log.debug("计算故障统计数据：车辆 ID={}, 日期={}", vehicleId, date);
-        FaultStatisticsVO vo = statisticsService.calculateFaultStatistics(vehicleId, date);
-        return Result.success(vo);
+        statisticsService.calculateFaultStatistics(vehicleId, date);
+        return Result.success();
     }
     
     @PostMapping("/transport/calculate")

@@ -33,4 +33,8 @@ public interface StatisticsService {
     List<TransportStatisticsVO> getTransportStatistics(StatisticsQueryDTO queryDTO);
 
     OverallStatisticsVO getOverallStatistics(StatisticsQueryDTO queryDTO);
+    
+    FaultStatisticsVO getFaultStatistics(StatisticsQueryDTO queryDTO);
+    
+    void calculateFaultStatistics(Long vehicleId, String date);
 }

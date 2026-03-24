@@ -19,7 +19,6 @@ import com.klzw.service.trip.exception.TripException;
 import com.klzw.service.trip.mapper.TripMapper;
 import com.klzw.service.trip.processor.TripStatusProcessor;
 import com.klzw.service.trip.service.TripService;
-import com.klzw.service.trip.service.TripTrackService;
 import com.klzw.service.trip.dto.TripStatisticsResponseDTO;
 import com.klzw.service.trip.vo.TripStatisticsVO;
 import com.klzw.service.trip.vo.TripTrackVO;
@@ -47,7 +46,6 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
     private final UserClient userClient;
     private final VehicleClient vehicleClient;
     private final TripStatusProcessor tripStatusProcessor;
-    private final TripTrackService tripTrackService;
 
     @Override
     public PageResult<TripVO> page(PageRequest pageRequest) {
@@ -243,20 +241,6 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         getBaseMapper().updateById(trip);
         log.info("结束行程成功，行程ID：{}", id);
         
-        // 批量写入轨迹点到MySQL
-        try {
-            List<com.klzw.service.trip.dto.TripTrackDTO> tracks = tripTrackService.getTracksFromRedis(id);
-            if (!tracks.isEmpty()) {
-                tripTrackService.batchSaveTracks(tracks);
-                // 删除Redis中的轨迹数据
-                tripTrackService.deleteTracksFromRedis(id);
-                log.info("轨迹点批量写入MySQL成功，行程ID：{}，数量：{}", id, tracks.size());
-            }
-        } catch (Exception e) {
-            log.error("批量写入轨迹点失败，行程ID：{}", id, e);
-            // 不影响行程结束流程
-        }
-        
         // 处理状态变化
         tripStatusProcessor.processStatusChange(trip, oldStatus, newStatus);
     }
@@ -330,16 +314,13 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         
         Trip trip = getBaseMapper().selectOne(wrapper);
         TripResponse response = new TripResponse();
-        response.setCode(200);
-        response.setMessage("success");
         
         if (trip != null) {
-            TripResponse.TripData data = new TripResponse.TripData();
-            data.setId(trip.getId());
-            data.setVehicleId(trip.getVehicleId());
-            data.setDriverId(trip.getDriverId());
-            data.setStatus(TripStatusEnum.getByCode(trip.getStatus()).name());
-            response.setData(data);
+            response.setId(trip.getId());
+            response.setVehicleId(trip.getVehicleId());
+            response.setDriverId(trip.getDriverId());
+            response.setTripNo(trip.getTripNo());
+            response.setStatus(trip.getStatus());
         }
         
         return response;
@@ -392,14 +373,12 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
     }
 
     private void validateVehicleAndDriver(Long vehicleId, Long driverId) {
-        Boolean vehicleExists = vehicleClient.existsById(vehicleId)
-                .block();
+        Boolean vehicleExists = vehicleClient.existsById(vehicleId);
         if (vehicleExists == null || !vehicleExists) {
             throw new TripException(TripResultCode.VEHICLE_NOT_AVAILABLE, "车辆不存在或不可用");
         }
         
-        Boolean driverExists = userClient.existsById(driverId)
-                .block();
+        Boolean driverExists = userClient.existsById(driverId);
         if (driverExists == null || !driverExists) {
             throw new TripException(TripResultCode.DRIVER_NOT_AVAILABLE, "司机不存在或不可用");
         }
@@ -425,7 +404,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         }
         
         try {
-            var userInfo = userClient.getUserById(trip.getDriverId()).block();
+            var userInfo = userClient.getUserById(trip.getDriverId());
             if (userInfo != null) {
                 vo.setDriverName(userInfo.getRealName());
             }
@@ -498,9 +477,9 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         
         for (Trip trip : trips) {
             // 统计完成和取消的行程
-            if (TripStatusEnum.COMPLETED.getCode().equals(trip.getStatus())) {
+            if (trip.getStatus() != null && TripStatusEnum.COMPLETED.getCode() == trip.getStatus()) {
                 completedCount++;
-            } else if (TripStatusEnum.CANCELLED.getCode().equals(trip.getStatus())) {
+            } else if (trip.getStatus() != null && TripStatusEnum.CANCELLED.getCode() == trip.getStatus()) {
                 cancelledCount++;
             }
             
@@ -537,24 +516,11 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
     }
 
     private BigDecimal calculateActualDistance(Long tripId) {
-        List<TripTrackVO> tracks = tripTrackService.getByTripId(tripId);
-        if (tracks == null || tracks.size() < 2) {
+        // 简化实现，直接返回估计里程
+        Trip trip = getBaseMapper().selectById(tripId);
+        if (trip == null) {
             return null;
         }
-
-        double totalDistance = 0.0;
-        for (int i = 1; i < tracks.size(); i++) {
-            TripTrackVO prev = tracks.get(i - 1);
-            TripTrackVO curr = tracks.get(i);
-            
-            if (prev.getLongitude() != null && prev.getLatitude() != null
-                && curr.getLongitude() != null && curr.getLatitude() != null) {
-                GeoPoint prevPoint = new GeoPoint(prev.getLongitude(), prev.getLatitude());
-                GeoPoint currPoint = new GeoPoint(curr.getLongitude(), curr.getLatitude());
-                totalDistance += GeoUtils.calculateDistance(prevPoint, currPoint);
-            }
-        }
-
-        return BigDecimal.valueOf(totalDistance / 1000.0);
+        return trip.getEstimatedMileage();
     }
 }

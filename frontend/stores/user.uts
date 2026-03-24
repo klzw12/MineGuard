@@ -13,7 +13,7 @@ function setUserInfo(user: UserVO | null) {
   isLoggedIn.value = user !== null
   
   if (user && user.roleCode) {
-    if (user.roleCode === 'ROLE_ADMIN') {
+    if (user.roleCode === 'ROLE_ADMIN' || user.roleCode === 'ADMIN') {
       userRole.value = 'admin'
     } else {
       userRole.value = 'user'

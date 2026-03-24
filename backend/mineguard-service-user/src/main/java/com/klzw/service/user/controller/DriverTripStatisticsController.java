@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/driver/trip-statistics")
+@RequestMapping("/user/driver/trip-statistics")
 @RequiredArgsConstructor
 public class DriverTripStatisticsController {
 

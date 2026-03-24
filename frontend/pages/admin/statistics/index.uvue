@@ -288,7 +288,7 @@
 	import AdminLayout from '../../../components/AdminLayout.uvue'
 	import ECharts from '../../../components/ECharts.uvue'
 	import { ref, computed, onMounted } from 'vue'
-	import { request } from '../../../utils/request'
+	import { statisticsApi } from '@/api/statistics.uts'
 
 	type TripStatisticsVO = {
 		id: number,
@@ -499,68 +499,31 @@
 		if (endDate.value) params.endDate = endDate.value
 
 		try {
-			const overallRes = await request({
-				url: '/api/statistics/overall',
-				method: 'GET',
-				data: params
-			})
-			if (overallRes.code === 200) {
-				overall.value = overallRes.data || overall.value
+			// 获取总体统计
+			const overallRes = await statisticsApi.getOverallStatistics(params)
+			if (overallRes) {
+				overall.value = overallRes
 			}
 
 			if (currentTab.value === 'trip') {
-				const res = await request({
-					url: '/api/statistics/trip',
-					method: 'GET',
-					data: params
-				})
-				if (res.code === 200) {
-					tripStatistics.value = res.data || []
-				}
+				const res = await statisticsApi.getTripStatistics(params)
+				tripStatistics.value = res || []
 			} else if (currentTab.value === 'cost') {
-				const res = await request({
-					url: '/api/statistics/cost',
-					method: 'GET',
-					data: params
-				})
-				if (res.code === 200) {
-					costStatistics.value = res.data || []
-				}
+				const res = await statisticsApi.getCostStatistics(params)
+				costStatistics.value = res || []
 			} else if (currentTab.value === 'vehicle') {
-				const res = await request({
-					url: '/api/statistics/vehicle',
-					method: 'GET',
-					data: params
-				})
-				if (res.code === 200) {
-					vehicleStatistics.value = res.data || []
-				}
+				const res = await statisticsApi.getVehicleStatistics(params)
+				vehicleStatistics.value = res || []
 			} else if (currentTab.value === 'driver') {
-				const res = await request({
-					url: '/api/statistics/driver',
-					method: 'GET',
-					data: params
-				})
-				if (res.code === 200) {
-					driverStatistics.value = res.data || []
-				}
+				const res = await statisticsApi.getDriverStatistics(params)
+				driverStatistics.value = res || []
 			} else if (currentTab.value === 'fault') {
-				const res = await request({
-					url: '/api/statistics/fault',
-					method: 'GET',
-					data: params
-				})
-				if (res.code === 200) {
-					faultStatistics.value = res.data || []
-				}
+				const res = await statisticsApi.getFaultStatistics(params)
+				faultStatistics.value = res || []
 				
-				const overallRes = await request({
-					url: '/api/statistics/fault/overall',
-					method: 'GET',
-					data: params
-				})
-				if (overallRes.code === 200 && overallRes.data) {
-					faultOverall.value = overallRes.data
+				const overallFaultRes = await statisticsApi.getFaultOverallStatistics(params)
+				if (overallFaultRes) {
+					faultOverall.value = overallFaultRes
 				}
 			}
 		} catch (e) {

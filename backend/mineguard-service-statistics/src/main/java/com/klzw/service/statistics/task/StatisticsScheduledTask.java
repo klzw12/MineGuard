@@ -1,11 +1,13 @@
 package com.klzw.service.statistics.task;
 
+import com.klzw.common.core.client.DriverClient;
+import com.klzw.common.core.client.UserClient;
+import com.klzw.common.core.client.VehicleClient;
 import com.klzw.service.statistics.service.StatisticsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -17,7 +19,8 @@ import java.util.Map;
 public class StatisticsScheduledTask {
 
     private final StatisticsService statisticsService;
-    private final RestTemplate restTemplate;
+    private final VehicleClient vehicleClient;
+    private final DriverClient driverClient;
 
     @Scheduled(cron = "0 5 0 * * ?")
     public void calculateDailyStatistics() {
@@ -72,30 +75,23 @@ public class StatisticsScheduledTask {
         log.info("开始执行车辆统计任务，统计日期：{}", yesterday);
         
         try {
-            String vehicleServiceUrl = "http://mineguard-service-vehicle/api/vehicle/ids";
-            @SuppressWarnings("unchecked")
-            Map<String, Object> response = restTemplate.getForObject(vehicleServiceUrl, Map.class);
+            List<Long> vehicleIds = vehicleClient.getVehicleIds();
             
-            if (response != null && response.get("data") != null) {
-                @SuppressWarnings("unchecked")
-                List<Long> vehicleIds = (List<Long>) response.get("data");
+            if (vehicleIds != null && !vehicleIds.isEmpty()) {
+                int successCount = 0;
+                int failCount = 0;
                 
-                if (vehicleIds != null && !vehicleIds.isEmpty()) {
-                    int successCount = 0;
-                    int failCount = 0;
-                    
-                    for (Long vehicleId : vehicleIds) {
-                        try {
-                            statisticsService.calculateVehicleStatistics(vehicleId, yesterday.toString());
-                            successCount++;
-                        } catch (Exception e) {
-                            log.error("车辆统计失败：车辆ID={}", vehicleId, e);
-                            failCount++;
-                        }
+                for (Long vehicleId : vehicleIds) {
+                    try {
+                        statisticsService.calculateVehicleStatistics(vehicleId, yesterday.toString());
+                        successCount++;
+                    } catch (Exception e) {
+                        log.error("车辆统计失败：车辆ID={}", vehicleId, e);
+                        failCount++;
                     }
-                    
-                    log.info("车辆统计任务完成：成功={}, 失败={}", successCount, failCount);
                 }
+                
+                log.info("车辆统计任务完成：成功={}, 失败={}", successCount, failCount);
             }
         } catch (Exception e) {
             log.error("获取车辆列表失败", e);
@@ -110,30 +106,23 @@ public class StatisticsScheduledTask {
         log.info("开始执行司机统计任务，统计日期：{}", yesterday);
         
         try {
-            String userServiceUrl = "http://mineguard-service-user/api/user/driver-ids";
-            @SuppressWarnings("unchecked")
-            Map<String, Object> response = restTemplate.getForObject(userServiceUrl, Map.class);
+            List<Long> driverIds = driverClient.getDriverIds();
             
-            if (response != null && response.get("data") != null) {
-                @SuppressWarnings("unchecked")
-                List<Long> driverIds = (List<Long>) response.get("data");
+            if (driverIds != null && !driverIds.isEmpty()) {
+                int successCount = 0;
+                int failCount = 0;
                 
-                if (driverIds != null && !driverIds.isEmpty()) {
-                    int successCount = 0;
-                    int failCount = 0;
-                    
-                    for (Long userId : driverIds) {
-                        try {
-                            statisticsService.calculateDriverStatistics(userId, yesterday.toString());
-                            successCount++;
-                        } catch (Exception e) {
-                            log.error("司机统计失败：用户ID={}", userId, e);
-                            failCount++;
-                        }
+                for (Long userId : driverIds) {
+                    try {
+                        statisticsService.calculateDriverStatistics(userId, yesterday.toString());
+                        successCount++;
+                    } catch (Exception e) {
+                        log.error("司机统计失败：用户ID={}", userId, e);
+                        failCount++;
                     }
-                    
-                    log.info("司机统计任务完成：成功={}, 失败={}", successCount, failCount);
                 }
+                
+                log.info("司机统计任务完成：成功={}, 失败={}", successCount, failCount);
             }
         } catch (Exception e) {
             log.error("获取司机列表失败", e);

@@ -13,7 +13,7 @@ import java.util.List;
 
 @Tag(name = "车辆保养管理", description = "车辆保养管理接口")
 @RestController
-@RequestMapping("/api/vehicle/maintenance")
+@RequestMapping("/vehicle/maintenance")
 @RequiredArgsConstructor
 public class VehicleMaintenanceController {
     

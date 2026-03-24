@@ -1,0 +1,24 @@
+# Web模块配置 - 开发环境
+mineguard:
+  web:
+    enabled: true
+    file-upload:
+      max-file-size: "50MB"
+      max-request-size: "100MB"
+knife4j:
+  enable:
+    true
+# Spring Web配置
+spring:
+  web:
+    resources:
+      static-locations: "classpath:/static/"
+  validation:
+    enabled: true
+  servlet:
+    multipart:
+      maxFileSize: "10MB"
+      maxRequestSize: "20MB" 
+
+
+# 注意：这里不配置 logging.level，由 common-core 统一管理

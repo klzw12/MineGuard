@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/trip/track")
+@RequestMapping("/trip/track")
 @Tag(name = "轨迹管理", description = "轨迹管理接口")
 @RequiredArgsConstructor
 public class TripTrackController {

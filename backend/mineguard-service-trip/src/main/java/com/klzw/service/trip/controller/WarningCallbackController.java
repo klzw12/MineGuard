@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/trip/warning")
+@RequestMapping("/trip/warning")
 @RequiredArgsConstructor
 public class WarningCallbackController {
 

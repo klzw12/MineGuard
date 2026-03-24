@@ -47,7 +47,6 @@ public class CostServiceImpl implements CostService {
     private final CostBudgetMapper costBudgetMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final PythonClient pythonClient;
-    private final StatisticsClient statisticsClient;
     private final TransportClient transportClient;
     private final TripClient tripClient;
     private final VehicleClient vehicleClient;

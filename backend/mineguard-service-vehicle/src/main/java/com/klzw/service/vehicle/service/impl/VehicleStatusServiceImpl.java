@@ -12,7 +12,7 @@ import com.klzw.service.vehicle.mapper.VehicleMapper;
 import com.klzw.service.vehicle.mapper.VehicleStatusMapper;
 import com.klzw.service.vehicle.service.VehicleStatusService;
 import com.klzw.service.vehicle.service.VehicleStatusPushService;
-import com.klzw.service.vehicle.service.FatigueWarningService;
+
 import com.klzw.service.vehicle.vo.VehicleStatusVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +37,6 @@ public class VehicleStatusServiceImpl extends ServiceImpl<VehicleStatusMapper, V
     private final RedisCacheService redisCacheService;
     private final TripClient tripClient;
     private final com.klzw.service.vehicle.service.VehicleMaintenanceService vehicleMaintenanceService;
-    private final FatigueWarningService fatigueWarningService;
 
     private static final int HEARTBEAT_INTERVAL_SECONDS = 30;
     private static final int FATIGUE_THRESHOLD_MINUTES = 240;
@@ -214,12 +213,7 @@ public class VehicleStatusServiceImpl extends ServiceImpl<VehicleStatusMapper, V
     }
     
     private void checkFatigueDriving(Long vehicleId, Long tripId) {
-        String fatigueRestKey = "vehicle:fatigue:rest:" + vehicleId;
-        if (redisCacheService.exists(fatigueRestKey)) {
-            log.warn("司机处于疲劳驾驶休息状态：vehicleId={}", vehicleId);
-            return;
-        }
-        
+        // 疲劳驾驶检测已迁移到预警服务，此处仅记录驾驶时间
         String fatigueKey = "vehicle:fatigue:" + vehicleId;
         Integer currentMinutes = redisCacheService.get(fatigueKey);
         if (currentMinutes == null) {
@@ -229,15 +223,7 @@ public class VehicleStatusServiceImpl extends ServiceImpl<VehicleStatusMapper, V
         currentMinutes += 1;
         redisCacheService.set(fatigueKey, currentMinutes, 8, TimeUnit.HOURS);
         
-        log.debug("疲劳驾驶时间累计：vehicleId={}, minutes={}", vehicleId, currentMinutes);
-        
-        if (currentMinutes >= FATIGUE_THRESHOLD_MINUTES) {
-            log.warn("疲劳驾驶预警：vehicleId={}, 连续驾驶时间={}分钟", vehicleId, currentMinutes);
-            fatigueWarningService.sendFatigueWarning(vehicleId, tripId, currentMinutes);
-            
-            redisCacheService.set(fatigueRestKey, "REST_REQUIRED", FATIGUE_REST_MINUTES, TimeUnit.MINUTES);
-            log.info("已标记司机疲劳驾驶休息状态：vehicleId={}, 需休息{}分钟", vehicleId, FATIGUE_REST_MINUTES);
-        }
+        log.debug("驾驶时间累计：vehicleId={}, minutes={}", vehicleId, currentMinutes);
     }
     
     private void resetFatigueDrivingTime(Long vehicleId) {

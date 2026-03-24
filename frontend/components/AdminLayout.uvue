@@ -15,7 +15,7 @@
 				</view>
 				<view class="user-info">
 					<view class="user-details">
-						<text class="user-name">张三</text>
+						<text class="user-name">{{ userInfo?.username || '管理员' }}</text>
 						<text class="user-role">超级管理员</text>
 					</view>
 					<view class="user-avatar">
@@ -35,6 +35,11 @@
 
 <script setup lang="uts">
 	import AdminSidebar from './AdminSidebar.uvue'
+	import { useUserStore } from '@/stores/user.uts'
+	import { ref, onMounted } from 'vue'
+	
+	const userStore = useUserStore()
+	const userInfo = ref(userStore.userInfo)
 </script>
 
 <style lang="scss">

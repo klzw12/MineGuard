@@ -13,7 +13,7 @@ import java.util.List;
 
 @Tag(name = "车辆保险管理", description = "车辆保险管理接口")
 @RestController
-@RequestMapping("/api/vehicle/insurance")
+@RequestMapping("/vehicle/insurance")
 @RequiredArgsConstructor
 public class VehicleInsuranceController {
     

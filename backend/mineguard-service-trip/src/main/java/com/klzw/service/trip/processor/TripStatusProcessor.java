@@ -1,8 +1,8 @@
 package com.klzw.service.trip.processor;
 
 import com.klzw.common.core.client.MessageClient;
+import com.klzw.common.core.client.VehicleClient;
 import com.klzw.service.trip.entity.Trip;
-import com.klzw.service.trip.service.TripService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -12,32 +12,72 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class TripStatusProcessor {
 
-    private final TripService tripService;
     private final MessageClient messageClient;
+    private final VehicleClient vehicleClient;
 
     public void processStatusChange(Trip trip, int oldStatus, int newStatus) {
         log.info("行程状态变化：行程ID={}, 旧状态={}, 新状态={}", 
                 trip.getId(), oldStatus, newStatus);
 
+        // 更新车辆状态
+        updateVehicleStatus(trip, newStatus);
+
         String notificationContent = generateNotificationContent(trip, oldStatus, newStatus);
         if (notificationContent != null) {
-            messageClient.sendNotification(
+            messageClient.sendMessage(
                 trip.getDriverId(),
                 "行程状态变更",
                 notificationContent,
-                3,
-                trip.getId(),
-                "TRIP"
+                "TRIP",
+                trip.getId().toString()
             );
 
-            messageClient.sendNotification(
+            messageClient.sendMessage(
                 1L,
                 "行程状态变更",
                 notificationContent,
-                3,
-                trip.getId(),
-                "TRIP"
+                "TRIP",
+                trip.getId().toString()
             );
+        }
+    }
+
+    private void updateVehicleStatus(Trip trip, int newStatus) {
+        try {
+            Long vehicleId = trip.getVehicleId();
+            if (vehicleId == null) {
+                log.warn("行程车辆ID为空，无法更新车辆状态：行程ID={}", trip.getId());
+                return;
+            }
+
+            // 根据行程状态更新车辆状态
+            int vehicleStatus = 0; // 默认为离线
+            switch (newStatus) {
+                case 0: // 待开始
+                case 1: // 已接单
+                    vehicleStatus = 1; // 空闲
+                    break;
+                case 2: // 进行中
+                    vehicleStatus = 2; // 行驶中
+                    break;
+                case 3: // 已完成
+                case 4: // 已取消
+                    vehicleStatus = 1; // 空闲
+                    break;
+                case 5: // 暂停中
+                    vehicleStatus = 3; // 特殊状态
+                    break;
+                default:
+                    vehicleStatus = 0; // 离线
+            }
+
+            log.info("更新车辆状态：vehicleId={}, status={}", vehicleId, vehicleStatus);
+            // 调用车辆服务更新状态
+            com.klzw.common.core.domain.dto.VehicleStatus status = new com.klzw.common.core.domain.dto.VehicleStatus();
+            status.setStatus(vehicleStatus);
+            vehicleClient.updateStatus(vehicleId, status);
+        } catch (Exception e) {
+            log.error("更新车辆状态失败：行程ID={}", trip.getId(), e);
         }
     }
 

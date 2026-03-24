@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: python-service
+
+server:
+  port: 8009
+
+
+
+

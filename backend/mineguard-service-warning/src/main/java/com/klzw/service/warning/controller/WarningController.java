@@ -24,7 +24,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/warning")
+@RequestMapping("/warning")
 @Tag(name = "预警管理", description = "预警管理接口")
 @RequiredArgsConstructor
 public class WarningController {

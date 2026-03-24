@@ -17,20 +17,26 @@ public class HttpExchangeConfig {
     @Value("${service.vehicle.url:http://localhost:8082}")
     private String vehicleServiceUrl;
 
-    @Value("${service.trip.url:http://localhost:8083}")
-    private String tripServiceUrl;
-
-    @Value("${service.dispatch.url:http://localhost:8084}")
+    @Value("${service.dispatch.url:http://localhost:8083}")
     private String dispatchServiceUrl;
 
-    @Value("${service.cost.url:http://localhost:8085}")
+    @Value("${service.trip.url:http://localhost:8084}")
+    private String tripServiceUrl;
+
+    @Value("${service.warning.url:http://localhost:8085}")
+    private String warningServiceUrl;
+
+    @Value("${service.cost.url:http://localhost:8087}")
     private String costServiceUrl;
 
-    @Value("${service.ai.url:http://localhost:8086}")
+    @Value("${service.statistics.url:http://localhost:8086}")
+    private String statisticsServiceUrl;
+
+    @Value("${service.ai.url:http://localhost:8088}")
     private String aiServiceUrl;
 
-    @Value("${service.statistics.url:http://localhost:8087}")
-    private String statisticsServiceUrl;
+    @Value("${service.python.url:http://localhost:8009}")
+    private String pythonServiceUrl;
 
     private <T> T createClient(Class<T> clientClass, String baseUrl) {
         WebClient webClient = WebClient.builder()
@@ -73,7 +79,7 @@ public class HttpExchangeConfig {
     
     @Bean
     public StatisticsClient statisticsClient() {
-        return createClient(StatisticsClient.class, tripServiceUrl);
+        return createClient(StatisticsClient.class, statisticsServiceUrl);
     }
     
     @Bean
@@ -82,7 +88,17 @@ public class HttpExchangeConfig {
     }
     
     @Bean
+    public WarningClient warningClient() {
+        return createClient(WarningClient.class, warningServiceUrl);
+    }
+    
+    @Bean
     public TransportClient transportClient() {
         return createClient(TransportClient.class, statisticsServiceUrl);
+    }
+    
+    @Bean
+    public PythonClient pythonClient() {
+        return createClient(PythonClient.class, pythonServiceUrl);
     }
 }

@@ -6,6 +6,7 @@ import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.domain.dto.TripResponse;
 import com.klzw.common.core.domain.dto.TripCreateRequest;
 import com.klzw.service.trip.dto.TripDTO;
+import com.klzw.service.trip.dto.TripStatisticsResponseDTO;
 import com.klzw.service.trip.entity.Trip;
 import com.klzw.service.trip.vo.TripStatisticsVO;
 import com.klzw.service.trip.vo.TripVO;

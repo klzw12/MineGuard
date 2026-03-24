@@ -13,7 +13,7 @@ import java.util.List;
 
 @Tag(name = "车辆加油管理", description = "车辆加油管理接口")
 @RestController
-@RequestMapping("/api/vehicle/refueling")
+@RequestMapping("/vehicle/refueling")
 @RequiredArgsConstructor
 public class VehicleRefuelingController {
     

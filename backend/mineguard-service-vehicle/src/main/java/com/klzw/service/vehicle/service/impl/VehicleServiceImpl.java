@@ -284,7 +284,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                 vehicle.setDimensions(parseResult.get("dimensions"));
             }
             if (parseResult.containsKey("remarks")) {
-                vehicle.setRemarks(parseResult.get("remarks"));
+                vehicle.setRemark(parseResult.get("remarks"));
             }
             if (parseResult.containsKey("inspectionRecord")) {
                 vehicle.setInspectionRecord(parseResult.get("inspectionRecord"));
@@ -499,7 +499,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         vo.setCurbWeight(vehicle.getCurbWeight());
         vo.setRatedLoad(vehicle.getRatedLoad());
         vo.setDimensions(vehicle.getDimensions());
-        vo.setRemarks(vehicle.getRemarks());
+        vo.setRemarks(vehicle.getRemark());
         vo.setInspectionRecord(vehicle.getInspectionRecord());
         
         // 查询保险信息并填充

@@ -45,13 +45,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
-    private static final Long ADMIN_ROLE_ID = 1L;
     private static final Long TOKEN_EXPIRE_TIME = 7200000L;
     private static final String SMS_CODE_PREFIX = "sms:code:";
     private static final long SMS_CODE_EXPIRE = 5;
+    private static final String ADMIN_ROLE_CODE = "ADMIN";
 
     private final UserService userService;
     private final UserMapper userMapper;
+    private final RoleMapper roleMapper;
     private final PasswordUtils passwordUtils;
     private final JwtUtils jwtUtils;
     private final StorageService storageService;
@@ -106,7 +107,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 检查用户状态，管理员即使被禁用也允许登录
-        if (user.getStatus() != UserStatusEnum.ENABLED.getValue() && !ADMIN_ROLE_ID.equals(user.getRoleId())) {
+        boolean isAdmin = isAdmin(user);
+        if (user.getStatus() != UserStatusEnum.ENABLED.getValue() && !isAdmin) {
             throw new UserException(UserResultCode.USER_DISABLED);
         }
 
@@ -165,6 +167,18 @@ public class AuthServiceImpl implements AuthService {
         } catch (Exception e) {
             throw new AuthException(AuthResultCode.TOKEN_INVALID, "刷新令牌无效或已过期");
         }
+    }
+
+    /**
+     * 判断用户是否为管理员
+     */
+    private boolean isAdmin(User user) {
+        if (user == null || user.getRoleId() == null) {
+            return false;
+        }
+        
+        Role role = roleMapper.selectById(user.getRoleId());
+        return role != null && ADMIN_ROLE_CODE.equals(role.getRoleCode());
     }
 
     @Override
@@ -241,7 +255,7 @@ public class AuthServiceImpl implements AuthService {
             throw new UserException(UserResultCode.USER_NOT_FOUND);
         }
         
-        if (!ADMIN_ROLE_ID.equals(user.getRoleId())) {
+        if (!isAdmin(user)) {
             throw new UserException(UserResultCode.PARAM_ERROR, "非管理员用户无法进行管理员认证");
         }
         

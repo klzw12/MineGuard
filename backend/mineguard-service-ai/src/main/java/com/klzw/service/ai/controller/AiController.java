@@ -1,26 +1,19 @@
 package com.klzw.service.ai.controller;
 
+import com.klzw.common.core.client.PythonClient;
 import com.klzw.common.core.result.Result;
 import com.klzw.service.ai.dto.ProviderSwitchDTO;
 import com.klzw.service.ai.service.AiService;
-import com.klzw.service.ai.service.PythonServiceClient;
 import com.klzw.service.ai.vo.AnalysisResultVO;
 import com.klzw.service.ai.vo.ProviderVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 @Slf4j
@@ -30,7 +23,7 @@ import java.util.Map;
 public class AiController {
 
     private final AiService aiService;
-    private final PythonServiceClient pythonServiceClient;
+    private final PythonClient pythonClient;
 
     @PostMapping("/analyze/statistics")
     public Result<AnalysisResultVO> analyzeStatisticsData(@RequestBody Map<String, Object> statisticsData) {
@@ -122,86 +115,24 @@ public class AiController {
         return Result.success(vo);
     }
 
-    @PostMapping("/export/statistics")
-    public ResponseEntity<byte[]> exportStatistics(@RequestBody Map<String, Object> exportRequest) {
-        log.debug("导出统计报表：{}", exportRequest);
-        byte[] data = pythonServiceClient.exportStatistics(exportRequest);
-        String filename = generateFilename("statistics", exportRequest);
-        return buildExcelResponse(data, filename);
-    }
-
-    @PostMapping("/export/trip-report")
-    public ResponseEntity<byte[]> exportTripReport(@RequestBody Map<String, Object> exportRequest) {
-        log.debug("导出行程报表：{}", exportRequest);
-        byte[] data = pythonServiceClient.exportTripReport(exportRequest);
-        String filename = generateFilename("trip_report", exportRequest);
-        return buildExcelResponse(data, filename);
-    }
-
-    @PostMapping("/export/cost-report")
-    public ResponseEntity<byte[]> exportCostReport(@RequestBody Map<String, Object> exportRequest) {
-        log.debug("导出成本报表：{}", exportRequest);
-        byte[] data = pythonServiceClient.exportCostReport(exportRequest);
-        String filename = generateFilename("cost_report", exportRequest);
-        return buildExcelResponse(data, filename);
-    }
-
-    @PostMapping("/export/vehicle-report")
-    public ResponseEntity<byte[]> exportVehicleReport(@RequestBody Map<String, Object> exportRequest) {
-        log.debug("导出车辆报表：{}", exportRequest);
-        byte[] data = pythonServiceClient.exportVehicleReport(exportRequest);
-        String filename = generateFilename("vehicle_report", exportRequest);
-        return buildExcelResponse(data, filename);
-    }
-
-    @PostMapping("/export/driver-report")
-    public ResponseEntity<byte[]> exportDriverReport(@RequestBody Map<String, Object> exportRequest) {
-        log.debug("导出司机报表：{}", exportRequest);
-        byte[] data = pythonServiceClient.exportDriverReport(exportRequest);
-        String filename = generateFilename("driver_report", exportRequest);
-        return buildExcelResponse(data, filename);
-    }
-
     @PostMapping("/clean/driving-data")
     public Result<Map<String, Object>> cleanDrivingData(@RequestBody Map<String, Object> drivingData) {
         log.debug("清洗驾驶数据：{}", drivingData);
-        Map<String, Object> result = pythonServiceClient.cleanDrivingData(drivingData);
+        Map<String, Object> result = pythonClient.cleanDrivingData(drivingData);
         return Result.success(result);
     }
 
     @PostMapping("/clean/statistics-data")
     public Result<Map<String, Object>> cleanStatisticsData(@RequestBody Map<String, Object> statisticsData) {
         log.debug("清洗统计数据：{}", statisticsData);
-        Map<String, Object> result = pythonServiceClient.cleanStatisticsData(statisticsData);
+        Map<String, Object> result = pythonClient.cleanStatisticsData(statisticsData);
         return Result.success(result);
     }
 
     @PostMapping("/clean/cost-data")
     public Result<Map<String, Object>> cleanCostData(@RequestBody Map<String, Object> costData) {
         log.debug("清洗成本数据：{}", costData);
-        Map<String, Object> result = pythonServiceClient.cleanCostData(costData);
+        Map<String, Object> result = pythonClient.cleanCostData(costData);
         return Result.success(result);
-    }
-
-    private String generateFilename(String prefix, Map<String, Object> request) {
-        String customName = (String) request.get("filename");
-        if (customName != null && !customName.isEmpty()) {
-            return customName + ".xlsx";
-        }
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-        return prefix + "_" + timestamp + ".xlsx";
-    }
-
-    private ResponseEntity<byte[]> buildExcelResponse(byte[] data, String filename) {
-        if (data == null || data.length == 0) {
-            return ResponseEntity.noContent().build();
-        }
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        String encodedFilename = URLEncoder.encode(filename, StandardCharsets.UTF_8);
-        headers.setContentDispositionFormData("attachment", encodedFilename);
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(data);
     }
 }

@@ -27,4 +27,20 @@ public interface MessageClient {
         String type,
         String businessId
     );
+
+    /**
+     * 按角色发送消息
+     * 
+     * @param role 角色
+     * @param title 消息标题
+     * @param content 消息内容
+     * @param type 消息类型
+     */
+    @PostExchange("/api/message/send-by-role")
+    void sendMessageByRole(
+        String role,
+        String title,
+        String content,
+        String type
+    );
 }

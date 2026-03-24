@@ -157,7 +157,7 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
             throw new RuntimeException("车辆不存在或不可用");
         }
         
-        Boolean driverExists = userClient.existsById(driverId).block();
+        Boolean driverExists = userClient.existsById(driverId);
         if (driverExists == null || !driverExists) {
             throw new RuntimeException("司机不存在或不可用");
         }

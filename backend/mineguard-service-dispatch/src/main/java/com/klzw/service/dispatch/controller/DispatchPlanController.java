@@ -17,7 +17,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/dispatch/plan")
+@RequestMapping("/dispatch/plan")
 @Tag(name = "调度计划管理", description = "调度计划管理接口")
 @RequiredArgsConstructor
 public class DispatchPlanController {

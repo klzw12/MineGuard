@@ -64,3 +64,10 @@ backend/mineguard-common-core/src/main/resources/application-secret.yml
 backend/.env
 backend/.env.local
 backend/.env.*.local
+
+# Python服务敏感文件
+python-service/.env
+python-service/.env.local
+
+# Docker Compose 敏感配置
+docs/Forenv/compose/docker-compose-prod.yml

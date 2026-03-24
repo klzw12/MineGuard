@@ -7,7 +7,6 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
 @SpringBootApplication(scanBasePackages = {
     "com.klzw.service.user",
@@ -22,7 +21,6 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
         "com.klzw.common.web"
 })
 @MapperScan("com.klzw.service.user.mapper")
-@EnableMongoRepositories(basePackages = "com.klzw.common.websocket.repository")
 @RequiredArgsConstructor
 public class MineguardUserServiceApplication {
 

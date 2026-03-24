@@ -1,6 +1,8 @@
 package com.klzw.service.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.klzw.common.core.client.VehicleClient;
+import com.klzw.common.core.domain.dto.VehicleInfo;
 import com.klzw.service.user.entity.Driver;
 import com.klzw.service.user.entity.DriverVehicle;
 import com.klzw.service.user.mapper.DriverMapper;
@@ -13,11 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -27,7 +27,7 @@ public class DriverServiceImpl implements DriverService {
 
     private final DriverMapper driverMapper;
     private final DriverVehicleMapper driverVehicleMapper;
-    private final RestTemplate restTemplate;
+    private final VehicleClient vehicleClient;
 
     @Override
     public DriverVO getById(Long id) {
@@ -148,13 +148,11 @@ public class DriverServiceImpl implements DriverService {
                 }
             }
         }
-        
-        DriverVO bestDriver = availableDrivers.stream()
+
+        return availableDrivers.stream()
                 .peek(d -> d.setScore((int) calculateScore(d)))
                 .max((d1, d2) -> Double.compare(d1.getScore(), d2.getScore()))
-                .orElse(availableDrivers.get(0));
-        
-        return bestDriver;
+                .orElse(availableDrivers.getFirst());
     }
 
     @Override
@@ -203,7 +201,7 @@ public class DriverServiceImpl implements DriverService {
         if (wasDefault) {
             List<DriverVehicle> remaining = driverVehicleMapper.selectByDriverId(driverId);
             if (!remaining.isEmpty()) {
-                DriverVehicle newDefault = remaining.get(0);
+                DriverVehicle newDefault = remaining.getFirst();
                 newDefault.setIsDefault(1);
                 newDefault.setUpdateTime(LocalDateTime.now());
                 driverVehicleMapper.updateById(newDefault);
@@ -245,17 +243,12 @@ public class DriverServiceImpl implements DriverService {
             vo.setIsDefault(dv.getIsDefault() != null && dv.getIsDefault() == 1);
             
             try {
-                String url = "http://mineguard-service-vehicle/api/vehicle/" + dv.getVehicleId();
-                @SuppressWarnings("unchecked")
-                Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-                if (response != null && response.get("data") != null) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> vehicleData = (Map<String, Object>) response.get("data");
-                    vo.setVehicleNo((String) vehicleData.get("vehicleNo"));
-                    vo.setVehicleType((String) vehicleData.get("vehicleType"));
+                VehicleInfo vehicleInfo = vehicleClient.getById(dv.getVehicleId());
+                if (vehicleInfo != null) {
+                    vo.setVehicleNo(vehicleInfo.getLicensePlate());
                 }
             } catch (Exception e) {
-                log.warn("获取车辆信息失败：车辆ID={}", dv.getVehicleId());
+                log.warn("获取车辆信息失败：车辆 ID={}", dv.getVehicleId());
             }
             
             return vo;
@@ -289,22 +282,22 @@ public class DriverServiceImpl implements DriverService {
 
     private String getGenderName(Integer gender) {
         if (gender == null) return "未知";
-        switch (gender) {
-            case 1: return "男";
-            case 2: return "女";
-            default: return "未知";
-        }
+        return switch (gender) {
+            case 1 -> "男";
+            case 2 -> "女";
+            default -> "未知";
+        };
     }
 
     private String getStatusName(Integer status) {
         if (status == null) return "未知";
-        switch (status) {
-            case 0: return "离职";
-            case 1: return "在职";
-            case 2: return "休假";
-            case 3: return "停职";
-            default: return "未知";
-        }
+        return switch (status) {
+            case 0 -> "离职";
+            case 1 -> "在职";
+            case 2 -> "休假";
+            case 3 -> "停职";
+            default -> "未知";
+        };
     }
 
     private double calculateScore(DriverVO driver) {

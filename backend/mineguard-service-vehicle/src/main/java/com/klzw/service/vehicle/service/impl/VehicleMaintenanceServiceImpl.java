@@ -25,12 +25,13 @@ public class VehicleMaintenanceServiceImpl extends ServiceImpl<VehicleMaintenanc
         VehicleMaintenance maintenance = new VehicleMaintenance();
         maintenance.setVehicleId(maintenanceDTO.getVehicleId());
         maintenance.setMaintenanceType(maintenanceDTO.getMaintenanceType());
-        maintenance.setMaintenanceDate(maintenanceDTO.getMaintenanceDate());
+        maintenance.setMaintenanceDate(maintenanceDTO.getMaintenanceDate().atStartOfDay());
         maintenance.setMaintenanceContent(maintenanceDTO.getMaintenanceContent());
         maintenance.setMaintenanceCost(maintenanceDTO.getMaintenanceCost());
-        maintenance.setRepairmanId(maintenanceDTO.getRepairmanId());
         maintenance.setNextMaintenanceDate(maintenanceDTO.getNextMaintenanceDate());
-        maintenance.setMileage(maintenanceDTO.getMileage());
+        if (maintenanceDTO.getMileage() != null) {
+            maintenance.setMileage(maintenanceDTO.getMileage().intValue());
+        }
         maintenance.setRemark(maintenanceDTO.getRemark());
         save(maintenance);
         return maintenance;

@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.klzw.common.core.domain.PageRequest;
 import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.client.TripClient;
+import com.klzw.common.core.client.VehicleClient;
+import com.klzw.common.core.client.UserClient;
 import com.klzw.service.warning.constant.WarningResultCode;
 import com.klzw.service.warning.dto.WarningHandleDTO;
 import com.klzw.service.warning.dto.WarningRecordDTO;
@@ -35,6 +37,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -48,6 +51,8 @@ public class WarningRecordServiceImpl implements WarningRecordService {
     private final WarningTriggerProcessor warningTriggerProcessor;
     private final RedisCacheService redisCacheService;
     private final TripClient tripClient;
+    private final VehicleClient vehicleClient;
+    private final UserClient userClient;
 
     @Override
     public PageResult<WarningRecordVO> page(PageRequest pageRequest) {
@@ -345,13 +350,10 @@ public class WarningRecordServiceImpl implements WarningRecordService {
         
         String vehicleNo = "未知车辆";
         try {
-            com.klzw.service.warning.mapper.VehicleClient vehicleClient = null;
-            if (vehicleClient != null) {
-                com.klzw.service.warning.dto.VehicleDTO vehicle = vehicleClient.getVehicleById(vehicleId);
-                if (vehicle != null && vehicle.getPlateNumber() != null) {
-                    vehicleNo = vehicle.getPlateNumber();
-                    redisCacheService.set(key, vehicleNo, 24, TimeUnit.HOURS);
-                }
+            var vehicleInfo = vehicleClient.getById(vehicleId);
+            if (vehicleInfo != null && vehicleInfo.getLicensePlate() != null) {
+                vehicleNo = vehicleInfo.getLicensePlate();
+                redisCacheService.set(key, vehicleNo, 24, TimeUnit.HOURS);
             }
         } catch (Exception e) {
             log.warn("查询车辆信息失败：vehicleId={}", vehicleId);
@@ -369,13 +371,10 @@ public class WarningRecordServiceImpl implements WarningRecordService {
         
         String driverName = "未知司机";
         try {
-            com.klzw.service.warning.mapper.UserClient userClient = null;
-            if (userClient != null) {
-                com.klzw.service.warning.dto.UserDTO user = userClient.getUserById(driverId);
-                if (user != null && user.getName() != null) {
-                    driverName = user.getName();
-                    redisCacheService.set(key, driverName, 24, TimeUnit.HOURS);
-                }
+            var userInfo = userClient.getUserById(driverId);
+            if (userInfo != null && userInfo.getRealName() != null) {
+                driverName = userInfo.getRealName();
+                redisCacheService.set(key, driverName, 24, TimeUnit.HOURS);
             }
         } catch (Exception e) {
             log.warn("查询司机信息失败：driverId={}", driverId);
@@ -393,13 +392,10 @@ public class WarningRecordServiceImpl implements WarningRecordService {
         
         String tripNo = "未知行程";
         try {
-            com.klzw.service.warning.mapper.TripClient tripClient = null;
-            if (tripClient != null) {
-                com.klzw.service.warning.dto.TripDTO trip = tripClient.getTripById(tripId);
-                if (trip != null && trip.getTripNo() != null) {
-                    tripNo = trip.getTripNo();
-                    redisCacheService.set(key, tripNo, 24, TimeUnit.HOURS);
-                }
+            var tripInfo = tripClient.getTripById(tripId).block();
+            if (tripInfo != null && tripInfo.getTripNo() != null) {
+                tripNo = tripInfo.getTripNo();
+                redisCacheService.set(key, tripNo, 24, TimeUnit.HOURS);
             }
         } catch (Exception e) {
             log.warn("查询行程信息失败：tripId={}", tripId);
@@ -417,13 +413,10 @@ public class WarningRecordServiceImpl implements WarningRecordService {
         
         String handlerName = "未知处理人";
         try {
-            com.klzw.service.warning.mapper.UserClient userClient = null;
-            if (userClient != null) {
-                com.klzw.service.warning.dto.UserDTO user = userClient.getUserById(handlerId);
-                if (user != null && user.getName() != null) {
-                    handlerName = user.getName();
-                    redisCacheService.set(key, handlerName, 24, TimeUnit.HOURS);
-                }
+            var userInfo = userClient.getUserById(handlerId);
+            if (userInfo != null && userInfo.getRealName() != null) {
+                handlerName = userInfo.getRealName();
+                redisCacheService.set(key, handlerName, 24, TimeUnit.HOURS);
             }
         } catch (Exception e) {
             log.warn("查询处理人信息失败：handlerId={}", handlerId);
@@ -449,15 +442,16 @@ public class WarningRecordServiceImpl implements WarningRecordService {
         }
         
         Integer warningLevel = warningRecord.getWarningLevel();
+
         Long tripId = warningRecord.getTripId();
         
         try {
-            if (WarningLevelEnum.MEDIUM.getCode().equals(warningLevel)) {
+            if (warningLevel != null && WarningLevelEnum.MEDIUM.getCode() == warningLevel) {
                 // 中危预警：暂停行程
                 log.info("中危预警，暂停行程：warningId={}, tripId={}", warningRecord.getId(), tripId);
                 tripClient.pauseTrip(tripId).block();
                 
-            } else if (WarningLevelEnum.HIGH.getCode().equals(warningLevel)) {
+            } else if (warningLevel != null && WarningLevelEnum.HIGH.getCode() == warningLevel) {
                 // 高危预警：结束行程，持久化到 MongoDB，删除 Redis 数据
                 log.info("高危预警，结束行程：warningId={}, tripId={}", warningRecord.getId(), tripId);
                 tripClient.endTrip(tripId).block();

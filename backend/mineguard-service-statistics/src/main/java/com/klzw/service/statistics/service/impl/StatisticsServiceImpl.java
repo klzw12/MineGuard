@@ -34,6 +34,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final VehicleStatisticsMapper vehicleStatisticsMapper;
     private final DriverStatisticsMapper driverStatisticsMapper;
     private final TransportStatisticsMapper transportStatisticsMapper;
+    private final FaultStatisticsMapper faultStatisticsMapper;
     private final StatisticsClient statisticsClient;
     private final RedisTemplate<String, Object> redisTemplate;
     
@@ -197,23 +198,45 @@ public class StatisticsServiceImpl implements StatisticsService {
         VehicleStatistics entity = new VehicleStatistics();
         entity.setVehicleId(vehicleId);
         entity.setStatisticsDate(statisticsDate);
-        entity.setTripCount(0);
-        entity.setTotalDistance(BigDecimal.ZERO);
-        entity.setTotalDuration(BigDecimal.ZERO);
-        entity.setCargoWeight(BigDecimal.ZERO);
-        entity.setFuelConsumption(BigDecimal.ZERO);
-        entity.setFuelCost(BigDecimal.ZERO);
-        entity.setMaintenanceCount(0);
-        entity.setMaintenanceCost(BigDecimal.ZERO);
-        entity.setWarningCount(0);
-        entity.setViolationCount(0);
-        entity.setIdleDuration(BigDecimal.ZERO);
-        entity.setIdleDistance(BigDecimal.ZERO);
+        
+        try {
+            // 使用 StatisticsClient 调用相关服务获取车辆统计数据
+            // 这里可以调用多个服务获取不同维度的车辆数据
+            // 例如：行程数据、故障数据、维护数据等
+            // 为简化实现，暂时使用默认值
+            entity.setTripCount(0);
+            entity.setTotalDistance(BigDecimal.ZERO);
+            entity.setTotalDuration(BigDecimal.ZERO);
+            entity.setCargoWeight(BigDecimal.ZERO);
+            entity.setFuelConsumption(BigDecimal.ZERO);
+            entity.setFuelCost(BigDecimal.ZERO);
+            entity.setMaintenanceCount(0);
+            entity.setMaintenanceCost(BigDecimal.ZERO);
+            entity.setWarningCount(0);
+            entity.setViolationCount(0);
+            entity.setIdleDuration(BigDecimal.ZERO);
+            entity.setIdleDistance(BigDecimal.ZERO);
+        } catch (Exception e) {
+            log.warn("获取车辆统计数据失败，使用默认值：{}", e.getMessage());
+            entity.setTripCount(0);
+            entity.setTotalDistance(BigDecimal.ZERO);
+            entity.setTotalDuration(BigDecimal.ZERO);
+            entity.setCargoWeight(BigDecimal.ZERO);
+            entity.setFuelConsumption(BigDecimal.ZERO);
+            entity.setFuelCost(BigDecimal.ZERO);
+            entity.setMaintenanceCount(0);
+            entity.setMaintenanceCost(BigDecimal.ZERO);
+            entity.setWarningCount(0);
+            entity.setViolationCount(0);
+            entity.setIdleDuration(BigDecimal.ZERO);
+            entity.setIdleDistance(BigDecimal.ZERO);
+        }
+        
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         
         vehicleStatisticsMapper.insert(entity);
-        log.info("计算车辆统计数据：车辆 ID={}, 日期={}", vehicleId, date);
+        log.info("计算车辆统计数据：车辆 ID={}, 日期={}, 行程数={}", vehicleId, date, entity.getTripCount());
         
         VehicleStatisticsVO vo = convertToVehicleStatisticsVO(entity);
         
@@ -244,23 +267,45 @@ public class StatisticsServiceImpl implements StatisticsService {
         DriverStatistics entity = new DriverStatistics();
         entity.setUserId(userId);
         entity.setStatisticsDate(statisticsDate);
-        entity.setAttendanceDays(0);
-        entity.setAttendanceHours(BigDecimal.ZERO);
-        entity.setTripCount(0);
-        entity.setTotalDistance(BigDecimal.ZERO);
-        entity.setCargoWeight(BigDecimal.ZERO);
-        entity.setLateCount(0);
-        entity.setEarlyLeaveCount(0);
-        entity.setWarningCount(0);
-        entity.setViolationCount(0);
-        entity.setOverSpeedCount(0);
-        entity.setRouteDeviationCount(0);
-        entity.setPerformanceScore(BigDecimal.valueOf(100));
+        
+        try {
+            // 使用 StatisticsClient 调用相关服务获取司机统计数据
+            // 这里可以调用多个服务获取不同维度的司机数据
+            // 例如：考勤数据、行程数据、违规数据等
+            // 为简化实现，暂时使用默认值
+            entity.setAttendanceDays(0);
+            entity.setAttendanceHours(BigDecimal.ZERO);
+            entity.setTripCount(0);
+            entity.setTotalDistance(BigDecimal.ZERO);
+            entity.setCargoWeight(BigDecimal.ZERO);
+            entity.setLateCount(0);
+            entity.setEarlyLeaveCount(0);
+            entity.setWarningCount(0);
+            entity.setViolationCount(0);
+            entity.setOverSpeedCount(0);
+            entity.setRouteDeviationCount(0);
+            entity.setPerformanceScore(BigDecimal.valueOf(100));
+        } catch (Exception e) {
+            log.warn("获取司机统计数据失败，使用默认值：{}", e.getMessage());
+            entity.setAttendanceDays(0);
+            entity.setAttendanceHours(BigDecimal.ZERO);
+            entity.setTripCount(0);
+            entity.setTotalDistance(BigDecimal.ZERO);
+            entity.setCargoWeight(BigDecimal.ZERO);
+            entity.setLateCount(0);
+            entity.setEarlyLeaveCount(0);
+            entity.setWarningCount(0);
+            entity.setViolationCount(0);
+            entity.setOverSpeedCount(0);
+            entity.setRouteDeviationCount(0);
+            entity.setPerformanceScore(BigDecimal.valueOf(100));
+        }
+        
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         
         driverStatisticsMapper.insert(entity);
-        log.info("计算司机统计数据：用户 ID={}, 日期={}", userId, date);
+        log.info("计算司机统计数据：用户 ID={}, 日期={}, 行程数={}", userId, date, entity.getTripCount());
         
         DriverStatisticsVO vo = convertToDriverStatisticsVO(entity);
         
@@ -521,25 +566,90 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
     
     @Override
-    public FaultStatisticsVO calculateFaultStatistics(Long vehicleId, String date) {
+    public void calculateFaultStatistics(Long vehicleId, String date) {
+        LocalDate statisticsDate = LocalDate.parse(date);
+        
         // 删除旧缓存
         String cacheKey = "statistics:fault:" + vehicleId + ":" + date;
         redisTemplate.delete(cacheKey);
         
-        // 调用 fault statistics service
-        FaultStatisticsVO vo = new FaultStatisticsVO();
-        // TODO: 实现故障统计计算逻辑
+        FaultStatistics existing = faultStatisticsMapper.selectOne(
+            new LambdaQueryWrapper<FaultStatistics>()
+                .eq(FaultStatistics::getVehicleId, vehicleId)
+                .eq(FaultStatistics::getStatisticsDate, statisticsDate)
+        );
+        
+        if (existing != null) {
+            faultStatisticsMapper.deleteById(existing.getId());
+        }
+        
+        FaultStatistics entity = new FaultStatistics();
+        entity.setVehicleId(vehicleId);
+        entity.setStatisticsDate(statisticsDate);
+        
+        try {
+            // 使用 StatisticsClient 调用 vehicle-service 获取故障统计数据
+            java.util.Map<String, Object> faultStats = statisticsClient.getFaultStatistics(date, date);
+            
+            if (faultStats != null) {
+                entity.setFaultCount(getIntegerValue(faultStats, "faultCount"));
+                entity.setMinorFaultCount(getIntegerValue(faultStats, "minorFaultCount"));
+                entity.setMajorFaultCount(getIntegerValue(faultStats, "majorFaultCount"));
+                entity.setCriticalFaultCount(getIntegerValue(faultStats, "criticalFaultCount"));
+                entity.setTotalRepairCost(getBigDecimalValue(faultStats, "totalRepairCost"));
+                entity.setAvgRepairTime(getBigDecimalValue(faultStats, "avgRepairTime"));
+                entity.setTopFaultType((String) faultStats.get("topFaultType"));
+                entity.setTopFaultCount(getIntegerValue(faultStats, "topFaultCount"));
+                entity.setRepairedCount(getIntegerValue(faultStats, "repairedCount"));
+                entity.setPendingCount(getIntegerValue(faultStats, "pendingCount"));
+            }
+        } catch (Exception e) {
+            log.warn("从车辆服务获取故障统计数据失败，使用默认值：{}", e.getMessage());
+            entity.setFaultCount(0);
+            entity.setMinorFaultCount(0);
+            entity.setMajorFaultCount(0);
+            entity.setCriticalFaultCount(0);
+            entity.setTotalRepairCost(BigDecimal.ZERO);
+            entity.setAvgRepairTime(BigDecimal.ZERO);
+            entity.setTopFaultType("无");
+            entity.setTopFaultCount(0);
+            entity.setRepairedCount(0);
+            entity.setPendingCount(0);
+        }
+        
+        entity.setCreateTime(LocalDateTime.now());
+        entity.setUpdateTime(LocalDateTime.now());
+        
+        faultStatisticsMapper.insert(entity);
+        log.info("计算故障统计数据：车辆 ID={}, 日期={}, 故障数={}", vehicleId, date, entity.getFaultCount());
+        
+        FaultStatisticsVO vo = convertToFaultStatisticsVO(entity);
         
         // 写入缓存
         redisTemplate.opsForValue().set(cacheKey, vo, CACHE_EXPIRE_DAYS, TimeUnit.DAYS);
-        
-        return vo;
     }
     
     @Override
-    public List<FaultStatisticsVO> getFaultStatistics(StatisticsQueryDTO queryDTO) {
-        // 实现故障统计查询逻辑
-        return List.of();
+    public FaultStatisticsVO getFaultStatistics(StatisticsQueryDTO queryDTO) {
+        LambdaQueryWrapper<FaultStatistics> wrapper = new LambdaQueryWrapper<>();
+        
+        if (queryDTO.getVehicleId() != null) {
+            wrapper.eq(FaultStatistics::getVehicleId, queryDTO.getVehicleId());
+        }
+        if (queryDTO.getStartDate() != null) {
+            wrapper.ge(FaultStatistics::getStatisticsDate, queryDTO.getStartDate());
+        }
+        if (queryDTO.getEndDate() != null) {
+            wrapper.le(FaultStatistics::getStatisticsDate, queryDTO.getEndDate());
+        }
+        
+        wrapper.orderByDesc(FaultStatistics::getStatisticsDate);
+        
+        List<FaultStatistics> list = faultStatisticsMapper.selectList(wrapper);
+        if (list != null && !list.isEmpty()) {
+            return convertToFaultStatisticsVO(list.get(0));
+        }
+        return new FaultStatisticsVO();
     }
 
     private TripStatisticsVO convertToTripStatisticsVO(TripStatistics entity) {
@@ -580,6 +690,50 @@ public class StatisticsServiceImpl implements StatisticsService {
         TransportStatisticsVO vo = new TransportStatisticsVO();
         BeanUtils.copyProperties(entity, vo);
         return vo;
+    }
+    
+    private FaultStatisticsVO convertToFaultStatisticsVO(FaultStatistics entity) {
+        FaultStatisticsVO vo = new FaultStatisticsVO();
+        BeanUtils.copyProperties(entity, vo);
+        return vo;
+    }
+    
+    @Override
+    public void calculateMonthlyTripStatistics(LocalDate startDate, LocalDate endDate) {
+        log.info("计算月度行程统计：startDate={}, endDate={}", startDate, endDate);
+        
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            try {
+                String dateStr = currentDate.toString();
+                calculateTripStatistics(dateStr);
+                log.debug("计算行程统计：日期={}", dateStr);
+            } catch (Exception e) {
+                log.warn("计算行程统计失败：日期={}, 错误={}", currentDate, e.getMessage());
+            }
+            currentDate = currentDate.plusDays(1);
+        }
+        
+        log.info("月度行程统计计算完成：共计算 {} 天", startDate.until(endDate).getDays() + 1);
+    }
+    
+    @Override
+    public void calculateMonthlyCostStatistics(LocalDate startDate, LocalDate endDate) {
+        log.info("计算月度成本统计：startDate={}, endDate={}", startDate, endDate);
+        
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            try {
+                String dateStr = currentDate.toString();
+                calculateCostStatistics(dateStr);
+                log.debug("计算成本统计：日期={}", dateStr);
+            } catch (Exception e) {
+                log.warn("计算成本统计失败：日期={}, 错误={}", currentDate, e.getMessage());
+            }
+            currentDate = currentDate.plusDays(1);
+        }
+        
+        log.info("月度成本统计计算完成：共计算 {} 天", startDate.until(endDate).getDays() + 1);
     }
     
     /**

@@ -280,7 +280,7 @@
 <script setup lang="uts">
 	import AdminLayout from '../../../components/AdminLayout.uvue'
 	import { ref, onMounted } from 'vue'
-	import { request } from '../../../utils/request'
+	import { request } from '@/utils/request.uts'
 
 	type CostDetailVO = {
 		id: number,

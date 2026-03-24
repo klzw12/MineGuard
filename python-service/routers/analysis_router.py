@@ -111,6 +111,59 @@ async def analyze_driving_behavior(request: AnalysisRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@analysis_router.get("/driving-behavior/{tripId}")
+async def analyze_driving_behavior_by_trip_id(tripId: int):
+    """
+    通过行程ID分析驾驶行为并返回评分
+    """
+    try:
+        # 这里应该根据tripId从数据库获取驾驶轨迹数据
+        # 为了演示，我们生成一些模拟数据
+        import random
+        
+        # 生成模拟的驾驶轨迹数据
+        track_points = []
+        for i in range(100):
+            track_points.append({
+                'latitude': 30.0 + random.random() * 0.1,
+                'longitude': 114.0 + random.random() * 0.1,
+                'speed': random.uniform(20, 80),
+                'timestamp': (datetime.now() - timedelta(minutes=i)).isoformat()
+            })
+        
+        df = pd.DataFrame(track_points)
+        
+        # 分析驾驶行为
+        result = {}
+        
+        # 1. 速度分析
+        if 'speed' in df.columns:
+            speed_stats = analyze_speed(df)
+            result['speed_analysis'] = speed_stats
+        
+        # 2. 加减速分析
+        acceleration_stats = analyze_acceleration(df)
+        result['acceleration_analysis'] = acceleration_stats
+        
+        # 3. 轨迹分析
+        if 'latitude' in df.columns and 'longitude' in df.columns:
+            trajectory_stats = analyze_trajectory(df)
+            result['trajectory_analysis'] = trajectory_stats
+        
+        # 4. 时间分析
+        if 'timestamp' in df.columns:
+            time_stats = analyze_time(df)
+            result['time_analysis'] = time_stats
+        
+        # 5. 计算综合评分
+        score = calculate_driving_score(result)
+        
+        return score
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @analysis_router.post("/cost-analysis", response_model=AnalysisResult)
 async def analyze_cost(request: AnalysisRequest):
     """

@@ -201,3 +201,4 @@ export const http = {
 }
 
 export { getToken, setToken, removeToken, setRefreshToken, getRefreshToken }
+export { request }

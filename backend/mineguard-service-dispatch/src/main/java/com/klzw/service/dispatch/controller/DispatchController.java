@@ -11,7 +11,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/dispatch")
+@RequestMapping("/dispatch/main")
 @RequiredArgsConstructor
 public class DispatchController {
 
@@ -28,9 +28,10 @@ public class DispatchController {
         }
     }
 
-    @PutMapping("/task")
-    public TransportTask updateDispatchTask(@RequestBody TransportTask task) {
+    @PutMapping("/task/{id}")
+    public TransportTask updateDispatchTask(@PathVariable Long id, @RequestBody TransportTask task) {
         try {
+            task.setId(id);
             log.debug("更新调度任务：{}", task);
             return dispatchService.updateDispatchTask(task);
         } catch (Exception e) {

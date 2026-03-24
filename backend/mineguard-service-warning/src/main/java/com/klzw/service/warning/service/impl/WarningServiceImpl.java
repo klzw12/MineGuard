@@ -5,6 +5,7 @@ import com.klzw.service.warning.dto.WarningTrackDTO;
 import com.klzw.service.warning.entity.WarningRecord;
 import com.klzw.service.warning.entity.WarningRule;
 import com.klzw.service.warning.enums.WarningLevelEnum;
+import com.klzw.service.warning.enums.WarningTypeEnum;
 import com.klzw.service.warning.mapper.WarningRuleMapper;
 import com.klzw.service.warning.processor.EventTriggerProcessor;
 import com.klzw.service.warning.processor.WarningTriggerProcessor;
@@ -78,14 +79,18 @@ public class WarningServiceImpl implements WarningService {
         String content = warningRecord.getWarningContent();
         Integer type = 1;
         
+        // 按角色推送消息
         String[] roles = rule.getPushRoles().split(",");
         for (String role : roles) {
             String trimmedRole = role.trim();
             if (!trimmedRole.isEmpty()) {
                 log.info("推送预警消息：role={}, content={}", trimmedRole, content);
-                messageClient.sendMessageByRole(trimmedRole, title, content, type);
+                messageClient.sendMessageByRole(trimmedRole, title, content, "WARNING");
             }
         }
+        // 同时发送给管理员
+        log.info("推送预警消息：content={}", content);
+        messageClient.sendMessage(1L, title, content, "WARNING", warningRecord.getId().toString());
     }
     
     private void pushByLevel(WarningRecord warningRecord) {
@@ -109,11 +114,17 @@ public class WarningServiceImpl implements WarningService {
     private void pushByLevelOnly(Integer level, String title, String content, Integer type) {
         if (level.equals(WarningLevelEnum.HIGH.getCode())) {
             log.error("【高危预警】立即推送全体安全员、维修员！预警内容：{}", content);
-            messageClient.sendMessageByRole("ROLE_SAFETY_OFFICER", title, content, type);
-            messageClient.sendMessageByRole("ROLE_REPAIRMAN", title, content, type);
+            // 按角色推送消息
+            messageClient.sendMessageByRole("ROLE_SAFETY_OFFICER", title, content, "WARNING");
+            messageClient.sendMessageByRole("ROLE_REPAIRMAN", title, content, "WARNING");
+            // 同时发送给管理员
+            messageClient.sendMessage(1L, title, content, "WARNING", "");
         } else if (level.equals(WarningLevelEnum.MEDIUM.getCode())) {
             log.warn("【中危预警】推送给维修员处理！预警内容：{}", content);
-            messageClient.sendMessageByRole("ROLE_REPAIRMAN", title, content, type);
+            // 按角色推送消息
+            messageClient.sendMessageByRole("ROLE_REPAIRMAN", title, content, "WARNING");
+            // 同时发送给管理员
+            messageClient.sendMessage(1L, title, content, "WARNING", "");
         } else if (level.equals(WarningLevelEnum.LOW.getCode())) {
             log.info("【低危预警】推送给相关人员！预警内容：{}", content);
         }
@@ -122,27 +133,36 @@ public class WarningServiceImpl implements WarningService {
     private void pushByType(Integer warningType, Integer level, String title, String content, Integer type, Long driverId) {
         if (warningType.equals(WarningTypeEnum.VEHICLE_FAULT.getCode())) {
             log.info("【车辆故障】推送给维修员！预警内容：{}", content);
-            messageClient.sendMessageByRole("ROLE_REPAIRMAN", title, content, type);
+            // 按角色推送消息
+            messageClient.sendMessageByRole("ROLE_REPAIRMAN", title, content, "WARNING");
+            // 同时发送给管理员
+            messageClient.sendMessage(1L, title, content, "WARNING", "");
         } else if (warningType.equals(WarningTypeEnum.SPEED_ABNORMAL.getCode()) 
                 || warningType.equals(WarningTypeEnum.FATIGUE_DRIVING.getCode())) {
             log.info("【驾驶行为预警】推送给司机！预警内容：{}", content);
             if (driverId != null) {
-                messageClient.sendMessage(driverId, title, content, type);
+                messageClient.sendMessage(driverId, title, content, "WARNING", "");
             }
         } else if (warningType.equals(WarningTypeEnum.DANGER_ZONE.getCode()) 
                 || warningType.equals(WarningTypeEnum.ABNORMAL_BEHAVIOR.getCode())) {
             log.info("【安全预警】推送给安全员和维修员！预警内容：{}", content);
-            messageClient.sendMessageByRole("ROLE_SAFETY_OFFICER", title, content, type);
-            messageClient.sendMessageByRole("ROLE_REPAIRMAN", title, content, type);
+            // 按角色推送消息
+            messageClient.sendMessageByRole("ROLE_SAFETY_OFFICER", title, content, "WARNING");
+            messageClient.sendMessageByRole("ROLE_REPAIRMAN", title, content, "WARNING");
+            // 同时发送给管理员
+            messageClient.sendMessage(1L, title, content, "WARNING", "");
             if (driverId != null) {
-                messageClient.sendMessage(driverId, title, content, type);
+                messageClient.sendMessage(driverId, title, content, "WARNING", "");
             }
         } else if (warningType.equals(WarningTypeEnum.ROUTE_DEVIATION.getCode())
                 || warningType.equals(WarningTypeEnum.LONG_STAY.getCode())) {
             log.info("【路线异常】推送给维修员！预警内容：{}", content);
-            messageClient.sendMessageByRole("ROLE_REPAIRMAN", title, content, type);
+            // 按角色推送消息
+            messageClient.sendMessageByRole("ROLE_REPAIRMAN", title, content, "WARNING");
+            // 同时发送给管理员
+            messageClient.sendMessage(1L, title, content, "WARNING", "");
             if (driverId != null) {
-                messageClient.sendMessage(driverId, title, content, type);
+                messageClient.sendMessage(driverId, title, content, "WARNING", "");
             }
         } else {
             pushByLevelOnly(level, title, content, type);

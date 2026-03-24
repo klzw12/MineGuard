@@ -3,6 +3,7 @@ package com.klzw.common.core.client;
 import com.klzw.common.core.domain.dto.VehicleInfo;
 import com.klzw.common.core.domain.dto.VehicleStatus;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
@@ -23,6 +24,9 @@ public interface VehicleClient {
 
     @GetExchange("/api/vehicle/{id}/status")
     VehicleStatus getStatus(@PathVariable("id") Long id);
+
+    @PostExchange("/api/vehicle/{id}/status")
+    VehicleStatus updateStatus(@PathVariable("id") Long id, @RequestBody VehicleStatus status);
 
     @GetExchange("/api/vehicle/available")
     List<VehicleInfo> getAvailableVehicles();

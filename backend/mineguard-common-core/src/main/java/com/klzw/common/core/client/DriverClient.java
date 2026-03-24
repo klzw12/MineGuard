@@ -13,26 +13,29 @@ import java.util.List;
 @HttpExchange
 public interface DriverClient {
 
-    @GetExchange("/api/driver/{id}")
+    @GetExchange("/user/driver/{id}")
     DriverInfo getById(@PathVariable("id") Long id);
 
-    @GetExchange("/api/driver/user/{userId}")
+    @GetExchange("/user/driver/user/{userId}")
     DriverInfo getByUserId(@PathVariable("userId") Long userId);
 
-    @GetExchange("/api/driver/available")
+    @GetExchange("/user/driver/available")
     List<DriverInfo> getAvailableDrivers();
 
-    @GetExchange("/api/driver/available-repairmen")
+    @GetExchange("/user/driver/available-repairmen")
     List<DriverInfo> getAvailableRepairmen();
 
-    @GetExchange("/api/driver/available-safety-officers")
+    @GetExchange("/user/driver/available-safety-officers")
     List<DriverInfo> getAvailableSafetyOfficers();
 
-    @PostExchange("/api/driver/best")
+    @PostExchange("/user/driver/best")
     DriverInfo selectBestDriver(
         @RequestParam(required = false) Long vehicleId,
         @RequestParam(required = false) String scheduledTime);
 
-    @GetExchange("/api/driver/{driverId}/common-vehicles")
+    @GetExchange("/user/driver/{driverId}/common-vehicles")
     List<DriverVehicleInfo> getCommonVehicles(@PathVariable("driverId") Long driverId);
+    
+    @GetExchange("/user/driver/ids")
+    List<Long> getDriverIds();
 }

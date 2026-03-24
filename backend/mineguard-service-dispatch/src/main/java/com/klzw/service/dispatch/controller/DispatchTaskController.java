@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/dispatch/task")
+@RequestMapping("/dispatch/task")
 @RequiredArgsConstructor
 public class DispatchTaskController {
 

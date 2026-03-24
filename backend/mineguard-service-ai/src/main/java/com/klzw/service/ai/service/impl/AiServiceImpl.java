@@ -1,10 +1,10 @@
 package com.klzw.service.ai.service.impl;
 
+import com.klzw.common.core.client.PythonClient;
 import com.klzw.common.core.util.HttpUtils;
 import com.klzw.common.core.util.JsonUtils;
 import com.klzw.service.ai.adapter.AiAdapter;
 import com.klzw.service.ai.service.AiService;
-import com.klzw.service.ai.service.PythonServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +24,7 @@ public class AiServiceImpl implements AiService {
     private Map<String, AiAdapter> aiAdapterMap;
 
     @Autowired
-    private PythonServiceClient pythonServiceClient;
+    private PythonClient pythonClient;
 
     @Value("${ai.default-provider:deepseek}")
     private String aiProvider;
@@ -32,8 +32,7 @@ public class AiServiceImpl implements AiService {
     @Value("${ai.providers}")
     private List<String> providers;
 
-    @Value("${python-service.url:http://localhost:8008}")
-    private String pythonServiceUrl;
+
 
     @Override
     public Map<String, Object> analyzeStatisticsData(Map<String, Object> statisticsData) {
@@ -119,12 +118,7 @@ public class AiServiceImpl implements AiService {
         log.info("分析驾驶行为");
         try {
             // 1. 调用 Python 服务进行数据清洗
-            String jsonData = JsonUtils.toJson(trackData);
-            String cleanUrl = "http://python-service:8008/api/clean/driving-data";
-            String cleanResponse = HttpUtils.postJson(cleanUrl, jsonData);
-            
-            // 解析清洗结果
-            Map<String, Object> cleanResult = JsonUtils.parseObject(cleanResponse, Map.class);
+            Map<String, Object> cleanResult = pythonClient.cleanDrivingData(trackData);
             Map<String, Object> cleanedData = (Map<String, Object>) cleanResult.get("cleaned_data");
             Map<String, Object> cleaningReport = (Map<String, Object>) cleanResult.get("cleaning_report");
             

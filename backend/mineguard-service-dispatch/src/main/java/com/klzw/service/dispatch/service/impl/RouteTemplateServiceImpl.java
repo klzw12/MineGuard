@@ -1,6 +1,6 @@
 package com.klzw.service.dispatch.service.impl;
 
-import cn.hutool.core.util.StrUtil;
+import org.springframework.util.StringUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.klzw.common.core.domain.PageRequest;
@@ -77,7 +77,7 @@ public class RouteTemplateServiceImpl implements RouteTemplateService {
             throw new RuntimeException("路线模板不存在");
         }
 
-        if (StrUtil.isNotBlank(dto.getRouteName()) && !dto.getRouteName().equals(route.getRouteName())) {
+        if (StringUtils.hasText(dto.getRouteName()) && !dto.getRouteName().equals(route.getRouteName())) {
             LambdaQueryWrapper<RouteTemplate> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(RouteTemplate::getRouteName, dto.getRouteName())
                     .ne(RouteTemplate::getId, id);

@@ -22,7 +22,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/cost")
+@RequestMapping("/cost")
 @RequiredArgsConstructor
 public class CostController {
 

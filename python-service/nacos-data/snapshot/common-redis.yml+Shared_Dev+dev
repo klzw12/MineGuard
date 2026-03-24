@@ -1,0 +1,35 @@
+# Redis模块配置 - 开发环境
+mineguard:
+  redis:
+    enabled: true
+    key-prefix: "mineguard:"
+    default-expire: 3600
+    lock:
+      default-expire: 30
+      retry-count: 3
+      retry-interval: 100
+    rate-limit:
+      default-window: 60
+      default-limit: 100
+    redisson:
+      enabled: true
+      retry-attempts: 3
+      retry-interval: 1000
+      connect-timeout: 30000
+
+# Redis连接配置
+spring:
+  data:
+    redis:
+      host: 192.168.110.128
+      port: 6379
+      password: 1.qwklz5
+      database: 0
+      timeout: 60000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+# 注意：这里不配置 logging.level，由 common-core 统一管理

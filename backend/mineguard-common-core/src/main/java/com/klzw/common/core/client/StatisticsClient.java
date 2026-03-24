@@ -28,4 +28,13 @@ public interface StatisticsClient {
         @RequestParam("startDate") String startDate,
         @RequestParam("endDate") String endDate
     );
+    
+    /**
+     * 查询成本统计（调用 cost-service）
+     */
+    @GetExchange("/api/cost/statistics")
+    Map<String, Object> getCostStatistics(
+        @RequestParam("startDate") String startDate,
+        @RequestParam("endDate") String endDate
+    );
 }

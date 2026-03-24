@@ -1,0 +1,28 @@
+# MongoDB模块配置 - 开发环境
+mineguard:
+  mongodb:
+    enabled: true
+    host: "192.168.110.128"
+    port: 27017
+    database: "mineguard"
+    username: "klzw"
+    password: "1.qwklz5"
+    authentication-database: "admin"
+    connect-timeout: 10000
+    read-timeout: 10000
+    max-connections: 50
+    min-connections-per-host: 5
+
+# Spring Data MongoDB配置
+spring:
+  data:
+    mongodb:
+      host: 192.168.110.128
+      port: 27017
+      database: "mineguard"
+      username: "klzw"
+      password: "1.qwklz5"
+      authentication-database: "admin"
+      auto-index-creation: true
+
+# 注意：这里不配置 logging.level，由 common-core 统一管理

@@ -1,0 +1,186 @@
+// 管理员布局通用样式
+
+.admin-layout-container {
+	display: flex;
+	flex-direction: row;
+	min-height: 100vh;
+	background-color: #1e293b;
+}
+
+.admin-sidebar {
+	width: 280rpx;
+	background: linear-gradient(180deg, #1a1f2e 0%, #151823 100%);
+	height: 100vh;
+	position: fixed;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	overflow-y: auto;
+	z-index: 999;
+	display: flex;
+	flex-direction: column;
+}
+
+.admin-content {
+	flex: 1;
+	margin-left: 280rpx;
+	min-height: 100vh;
+	background-color: #1e293b;
+}
+
+.page-header {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	padding: 40rpx;
+	border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+	
+	.page-title {
+		font-size: 40rpx;
+		font-weight: bold;
+		color: #fff;
+	}
+	
+	.header-actions {
+		display: flex;
+		flex-direction: row;
+		gap: 20rpx;
+		
+		.action-btn {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			padding: 16rpx 32rpx;
+			border-radius: 12rpx;
+			cursor: pointer;
+			transition: all 0.2s ease;
+			
+			.action-icon {
+				font-size: 28rpx;
+				margin-right: 10rpx;
+				font-weight: bold;
+			}
+			
+			.action-text {
+				font-size: 24rpx;
+				color: #fff;
+			}
+			
+			&.primary {
+				background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+				
+				.action-icon {
+					color: #fff;
+				}
+			}
+		}
+	}
+}
+
+.content-card {
+	margin: 40rpx;
+	background-color: #2a3347;
+	border-radius: 24rpx;
+	padding: 40rpx;
+	border: 1rpx solid rgba(255, 255, 255, 0.08);
+}
+
+.table-header {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 30rpx;
+	
+	.search-box {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		background-color: #1a1f2e;
+		border-radius: 16rpx;
+		padding: 20rpx 30rpx;
+		width: 400rpx;
+		
+		.search-icon {
+			font-size: 28rpx;
+			margin-right: 15rpx;
+			opacity: 0.6;
+		}
+		
+		input {
+			flex: 1;
+			font-size: 26rpx;
+			color: #fff;
+		}
+	}
+}
+
+.table-container {
+	.table-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		padding: 24rpx 20rpx;
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+		
+		&:last-child {
+			border-bottom: none;
+		}
+		
+		&.header {
+			background-color: rgba(0, 0, 0, 0.2);
+			border-radius: 12rpx;
+			font-weight: 500;
+			
+			.table-cell {
+				color: rgba(255, 255, 255, 0.8);
+			}
+		}
+		
+		.table-cell {
+			flex: 1;
+			font-size: 26rpx;
+			color: #fff;
+			
+			&.actions {
+				display: flex;
+				flex-direction: row;
+				gap: 20rpx;
+				
+				.action-link {
+					color: #007AFF;
+					cursor: pointer;
+					transition: opacity 0.2s ease;
+					
+					&:active {
+						opacity: 0.7;
+					}
+					
+					&.danger {
+						color: #FF3B30;
+					}
+				}
+			}
+		}
+	}
+}
+
+.status-tag {
+	padding: 6rpx 16rpx;
+	border-radius: 8rpx;
+	font-size: 22rpx;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	
+	&.active {
+		background-color: rgba(52, 199, 89, 0.2);
+		color: #34C759;
+	}
+	
+	&.inactive {
+		background-color: rgba(255, 59, 48, 0.2);
+		color: #FF3B30;
+	}
+}

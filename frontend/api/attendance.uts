@@ -1,4 +1,4 @@
-import { request } from '@/utils/request'
+import { http } from '@/utils/request.uts'
 import type { AttendanceVO, AttendanceStatisticsVO, LeaveApplyDTO } from '@/types/user'
 
 export type CheckInDTO = {
@@ -12,43 +12,23 @@ export type CheckOutDTO = {
 }
 
 export function checkInApi(dto: CheckInDTO): Promise<AttendanceVO> {
-  return request({
-    url: '/api/attendance/check-in',
-    method: 'POST',
-    data: dto
-  })
+  return http.post('/api/attendance/check-in', dto)
 }
 
 export function checkOutApi(dto: CheckOutDTO): Promise<AttendanceVO> {
-  return request({
-    url: '/api/attendance/check-out',
-    method: 'POST',
-    data: dto
-  })
+  return http.post('/api/attendance/check-out', dto)
 }
 
 export function getAttendanceByDate(userId: string, date: string): Promise<AttendanceVO> {
-  return request({
-    url: `/api/attendance/user/${userId}`,
-    method: 'GET',
-    data: { date }
-  })
+  return http.get(`/api/attendance/user/${userId}`, { date })
 }
 
 export function getAttendanceListByMonth(userId: string, yearMonth: string): Promise<AttendanceVO[]> {
-  return request({
-    url: `/api/attendance/user/${userId}/list`,
-    method: 'GET',
-    data: { yearMonth }
-  })
+  return http.get(`/api/attendance/user/${userId}/list`, { yearMonth })
 }
 
 export function getAttendanceStatistics(userId: string, yearMonth: string): Promise<AttendanceStatisticsVO> {
-  return request({
-    url: `/api/attendance/user/${userId}/statistics`,
-    method: 'GET',
-    data: { yearMonth }
-  })
+  return http.get(`/api/attendance/user/${userId}/statistics`, { yearMonth })
 }
 
 export function supplementAttendance(attendanceId: string, data: {
@@ -57,32 +37,17 @@ export function supplementAttendance(attendanceId: string, data: {
   status?: number
   remark?: string
 }): Promise<AttendanceVO> {
-  return request({
-    url: `/api/attendance/${attendanceId}/supplement`,
-    method: 'PUT',
-    data
-  })
+  return http.put(`/api/attendance/${attendanceId}/supplement`, data)
 }
 
 export function applyLeave(dto: LeaveApplyDTO): Promise<AttendanceVO> {
-  return request({
-    url: '/api/attendance/leave',
-    method: 'POST',
-    data: dto
-  })
+  return http.post('/api/attendance/leave', dto)
 }
 
 export function cancelLeave(attendanceId: string): Promise<void> {
-  return request({
-    url: `/api/attendance/leave/${attendanceId}`,
-    method: 'DELETE'
-  })
+  return http.delete(`/api/attendance/leave/${attendanceId}`)
 }
 
 export function getLeaveList(userId: string, yearMonth: string): Promise<AttendanceVO[]> {
-  return request({
-    url: `/api/attendance/leave/${userId}/list`,
-    method: 'GET',
-    data: { yearMonth }
-  })
+  return http.get(`/api/attendance/leave/${userId}/list`, { yearMonth })
 }

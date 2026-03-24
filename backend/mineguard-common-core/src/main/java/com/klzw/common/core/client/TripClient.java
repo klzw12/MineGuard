@@ -4,10 +4,12 @@ import com.klzw.common.core.domain.dto.TripCreateRequest;
 import com.klzw.common.core.domain.dto.TripResponse;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 import reactor.core.publisher.Mono;
+import java.util.Map;
 
 @HttpExchange
 public interface TripClient {
@@ -26,5 +28,13 @@ public interface TripClient {
     
     @PostExchange("/api/trip/{id}/end")
     Mono<Void> endTrip(@PathVariable("id") Long id);
-}
+    
+    @GetExchange("/api/trip/{id}")
+    Mono<com.klzw.common.core.domain.dto.TripResponse> getTripById(@PathVariable("id") Long id);
+    
+    @GetExchange("/api/trip/statistics")
+    Map<String, Object> getStatistics(
+        @RequestParam("startDate") String startDate,
+        @RequestParam("endDate") String endDate
+    );
 }

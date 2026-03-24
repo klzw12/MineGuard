@@ -207,7 +207,6 @@
 
 <script setup lang="uts">
 	import { ref, computed, onMounted } from 'vue'
-	import { onShow } from '@dcloudio/uni-app'
 	import { useUserStore } from '@/stores/user.uts'
 	import { uploadAvatar, getAvatarSignedUrl, getIdCardSignedUrls, updateUser } from '@/api/user.uts'
 	import { toast } from '@/utils/toast.uts'
@@ -262,7 +261,7 @@
 		}
 	})
 	
-	onShow(() => {
+uni.onShow(() => {
 		loadAvatarUrl()
 	})
 	

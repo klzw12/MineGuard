@@ -61,6 +61,9 @@
 		
 		<!-- 底部操作栏 -->
 		<view class="action-bar" v-if="showActionBar">
+			<button class="action-btn secondary" @click="backToTaskList">
+				<text>返回任务列表</text>
+			</button>
 			<button class="action-btn primary" @click="startSimulation" v-if="!isSimulating">
 				<text>开始导航</text>
 			</button>
@@ -73,7 +76,6 @@
 
 <script setup lang="uts">
 	import { ref, computed, onMounted } from 'vue'
-	import { onShow } from '@dcloudio/uni-app'
 	import { startTaskSimulation, generateRandomEvent, type MacroRoute, type MicroTrackPoint } from '@/utils/trackSimulator.uts'
 	
 	// 任务参数
@@ -117,7 +119,7 @@
 		return isSimulating.value ? '行程中' : '未开始'
 	})
 	
-	onShow(() => {
+uni.onShow(() => {
 		// 接收任务参数
 		receiveTaskParams()
 	})
@@ -282,15 +284,59 @@
 		uni.showModal({
 			title: '行程结束',
 			content: '轨迹模拟已完成',
-			showCancel: false
+			showCancel: false,
+			success: () => {
+				backToTaskList()
+			}
 		})
 	}
 	
 	/**
-	 * 更新标记点
-	 */
-	function updateMarkers(startLon: number, startLat: number, endLon: number, endLat: number) {
-		mapMarkers.value = [
+ * 返回任务列表
+ */
+function backToTaskList() {
+	// 停止模拟
+	if (simulationController) {
+		simulationController.stop()
+		simulationController = null
+	}
+	
+	// 直接跳转到任务列表页面
+	uni.reLaunch({
+		url: '/pages/user/task/index'
+	})
+}
+	
+	/**
+ * 结束行程
+ */
+function endTrip() {
+	uni.showModal({
+		title: '结束行程',
+		content: '确定要结束当前行程吗？',
+		success: async (res) => {
+			if (res.confirm) {
+				// 停止模拟
+				if (simulationController) {
+					simulationController.stop()
+					simulationController = null
+				}
+				
+				isSimulating.value = false
+				showActionBar.value = false
+				
+				// 返回任务列表
+				backToTaskList()
+			}
+		}
+	})
+}
+
+/**
+ * 更新标记点
+ */
+function updateMarkers(startLon: number, startLat: number, endLon: number, endLat: number) {
+	mapMarkers.value = [
 			{
 				id: 1,
 				longitude: startLon,
@@ -408,36 +454,7 @@
 		})
 	}
 	
-	/**
-	 * 结束行程
-	 */
-	function endTrip() {
-		if (simulationController) {
-			simulationController.stop()
-			simulationController = null
-		}
-		
-		isSimulating.value = false
-		showActionBar.value = false
-		
-		uni.showModal({
-			title: '行程结束',
-			content: '确定要结束当前行程吗？',
-			success: (res) => {
-				if (res.confirm) {
-					// TODO: 调用后端接口结束行程
-					uni.showToast({
-						title: '行程已结束',
-						icon: 'success'
-					})
-					
-					setTimeout(() => {
-						uni.navigateBack()
-					}, 1500)
-				}
-			}
-		})
-	}
+	
 	
 	/**
 	 * 地图区域变化

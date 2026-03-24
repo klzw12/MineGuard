@@ -163,7 +163,7 @@ public class DispatchServiceImpl implements DispatchService {
                 }
             }
             
-            DriverInfo bestDriver = candidateDrivers.get(0);
+            DriverInfo bestDriver = candidateDrivers.getFirst();
             log.info("选择最佳司机：司机ID={}, 分数={}, 优先级={}, 候选范围={}/{}", 
                 bestDriver.getId(), bestDriver.getScore(), priority, selectionRange, totalDrivers);
             return bestDriver.getId();
@@ -235,8 +235,8 @@ public class DispatchServiceImpl implements DispatchService {
     private Long selectBestVehicle(TransportTask task) {
         try {
             VehicleInfo vehicle = vehicleClient.selectBestVehicle(
-                task.getStartLongitude(),
-                task.getStartLatitude(),
+                task.getStartLongitude() != null ? new java.math.BigDecimal(task.getStartLongitude().toString()) : null,
+                task.getStartLatitude() != null ? new java.math.BigDecimal(task.getStartLatitude().toString()) : null,
                 task.getCargoWeight(),
                 task.getScheduledStartTime() != null ? task.getScheduledStartTime().toString() : null
             );
@@ -326,14 +326,11 @@ public class DispatchServiceImpl implements DispatchService {
         }
         
         try {
-            if ("ROLE_DRIVER".equals(roleCode)) {
-                dynamicAdjustForDriverLeave(userId);
-            } else if ("ROLE_REPAIRMAN".equals(roleCode)) {
-                dynamicAdjustForRepairmanLeave(userId);
-            } else if ("ROLE_SAFETY_OFFICER".equals(roleCode)) {
-                dynamicAdjustForSafetyOfficerLeave(userId);
-            } else {
-                log.warn("未知角色编码：{}", roleCode);
+            switch (roleCode) {
+                case "ROLE_DRIVER" -> dynamicAdjustForDriverLeave(userId);
+                case "ROLE_REPAIRMAN" -> dynamicAdjustForRepairmanLeave(userId);
+                case "ROLE_SAFETY_OFFICER" -> dynamicAdjustForSafetyOfficerLeave(userId);
+                default -> log.warn("未知角色编码：{}", roleCode);
             }
         } catch (Exception e) {
             log.error("用户请假动态调整失败：用户 ID={}, 角色编码={}, 错误={}", userId, roleCode, e.getMessage());
@@ -654,7 +651,7 @@ public class DispatchServiceImpl implements DispatchService {
             List<DriverInfo> sortedRepairmen = repairmen.stream()
                 .filter(r -> r.getScore() != null && r.getScore() >= 10)
                 .sorted(Comparator.comparing(DriverInfo::getScore).reversed())
-                .collect(Collectors.toList());
+                .toList();
             
             if (sortedRepairmen.isEmpty()) {
                 log.warn("没有符合条件的维修员");
@@ -668,7 +665,7 @@ public class DispatchServiceImpl implements DispatchService {
             DriverInfo bestRepairman = sortedRepairmen.stream()
                 .limit(selectionRange)
                 .findFirst()
-                .orElse(sortedRepairmen.get(0));
+                .orElse(sortedRepairmen.getFirst());
             
             log.info("选择最佳维修员：维修员 ID={}, 分数={}, 优先级={}, 候选范围={}/{}", 
                 bestRepairman.getId(), bestRepairman.getScore(), priority, selectionRange, totalRepairmen);
@@ -699,7 +696,7 @@ public class DispatchServiceImpl implements DispatchService {
             List<DriverInfo> sortedSafetyOfficers = safetyOfficers.stream()
                 .filter(s -> s.getScore() != null && s.getScore() >= 10)
                 .sorted(Comparator.comparing(DriverInfo::getScore).reversed())
-                .collect(Collectors.toList());
+                .toList();
             
             if (sortedSafetyOfficers.isEmpty()) {
                 log.warn("没有符合条件的安全员");

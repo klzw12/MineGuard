@@ -132,50 +132,50 @@ export interface OverallStatisticsVO {
 
 export const statisticsApi = {
   getTripStatistics: (params: any): Promise<TripStatisticsVO[] | null> => {
-    return http.get<TripStatisticsVO[]>('/api/statistics/trip', params)
+    return http.get('/api/statistics/trip', params)
   },
 
   getCostStatistics: (params: any): Promise<CostStatisticsVO[] | null> => {
-    return http.get<CostStatisticsVO[]>('/api/statistics/cost', params)
+    return http.get('/api/statistics/cost', params)
   },
 
   getVehicleStatistics: (params: any): Promise<VehicleStatisticsVO[] | null> => {
-    return http.get<VehicleStatisticsVO[]>('/api/statistics/vehicle', params)
+    return http.get('/api/statistics/vehicle', params)
   },
 
   getDriverStatistics: (params: any): Promise<DriverStatisticsVO[] | null> => {
-    return http.get<DriverStatisticsVO[]>('/api/statistics/driver', params)
+    return http.get('/api/statistics/driver', params)
   },
 
   getOverallStatistics: (params: any): Promise<OverallStatisticsVO | null> => {
-    return http.get<OverallStatisticsVO>('/api/statistics/overall', params)
+    return http.get('/api/statistics/overall', params)
   },
 
   calculateTripStatistics: (date: string): Promise<TripStatisticsVO | null> => {
-    return http.post<TripStatisticsVO>('/api/statistics/trip/calculate', { date })
+    return http.post('/api/statistics/trip/calculate', { date })
   },
 
   calculateCostStatistics: (date: string): Promise<CostStatisticsVO | null> => {
-    return http.post<CostStatisticsVO>('/api/statistics/cost/calculate', { date })
+    return http.post('/api/statistics/cost/calculate', { date })
   },
 
   calculateVehicleStatistics: (vehicleId: number, date: string): Promise<VehicleStatisticsVO | null> => {
-    return http.post<VehicleStatisticsVO>(`/api/statistics/vehicle/calculate?vehicleId=${vehicleId}&date=${date}`, {})
+    return http.post(`/api/statistics/vehicle/calculate?vehicleId=${vehicleId}&date=${date}`, {})
   },
 
   calculateDriverStatistics: (userId: number, date: string): Promise<DriverStatisticsVO | null> => {
-    return http.post<DriverStatisticsVO>(`/api/statistics/driver/calculate?userId=${userId}&date=${date}`, {})
+    return http.post(`/api/statistics/driver/calculate?userId=${userId}&date=${date}`, {})
   },
 
   getFaultStatistics: (params: any): Promise<FaultStatisticsVO[] | null> => {
-    return http.get<FaultStatisticsVO[]>('/api/statistics/fault', params)
+    return http.get('/api/statistics/fault', params)
   },
 
   getFaultOverallStatistics: (params: any): Promise<FaultStatisticsVO | null> => {
-    return http.get<FaultStatisticsVO>('/api/statistics/fault/overall', params)
+    return http.get('/api/statistics/fault/overall', params)
   },
 
   getTransportStatistics: (params: any): Promise<TransportStatisticsVO[] | null> => {
-    return http.get<TransportStatisticsVO[]>('/api/statistics/transport', params)
+    return http.get('/api/statistics/transport', params)
   }
 }

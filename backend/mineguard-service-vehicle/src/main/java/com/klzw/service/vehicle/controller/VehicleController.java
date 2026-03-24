@@ -16,7 +16,7 @@ import java.util.List;
 
 @Tag(name = "车辆管理", description = "车辆管理接口")
 @RestController
-@RequestMapping("/api/vehicle")
+@RequestMapping("/vehicle")
 @RequiredArgsConstructor
 public class VehicleController {
     

@@ -86,8 +86,7 @@
         <commons-pool2.version>2.13.1</commons-pool2.version>
         <!-- 阿里云号码隐私保护 -->
         <alibabacloud-dypnsapi.version>2.0.0</alibabacloud-dypnsapi.version>
-        <!-- Hutool工具类 -->
-        <hutool.version>5.8.40</hutool.version>
+
         <!-- Spring AI -->
         <spring-ai.version>1.1.3</spring-ai.version>
     </properties>
@@ -131,10 +130,12 @@
         <module>mineguard-service-gateway</module>
         <module>mineguard-service-vehicle</module>
         <module>mineguard-service-trip</module>
+        <module>mineguard-service-dispatch</module>
         <module>mineguard-service-warning</module>
         <module>mineguard-service-statistics</module>
         <module>mineguard-service-cost</module>
         <module>mineguard-service-ai</module>
+        <module>mineguard-service-python</module>
     </modules>
 
     <dependencyManagement>
@@ -495,12 +496,7 @@
             </dependency>
 
 
-            <!-- Hutool工具类 -->
-            <dependency>
-                <groupId>cn.hutool</groupId>
-                <artifactId>hutool-all</artifactId>
-                <version>${hutool.version}</version>
-            </dependency>
+
 
             <!-- Spring AI 依赖管理 -->
             <dependency>

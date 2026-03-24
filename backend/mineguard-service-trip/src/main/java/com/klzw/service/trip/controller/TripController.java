@@ -6,6 +6,7 @@ import com.klzw.common.core.result.Result;
 import com.klzw.common.core.domain.dto.TripResponse;
 import com.klzw.common.core.domain.dto.TripCreateRequest;
 import com.klzw.service.trip.dto.TripDTO;
+import com.klzw.service.trip.dto.TripStatisticsResponseDTO;
 import com.klzw.service.trip.service.TripService;
 import com.klzw.service.trip.vo.TripStatisticsVO;
 import com.klzw.service.trip.vo.TripVO;
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/trip")
+@RequestMapping("/trip")
 @Tag(name = "行程管理", description = "行程管理接口")
 @RequiredArgsConstructor
 public class TripController {
@@ -119,9 +120,9 @@ public class TripController {
         return Result.success();
     }
     
-    @PostMapping("/{id}/end")
+    @PostMapping("/{id}/end/alert")
     @Operation(summary = "结束行程（预警触发）")
-    public Result<Void> endTrip(@PathVariable Long id) {
+    public Result<Void> endTripAlert(@PathVariable Long id) {
         tripService.endTrip(id, null, null);
         return Result.success();
     }

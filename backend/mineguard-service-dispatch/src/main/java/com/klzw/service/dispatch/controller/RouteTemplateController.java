@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/dispatch/route-template")
+@RequestMapping("/dispatch/route-template")
 @Tag(name = "路线模板管理", description = "路线模板管理接口")
 @RequiredArgsConstructor
 public class RouteTemplateController {

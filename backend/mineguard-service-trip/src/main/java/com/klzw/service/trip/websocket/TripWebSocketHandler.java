@@ -150,7 +150,11 @@ public class TripWebSocketHandler extends WebSocketHandler {
             // 从行程中获取 vehicleId
             TripVO trip = tripService.getById(tripId);
             if (trip != null && trip.getVehicleId() != null) {
-                trackDTO.setVehicleId(trip.getVehicleId());
+                try {
+                    trackDTO.setVehicleId(Long.parseLong(trip.getVehicleId()));
+                } catch (NumberFormatException e) {
+                    log.warn("车辆ID格式错误：{}", trip.getVehicleId());
+                }
             }
             
             // 存储到 Redis（实时轨迹数据，供预警、vehicle 等模块读取）

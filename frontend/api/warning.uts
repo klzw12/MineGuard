@@ -1,4 +1,4 @@
-import { request } from '@/utils/request'
+import { http } from '@/utils/request.uts'
 
 export interface WarningRecord {
   id: number
@@ -85,150 +85,80 @@ export function getWarningRecordPage(params: {
   startTime?: string
   endTime?: string
 }): Promise<{ list: WarningRecord[], total: number } | null> {
-  return request({
-    url: '/api/warning/record/page',
-    method: 'GET',
-    params
-  })
+  return http.get<{ list: WarningRecord[], total: number }>('/api/warning/record/page', params)
 }
 
 export function getWarningRecordById(id: number): Promise<WarningRecord | null> {
-  return request({
-    url: `/api/warning/record/${id}`,
-    method: 'GET'
-  })
+  return http.get<WarningRecord>(`/api/warning/record/${id}`)
 }
 
 export function getWarningRecordsByTripId(tripId: number): Promise<WarningRecord[] | null> {
-  return request({
-    url: '/api/warning/record/trip',
-    method: 'GET',
-    params: { tripId }
-  })
+  return http.get<WarningRecord[]>('/api/warning/record/trip', { tripId })
 }
 
 export function handleWarningRecord(id: number, data: WarningHandleDTO): Promise<WarningRecord | null> {
-  return request({
-    url: `/api/warning/record/${id}/handle`,
-    method: 'PUT',
-    data
-  })
+  return http.put<WarningRecord>(`/api/warning/record/${id}/handle`, data)
 }
 
 export function ignoreWarningRecord(id: number): Promise<WarningRecord | null> {
-  return request({
-    url: `/api/warning/record/${id}/ignore`,
-    method: 'PUT'
-  })
+  return http.put<WarningRecord>(`/api/warning/record/${id}/ignore`)
 }
 
 export function getWarningStatistics(startTime: string, endTime: string): Promise<WarningStatistics | null> {
-  return request({
-    url: '/api/warning/statistics',
-    method: 'GET',
-    params: { startTime, endTime }
-  })
+  return http.get<WarningStatistics>('/api/warning/statistics', { startTime, endTime })
 }
 
 export function getWarningTrend(startTime: string, endTime: string): Promise<TrendItem[] | null> {
-  return request({
-    url: '/api/warning/trend',
-    method: 'GET',
-    params: { startTime, endTime }
-  })
+  return http.get<TrendItem[]>('/api/warning/trend', { startTime, endTime })
 }
 
 export function getWarningTypeStatistics(startTime: string, endTime: string): Promise<TypeDistribution[] | null> {
-  return request({
-    url: '/api/warning/statistics/type',
-    method: 'GET',
-    params: { startTime, endTime }
-  })
+  return http.get<TypeDistribution[]>('/api/warning/statistics/type', { startTime, endTime })
 }
 
 export function getWarningLevelStatistics(startTime: string, endTime: string): Promise<{ [key: string]: number } | null> {
-  return request({
-    url: '/api/warning/statistics/level',
-    method: 'GET',
-    params: { startTime, endTime }
-  })
+  return http.get<{ [key: string]: number }>('/api/warning/statistics/level', { startTime, endTime })
 }
 
 export function getWarningRuleList(params: {
   warningType?: number
   status?: number
 }): Promise<WarningRule[] | null> {
-  return request({
-    url: '/api/warning/rule/list',
-    method: 'GET',
-    params
-  })
+  return http.get<WarningRule[]>('/api/warning/rule/list', params)
 }
 
 export function getWarningRuleById(id: number): Promise<WarningRule | null> {
-  return request({
-    url: `/api/warning/rule/${id}`,
-    method: 'GET'
-  })
+  return http.get<WarningRule>(`/api/warning/rule/${id}`)
 }
 
 export function createWarningRule(data: WarningRule): Promise<WarningRule | null> {
-  return request({
-    url: '/api/warning/rule',
-    method: 'POST',
-    data
-  })
+  return http.post<WarningRule>('/api/warning/rule', data)
 }
 
 export function updateWarningRule(data: WarningRule): Promise<WarningRule | null> {
-  return request({
-    url: '/api/warning/rule',
-    method: 'PUT',
-    data
-  })
+  return http.put<WarningRule>('/api/warning/rule', data)
 }
 
 export function deleteWarningRule(id: number): Promise<void> {
-  return request({
-    url: `/api/warning/rule/${id}`,
-    method: 'DELETE'
-  })
+  return http.delete<void>(`/api/warning/rule/${id}`)
 }
 
 export function enableWarningRule(id: number): Promise<void> {
-  return request({
-    url: `/api/warning/rule/${id}/enable`,
-    method: 'PUT'
-  })
+  return http.put<void>(`/api/warning/rule/${id}/enable`)
 }
 
 export function disableWarningRule(id: number): Promise<void> {
-  return request({
-    url: `/api/warning/rule/${id}/disable`,
-    method: 'PUT'
-  })
+  return http.put<void>(`/api/warning/rule/${id}/disable`)
 }
 
 export function markPhoneUnanswered(vehicleId: number): Promise<void> {
-  return request({
-    url: '/api/warning/phone/unanswered',
-    method: 'POST',
-    params: { vehicleId }
-  })
+  return http.post('/api/warning/phone/unanswered', { vehicleId })
 }
 
 export function clearPhoneUnanswered(vehicleId: number): Promise<void> {
-  return request({
-    url: '/api/warning/phone/unanswered/clear',
-    method: 'DELETE',
-    params: { vehicleId }
-  })
+  return http.delete('/api/warning/phone/unanswered/clear', { vehicleId })
 }
 
 export function markVehicleInSafeZone(vehicleId: number, inSafeZone: boolean): Promise<void> {
-  return request({
-    url: '/api/warning/safe-zone/mark',
-    method: 'POST',
-    params: { vehicleId, inSafeZone }
-  })
+  return http.post('/api/warning/safe-zone/mark', { vehicleId, inSafeZone })
 }

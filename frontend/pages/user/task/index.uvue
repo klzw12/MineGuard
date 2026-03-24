@@ -123,14 +123,13 @@
 </template>
 
 <script setup lang="uts">
-	import { ref, computed, onMounted } from 'vue'
-	import { onShow } from '@dcloudio/uni-app'
-	import { useUserStore } from '@/stores/user.uts'
-	import { checkInApi, checkOutApi, getAttendanceByDate } from '@/api/attendance.uts'
-	import { getPendingTasksByDriver, startTask as startTaskApi, completeTask as completeTaskApi } from '@/api/dispatch.uts'
-	import { request } from '@/utils/request'
-	import { toast } from '@/utils/toast.uts'
-	import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
+	import { ref, computed, onMounted, onShow } from 'vue'
+import { useUserStore } from '@/stores/user.uts'
+import { checkInApi, checkOutApi, getAttendanceByDate } from '@/api/attendance.uts'
+import { getPendingTasksByDriver, startTask as startTaskApi, completeTask as completeTaskApi } from '@/api/dispatch.uts'
+import { toast } from '@/utils/toast.uts'
+import { request } from '@/utils/request.uts'
+import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 	
 	const userStore = useUserStore()
 	
@@ -166,20 +165,16 @@
 	})
 	
 	async function loadTasks() {
-		const driverId = userStore.driverInfo.value?.id
+		const driverId = userStore.userInfo.value?.id
 		if (!driverId) {
-			const uid = userStore.userInfo.value?.id
-			if (!uid) return
+			return
 		}
 		
 		loading.value = true
 		
 		try {
-			const driverIdNum = userStore.driverInfo.value?.id
-			if (driverIdNum) {
-				const data = await getPendingTasksByDriver(driverIdNum)
-				tasks.value = data || []
-			}
+			const data = await getPendingTasksByDriver(Number(driverId))
+			tasks.value = data || []
 		} catch (e) {
 			console.error('加载任务失败', e)
 		} finally {
@@ -276,18 +271,21 @@
 		}
 		
 		submitting.value = true
-		toast.loading('打卡中...')
+		uni.showLoading({ title: '打卡中...', mask: true })
 		
 		try {
 			const data = await checkOutApi({ userId: uid })
 			if (data) {
 				attendanceInfo.value = data
+				uni.hideLoading()
 				toast.success('下班打卡成功')
 			}
 		} catch (e: any) {
+			uni.hideLoading()
 			toast.error(e.message || '打卡失败')
 		} finally {
 			submitting.value = false
+			uni.hideLoading()
 		}
 	}
 	
@@ -311,7 +309,7 @@
 							const vehicleId = task.vehicleId || ''
 							const driverId = task.executorId || ''
 							
-							uni.navigateTo({
+							uni.redirectTo({
 								url: `/pages/user/map/index?taskId=${task.id}&tripId=${tripId}&vehicleId=${vehicleId}&driverId=${driverId}&startLongitude=${task.startLongitude}&startLatitude=${task.startLatitude}&endLongitude=${task.endLongitude}&endLatitude=${task.endLatitude}&startLocation=${task.startLocation}&endLocation=${task.endLocation}&taskNo=${task.taskNo}`
 							})
 						}

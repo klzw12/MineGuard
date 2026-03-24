@@ -49,6 +49,7 @@
             <version>${mineguard.version}</version>
         </dependency>
 
+
         <dependency>
             <groupId>com.klzw</groupId>
             <artifactId>mineguard-common-redis</artifactId>
@@ -97,12 +98,7 @@
             <scope>test</scope>
         </dependency>
         
-        <!-- Hutool工具类 -->
-        <dependency>
-            <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
-            <version>${hutool.version}</version>
-        </dependency>
+
     </dependencies>
 
     <build>

@@ -149,8 +149,7 @@
 
 <script setup lang="uts">
 	import { ref, computed, onMounted } from 'vue'
-	import { onShow } from '@dcloudio/uni-app'
-	import { useUserStore } from '@/stores/user.uts'
+import { useUserStore } from '@/stores/user.uts'
 	import { getUserMessages, markMessageAsRead, getUnreadCount, sendUnicastMessage } from '@/api/message.uts'
 	import { getUsersByRole } from '@/api/user.uts'
 	import { toast } from '@/utils/toast.uts'
@@ -179,7 +178,7 @@
 		loadContacts()
 	})
 	
-	onShow(() => {
+uni.onShow(() => {
 		loadMessages()
 	})
 	

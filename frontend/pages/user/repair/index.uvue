@@ -299,7 +299,7 @@
 <script setup lang="uts">
 	import UserLayout from '../../../components/UserLayout.uvue'
 	import { ref, onMounted } from 'vue'
-	import { request } from '../../../utils/request'
+	import { request } from '@/utils/request.uts'
 
 	type VehicleOption = {
 		id: string,

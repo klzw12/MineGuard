@@ -1,12 +1,12 @@
 // 轨迹模拟器 - 宏观 + 微观结合的轨迹存储策略
 
-type Coordinate = {
+export type Coordinate = {
     longitude: number
     latitude: number
     name?: string  // 关键点名称（如起点、终点、途经点）
 }
 
-type MacroRoute = {
+export type MacroRoute = {
     routeId: string
     tripId: number
     vehicleId: number
@@ -18,7 +18,7 @@ type MacroRoute = {
     estimatedDuration: number // 预计时长（秒）
 }
 
-type MicroTrackPoint = {
+export type MicroTrackPoint = {
     tripId: number
     vehicleId: number
     driverId: number
@@ -34,7 +34,7 @@ type MicroTrackPoint = {
     distance: number         // 累计距离（米）
 }
 
-type TrackSegment = {
+export type TrackSegment = {
     segmentIndex: number
     startPoint: Coordinate
     endPoint: Coordinate
@@ -42,7 +42,7 @@ type TrackSegment = {
     points: MicroTrackPoint[] // 详细轨迹点
 }
 
-type SimulationState = {
+export type SimulationState = {
     isRunning: boolean
     isPaused: boolean
     currentSpeed: number
@@ -53,7 +53,7 @@ type SimulationState = {
     traveledDistance: number
 }
 
-type SimulationController = {
+export type SimulationController = {
     stop: () => void
     pause: () => void
     resume: () => void
@@ -113,6 +113,10 @@ export function startTaskSimulation(
         traveledDistance: 0
     }
     
+    // 轨迹状态变量
+    let segmentIndex = 0
+    let pointIndex = 0
+    
     // 1. 生成宏观路线（高德地图 API 获取真实路径）
     const macroRoute = generateMacroRoute(
         tripId,
@@ -140,8 +144,8 @@ export function startTaskSimulation(
         console.log('WebSocket 连接成功')
         
         // 4. 定时发送微观轨迹点
-        let segmentIndex = 0
-        let pointIndex = 0
+        segmentIndex = 0
+        pointIndex = 0
         
         intervalId = setInterval(() => {
             if (!state.isRunning || state.isPaused) return
@@ -549,21 +553,6 @@ function calculateTotalDistance(points: Coordinate[]): number {
         )
     }
     return total
-}
-
-/**
- * 路径插值
- */
-function interpolatePath(start: Coordinate, end: Coordinate, steps: number): Coordinate[] {
-    const points: Coordinate[] = []
-    for (let i = 0; i <= steps; i++) {
-        const ratio = i / steps
-        points.push({
-            longitude: start.longitude + (end.longitude - start.longitude) * ratio,
-            latitude: start.latitude + (end.latitude - start.latitude) * ratio
-        })
-    }
-    return points
 }
 
 /**

@@ -31,11 +31,7 @@
             <artifactId>mineguard-common-database</artifactId>
             <version>${mineguard.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.klzw</groupId>
-            <artifactId>mineguard-common-file</artifactId>
-            <version>${mineguard.version}</version>
-        </dependency>
+
 
 
 

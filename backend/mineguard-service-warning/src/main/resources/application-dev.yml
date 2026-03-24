@@ -1,0 +1,23 @@
+spring:
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_IP:192.168.110.128}:8848
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
+      group: Service_Dev
+      namespace: dev
+      discovery:
+        namespace: dev
+        group: Service_Dev
+      config:
+        namespace: dev
+        group: Service_Dev
+  config:
+    import:
+      - nacos:warning-service.yml?refresh=true
+      - nacos:common-database.yml?group=Shared_Dev&refresh=true
+      - nacos:common-core.yml?group=Shared_Dev&refresh=true
+      - nacos:common-redis.yml?group=Shared_Dev&refresh=true
+      - nacos:common-map.yml?group=Shared_Dev&refresh=true
+      - nacos:common-mq.yml?group=Shared_Dev&refresh=true
+      - nacos:common-web.yml?group=Shared_Dev&refresh=true
