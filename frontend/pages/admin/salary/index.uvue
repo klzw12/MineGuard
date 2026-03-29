@@ -1,0 +1,589 @@
+<template>
+	<AdminLayout>
+		<view class="page-header">
+			<text class="page-title">薪酬管理</text>
+			<view class="header-actions">
+				<button class="primary-btn" @click="showAddModal = true">添加薪酬记录</button>
+			</view>
+		</view>
+		
+		<view class="filter-section">
+			<view class="search-box">
+				<text class="search-icon">🔍</text>
+				<input type="text" v-model="searchKeyword" placeholder="搜索司机姓名或车牌号" placeholder-style="color: rgba(255,255,255,0.4)" @confirm="handleSearch" />
+			</view>
+			<view class="filter-buttons">
+				<button class="filter-btn" :class="{'active': currentMonth === null}" @click="filterByMonth(null)">全部</button>
+				<button class="filter-btn" :class="{'active': currentMonth === getCurrentMonth()}" @click="filterByMonth(getCurrentMonth())">本月</button>
+				<button class="filter-btn" :class="{'active': currentMonth === getLastMonth()}" @click="filterByMonth(getLastMonth())">上月</button>
+			</view>
+		</view>
+		
+		<view class="salary-card">
+			<view class="salary-list">
+				<view class="salary-item" v-for="(salary, index) in salaryList" :key="salary.id">
+					<view class="salary-left">
+						<view class="salary-header">
+							<text class="driver-name">👤 {{ salary.driverName }}</text>
+							<view class="salary-period">{{ salary.period }}</view>
+						</view>
+						<text class="vehicle-info">🚚 {{ salary.vehicleNo }}</text>
+						<view class="salary-details">
+							<text class="detail-item">基础工资：¥{{ salary.baseSalary }}</text>
+							<text class="detail-item">绩效奖金：¥{{ salary.bonus }}</text>
+							<text class="detail-item">扣除项：¥{{ salary.deduction }}</text>
+						</view>
+					</view>
+					<view class="salary-right">
+						<view class="total-salary">¥{{ salary.totalSalary }}</view>
+						<view class="action-buttons">
+							<button class="action-btn" @click="viewDetail(salary)">详情</button>
+							<button class="action-btn secondary" @click="editSalary(salary)">编辑</button>
+						</view>
+					</view>
+				</view>
+				
+				<view class="empty-state" v-if="salaryList.length === 0">
+					<text class="empty-text">暂无薪酬数据</text>
+				</view>
+			</view>
+		</view>
+		
+		<view class="pagination" v-if="total > pageSize">
+			<button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">上一页</button>
+			<text class="page-info">{{ currentPage }} / {{ totalPages }}</text>
+			<button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">下一页</button>
+		</view>
+		
+		<view class="modal-overlay" v-if="showAddModal" @click="showAddModal = false">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">{{ editingSalary ? '编辑薪酬' : '添加薪酬记录' }}</text>
+					<text class="modal-close" @click="closeModal">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="form-label">司机姓名 *</text>
+						<input type="text" v-model="formData.driverName" class="form-input" placeholder="请输入司机姓名" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">车牌号 *</text>
+						<input type="text" v-model="formData.vehicleNo" class="form-input" placeholder="请输入车牌号" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">结算周期 *</text>
+						<input type="text" v-model="formData.period" class="form-input" placeholder="例如：2026-03" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">基础工资 *</text>
+						<input type="number" v-model="formData.baseSalary" class="form-input" placeholder="请输入基础工资" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">绩效奖金</text>
+						<input type="number" v-model="formData.bonus" class="form-input" placeholder="请输入绩效奖金" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">扣除项</text>
+						<input type="number" v-model="formData.deduction" class="form-input" placeholder="请输入扣除项" />
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="closeModal">取消</button>
+					<button class="confirm-btn" @click="submitForm">确定</button>
+				</view>
+			</view>
+		</view>
+	</AdminLayout>
+</template>
+
+<script setup lang="uts">
+	import AdminLayout from '../../../components/AdminLayout.uvue'
+	import { ref, computed, onMounted } from 'vue'
+	import * as costApi from '@/api/cost.uts'
+
+	type SalaryRecord = {
+		id: number | null,
+		driverId?: number,
+		driverName: string,
+		vehicleNo: string,
+		period: string,
+		baseSalary: number,
+		bonus: number,
+		deduction: number,
+		totalSalary: number
+	}
+
+	const salaryList = ref<SalaryRecord[]>([])
+	const currentPage = ref(1)
+	const pageSize = ref(10)
+	const total = ref(0)
+	const searchKeyword = ref('')
+	const currentMonth = ref<string | null>(null)
+	const showAddModal = ref(false)
+	const editingSalary = ref<SalaryRecord | null>(null)
+
+	const formData = ref({
+		driverName: '',
+		vehicleNo: '',
+		period: '',
+		baseSalary: 0,
+		bonus: 0,
+		deduction: 0
+	})
+
+	const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+
+	const getCurrentMonth = (): string => {
+		const now = new Date()
+		return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+	}
+
+	const getLastMonth = (): string => {
+		const now = new Date()
+		const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+		return `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`
+	}
+
+	const loadSalaries = async () => {
+		try {
+			const res = await costApi.getSalaryRecordList({
+				keyword: searchKeyword.value || undefined,
+				period: currentMonth.value || undefined,
+				page: currentPage.value,
+				pageSize: pageSize.value
+			})
+			if (res != null) {
+				salaryList.value = res.map((item: costApi.SalaryRecordVO) => ({
+					id: item.id,
+					driverId: item.driverId,
+					driverName: item.driverName,
+					vehicleNo: item.vehicleNo,
+					period: item.period,
+					baseSalary: Number(item.baseSalary),
+					bonus: Number(item.bonus),
+					deduction: Number(item.deduction),
+					totalSalary: Number(item.totalSalary)
+				}))
+				total.value = salaryList.value.length
+			}
+		} catch (error) {
+			console.error('加载薪酬列表失败:', error)
+		}
+	}
+
+	const handleSearch = () => {
+		currentPage.value = 1
+		loadSalaries()
+	}
+
+	const filterByMonth = (month: string | null) => {
+		currentMonth.value = month
+		currentPage.value = 1
+		loadSalaries()
+	}
+
+	const changePage = (page: number) => {
+		currentPage.value = page
+		loadSalaries()
+	}
+
+	const viewDetail = (salary: SalaryRecord) => {
+		console.log('查看详情:', salary)
+	}
+
+	const editSalary = (salary: SalaryRecord) => {
+		editingSalary.value = salary
+		formData.value = {
+			driverName: salary.driverName,
+			vehicleNo: salary.vehicleNo,
+			period: salary.period,
+			baseSalary: salary.baseSalary,
+			bonus: salary.bonus,
+			deduction: salary.deduction
+		}
+		showAddModal.value = true
+	}
+
+	const closeModal = () => {
+		showAddModal.value = false
+		editingSalary.value = null
+		formData.value = {
+			driverName: '',
+			vehicleNo: '',
+			period: '',
+			baseSalary: 0,
+			bonus: 0,
+			deduction: 0
+		}
+	}
+
+	const submitForm = async () => {
+		if (!formData.value.driverName || !formData.value.vehicleNo || !formData.value.period || !formData.value.baseSalary) {
+			uni.showToast({ title: '请填写必填字段', icon: 'none' })
+			return
+		}
+
+		try {
+			const data: costApi.SalaryRecordDTO = {
+				driverName: formData.value.driverName,
+				vehicleNo: formData.value.vehicleNo,
+				period: formData.value.period,
+				baseSalary: formData.value.baseSalary,
+				bonus: formData.value.bonus,
+				deduction: formData.value.deduction
+			}
+
+			if (editingSalary.value != null && editingSalary.value.id != null) {
+				data.id = editingSalary.value.id
+				await costApi.updateSalaryRecord(data)
+			} else {
+				await costApi.addSalaryRecord(data)
+			}
+
+			uni.showToast({ title: '保存成功', icon: 'success' })
+			closeModal()
+			loadSalaries()
+		} catch (error) {
+			console.error('保存薪酬记录失败:', error)
+			uni.showToast({ title: '保存失败', icon: 'none' })
+		}
+	}
+
+	onMounted(() => {
+		loadSalaries()
+	})
+</script>
+
+<style lang="scss">
+	.page-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 30rpx;
+		background: linear-gradient(135deg, #1a1f2e 0%, #151823 100%);
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+		
+		.page-title {
+			font-size: 36rpx;
+			font-weight: bold;
+			color: #fff;
+		}
+		
+		.header-actions {
+			.primary-btn {
+				background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+				color: #fff;
+				border: none;
+				padding: 16rpx 32rpx;
+				border-radius: 8rpx;
+				font-size: 24rpx;
+				font-weight: 500;
+				cursor: pointer;
+				
+				&:active {
+					opacity: 0.8;
+				}
+			}
+		}
+	}
+	
+	.filter-section {
+		padding: 20rpx 30rpx;
+		background: rgba(255, 255, 255, 0.03);
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.05);
+		
+		.search-box {
+			display: flex;
+			align-items: center;
+			background: rgba(255, 255, 255, 0.05);
+			border-radius: 8rpx;
+			padding: 0 20rpx;
+			margin-bottom: 20rpx;
+			
+			.search-icon {
+				font-size: 28rpx;
+				margin-right: 16rpx;
+				color: rgba(255, 255, 255, 0.4);
+			}
+			
+			input {
+				flex: 1;
+				color: #fff;
+				font-size: 24rpx;
+				padding: 20rpx 0;
+			}
+		}
+		
+		.filter-buttons {
+			display: flex;
+			gap: 12rpx;
+			
+			.filter-btn {
+				background: rgba(255, 255, 255, 0.05);
+				color: rgba(255, 255, 255, 0.6);
+				border: none;
+				padding: 12rpx 24rpx;
+				border-radius: 6rpx;
+				font-size: 22rpx;
+				cursor: pointer;
+				
+				&.active {
+					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+					color: #fff;
+				}
+				
+				&:active:not(.active) {
+					background: rgba(255, 255, 255, 0.1);
+				}
+			}
+		}
+	}
+	
+	.salary-card {
+		padding: 30rpx;
+		
+		.salary-list {
+			.salary-item {
+				display: flex;
+				justify-content: space-between;
+				align-items: flex-start;
+				background: rgba(255, 255, 255, 0.03);
+				border-radius: 12rpx;
+				padding: 24rpx;
+				margin-bottom: 20rpx;
+				border: 1rpx solid rgba(255, 255, 255, 0.05);
+				
+				.salary-left {
+					flex: 1;
+					
+					.salary-header {
+						display: flex;
+						justify-content: space-between;
+						align-items: center;
+						margin-bottom: 16rpx;
+						
+						.driver-name {
+							font-size: 28rpx;
+							font-weight: 500;
+							color: #fff;
+						}
+						
+						.salary-period {
+							font-size: 22rpx;
+							color: rgba(255, 255, 255, 0.6);
+							background: rgba(255, 255, 255, 0.05);
+							padding: 6rpx 12rpx;
+							border-radius: 4rpx;
+						}
+					}
+					
+					.vehicle-info {
+						font-size: 24rpx;
+						color: rgba(255, 255, 255, 0.7);
+						margin-bottom: 16rpx;
+					}
+					
+					.salary-details {
+						.display: flex;
+						.flex-direction: column;
+						.gap: 8rpx;
+						
+						.detail-item {
+							font-size: 22rpx;
+							color: rgba(255, 255, 255, 0.6);
+							margin-bottom: 8rpx;
+						}
+					}
+				}
+				
+				.salary-right {
+					display: flex;
+					flex-direction: column;
+					align-items: flex-end;
+					gap: 16rpx;
+					
+					.total-salary {
+						font-size: 32rpx;
+						font-weight: bold;
+						color: #007AFF;
+					}
+					
+					.action-buttons {
+						display: flex;
+						gap: 12rpx;
+						
+						.action-btn {
+							background: rgba(255, 255, 255, 0.05);
+							color: rgba(255, 255, 255, 0.7);
+							border: none;
+							padding: 10rpx 20rpx;
+							border-radius: 6rpx;
+							font-size: 20rpx;
+							cursor: pointer;
+							
+							&.secondary {
+								background: rgba(0, 122, 255, 0.15);
+								color: #007AFF;
+							}
+							
+							&:active {
+								opacity: 0.8;
+							}
+						}
+					}
+				}
+			}
+			
+			.empty-state {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				padding: 100rpx 0;
+				
+				.empty-text {
+					font-size: 24rpx;
+					color: rgba(255, 255, 255, 0.4);
+				}
+			}
+		}
+	}
+	
+	.pagination {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 30rpx;
+		gap: 20rpx;
+		
+		.page-btn {
+			background: rgba(255, 255, 255, 0.05);
+			color: rgba(255, 255, 255, 0.7);
+			border: none;
+			padding: 12rpx 24rpx;
+			border-radius: 6rpx;
+			font-size: 22rpx;
+			cursor: pointer;
+			
+			&:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
+			
+			&:active:not(:disabled) {
+				background: rgba(255, 255, 255, 0.1);
+			}
+		}
+		
+		.page-info {
+			font-size: 22rpx;
+			color: rgba(255, 255, 255, 0.6);
+		}
+	}
+	
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.7);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 9999;
+		
+		.modal-content {
+			background: linear-gradient(135deg, #1a1f2e 0%, #151823 100%);
+			border-radius: 16rpx;
+			width: 90%;
+			max-width: 600rpx;
+			border: 1rpx solid rgba(255, 255, 255, 0.08);
+			
+			.modal-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 24rpx 30rpx;
+				border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+				
+				.modal-title {
+					font-size: 30rpx;
+					font-weight: 500;
+					color: #fff;
+				}
+				
+				.modal-close {
+					font-size: 36rpx;
+					color: rgba(255, 255, 255, 0.4);
+					cursor: pointer;
+					
+					&:active {
+						color: #fff;
+					}
+				}
+			}
+			
+			.modal-body {
+				padding: 30rpx;
+				
+				.form-item {
+					margin-bottom: 24rpx;
+					
+					.form-label {
+						display: block;
+						font-size: 24rpx;
+						color: rgba(255, 255, 255, 0.8);
+						margin-bottom: 12rpx;
+					}
+					
+					.form-input {
+						width: 100%;
+						background: rgba(255, 255, 255, 0.05);
+						border: 1rpx solid rgba(255, 255, 255, 0.1);
+						border-radius: 8rpx;
+						padding: 20rpx;
+						font-size: 24rpx;
+						color: #fff;
+					}
+				}
+			}
+			
+			.modal-footer {
+				display: flex;
+				justify-content: flex-end;
+				gap: 16rpx;
+				padding: 24rpx 30rpx;
+				border-top: 1rpx solid rgba(255, 255, 255, 0.08);
+				
+				.cancel-btn {
+					background: rgba(255, 255, 255, 0.05);
+					color: rgba(255, 255, 255, 0.7);
+					border: none;
+					padding: 16rpx 32rpx;
+					border-radius: 8rpx;
+					font-size: 24rpx;
+					cursor: pointer;
+					
+					&:active {
+						opacity: 0.8;
+					}
+				}
+				
+				.confirm-btn {
+					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+					color: #fff;
+					border: none;
+					padding: 16rpx 32rpx;
+					border-radius: 8rpx;
+					font-size: 24rpx;
+					font-weight: 500;
+					cursor: pointer;
+					
+					&:active {
+						opacity: 0.8;
+					}
+				}
+			}
+		}
+	}
+</style>

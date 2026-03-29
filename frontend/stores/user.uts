@@ -7,27 +7,46 @@ import * as userApi from '@/api/user.uts'
 const userInfo = ref<UserVO | null>(null)
 const isLoggedIn = ref<boolean>(false)
 const userRole = ref<string>('user')
+const isDispatcher = ref<boolean>(false)
 
 function setUserInfo(user: UserVO | null) {
   userInfo.value = user
   isLoggedIn.value = user !== null
   
   if (user && user.roleCode) {
-    if (user.roleCode === 'ROLE_ADMIN' || user.roleCode === 'ADMIN') {
+    const roleCode = (user.roleCode || '').toUpperCase()
+    if (roleCode === 'ROLE_ADMIN' || roleCode === 'ADMIN') {
       userRole.value = 'admin'
-    } else {
-      userRole.value = 'user'
+      isDispatcher.value = false
+    } 
+    else if (roleCode === 'ROLE_OPERATOR' || roleCode === 'OPERATOR') {
+      if (user.status === 1) {
+        userRole.value = 'operator'
+        isDispatcher.value = true
+      } else {
+        userRole.value = 'user'
+        isDispatcher.value = false
+      }
     }
+    else {
+      userRole.value = 'user'
+      isDispatcher.value = false
+    }
+  } else if (user) {
+    userRole.value = 'user'
+    isDispatcher.value = false
   }
   
   if (user) {
-    uni.setStorageSync('userInfo', user)
+    uni.setStorageSync('userInfo', JSON.stringify(user))
     uni.setStorageSync('loginStatus', true)
     uni.setStorageSync('userRole', userRole.value)
+    uni.setStorageSync('isDispatcher', isDispatcher.value)
   } else {
     uni.removeStorageSync('userInfo')
     uni.removeStorageSync('loginStatus')
     uni.removeStorageSync('userRole')
+    uni.removeStorageSync('isDispatcher')
   }
 }
 
@@ -35,21 +54,33 @@ function loadFromStorage() {
   const storedUserInfo = uni.getStorageSync('userInfo')
   const storedLoginStatus = uni.getStorageSync('loginStatus')
   const storedUserRole = uni.getStorageSync('userRole')
+  const storedIsDispatcher = uni.getStorageSync('isDispatcher')
   
   if (storedUserInfo && storedLoginStatus) {
+    try {
+      userInfo.value = JSON.parse(storedUserInfo) as UserVO
+    } catch (e) {
+      console.error('解析用户信息失败:', e)
+      userInfo.value = null
+    }
+  } else {
     userInfo.value = storedUserInfo as UserVO
-    isLoggedIn.value = storedLoginStatus as boolean
-    userRole.value = storedUserRole as string || 'user'
   }
+  
+  isLoggedIn.value = storedLoginStatus as boolean
+  userRole.value = storedUserRole as string || 'user'
+  isDispatcher.value = storedIsDispatcher as boolean || false
 }
 
 function handleLoginRedirect(user: UserVO) {
   console.log('handleLoginRedirect called:', JSON.stringify(user))
   console.log('roleCode:', user.roleCode, 'status:', user.status, 'status type:', typeof user.status)
   
+  const roleCode = user.roleCode?.toUpperCase() || ''
+  const isAdmin = roleCode === 'ROLE_ADMIN' || roleCode === 'ADMIN'
+  const isOperator = roleCode === 'ROLE_OPERATOR' || roleCode === 'OPERATOR'
+  
   // 管理员且禁用状态，跳转到实名认证
-  // 兼容 ADMIN 和 ROLE_ADMIN 两种格式
-  const isAdmin = user.roleCode === 'ROLE_ADMIN' || user.roleCode === 'ADMIN'
   if (isAdmin && user.status === 0) {
     console.log('Redirecting to admin verify page')
     uni.redirectTo({
@@ -58,7 +89,23 @@ function handleLoginRedirect(user: UserVO) {
     return
   }
   
-  // 非管理员且禁用状态，跳转到申诉页面
+  // 调度员且禁用状态，跳转到管理端验证页面
+  if (isOperator && user.status === 0) {
+    console.log('Redirecting to admin verify page')
+    uni.showToast({
+      title: '调度员账号需要身份验证',
+      icon: 'none',
+      duration: 2000
+    })
+    setTimeout(() => {
+      uni.redirectTo({
+        url: '/pages/admin/verify/index'
+      })
+    }, 2000)
+    return
+  }
+  
+  // 非管理员非调度员且禁用状态，跳转到申诉页面
   if (user.status === 0) {
     console.log('Redirecting to appeal page')
     uni.showToast({
@@ -74,8 +121,8 @@ function handleLoginRedirect(user: UserVO) {
     return
   }
   
-  // 正常用户跳转
-  if (userRole.value === 'admin') {
+  // 正常用户跳转 - 管理员和启用的调度员跳转到管理端
+  if (userRole.value === 'admin' || userRole.value === 'operator') {
     console.log('Redirecting to admin home page')
     uni.redirectTo({
       url: '/pages/admin/home/index'
@@ -193,6 +240,7 @@ export function useUserStore() {
     userInfo,
     isLoggedIn,
     userRole,
+    isDispatcher,
     setUserInfo,
     loadFromStorage,
     login,

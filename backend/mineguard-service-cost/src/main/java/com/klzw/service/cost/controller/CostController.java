@@ -5,11 +5,13 @@ import com.klzw.service.cost.dto.CostBudgetDTO;
 import com.klzw.service.cost.dto.CostDetailDTO;
 import com.klzw.service.cost.dto.CostQueryDTO;
 import com.klzw.service.cost.dto.SalaryConfigDTO;
+import com.klzw.service.cost.dto.SalaryRecordDTO;
 import com.klzw.service.cost.service.CostService;
 import com.klzw.service.cost.vo.CostBudgetVO;
 import com.klzw.service.cost.vo.CostDetailVO;
 import com.klzw.service.cost.vo.CostStatisticsVO;
 import com.klzw.service.cost.vo.SalaryConfigVO;
+import com.klzw.service.cost.vo.SalaryRecordVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -133,6 +135,45 @@ public class CostController {
     public Result<List<SalaryConfigVO>> getSalaryConfigList() {
         log.debug("获取薪资配置列表");
         List<SalaryConfigVO> list = costService.getSalaryConfigList();
+        return Result.success(list);
+    }
+
+    @PostMapping("/salary-record")
+    public Result<SalaryRecordVO> addSalaryRecord(@RequestBody SalaryRecordDTO dto) {
+        log.debug("添加薪酬记录：{}", dto);
+        SalaryRecordVO vo = costService.addSalaryRecord(dto);
+        return Result.success(vo);
+    }
+
+    @PutMapping("/salary-record")
+    public Result<SalaryRecordVO> updateSalaryRecord(@RequestBody SalaryRecordDTO dto) {
+        log.debug("更新薪酬记录：{}", dto);
+        SalaryRecordVO vo = costService.updateSalaryRecord(dto);
+        return Result.success(vo);
+    }
+
+    @DeleteMapping("/salary-record/{id}")
+    public Result<Void> deleteSalaryRecord(@PathVariable Long id) {
+        log.debug("删除薪酬记录：ID={}", id);
+        costService.deleteSalaryRecord(id);
+        return Result.success();
+    }
+
+    @GetMapping("/salary-record/{id}")
+    public Result<SalaryRecordVO> getSalaryRecord(@PathVariable Long id) {
+        log.debug("获取薪酬记录：ID={}", id);
+        SalaryRecordVO vo = costService.getSalaryRecord(id);
+        return Result.success(vo);
+    }
+
+    @GetMapping("/salary-record/list")
+    public Result<List<SalaryRecordVO>> getSalaryRecordList(
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "period", required = false) String period,
+            @RequestParam(value = "page", required = false, defaultValue = "1") Integer page,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) {
+        log.debug("获取薪酬记录列表：keyword={}, period={}, page={}, pageSize={}", keyword, period, page, pageSize);
+        List<SalaryRecordVO> list = costService.getSalaryRecordList(keyword, period, page, pageSize);
         return Result.success(list);
     }
 

@@ -82,6 +82,36 @@ export interface SalaryConfigDTO {
   remark?: string
 }
 
+export interface SalaryRecordVO {
+  id: number
+  driverId: number
+  driverName: string
+  vehicleNo: string
+  period: string
+  baseSalary: number
+  bonus: number
+  deduction: number
+  totalSalary: number
+  status: number
+  remark: string
+  createTime: string
+  updateTime: string
+}
+
+export interface SalaryRecordDTO {
+  id?: number
+  driverId?: number
+  driverName: string
+  vehicleNo: string
+  period: string
+  baseSalary: number
+  bonus: number
+  deduction: number
+  totalSalary?: number
+  status?: number
+  remark?: string
+}
+
 export interface CostBudgetVO {
   id: number
   budgetNo: string
@@ -166,6 +196,26 @@ export const costApi = {
 
   deleteSalaryConfig: (id: number): Promise<void | null> => {
     return http.delete<void>(`/api/cost/salary-config/${id}`)
+  },
+
+  getSalaryRecordList: (params: { keyword?: string, period?: string, page?: number, pageSize?: number }): Promise<SalaryRecordVO[] | null> => {
+    return http.get<SalaryRecordVO[]>('/api/cost/salary-record/list', params)
+  },
+
+  getSalaryRecord: (id: number): Promise<SalaryRecordVO | null> => {
+    return http.get<SalaryRecordVO>(`/api/cost/salary-record/${id}`)
+  },
+
+  addSalaryRecord: (data: SalaryRecordDTO): Promise<SalaryRecordVO | null> => {
+    return http.post<SalaryRecordVO>('/api/cost/salary-record', data)
+  },
+
+  updateSalaryRecord: (data: SalaryRecordDTO): Promise<SalaryRecordVO | null> => {
+    return http.put<SalaryRecordVO>('/api/cost/salary-record', data)
+  },
+
+  deleteSalaryRecord: (id: number): Promise<void | null> => {
+    return http.delete<void>(`/api/cost/salary-record/${id}`)
   },
 
   getBudgetList: (params: any): Promise<CostBudgetVO[] | null> => {

@@ -43,17 +43,18 @@
 					<text class="card-title">历史广播</text>
 				</view>
 				
-				<view class="broadcast-list">
-					<view class="broadcast-item" v-for="(item, index) in broadcastHistory" :key="index">
+				<view class="broadcast-list" v-if="broadcastHistory.length > 0">
+					<view class="broadcast-item" v-for="(item, index) in broadcastHistory" :key="index" @click="viewBroadcast(item)">
 						<view class="broadcast-header">
 							<text class="broadcast-title">{{ item.title }}</text>
-							<text class="broadcast-time">{{ item.time }}</text>
+							<text class="broadcast-time">{{ formatTime(item.createTime) }}</text>
 						</view>
 						<text class="broadcast-content">{{ item.content }}</text>
-						<view class="broadcast-footer">
-							<text class="broadcast-target">接收对象: {{ item.target }}</text>
-						</view>
 					</view>
+				</view>
+				
+				<view class="empty-state" v-else>
+					<text class="empty-text">暂无广播记录</text>
 				</view>
 			</view>
 		</view>
@@ -61,25 +62,39 @@
 </template>
 
 <script setup lang="uts">
-	import { ref } from 'vue'
+	import { ref, onMounted } from 'vue'
 	import AdminSidebar from '@/components/AdminSidebar.uvue'
+	import { sendBroadcastMessage, sendBroadcastToAll, getUserMessages, markMessageAsRead } from '@/api/message.uts'
+	import type { MessageVO } from '@/types/user.uts'
 	
 	const broadcastTitle = ref('')
 	const broadcastContent = ref('')
-	const selectedRoles = ref<string[]>(['DRIVER', 'MECHANIC', 'SAFETY'])
+	const selectedRoles = ref<string[]>(['DRIVER', 'REPAIRMAN', 'SAFETY_OFFICER'])
+	const sending = ref(false)
 	
 	const roles = ref([
 		{ code: 'DRIVER', name: '司机' },
-		{ code: 'MECHANIC', name: '维修员' },
-		{ code: 'SAFETY', name: '安全员' },
+		{ code: 'REPAIRMAN', name: '维修员' },
+		{ code: 'SAFETY_OFFICER', name: '安全员' },
 		{ code: 'ADMIN', name: '管理员' }
 	])
 	
-	const broadcastHistory = ref([
-		{ title: '系统维护通知', content: '系统将于今晚22:00-23:00进行维护，届时系统将暂停服务。', time: '2026-03-20 09:30', target: '全部用户' },
-		{ title: '安全培训通知', content: '请所有司机于本周五下午2点参加安全培训会议。', time: '2026-03-19 14:20', target: '司机' },
-		{ title: '新功能上线', content: '车辆实时监控功能已上线，请各位管理员及时查看。', time: '2026-03-18 10:00', target: '管理员' }
-	])
+	const broadcastHistory = ref<MessageVO[]>([])
+	
+	onMounted(() => {
+		loadBroadcastHistory()
+	})
+	
+	async function loadBroadcastHistory() {
+		try {
+			const messages = await getUserMessages()
+			if (messages) {
+				broadcastHistory.value = messages.filter((m: MessageVO) => m.title && m.title !== '私聊消息')
+			}
+		} catch (e) {
+			console.log('加载广播历史失败:', e)
+		}
+	}
 	
 	function toggleRole(code: string) {
 		const index = selectedRoles.value.indexOf(code)
@@ -90,7 +105,7 @@
 		}
 	}
 	
-	function sendBroadcast() {
+	async function sendBroadcast() {
 		if (!broadcastTitle.value.trim()) {
 			uni.showToast({ title: '请输入广播标题', icon: 'none' })
 			return
@@ -107,13 +122,84 @@
 		uni.showModal({
 			title: '确认发送',
 			content: '确定要发送此广播吗？',
-			success: (res) => {
+			success: async (res) => {
 				if (res.confirm) {
-					uni.showToast({ title: '广播发送成功', icon: 'success' })
-					broadcastTitle.value = ''
-					broadcastContent.value = ''
+					await doSendBroadcast()
 				}
 			}
+		})
+	}
+	
+	async function doSendBroadcast() {
+		if (sending.value) return
+		sending.value = true
+		
+		const title = broadcastTitle.value.trim()
+		const content = broadcastContent.value.trim()
+		
+		try {
+			const promises: Promise<void | null>[] = []
+			
+			for (const roleCode of selectedRoles.value) {
+				promises.push(sendBroadcastMessage(roleCode, title, content))
+			}
+			
+			await Promise.all(promises)
+			
+			uni.showToast({ title: '广播发送成功', icon: 'success' })
+			broadcastTitle.value = ''
+			broadcastContent.value = ''
+			
+			setTimeout(() => {
+				loadBroadcastHistory()
+			}, 500)
+		} catch (e: any) {
+			uni.showToast({ title: e?.message || '发送失败', icon: 'none' })
+		} finally {
+			sending.value = false
+		}
+	}
+	
+	function formatTime(timeStr: string | undefined): string {
+		if (!timeStr) return ''
+		
+		try {
+			let date: Date
+			if (/^\d+$/.test(timeStr)) {
+				date = new Date(parseInt(timeStr))
+			} else {
+				date = new Date(timeStr)
+			}
+			
+			if (isNaN(date.getTime())) return ''
+			
+			const year = date.getFullYear()
+			const month = (date.getMonth() + 1).toString().padStart(2, '0')
+			const day = date.getDate().toString().padStart(2, '0')
+			const hours = date.getHours().toString().padStart(2, '0')
+			const minutes = date.getMinutes().toString().padStart(2, '0')
+			
+			return `${year}-${month}-${day} ${hours}:${minutes}`
+		} catch (e) {
+			return ''
+		}
+	}
+	
+	async function viewBroadcast(item: MessageVO) {
+		try {
+			if (item.messageId) {
+				await markMessageAsRead(item.messageId)
+				item.isRead = 1
+			}
+		} catch (e) {
+			console.log('标记已读失败:', e)
+		}
+		
+		uni.showModal({
+			title: item.title,
+			content: item.content,
+			showCancel: false,
+			confirmText: '我知道了'
 		})
 	}
 </script>
@@ -245,16 +331,17 @@
 		font-size: 24rpx;
 		color: rgba(255, 255, 255, 0.7);
 		line-height: 1.6;
-		margin-bottom: 15rpx;
 	}
 	
-	.broadcast-footer {
+	.empty-state {
+		padding: 60rpx 30rpx;
 		display: flex;
-		flex-direction: row;
+		justify-content: center;
+		align-items: center;
 	}
 	
-	.broadcast-target {
-		font-size: 22rpx;
-		color: #007AFF;
+	.empty-text {
+		font-size: 26rpx;
+		color: rgba(255, 255, 255, 0.4);
 	}
 </style>

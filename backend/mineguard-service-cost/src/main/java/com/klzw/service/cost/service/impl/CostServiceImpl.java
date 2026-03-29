@@ -13,12 +13,14 @@ import com.klzw.service.cost.dto.SalaryConfigDTO;
 import com.klzw.service.cost.entity.CostBudget;
 import com.klzw.service.cost.entity.CostDetail;
 import com.klzw.service.cost.entity.SalaryConfig;
+import com.klzw.service.cost.entity.SalaryRecord;
 import com.klzw.service.cost.enums.BudgetStatusEnum;
 import com.klzw.service.cost.enums.BudgetTypeEnum;
 import com.klzw.service.cost.enums.CostTypeEnum;
 import com.klzw.service.cost.mapper.CostBudgetMapper;
 import com.klzw.service.cost.mapper.CostDetailMapper;
 import com.klzw.service.cost.mapper.SalaryConfigMapper;
+import com.klzw.service.cost.mapper.SalaryRecordMapper;
 import com.klzw.service.cost.service.CostService;
 import com.klzw.service.cost.vo.*;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +46,7 @@ public class CostServiceImpl implements CostService {
 
     private final CostDetailMapper costDetailMapper;
     private final SalaryConfigMapper salaryConfigMapper;
+    private final SalaryRecordMapper salaryRecordMapper;
     private final CostBudgetMapper costBudgetMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final PythonClient pythonClient;
@@ -250,6 +253,102 @@ public class CostServiceImpl implements CostService {
         
         List<SalaryConfig> list = salaryConfigMapper.selectList(wrapper);
         return list.stream().map(this::convertToSalaryConfigVO).collect(Collectors.toList());
+    }
+
+    @Override
+    public SalaryRecordVO addSalaryRecord(SalaryRecordDTO dto) {
+        SalaryRecord entity = new SalaryRecord();
+        BeanUtils.copyProperties(dto, entity);
+        if (entity.getTotalSalary() == null) {
+            entity.setTotalSalary(calculateTotalSalary(entity));
+        }
+        entity.setStatus(1);
+        entity.setCreateTime(LocalDateTime.now());
+        entity.setUpdateTime(LocalDateTime.now());
+        entity.setDeleted(0);
+        
+        salaryRecordMapper.insert(entity);
+        log.info("添加薪酬记录：ID={}, 司机={}, 周期={}", entity.getId(), entity.getDriverName(), entity.getPeriod());
+        
+        return convertToSalaryRecordVO(entity);
+    }
+
+    @Override
+    public SalaryRecordVO updateSalaryRecord(SalaryRecordDTO dto) {
+        SalaryRecord entity = salaryRecordMapper.selectById(dto.getId());
+        if (entity == null) {
+            throw new RuntimeException("薪酬记录不存在");
+        }
+        
+        BeanUtils.copyProperties(dto, entity, "id", "createTime", "deleted");
+        if (entity.getTotalSalary() == null) {
+            entity.setTotalSalary(calculateTotalSalary(entity));
+        }
+        entity.setUpdateTime(LocalDateTime.now());
+        
+        salaryRecordMapper.updateById(entity);
+        log.info("更新薪酬记录：ID={}", entity.getId());
+        
+        return convertToSalaryRecordVO(entity);
+    }
+
+    @Override
+    public void deleteSalaryRecord(Long id) {
+        SalaryRecord entity = salaryRecordMapper.selectById(id);
+        if (entity == null) {
+            throw new RuntimeException("薪酬记录不存在");
+        }
+        
+        entity.setDeleted(1);
+        entity.setUpdateTime(LocalDateTime.now());
+        salaryRecordMapper.updateById(entity);
+        log.info("删除薪酬记录：ID={}", id);
+    }
+
+    @Override
+    public SalaryRecordVO getSalaryRecord(Long id) {
+        SalaryRecord entity = salaryRecordMapper.selectById(id);
+        if (entity == null) {
+            return null;
+        }
+        return convertToSalaryRecordVO(entity);
+    }
+
+    @Override
+    public List<SalaryRecordVO> getSalaryRecordList(String keyword, String period, Integer page, Integer pageSize) {
+        LambdaQueryWrapper<SalaryRecord> wrapper = new LambdaQueryWrapper<>();
+        
+        if (keyword != null && !keyword.isEmpty()) {
+            wrapper.and(w -> w.like(SalaryRecord::getDriverName, keyword)
+                    .or().like(SalaryRecord::getVehicleNo, keyword));
+        }
+        
+        if (period != null && !period.isEmpty()) {
+            wrapper.eq(SalaryRecord::getPeriod, period);
+        }
+        
+        wrapper.eq(SalaryRecord::getStatus, 1);
+        wrapper.orderByDesc(SalaryRecord::getCreateTime);
+        
+        if (page != null && pageSize != null) {
+            wrapper.last("LIMIT " + ((page - 1) * pageSize) + ", " + pageSize);
+        }
+        
+        List<SalaryRecord> list = salaryRecordMapper.selectList(wrapper);
+        return list.stream().map(this::convertToSalaryRecordVO).collect(Collectors.toList());
+    }
+
+    private BigDecimal calculateTotalSalary(SalaryRecord entity) {
+        BigDecimal base = entity.getBaseSalary() != null ? entity.getBaseSalary() : BigDecimal.ZERO;
+        BigDecimal bonus = entity.getBonus() != null ? entity.getBonus() : BigDecimal.ZERO;
+        BigDecimal deduction = entity.getDeduction() != null ? entity.getDeduction() : BigDecimal.ZERO;
+        return base.add(bonus).subtract(deduction);
+    }
+
+    private SalaryRecordVO convertToSalaryRecordVO(SalaryRecord entity) {
+        SalaryRecordVO vo = new SalaryRecordVO();
+        BeanUtils.copyProperties(entity, vo);
+        return vo;
     }
 
     @Override

@@ -4,10 +4,12 @@ import com.klzw.service.cost.dto.CostBudgetDTO;
 import com.klzw.service.cost.dto.CostDetailDTO;
 import com.klzw.service.cost.dto.CostQueryDTO;
 import com.klzw.service.cost.dto.SalaryConfigDTO;
+import com.klzw.service.cost.dto.SalaryRecordDTO;
 import com.klzw.service.cost.vo.CostBudgetVO;
 import com.klzw.service.cost.vo.CostDetailVO;
 import com.klzw.service.cost.vo.CostStatisticsVO;
 import com.klzw.service.cost.vo.SalaryConfigVO;
+import com.klzw.service.cost.vo.SalaryRecordVO;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -36,6 +38,16 @@ public interface CostService {
     SalaryConfigVO getSalaryConfig(Long id);
 
     List<SalaryConfigVO> getSalaryConfigList();
+
+    SalaryRecordVO addSalaryRecord(SalaryRecordDTO dto);
+
+    SalaryRecordVO updateSalaryRecord(SalaryRecordDTO dto);
+
+    void deleteSalaryRecord(Long id);
+
+    SalaryRecordVO getSalaryRecord(Long id);
+
+    List<SalaryRecordVO> getSalaryRecordList(String keyword, String period, Integer page, Integer pageSize);
 
     CostBudgetVO addBudget(CostBudgetDTO dto);
 
