@@ -108,13 +108,14 @@ const submitAppeal = async () => {
     hasPending.value = true
     loadAppeals()
   } catch (err: any) {
-    toast.error(err.message || '提交失败')
+    toast.error(err?.message || '提交失败')
   } finally {
     loading.value = false
   }
 }
 
-const formatTime = (time: string) => {
+const formatTime = (time: string | null | undefined) => {
+  if (!time) return ''
   return time.substring(0, 19).replace('T', ' ')
 }
 </script>

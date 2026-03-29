@@ -65,7 +65,7 @@
 
 <script setup lang="uts">
 	import AdminSidebar from '../../../components/AdminSidebar.uvue'
-	import { generateTrackPoints, simulateTrackSend, generateRandomEvent } from '../../../utils/trackSimulator.uts'
+	import { startTaskSimulation, generateRandomEvent, type Coordinate } from '../../../utils/trackSimulator.uts'
 
 	// WebSocket连接
 	let ws: WebSocket | null = null
@@ -97,42 +97,61 @@
 		}
 	}
 
+	// 模拟控制器
+	let simulationController: any = null
+
 	// 开始轨迹点模拟
 	function startTrackSimulation() {
-		if (ws === null || ws.readyState !== WebSocket.OPEN) {
-			initWebSocket()
-			
-			setTimeout(() => {
-				if (ws !== null) {
-					const points = generateTrackPoints(tripId, startPoint, endPoint)
-					sendInterval = simulateTrackSend(ws, points)
-				}
-			}, 1000)
-		} else {
-			const points = generateTrackPoints(tripId, startPoint, endPoint)
-			sendInterval = simulateTrackSend(ws, points)
-		}
+		simulationController = startTaskSimulation(
+			tripId,
+			1, // vehicleId
+			1, // driverId
+			startPoint,
+			endPoint,
+			(track) => {
+				console.log('轨迹点更新:', track)
+				// 这里可以更新地图上的车辆位置
+			},
+			(route) => {
+				console.log('路线更新:', route)
+				// 这里可以更新地图上的路线
+			},
+			() => {
+				console.log('轨迹模拟完成')
+			}
+		)
+		console.log('轨迹点模拟已开始')
 	}
 
 	// 停止轨迹点模拟
 	function stopTrackSimulation() {
-		if (sendInterval !== null) {
-			clearInterval(sendInterval)
-			sendInterval = null
+		if (simulationController) {
+			simulationController.stop()
+			simulationController = null
 			console.log('轨迹点模拟已停止')
 		}
 	}
 
 	// 发送随机事件
 	function sendRandomEvent() {
-		if (ws !== null && ws.readyState === WebSocket.OPEN) {
-			const event = generateRandomEvent(tripId, startPoint.latitude, startPoint.longitude)
-			const message = {
-				type: 'alert',
-				data: event
+		if (simulationController) {
+			// 触发随机事件
+			const eventType = ['speed_limit', 'stay', 'vehicle_failure', 'route_deviation'][Math.floor(Math.random() * 4)]
+			switch (eventType) {
+				case 'speed_limit':
+					simulationController.triggerSpeedLimit()
+					break
+				case 'stay':
+					simulationController.triggerStay()
+					break
+				case 'vehicle_failure':
+					simulationController.triggerFailure()
+					break
+				case 'route_deviation':
+					simulationController.triggerRouteDeviation()
+					break
 			}
-			ws.send(JSON.stringify(message))
-			console.log('发送随机事件:', event)
+			console.log('发送随机事件:', eventType)
 		}
 	}
 

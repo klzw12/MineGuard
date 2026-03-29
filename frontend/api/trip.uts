@@ -64,19 +64,19 @@ export interface PageResult<T> {
 }
 
 export function createTrip(data: TripCreateDTO): Promise<number | null> {
-  return http.post('/api/trip', data)
+  return http.post<number>('/trip', data)
 }
 
 export function startTrip(id: number): Promise<void | null> {
-  return http.post(`/api/trip/${id}/start`)
+  return http.post<void>(`/trip/${id}/start`)
 }
 
 export function endTrip(id: number, data: TripEndDTO): Promise<void | null> {
-  return http.post(`/api/trip/${id}/end`, data)
+  return http.post<void>(`/trip/${id}/end`, data)
 }
 
 export function getTrip(id: number): Promise<Trip | null> {
-  return http.get(`/api/trip/${id}`)
+  return http.get<Trip>(`/trip/${id}`)
 }
 
 export function getTripPage(params: {
@@ -86,11 +86,11 @@ export function getTripPage(params: {
   driverId?: number
   status?: number
 }): Promise<PageResult<Trip> | null> {
-  return http.get('/api/trip/page', params)
+  return http.get<PageResult<Trip>>('/trip/page', params)
 }
 
 export function getTripTrack(id: number): Promise<TripTrack[] | null> {
-  return http.get(`/api/trip/${id}/track`)
+  return http.get<TripTrack[]>(`/trip/${id}/track`)
 }
 
 export function playTripTrack(tracks: TripTrack[]) {

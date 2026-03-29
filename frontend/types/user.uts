@@ -52,9 +52,9 @@ export type UserRegisterDTO = {
 export type AdminCreateUserDTO = {
   username: string
   password: string
-  realName: string
   phone?: string
   email?: string
+  roleId?: string
 }
 
 export type UserUpdateDTO = {
@@ -177,14 +177,26 @@ export type MessageVO = {
   sender: string
   receiver: string
   type: string
-  content: string
   status: string
-  priority: string
-  createdAt: string
-  updatedAt: string
-  readAt?: string
-  businessId?: string
-  businessType?: string
+  content: string
+  createTime: string
+  readTime?: string
+  title: string
+  isRead: number
+  senderId?: string
+  senderName?: string
+  senderAvatar?: string
+}
+
+export type ContactVO = {
+  id: string
+  username: string
+  realName: string
+  roleName: string
+  avatar: string
+  unreadCount: number
+  lastMessage: string
+  lastMessageTime: string
 }
 
 export type AttendanceVO = {

@@ -6,8 +6,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.klzw.service.vehicle.dto.VehicleFaultDTO;
 import com.klzw.service.vehicle.dto.VehicleFaultStatisticsResponseDTO;
 import com.klzw.service.vehicle.entity.VehicleFault;
+import com.klzw.service.vehicle.enums.FaultStatusEnum;
+import com.klzw.service.vehicle.enums.VehicleStatusEnum;
 import com.klzw.service.vehicle.mapper.VehicleFaultMapper;
 import com.klzw.service.vehicle.service.VehicleFaultService;
+import com.klzw.service.vehicle.service.VehicleService;
 import com.klzw.service.vehicle.exception.VehicleException;
 import com.klzw.service.vehicle.exception.VehicleResultCode;
 import lombok.extern.slf4j.Slf4j;
@@ -30,18 +33,27 @@ public class VehicleFaultServiceImpl extends ServiceImpl<VehicleFaultMapper, Veh
     @Resource
     private VehicleFaultMapper vehicleFaultMapper;
     
+    @Resource
+    private VehicleService vehicleService;
+    
     @Override
     public VehicleFault reportFault(VehicleFaultDTO faultDTO) {
-        log.info("报告车辆故障: vehicleId={}, faultType={}", faultDTO.getVehicleId(), faultDTO.getFaultType());
-        // 转换DTO为实体类
+        log.info("报告车辆故障: vehicleId={}, faultType={}, lat={}, lng={}", faultDTO.getVehicleId(), faultDTO.getFaultType(), faultDTO.getLatitude(), faultDTO.getLongitude());
         VehicleFault fault = new VehicleFault();
         fault.setVehicleId(faultDTO.getVehicleId());
         fault.setFaultType(faultDTO.getFaultType());
         fault.setFaultDescription(faultDTO.getFaultDescription());
-        fault.setFaultDate(faultDTO.getFaultDate() != null ? faultDTO.getFaultDate() : LocalDateTime.now());
-        fault.setSeverity(faultDTO.getSeverity());
-        fault.setStatus(faultDTO.getStatus() != null ? faultDTO.getStatus() : 1); // 1-未处理
+        fault.setFaultDate(LocalDateTime.now());
+        fault.setSeverity(faultDTO.getSeverity() != null ? faultDTO.getSeverity() : 1);
+        fault.setStatus(FaultStatusEnum.PENDING.getCode());
+        fault.setLatitude(faultDTO.getLatitude());
+        fault.setLongitude(faultDTO.getLongitude());
+        fault.setLocationAddress(faultDTO.getLocationAddress());
         save(fault);
+        
+        vehicleService.updateVehicleStatus(faultDTO.getVehicleId(), VehicleStatusEnum.FAULT.getCode());
+        log.info("车辆状态已更新为故障: vehicleId={}", faultDTO.getVehicleId());
+        
         return fault;
     }
     
@@ -56,8 +68,12 @@ public class VehicleFaultServiceImpl extends ServiceImpl<VehicleFaultMapper, Veh
         fault.setRepairContent(repairContent);
         fault.setRepairCost(repairCost);
         fault.setRepairDate(LocalDateTime.now());
-        fault.setStatus(3); // 3-已处理
+        fault.setStatus(FaultStatusEnum.RESOLVED.getCode());
         updateById(fault);
+        
+        vehicleService.updateVehicleStatus(fault.getVehicleId(), VehicleStatusEnum.IDLE.getCode());
+        log.info("车辆状态已恢复为空闲: vehicleId={}", fault.getVehicleId());
+        
         return fault;
     }
     
@@ -65,10 +81,8 @@ public class VehicleFaultServiceImpl extends ServiceImpl<VehicleFaultMapper, Veh
     public List<VehicleFault> getFaultRecords(Long vehicleId, Integer status, int page, int size) {
         log.info("获取车辆故障记录：vehicleId={}, status={}, page={}, size={}", vehicleId, status, page, size);
         
-        // 创建分页对象
         Page<VehicleFault> pageObj = new Page<>(page, size);
         
-        // 构建查询条件
         LambdaQueryWrapper<VehicleFault> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(VehicleFault::getVehicleId, vehicleId);
         if (status != null) {
@@ -76,7 +90,23 @@ public class VehicleFaultServiceImpl extends ServiceImpl<VehicleFaultMapper, Veh
         }
         wrapper.orderByDesc(VehicleFault::getFaultDate);
         
-        // 分页查询
+        Page<VehicleFault> result = getBaseMapper().selectPage(pageObj, wrapper);
+        
+        return result.getRecords();
+    }
+    
+    @Override
+    public List<VehicleFault> getAllFaultRecords(Integer status, int page, int size) {
+        log.info("获取所有故障记录：status={}, page={}, size={}", status, page, size);
+        
+        Page<VehicleFault> pageObj = new Page<>(page, size);
+        
+        LambdaQueryWrapper<VehicleFault> wrapper = new LambdaQueryWrapper<>();
+        if (status != null) {
+            wrapper.eq(VehicleFault::getStatus, status);
+        }
+        wrapper.orderByDesc(VehicleFault::getFaultDate);
+        
         Page<VehicleFault> result = getBaseMapper().selectPage(pageObj, wrapper);
         
         return result.getRecords();

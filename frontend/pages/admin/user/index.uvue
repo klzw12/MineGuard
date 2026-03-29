@@ -369,7 +369,7 @@
 		flex-direction: row;
 		align-items: center;
 		padding: 8rpx 20rpx;
-		border-radius: 20rpx;
+		border-radius: 15rpx;
 	}
 	
 	.user-status.enabled {

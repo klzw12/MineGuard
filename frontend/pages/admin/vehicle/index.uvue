@@ -33,7 +33,6 @@
 							</view>
 						</view>
 						<text class="vehicle-type">{{ vehicle.brand }} {{ vehicle.model }}</text>
-						<text class="vehicle-driver">绑定司机：{{ vehicle.userName || '未绑定' }}</text>
 						<view class="vehicle-info">
 							<text class="info-item">发动机号：{{ vehicle.engineNumber || '-' }}</text>
 							<text class="info-item">车架号：{{ vehicle.vin || '-' }}</text>
@@ -43,7 +42,6 @@
 						<view class="action-buttons">
 							<button class="action-btn" @click="viewDetail(vehicle)">详情</button>
 							<button class="action-btn secondary" @click="editVehicle(vehicle)">编辑</button>
-							<button class="action-btn warning" @click="bindDriver(vehicle)">{{ vehicle.userId ? '换绑' : '绑定' }}</button>
 						</view>
 					</view>
 				</view>
@@ -63,7 +61,7 @@
 		<view class="modal-overlay" v-if="showAddModal" @click="showAddModal = false">
 			<view class="modal-content" @click.stop>
 				<view class="modal-header">
-					<text class="modal-title">{{ editingVehicle ? '编辑车辆' : '添加车辆' }}</text>
+					<text class="modal-title">添加车辆</text>
 					<text class="modal-close" @click="closeModal">×</text>
 				</view>
 				<view class="modal-body">
@@ -72,35 +70,167 @@
 						<input type="text" v-model="formData.vehicleNo" class="form-input" placeholder="请输入车牌号" />
 					</view>
 					<view class="form-item">
-						<text class="form-label">车辆类型</text>
-						<input type="number" v-model="formData.vehicleType" class="form-input" placeholder="请输入车辆类型" />
-					</view>
-					<view class="form-item">
-						<text class="form-label">品牌</text>
-						<input type="text" v-model="formData.brand" class="form-input" placeholder="请输入品牌" />
-					</view>
-					<view class="form-item">
-						<text class="form-label">型号</text>
-						<input type="text" v-model="formData.model" class="form-input" placeholder="请输入型号" />
-					</view>
-					<view class="form-item">
-						<text class="form-label">上传行驶证正面（自动识别）</text>
-						<view class="upload-area" @click="uploadLicenseFront">
-							<text class="upload-text" v-if="!formData.licenseFrontUrl">点击上传行驶证正面</text>
-							<image v-else :src="formData.licenseFrontUrl" class="preview-image" mode="aspectFit" />
-						</view>
-					</view>
-					<view class="form-item">
-						<text class="form-label">上传行驶证反面</text>
-						<view class="upload-area" @click="uploadLicenseBack">
-							<text class="upload-text" v-if="!formData.licenseBackUrl">点击上传行驶证反面</text>
-							<image v-else :src="formData.licenseBackUrl" class="preview-image" mode="aspectFit" />
+						<text class="form-label">上传车辆照片</text>
+						<view class="upload-area" @click="uploadVehiclePhoto">
+							<text class="upload-text" v-if="!vehiclePhotoPreview">点击上传车辆照片</text>
+							<image v-else :src="vehiclePhotoPreview" class="preview-image" mode="aspectFit" />
 						</view>
 					</view>
 				</view>
 				<view class="modal-footer">
 					<button class="cancel-btn" @click="closeModal">取消</button>
-					<button class="confirm-btn" @click="submitForm">确定</button>
+					<button class="confirm-btn" @click="submitAddForm">确定</button>
+				</view>
+			</view>
+		</view>
+		
+		<view class="modal-overlay" v-if="showEditModal" @click="showEditModal = false">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">编辑车辆 - 行驶证上传</text>
+					<text class="modal-close" @click="closeEditModal">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="form-label">车牌号</text>
+						<input type="text" v-model="editFormData.vehicleNo" class="form-input" disabled="true" style="background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6);" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">上传行驶证正面（自动识别）</text>
+						<view class="upload-area" @click="uploadLicenseFront">
+							<text class="upload-text" v-if="!licenseFrontPreview">点击上传行驶证正面</text>
+							<image v-else :src="licenseFrontPreview" class="preview-image" mode="aspectFit" />
+						</view>
+					</view>
+					<view class="form-item">
+						<text class="form-label">上传行驶证反面</text>
+						<view class="upload-area" @click="uploadLicenseBack">
+							<text class="upload-text" v-if="!licenseBackPreview">点击上传行驶证反面</text>
+							<image v-else :src="licenseBackPreview" class="preview-image" mode="aspectFit" />
+						</view>
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="closeEditModal">取消</button>
+					<button class="confirm-btn" @click="submitEditForm">保存</button>
+				</view>
+			</view>
+		</view>
+		
+		<view class="modal-overlay" v-if="showDetailModal" @click="showDetailModal = false">
+			<view class="modal-content detail-modal" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">车辆详情</text>
+					<text class="modal-close" @click="closeDetailModal">×</text>
+				</view>
+				<scroll-view scroll-y class="modal-body detail-body">
+					<view class="detail-section">
+						<text class="section-title">基本信息</text>
+						<view class="detail-grid">
+							<view class="detail-item">
+								<text class="detail-label">车牌号</text>
+								<text class="detail-value">{{ detailVehicle?.vehicleNo || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">车辆类型</text>
+								<text class="detail-value">{{ detailVehicle?.vehicleType || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">品牌</text>
+								<text class="detail-value">{{ detailVehicle?.brand || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">型号</text>
+								<text class="detail-value">{{ detailVehicle?.model || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">品牌型号</text>
+								<text class="detail-value">{{ detailVehicle?.brandModel || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">车辆型号</text>
+								<text class="detail-value">{{ detailVehicle?.vehicleModel || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">车主</text>
+								<text class="detail-value">{{ detailVehicle?.owner || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">地址</text>
+								<text class="detail-value">{{ detailVehicle?.address || '-' }}</text>
+							</view>
+						</view>
+					</view>
+					
+					<view class="detail-section">
+						<text class="section-title">车辆参数</text>
+						<view class="detail-grid">
+							<view class="detail-item">
+								<text class="detail-label">发动机号</text>
+								<text class="detail-value">{{ detailVehicle?.engineNumber || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">车架号</text>
+								<text class="detail-value">{{ detailVehicle?.vin || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">使用性质</text>
+								<text class="detail-value">{{ detailVehicle?.useNature || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">注册日期</text>
+								<text class="detail-value">{{ detailVehicle?.registerDate || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">发证日期</text>
+								<text class="detail-value">{{ detailVehicle?.issueDate || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">核定载人数</text>
+								<text class="detail-value">{{ detailVehicle?.seatingCapacity || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">总质量</text>
+								<text class="detail-value">{{ detailVehicle?.totalMass || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">整备质量</text>
+								<text class="detail-value">{{ detailVehicle?.curbWeight || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">核定载质量</text>
+								<text class="detail-value">{{ detailVehicle?.ratedLoad || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">外廓尺寸</text>
+								<text class="detail-value">{{ detailVehicle?.dimensions || '-' }}</text>
+							</view>
+						</view>
+					</view>
+					
+					<view class="detail-section" v-if="detailVehicle?.photoUrl">
+						<text class="section-title">车辆照片</text>
+						<view class="photo-container">
+							<image :src="detailVehicle?.photoUrl" class="detail-photo" mode="aspectFit" @click="previewImage(detailVehicle?.photoUrl)" />
+						</view>
+					</view>
+					
+					<view class="detail-section" v-if="detailVehicle?.licenseFrontUrl">
+						<text class="section-title">行驶证正面</text>
+						<view class="photo-container">
+							<image :src="detailVehicle?.licenseFrontUrl" class="detail-photo" mode="aspectFit" @click="previewImage(detailVehicle?.licenseFrontUrl)" />
+						</view>
+					</view>
+					
+					<view class="detail-section" v-if="detailVehicle?.licenseBackUrl">
+						<text class="section-title">行驶证反面</text>
+						<view class="photo-container">
+							<image :src="detailVehicle?.licenseBackUrl" class="detail-photo" mode="aspectFit" @click="previewImage(detailVehicle?.licenseBackUrl)" />
+						</view>
+					</view>
+				</scroll-view>
+				<view class="modal-footer">
+					<button class="confirm-btn" @click="closeDetailModal">关闭</button>
 				</view>
 			</view>
 		</view>
@@ -110,22 +240,32 @@
 <script setup lang="uts">
 	import AdminLayout from '../../../components/AdminLayout.uvue'
 	import { ref, computed, onMounted } from 'vue'
-	import { request } from '@/utils/request.uts'
+	import { http } from '@/utils/request.uts'
 
 	type VehicleVO = {
 		id: string | null,
 		vehicleNo: string,
-		vehicleType: number | null,
-		brand: string,
-		model: string,
-		userId: string | null,
-		userName: string | null,
+		vehicleType: string | null,
+		brand: string | null,
+		model: string | null,
+		brandModel: string | null,
+		vehicleModel: string | null,
+		owner: string | null,
+		address: string | null,
 		status: number,
 		photoUrl: string | null,
 		licenseFrontUrl: string | null,
 		licenseBackUrl: string | null,
 		engineNumber: string | null,
-		vin: string | null
+		vin: string | null,
+		useNature: string | null,
+		registerDate: string | null,
+		issueDate: string | null,
+		seatingCapacity: number | null,
+		totalMass: string | null,
+		curbWeight: string | null,
+		ratedLoad: string | null,
+		dimensions: string | null
 	}
 
 	const vehicleList = ref<VehicleVO[]>([])
@@ -135,16 +275,25 @@
 	const searchKeyword = ref('')
 	const currentStatus = ref<number | null>(null)
 	const showAddModal = ref(false)
+	const showEditModal = ref(false)
+	const showDetailModal = ref(false)
 	const editingVehicle = ref<VehicleVO | null>(null)
+	const detailVehicle = ref<VehicleVO | null>(null)
 
 	const formData = ref({
 		vehicleNo: '',
-		vehicleType: null as number | null,
-		brand: '',
-		model: '',
-		licenseFrontUrl: '',
-		licenseBackUrl: ''
+		vehiclePhotoPath: ''
 	})
+	
+	const editFormData = ref({
+		vehicleNo: '',
+		licenseFrontPath: '',
+		licenseBackPath: ''
+	})
+	
+	const vehiclePhotoPreview = ref('')
+	const licenseFrontPreview = ref('')
+	const licenseBackPreview = ref('')
 
 	const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
@@ -167,86 +316,116 @@
 			3: '故障',
 			4: '报废'
 		}
-		return statusMap[status] || '未知'
+		return statusMap[status] || '空闲'
 	}
 
-	const fetchVehicleList = async () => {
+	const loadVehicles = async () => {
 		try {
-			const res = await request({
-				url: '/api/vehicle/page',
-				method: 'GET',
-				data: {
-					page: currentPage.value,
-					size: pageSize.value,
-					vehicleNo: searchKeyword.value || undefined,
-					status: currentStatus.value !== null ? currentStatus.value : undefined
-				}
+			const response = await http.get('/vehicle/page', {
+				pageNum: currentPage.value,
+				pageSize: pageSize.value,
+				vehicleNo: searchKeyword.value,
+				status: currentStatus.value
 			})
-			if (res.code === 200) {
-				vehicleList.value = res.data || []
-				total.value = res.total || 0
+			if (response) {
+				vehicleList.value = response as VehicleVO[]
 			}
-		} catch (e) {
-			console.error('获取车辆列表失败', e)
+		} catch (error) {
+			console.error('加载车辆列表失败:', error)
 		}
 	}
 
 	const handleSearch = () => {
 		currentPage.value = 1
-		fetchVehicleList()
+		loadVehicles()
 	}
 
 	const filterByStatus = (status: number | null) => {
 		currentStatus.value = status
 		currentPage.value = 1
-		fetchVehicleList()
+		loadVehicles()
 	}
 
 	const changePage = (page: number) => {
 		currentPage.value = page
-		fetchVehicleList()
+		loadVehicles()
 	}
 
-	const viewDetail = (vehicle: VehicleVO) => {
-		uni.navigateTo({
-			url: `/pages/admin/vehicle/detail?id=${vehicle.id}`
-		})
+	const viewDetail = async (vehicle: VehicleVO) => {
+		if (!vehicle.id) return
+		try {
+			const response = await http.get(`/vehicle/${vehicle.id}`)
+			if (response) {
+				detailVehicle.value = response as VehicleVO
+				showDetailModal.value = true
+			}
+		} catch (error) {
+			console.error('获取车辆详情失败:', error)
+			uni.showToast({ title: '获取详情失败', icon: 'none' })
+		}
+	}
+
+	const closeDetailModal = () => {
+		showDetailModal.value = false
+		detailVehicle.value = null
+	}
+
+	const previewImage = (url: string | null) => {
+		if (url) {
+			uni.previewImage({
+				urls: [url],
+				current: url
+			})
+		}
 	}
 
 	const editVehicle = (vehicle: VehicleVO) => {
 		editingVehicle.value = vehicle
-		formData.value = {
+		editFormData.value = {
 			vehicleNo: vehicle.vehicleNo,
-			vehicleType: vehicle.vehicleType,
-			brand: vehicle.brand,
-			model: vehicle.model,
-			licenseFrontUrl: vehicle.licenseFrontUrl || '',
-			licenseBackUrl: vehicle.licenseBackUrl || ''
+			licenseFrontPath: '',
+			licenseBackPath: ''
 		}
-		showAddModal.value = true
+		licenseFrontPreview.value = vehicle.licenseFrontUrl || ''
+		licenseBackPreview.value = vehicle.licenseBackUrl || ''
+		showEditModal.value = true
 	}
 
-	const bindDriver = (vehicle: VehicleVO) => {
-		uni.showModal({
-			title: vehicle.userId ? '换绑司机' : '绑定司机',
-			editable: true,
-			placeholderText: '请输入司机ID',
-			success: async (res) => {
-				if (res.confirm && res.content) {
-					try {
-						const result = await request({
-							url: `/api/vehicle/${vehicle.id}/bind`,
-							method: 'POST',
-							data: { userId: res.content }
-						})
-						if (result.code === 200) {
-							uni.showToast({ title: '绑定成功', icon: 'success' })
-							fetchVehicleList()
-						}
-					} catch (e) {
-						uni.showToast({ title: '绑定失败', icon: 'none' })
-					}
+	const closeModal = () => {
+		showAddModal.value = false
+		formData.value = {
+			vehicleNo: '',
+			vehiclePhotoPath: ''
+		}
+		vehiclePhotoPreview.value = ''
+	}
+
+	const closeEditModal = () => {
+		showEditModal.value = false
+		editingVehicle.value = null
+		editFormData.value = {
+			vehicleNo: '',
+			licenseFrontPath: '',
+			licenseBackPath: ''
+		}
+		licenseFrontPreview.value = ''
+		licenseBackPreview.value = ''
+	}
+
+	const uploadVehiclePhoto = () => {
+		uni.chooseImage({
+			count: 1,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: (res) => {
+				const tempFile = res.tempFilePaths[0]
+				if (tempFile) {
+					formData.value.vehiclePhotoPath = tempFile
+					vehiclePhotoPreview.value = tempFile
 				}
+			},
+			fail: (err) => {
+				console.error('选择车辆照片失败:', err)
 			}
 		})
 	}
@@ -254,28 +433,17 @@
 	const uploadLicenseFront = () => {
 		uni.chooseImage({
 			count: 1,
-			success: async (res) => {
-				const tempPath = res.tempFilePaths[0]
-				uni.showLoading({ title: '识别中...' })
-				try {
-					const uploadRes = await request({
-						url: `/api/vehicle/${editingVehicle.value?.id || 0}/license/front`,
-						method: 'POST',
-						filePath: tempPath,
-						name: 'file'
-					})
-					if (uploadRes.code === 200) {
-						formData.value.licenseFrontUrl = uploadRes.data.licenseFrontUrl
-						formData.value.vehicleNo = uploadRes.data.vehicleNo || formData.value.vehicleNo
-						formData.value.brand = uploadRes.data.brand || formData.value.brand
-						formData.value.model = uploadRes.data.model || formData.value.model
-						uni.showToast({ title: '识别成功', icon: 'success' })
-					}
-				} catch (e) {
-					uni.showToast({ title: '上传失败', icon: 'none' })
-				} finally {
-					uni.hideLoading()
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: (res) => {
+				const tempFile = res.tempFilePaths[0]
+				if (tempFile) {
+					editFormData.value.licenseFrontPath = tempFile
+					licenseFrontPreview.value = tempFile
 				}
+			},
+			fail: (err) => {
+				console.error('选择行驶证正面失败:', err)
 			}
 		})
 	}
@@ -283,268 +451,345 @@
 	const uploadLicenseBack = () => {
 		uni.chooseImage({
 			count: 1,
-			success: async (res) => {
-				const tempPath = res.tempFilePaths[0]
-				uni.showLoading({ title: '识别中...' })
-				try {
-					const uploadRes = await request({
-						url: `/api/vehicle/${editingVehicle.value?.id || 0}/license/back`,
-						method: 'POST',
-						filePath: tempPath,
-						name: 'file'
-					})
-					if (uploadRes.code === 200) {
-						formData.value.licenseBackUrl = uploadRes.data.licenseBackUrl
-						uni.showToast({ title: '识别成功', icon: 'success' })
-					}
-				} catch (e) {
-					uni.showToast({ title: '上传失败', icon: 'none' })
-				} finally {
-					uni.hideLoading()
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: (res) => {
+				const tempFile = res.tempFilePaths[0]
+				if (tempFile) {
+					editFormData.value.licenseBackPath = tempFile
+					licenseBackPreview.value = tempFile
 				}
+			},
+			fail: (err) => {
+				console.error('选择行驶证反面失败:', err)
 			}
 		})
 	}
 
-	const submitForm = async () => {
+	const submitAddForm = async () => {
 		if (!formData.value.vehicleNo) {
 			uni.showToast({ title: '请输入车牌号', icon: 'none' })
 			return
 		}
 
 		try {
-			const url = editingVehicle.value ? `/api/vehicle/${editingVehicle.value.id}` : '/api/vehicle'
-			const method = editingVehicle.value ? 'PUT' : 'POST'
+			const token = uni.getStorageSync('token') || ''
+			uni.showLoading({ title: '正在添加...' })
 			
-			const res = await request({
-				url,
-				method,
-				data: formData.value
-			})
-			
-			if (res.code === 200) {
-				uni.showToast({ title: editingVehicle.value ? '更新成功' : '添加成功', icon: 'success' })
-				closeModal()
-				fetchVehicleList()
+			if (formData.value.vehiclePhotoPath) {
+				await new Promise<void>((resolve, reject) => {
+					uni.uploadFile({
+						url: 'http://localhost:8080/api/vehicle/create-with-photos',
+						filePath: formData.value.vehiclePhotoPath,
+						name: 'vehiclePhoto',
+						formData: {
+							vehicleNo: formData.value.vehicleNo
+						},
+						header: {
+							'Authorization': `Bearer ${token}`
+						},
+						success: (res) => {
+							const data = JSON.parse(res.data) as { code: number, message: string }
+							if (data.code === 200) {
+								resolve()
+							} else {
+								reject(new Error(data.message || '添加失败'))
+							}
+						},
+						fail: (err) => {
+							reject(err)
+						}
+					})
+				})
+			} else {
+				await new Promise<void>((resolve, reject) => {
+					uni.request({
+						url: 'http://localhost:8080/api/vehicle/create-with-photos',
+						method: 'POST',
+						data: { vehicleNo: formData.value.vehicleNo },
+						header: {
+							'Authorization': `Bearer ${token}`,
+							'Content-Type': 'application/json'
+						},
+						success: (res) => {
+							const data = res.data as { code: number, message: string }
+							if (data.code === 200) {
+								resolve()
+							} else {
+								reject(new Error(data.message || '添加失败'))
+							}
+						},
+						fail: (err) => {
+							reject(err)
+						}
+					})
+				})
 			}
-		} catch (e) {
-			uni.showToast({ title: '操作失败', icon: 'none' })
+			
+			uni.hideLoading()
+			uni.showToast({ title: '添加车辆成功', icon: 'success' })
+			closeModal()
+			loadVehicles()
+		} catch (error) {
+			uni.hideLoading()
+			console.error('添加车辆失败:', error)
+			uni.showToast({ title: '添加车辆失败', icon: 'none' })
 		}
 	}
 
-	const closeModal = () => {
-		showAddModal.value = false
-		editingVehicle.value = null
-		formData.value = {
-			vehicleNo: '',
-			vehicleType: null,
-			brand: '',
-			model: '',
-			licenseFrontUrl: '',
-			licenseBackUrl: ''
+	const submitEditForm = async () => {
+		if (!editingVehicle.value || !editingVehicle.value.id) {
+			uni.showToast({ title: '车辆信息错误', icon: 'none' })
+			return
+		}
+
+		try {
+			const token = uni.getStorageSync('token') || ''
+			const vehicleId = editingVehicle.value.id
+			uni.showLoading({ title: '正在保存...' })
+			
+			if (editFormData.value.licenseFrontPath) {
+				await new Promise<void>((resolve) => {
+					uni.uploadFile({
+						url: `http://localhost:8080/api/vehicle/${vehicleId}/license/front`,
+						filePath: editFormData.value.licenseFrontPath,
+						name: 'file',
+						header: {
+							'Authorization': `Bearer ${token}`
+						},
+						success: () => resolve(),
+						fail: () => resolve()
+					})
+				})
+			}
+			
+			if (editFormData.value.licenseBackPath) {
+				await new Promise<void>((resolve) => {
+					uni.uploadFile({
+						url: `http://localhost:8080/api/vehicle/${vehicleId}/license/back`,
+						filePath: editFormData.value.licenseBackPath,
+						name: 'file',
+						header: {
+							'Authorization': `Bearer ${token}`
+						},
+						success: () => resolve(),
+						fail: () => resolve()
+					})
+				})
+			}
+			
+			uni.hideLoading()
+			uni.showToast({ title: '保存成功', icon: 'success' })
+			closeEditModal()
+			loadVehicles()
+		} catch (error) {
+			uni.hideLoading()
+			console.error('保存失败:', error)
+			uni.showToast({ title: '保存失败', icon: 'none' })
 		}
 	}
 
 	onMounted(() => {
-		fetchVehicleList()
+		loadVehicles()
 	})
 </script>
 
-<style lang="scss">
+<style>
 	.page-header {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
 		align-items: center;
 		margin-bottom: 30rpx;
-		
-		.page-title {
-			font-size: 36rpx;
-			font-weight: bold;
-			color: #fff;
-		}
-		
-		.header-actions {
-			.primary-btn {
-				padding: 20rpx 40rpx;
-				background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
-				color: #fff;
-				font-size: 24rpx;
-				font-weight: 500;
-				border-radius: 12rpx;
-			}
-		}
+	}
+	
+	.page-title {
+		font-size: 36rpx;
+		font-weight: bold;
+		color: #fff;
+	}
+	
+	.header-actions {
+		display: flex;
+		flex-direction: row;
+		gap: 15rpx;
+	}
+	
+	.primary-btn {
+		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+		color: #fff;
+		padding: 16rpx 32rpx;
+		border-radius: 15rpx;
+		font-size: 24rpx;
+		border: none;
 	}
 	
 	.filter-section {
+		margin-bottom: 30rpx;
+	}
+	
+	.search-box {
 		display: flex;
 		flex-direction: row;
-		gap: 30rpx;
-		margin-bottom: 30rpx;
-		
-		.search-box {
-			flex: 1;
-			display: flex;
-			flex-direction: row;
-			align-items: center;
-			background-color: #2a3347;
-			border-radius: 16rpx;
-			padding: 20rpx 30rpx;
-			
-			.search-icon {
-				font-size: 28rpx;
-				margin-right: 15rpx;
-				opacity: 0.6;
-			}
-			
-			input {
-				flex: 1;
-				font-size: 26rpx;
-				color: #fff;
-			}
-		}
-		
-		.filter-buttons {
-			display: flex;
-			flex-direction: row;
-			gap: 15rpx;
-			
-			.filter-btn {
-				padding: 15rpx 25rpx;
-				background-color: #2a3347;
-				color: rgba(255, 255, 255, 0.7);
-				font-size: 22rpx;
-				border-radius: 12rpx;
-				
-				&.active {
-					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
-					color: #fff;
-				}
-			}
-		}
+		align-items: center;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1rpx solid rgba(255, 255, 255, 0.1);
+		border-radius: 15rpx;
+		padding: 20rpx;
+		margin-bottom: 20rpx;
+	}
+	
+	.search-icon {
+		margin-right: 15rpx;
+		font-size: 28rpx;
+	}
+	
+	.search-box input {
+		flex: 1;
+		font-size: 26rpx;
+		color: #fff;
+	}
+	
+	.filter-buttons {
+		display: flex;
+		flex-direction: row;
+		gap: 15rpx;
+	}
+	
+	.filter-btn {
+		flex: 1;
+		padding: 16rpx;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1rpx solid rgba(255, 255, 255, 0.1);
+		border-radius: 15rpx;
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.7);
+		text-align: center;
+	}
+	
+	.filter-btn.active {
+		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+		border-color: #007AFF;
+		color: #fff;
 	}
 	
 	.vehicle-card {
-		background-color: #2a3347;
-		border-radius: 24rpx;
-		overflow: hidden;
-		
-		.vehicle-list {
-			.vehicle-item {
-				padding: 35rpx;
-				border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
-				display: flex;
-				flex-direction: row;
-				justify-content: space-between;
-				
-				&:last-child {
-					border-bottom: none;
-				}
-				
-				.vehicle-left {
-					flex: 1;
-					
-					.vehicle-header {
-						display: flex;
-						flex-direction: row;
-						align-items: center;
-						justify-content: space-between;
-						margin-bottom: 12rpx;
-						
-						.vehicle-plate {
-							font-size: 32rpx;
-							font-weight: bold;
-							color: #fff;
-						}
-						
-						.vehicle-status {
-							display: flex;
-							flex-direction: row;
-							align-items: center;
-							padding: 8rpx 20rpx;
-							border-radius: 20rpx;
-							
-							&.idle { background-color: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.5); }
-							&.online { background-color: rgba(52, 199, 89, 0.2); color: #34C759; }
-							&.maintenance { background-color: rgba(255, 149, 0, 0.2); color: #FF9500; }
-							&.fault { background-color: rgba(255, 59, 48, 0.2); color: #FF3B30; }
-							&.scrapped { background-color: rgba(142, 142, 147, 0.2); color: #8E8E93; }
-							
-							.status-dot {
-								width: 12rpx;
-								height: 12rpx;
-								border-radius: 50%;
-								background-color: currentColor;
-								margin-right: 10rpx;
-							}
-							
-							.status-text {
-								font-size: 22rpx;
-							}
-						}
-					}
-					
-					.vehicle-type {
-						font-size: 24rpx;
-						color: rgba(255, 255, 255, 0.7);
-						margin-bottom: 8rpx;
-						display: block;
-					}
-					
-					.vehicle-driver {
-						font-size: 22rpx;
-						color: rgba(255, 255, 255, 0.6);
-						margin-bottom: 8rpx;
-						display: block;
-					}
-					
-					.vehicle-info {
-						display: flex;
-						flex-direction: column;
-						gap: 6rpx;
-						
-						.info-item {
-							font-size: 20rpx;
-							color: rgba(255, 255, 255, 0.5);
-						}
-					}
-				}
-				
-				.vehicle-right {
-					.action-buttons {
-						display: flex;
-						flex-direction: column;
-						gap: 15rpx;
-						
-						.action-btn {
-							padding: 12rpx 30rpx;
-							background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
-							color: #fff;
-							font-size: 22rpx;
-							border-radius: 10rpx;
-							
-							&.secondary {
-								background-color: rgba(255, 255, 255, 0.1);
-							}
-							
-							&.warning {
-								background: linear-gradient(135deg, #FF9500 0%, #FF6600 100%);
-							}
-						}
-					}
-				}
-			}
-			
-			.empty-state {
-				padding: 80rpx;
-				text-align: center;
-				
-				.empty-text {
-					color: rgba(255, 255, 255, 0.5);
-					font-size: 28rpx;
-				}
-			}
-		}
+		background: rgba(255, 255, 255, 0.05);
+		border: 1rpx solid rgba(255, 255, 255, 0.1);
+		border-radius: 15rpx;
+		margin-bottom: 20rpx;
+	}
+	
+	.vehicle-list {
+		padding: 20rpx;
+	}
+	
+	.vehicle-item {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 25rpx;
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.05);
+	}
+	
+	.vehicle-item:last-child {
+		border-bottom: none;
+	}
+	
+	.vehicle-left {
+		flex: 1;
+	}
+	
+	.vehicle-header {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		margin-bottom: 10rpx;
+	}
+	
+	.vehicle-plate {
+		font-size: 30rpx;
+		font-weight: bold;
+		color: #fff;
+		margin-right: 15rpx;
+	}
+	
+	.vehicle-status {
+		padding: 6rpx 16rpx;
+		border-radius: 15rpx;
+		font-size: 20rpx;
+	}
+	
+	.vehicle-status.idle {
+		background: rgba(52, 199, 89, 0.2);
+		color: #34C759;
+	}
+	
+	.vehicle-status.online {
+		background: rgba(0, 122, 255, 0.2);
+		color: #007AFF;
+	}
+	
+	.vehicle-status.maintenance {
+		background: rgba(255, 149, 0, 0.2);
+		color: #FF9500;
+	}
+	
+	.vehicle-status.fault {
+		background: rgba(255, 59, 48, 0.2);
+		color: #FF3B30;
+	}
+	
+	.vehicle-status.scrapped {
+		background: rgba(142, 142, 147, 0.2);
+		color: #8E8E93;
+	}
+	
+	.vehicle-type {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.6);
+		margin-bottom: 8rpx;
+	}
+	
+	.vehicle-info {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.6);
+		margin-top: 8rpx;
+	}
+	
+	.info-item {
+		display: block;
+		margin-top: 4rpx;
+	}
+	
+	.vehicle-right {
+		display: flex;
+		flex-direction: row;
+		gap: 15rpx;
+	}
+	
+	.action-btn {
+		padding: 12rpx 24rpx;
+		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+		color: #fff;
+		border-radius: 15rpx;
+		font-size: 22rpx;
+		border: none;
+	}
+	
+	.action-btn.secondary {
+		background: rgba(255, 255, 255, 0.1);
+	}
+	
+	.empty-state {
+		padding: 60rpx;
+		text-align: center;
+	}
+	
+	.empty-text {
+		font-size: 28rpx;
+		color: rgba(255, 255, 255, 0.4);
 	}
 	
 	.pagination {
@@ -554,23 +799,24 @@
 		align-items: center;
 		gap: 30rpx;
 		margin-top: 30rpx;
-		
-		.page-btn {
-			padding: 15rpx 30rpx;
-			background-color: #2a3347;
-			color: #fff;
-			font-size: 24rpx;
-			border-radius: 10rpx;
-			
-			&:disabled {
-				opacity: 0.5;
-			}
-		}
-		
-		.page-info {
-			color: rgba(255, 255, 255, 0.7);
-			font-size: 24rpx;
-		}
+	}
+	
+	.page-btn {
+		padding: 15rpx 30rpx;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1rpx solid rgba(255, 255, 255, 0.1);
+		border-radius: 15rpx;
+		font-size: 24rpx;
+		color: #007AFF;
+	}
+	
+	.page-btn.disabled {
+		color: rgba(255, 255, 255, 0.3);
+	}
+	
+	.page-info {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.6);
 	}
 	
 	.modal-overlay {
@@ -579,110 +825,169 @@
 		left: 0;
 		right: 0;
 		bottom: 0;
-		background-color: rgba(0, 0, 0, 0.7);
+		background: rgba(0, 0, 0, 0.7);
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		z-index: 1000;
-		
-		.modal-content {
-			width: 80%;
-			max-height: 80%;
-			background-color: #1e2536;
-			border-radius: 20rpx;
-			overflow: hidden;
-			
-			.modal-header {
-				display: flex;
-				flex-direction: row;
-				justify-content: space-between;
-				align-items: center;
-				padding: 30rpx;
-				border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
-				
-				.modal-title {
-					font-size: 32rpx;
-					font-weight: bold;
-					color: #fff;
-				}
-				
-				.modal-close {
-					font-size: 40rpx;
-					color: rgba(255, 255, 255, 0.6);
-				}
-			}
-			
-			.modal-body {
-				padding: 30rpx;
-				max-height: 600rpx;
-				overflow-y: auto;
-				
-				.form-item {
-					margin-bottom: 25rpx;
-					
-					.form-label {
-						display: block;
-						font-size: 26rpx;
-						color: rgba(255, 255, 255, 0.8);
-						margin-bottom: 15rpx;
-					}
-					
-					.form-input {
-						width: 100%;
-						padding: 20rpx;
-						background-color: #2a3347;
-						border-radius: 10rpx;
-						color: #fff;
-						font-size: 26rpx;
-					}
-					
-					.upload-area {
-						width: 100%;
-						height: 200rpx;
-						background-color: #2a3347;
-						border-radius: 10rpx;
-						border: 2rpx dashed rgba(255, 255, 255, 0.2);
-						display: flex;
-						justify-content: center;
-						align-items: center;
-						
-						.upload-text {
-							color: rgba(255, 255, 255, 0.5);
-							font-size: 26rpx;
-						}
-						
-						.preview-image {
-							width: 100%;
-							height: 100%;
-						}
-					}
-				}
-			}
-			
-			.modal-footer {
-				display: flex;
-				flex-direction: row;
-				gap: 20rpx;
-				padding: 30rpx;
-				border-top: 1rpx solid rgba(255, 255, 255, 0.1);
-				
-				.cancel-btn, .confirm-btn {
-					flex: 1;
-					padding: 20rpx;
-					border-radius: 10rpx;
-					font-size: 28rpx;
-				}
-				
-				.cancel-btn {
-					background-color: #2a3347;
-					color: rgba(255, 255, 255, 0.8);
-				}
-				
-				.confirm-btn {
-					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
-					color: #fff;
-				}
-			}
-		}
+		z-index: 9999;
+	}
+	
+	.modal-content {
+		background: linear-gradient(135deg, #1a1f2e 0%, #151823 100%);
+		border-radius: 16rpx;
+		width: 90%;
+		max-width: 600rpx;
+		border: 1rpx solid rgba(255, 255, 255, 0.08);
+	}
+	
+	.detail-modal {
+		max-width: 700rpx;
+		max-height: 80vh;
+	}
+	
+	.modal-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 24rpx 30rpx;
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+	}
+	
+	.modal-title {
+		font-size: 30rpx;
+		font-weight: 500;
+		color: #fff;
+	}
+	
+	.modal-close {
+		font-size: 36rpx;
+		color: rgba(255, 255, 255, 0.4);
+	}
+	
+	.modal-body {
+		padding: 30rpx;
+	}
+	
+	.detail-body {
+		max-height: 60vh;
+	}
+	
+	.detail-section {
+		margin-bottom: 30rpx;
+	}
+	
+	.section-title {
+		font-size: 28rpx;
+		font-weight: 500;
+		color: #007AFF;
+		margin-bottom: 20rpx;
+		display: block;
+	}
+	
+	.detail-grid {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+	}
+	
+	.detail-item {
+		width: 50%;
+		padding: 15rpx 0;
+	}
+	
+	.detail-label {
+		font-size: 22rpx;
+		color: rgba(255, 255, 255, 0.5);
+		display: block;
+		margin-bottom: 6rpx;
+	}
+	
+	.detail-value {
+		font-size: 26rpx;
+		color: #fff;
+	}
+	
+	.photo-container {
+		background: rgba(255, 255, 255, 0.05);
+		border-radius: 15rpx;
+		padding: 20rpx;
+	}
+	
+	.detail-photo {
+		width: 100%;
+		height: 300rpx;
+		border-radius: 10rpx;
+	}
+	
+	.form-item {
+		margin-bottom: 24rpx;
+	}
+	
+	.form-label {
+		display: block;
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.8);
+		margin-bottom: 12rpx;
+	}
+	
+	.form-input {
+		width: 100%;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1rpx solid rgba(255, 255, 255, 0.1);
+		border-radius: 15rpx;
+		padding: 20rpx;
+		font-size: 26rpx;
+		color: #fff;
+	}
+	
+	.upload-area {
+		width: 100%;
+		height: 200rpx;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1rpx dashed rgba(255, 255, 255, 0.2);
+		border-radius: 15rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.upload-text {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.4);
+	}
+	
+	.preview-image {
+		width: 100%;
+		height: 100%;
+		border-radius: 15rpx;
+	}
+	
+	.modal-footer {
+		display: flex;
+		flex-direction: row;
+		justify-content: flex-end;
+		gap: 16rpx;
+		padding: 24rpx 30rpx;
+		border-top: 1rpx solid rgba(255, 255, 255, 0.08);
+	}
+	
+	.cancel-btn {
+		background: rgba(255, 255, 255, 0.05);
+		color: rgba(255, 255, 255, 0.7);
+		border: none;
+		padding: 16rpx 32rpx;
+		border-radius: 15rpx;
+		font-size: 24rpx;
+	}
+	
+	.confirm-btn {
+		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+		color: #fff;
+		border: none;
+		padding: 16rpx 32rpx;
+		border-radius: 15rpx;
+		font-size: 24rpx;
+		font-weight: 500;
 	}
 </style>

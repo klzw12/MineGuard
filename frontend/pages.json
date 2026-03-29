@@ -242,6 +242,12 @@
 			"style": {
 				"navigationBarTitleText": "出勤管理"
 			}
+		},
+		{
+			"path": "pages/admin/salary/index",
+			"style": {
+				"navigationBarTitleText": "薪酬管理"
+			}
 		}
 	],
 	"globalStyle": {

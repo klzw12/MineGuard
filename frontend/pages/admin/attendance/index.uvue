@@ -86,18 +86,18 @@
 
 	const loadAttendanceList = async () => {
 		try {
-			const yearMonth = selectedDate.value.substring(0, 7)
-			const result = await getAttendanceListByMonth('', yearMonth)
-			attendanceList.value = result || []
-			
-			const stats = await getAttendanceStatistics('', yearMonth)
-			if (stats) {
-				statistics.value = stats
-			}
-		} catch (e) {
-			console.error('加载出勤记录失败', e)
-		}
-	}
+      const yearMonth = selectedDate.value.substring(0, 7)
+      const result = await getAttendanceListByMonth(yearMonth)
+      attendanceList.value = result || []
+      
+      const stats = await getAttendanceStatistics(yearMonth)
+      if (stats) {
+        statistics.value = stats
+      }
+    } catch (e) {
+      console.error('加载出勤记录失败', e)
+    }
+  }
 
 	const getStatusClass = (status: number): string => {
 		if (status === 1) return 'normal'

@@ -36,22 +36,12 @@
       </view>
 
       <view class="form-item">
-        <text class="form-label">真实姓名 <text class="required">*</text></text>
-        <input
-          class="form-input"
-          v-model="formData.realName"
-          placeholder="请输入真实姓名"
-          :maxlength="20"
-        />
-      </view>
-
-      <view class="form-item">
         <text class="form-label">手机号</text>
         <input
           class="form-input"
           v-model="formData.phone"
           type="number"
-          placeholder="请输入手机号"
+          placeholder="请输入手机号（可选）"
           :maxlength="11"
         />
       </view>
@@ -61,9 +51,27 @@
         <input
           class="form-input"
           v-model="formData.email"
-          placeholder="请输入邮箱"
+          placeholder="请输入邮箱（可选）"
           :maxlength="50"
         />
+      </view>
+
+      <view class="form-item">
+        <text class="form-label">角色</text>
+        <picker
+          mode="selector"
+          :range="roleList"
+          range-key="roleName"
+          @change="onRoleChange"
+        >
+          <view class="form-picker">
+            <text :class="{ placeholder: !selectedRole }">
+              {{ selectedRole ? selectedRole.roleName : '请选择角色（可选）' }}
+            </text>
+            <text class="picker-arrow">▼</text>
+          </view>
+        </picker>
+        <text class="form-hint">只能分配管理员和调度员角色</text>
       </view>
 
       <view class="form-actions">
@@ -77,20 +85,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { adminCreateUser } from '@/api/user.uts'
-import type { AdminCreateUserDTO } from '@/types/user.uts'
+import { ref, onMounted } from 'vue'
+import { adminCreateUser, getRoleList } from '@/api/user.uts'
+import type { AdminCreateUserDTO, RoleVO } from '@/types/user.uts'
 
 const formData = ref<AdminCreateUserDTO>({
   username: '',
   password: '',
-  realName: '',
   phone: '',
-  email: ''
+  email: '',
+  roleId: undefined
 })
 
+const roleList = ref<RoleVO[]>([])
+const selectedRole = ref<RoleVO | null>(null)
 const confirmPassword = ref('')
 const loading = ref(false)
+
+onMounted(() => {
+  loadRoleList()
+})
+
+const loadRoleList = () => {
+  getRoleList().then((res) => {
+    if (res) {
+      // 只显示管理员和调度员角色
+      roleList.value = res.filter((role: RoleVO) => 
+        role.roleCode === 'ADMIN' || role.roleCode === 'OPERATOR'
+      )
+    }
+  }).catch((err) => {
+    uni.showToast({
+      title: '获取角色列表失败',
+      icon: 'none'
+    })
+  })
+}
+
+const onRoleChange = (e: any) => {
+  const index = e.detail.value
+  selectedRole.value = roleList.value[index]
+  formData.value.roleId = selectedRole.value?.id
+}
 
 const validateForm = (): boolean => {
   if (!formData.value.username.trim()) {
@@ -122,14 +158,6 @@ const validateForm = (): boolean => {
   if (formData.value.password !== confirmPassword.value) {
     uni.showToast({
       title: '两次输入的密码不一致',
-      icon: 'none'
-    })
-    return false
-  }
-
-  if (!formData.value.realName.trim()) {
-    uni.showToast({
-      title: '请输入真实姓名',
       icon: 'none'
     })
     return false
@@ -178,7 +206,7 @@ const handleSubmit = () => {
     })
     .catch((err) => {
       uni.showToast({
-        title: err.message || '创建失败',
+        title: '创建失败',
         icon: 'none'
       })
     })
@@ -192,84 +220,107 @@ const handleCancel = () => {
 }
 </script>
 
-<style scoped>
+<style>
 .create-user-page {
-  min-height: 100vh;
+  padding: 20px;
   background-color: #f5f5f5;
-  padding: 20rpx;
+  min-height: 100vh;
 }
 
 .form-container {
-  background-color: #fff;
-  border-radius: 16rpx;
-  padding: 40rpx 30rpx;
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 20px;
 }
 
 .form-title {
-  font-size: 36rpx;
+  font-size: 20px;
   font-weight: bold;
-  color: #333;
+  margin-bottom: 20px;
   text-align: center;
-  margin-bottom: 40rpx;
 }
 
 .form-item {
-  margin-bottom: 30rpx;
+  margin-bottom: 15px;
 }
 
 .form-label {
-  font-size: 28rpx;
-  color: #333;
   display: block;
-  margin-bottom: 15rpx;
+  margin-bottom: 5px;
+  font-size: 14px;
+  color: #333333;
 }
 
 .required {
-  color: #ff4d4f;
+  color: #ff0000;
 }
 
 .form-input {
   width: 100%;
-  height: 80rpx;
-  padding: 0 20rpx;
-  border: 1rpx solid #ddd;
-  border-radius: 8rpx;
-  font-size: 28rpx;
+  height: 40px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 0 10px;
+  font-size: 14px;
   box-sizing: border-box;
+}
+
+.form-picker {
+  width: 100%;
+  height: 40px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 0 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+}
+
+.form-hint {
+  font-size: 12px;
+  color: #999999;
+  margin-top: 5px;
+}
+
+.placeholder {
+  color: #999999;
+}
+
+.picker-arrow {
+  font-size: 12px;
+  color: #999999;
 }
 
 .form-actions {
   display: flex;
-  gap: 20rpx;
-  margin-top: 40rpx;
+  justify-content: space-between;
+  margin-top: 30px;
 }
 
 .action-btn {
   flex: 1;
-  height: 80rpx;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border: none;
-  border-radius: 8rpx;
-  font-size: 30rpx;
+  height: 40px;
+  border-radius: 4px;
+  font-size: 16px;
+  margin: 0 5px;
 }
 
 .action-btn.cancel {
   background-color: #f5f5f5;
-  color: #666;
+  color: #666666;
+  border: 1px solid #e0e0e0;
 }
 
 .action-btn.submit {
   background-color: #007aff;
-  color: #fff;
+  color: #ffffff;
+  border: none;
 }
 
 .action-btn.submit:disabled {
-  background-color: #ccc;
-}
-
-.tac {
-  text-align: center;
+  background-color: #cccccc;
 }
 </style>

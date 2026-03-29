@@ -8,6 +8,7 @@ import com.klzw.service.vehicle.service.VehicleRefuelingService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -20,14 +21,15 @@ public class VehicleRefuelingServiceImpl extends ServiceImpl<VehicleRefuelingMap
         VehicleRefueling refueling = new VehicleRefueling();
         refueling.setVehicleId(refuelingDTO.getVehicleId());
         refueling.setDriverId(refuelingDTO.getDriverId());
-        refueling.setRefuelingDate(refuelingDTO.getRefuelingDate());
+        if (refuelingDTO.getRefuelingDate() != null) {
+            refueling.setRefuelingDate(refuelingDTO.getRefuelingDate().atStartOfDay());
+        }
         refueling.setRefuelingStation(refuelingDTO.getRefuelingStation());
         refueling.setFuelType(refuelingDTO.getFuelType());
         refueling.setRefuelingAmount(refuelingDTO.getRefuelingAmount());
         refueling.setUnitPrice(refuelingDTO.getUnitPrice());
         refueling.setTotalCost(refuelingDTO.getTotalCost());
         refueling.setCurrentMileage(refuelingDTO.getCurrentMileage());
-        refueling.setRemark(refuelingDTO.getRemark());
         save(refueling);
         return refueling;
     }
@@ -43,6 +45,23 @@ public class VehicleRefuelingServiceImpl extends ServiceImpl<VehicleRefuelingMap
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
         wrapper.eq(VehicleRefueling::getVehicleId, vehicleId)
                .orderByDesc(VehicleRefueling::getRefuelingDate);
+        
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<VehicleRefueling> result = 
+                getBaseMapper().selectPage(pageObj, wrapper);
+        
+        return result.getRecords();
+    }
+    
+    @Override
+    public List<VehicleRefueling> getAllRefuelingRecords(int page, int size) {
+        log.info("获取所有加油记录: page={}, size={}", page, size);
+        
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<VehicleRefueling> pageObj = 
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, size);
+        
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<VehicleRefueling> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.orderByDesc(VehicleRefueling::getRefuelingDate);
         
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<VehicleRefueling> result = 
                 getBaseMapper().selectPage(pageObj, wrapper);

@@ -26,6 +26,15 @@ public class VehicleInsuranceController {
         return Result.success(insurance);
     }
     
+    @Operation(summary = "获取所有保险记录")
+    @GetMapping("/list")
+    public Result<List<VehicleInsurance>> getAllInsuranceRecords(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        List<VehicleInsurance> records = vehicleInsuranceService.getAllInsuranceRecords(page, size);
+        return Result.success(records);
+    }
+    
     @Operation(summary = "获取车辆保险信息")
     @GetMapping("/vehicle/{vehicleId}")
     public Result<List<VehicleInsurance>> getVehicleInsurance(@PathVariable Long vehicleId) {

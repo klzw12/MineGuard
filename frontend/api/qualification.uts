@@ -1,22 +1,27 @@
 import { http } from '@/utils/request.uts'
-import type { IdCardVerifyDTO, CertVerifyDTO } from '@/types/user.uts'
+import type { IdCardVerifyDTO, CertVerifyDTO, UserVO } from '@/types/user.uts'
 
-export function verifyIdCard(data: IdCardVerifyDTO): Promise<boolean | null> {
-  return http.post('/api/qualification/idcard/verify', data)
+type RequestOptions = {
+  showLoading?: boolean
+  showError?: boolean
+}
+
+export function verifyIdCard(data: IdCardVerifyDTO, options?: RequestOptions): Promise<boolean | null> {
+  return http.post<boolean>('/qualification/idcard/verify', data, options)
 }
 
 export function checkIdCardVerified(userId: number): Promise<boolean | null> {
-  return http.get(`/api/qualification/idcard/check/${userId}`)
+  return http.get<boolean>(`/qualification/idcard/check/${userId}`)
 }
 
-export function uploadDriverCert(data: CertVerifyDTO): Promise<boolean | null> {
-  return http.post('/api/qualification/cert/driver', data)
+export function uploadDriverCert(data: CertVerifyDTO, options?: RequestOptions): Promise<UserVO | null> {
+  return http.post<UserVO>('/qualification/cert/driver', data, options)
 }
 
-export function uploadSafetyOfficerCert(data: CertVerifyDTO): Promise<boolean | null> {
-  return http.post('/api/qualification/cert/safety-officer', data)
+export function uploadSafetyOfficerCert(data: CertVerifyDTO, options?: RequestOptions): Promise<UserVO | null> {
+  return http.post<UserVO>('/qualification/cert/safety-officer', data, options)
 }
 
-export function uploadRepairmanCert(data: CertVerifyDTO): Promise<boolean | null> {
-  return http.post('/api/qualification/cert/repairman', data)
+export function uploadRepairmanCert(data: CertVerifyDTO, options?: RequestOptions): Promise<UserVO | null> {
+  return http.post<UserVO>('/qualification/cert/repairman', data, options)
 }

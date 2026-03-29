@@ -16,6 +16,14 @@ public interface VehicleMaintenanceService extends IService<VehicleMaintenance> 
     VehicleMaintenance addMaintenanceRecord(VehicleMaintenanceDTO maintenanceDTO);
     
     /**
+     * 获取所有保养记录
+     * @param page 页码
+     * @param size 每页大小
+     * @return 保养记录列表
+     */
+    List<VehicleMaintenance> getAllMaintenanceRecords(int page, int size);
+    
+    /**
      * 获取车辆保养记录
      * @param vehicleId 车辆ID
      * @param page 页码

@@ -26,6 +26,15 @@ public class VehicleMaintenanceController {
         return Result.success(maintenance);
     }
     
+    @Operation(summary = "获取所有保养记录")
+    @GetMapping("/list")
+    public Result<List<VehicleMaintenance>> getAllMaintenanceRecords(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        List<VehicleMaintenance> records = vehicleMaintenanceService.getAllMaintenanceRecords(page, size);
+        return Result.success(records);
+    }
+    
     @Operation(summary = "获取车辆保养记录")
     @GetMapping("/vehicle/{vehicleId}")
     public Result<List<VehicleMaintenance>> getMaintenanceRecords(

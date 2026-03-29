@@ -31,102 +31,117 @@ export interface PageResult<T> {
 
 export const vehicleApi = {
   createVehicle: (data: VehicleCreateDTO): Promise<VehicleVO | null> => {
-    return http.post('/api/vehicle', data)
+    return http.post<VehicleVO>('/vehicle', data)
   },
 
   updateVehicle: (id: number, data: VehicleCreateDTO): Promise<VehicleVO | null> => {
-    return http.put(`/api/vehicle/${id}`, data)
+    return http.put<VehicleVO>(`/vehicle/${id}`, data)
   },
 
   deleteVehicle: (id: number): Promise<void | null> => {
-    return http.delete(`/api/vehicle/${id}`)
+    return http.delete<void>(`/vehicle/${id}`)
   },
 
   getVehicleById: (id: number): Promise<VehicleVO | null> => {
-    return http.get(`/api/vehicle/${id}`)
+    return http.get<VehicleVO>(`/vehicle/${id}`)
   },
 
   getVehiclePage: (params: any): Promise<PageResult<VehicleVO> | null> => {
-    return http.get('/api/vehicle/page', params)
+    return http.get<PageResult<VehicleVO>>('/vehicle/page', params)
   },
 
   // 管理端专用接口
   uploadVehiclePhoto: (id: number, file: any): Promise<string | null> => {
     const formData = new FormData()
     formData.append('file', file)
-    return http.post(`/api/vehicle/${id}/photo`, formData)
+    return http.post<string>(`/vehicle/${id}/photo`, formData)
   },
 
   uploadLicenseFrontAndOCR: (id: number, file: any): Promise<VehicleVO | null> => {
     const formData = new FormData()
     formData.append('file', file)
-    return http.post(`/api/vehicle/${id}/license/front`, formData)
+    return http.post<VehicleVO>(`/vehicle/${id}/license/front`, formData)
   },
 
   uploadLicenseBack: (id: number, file: any): Promise<VehicleVO | null> => {
     const formData = new FormData()
     formData.append('file', file)
-    return http.post(`/api/vehicle/${id}/license/back`, formData)
+    return http.post<VehicleVO>(`/vehicle/${id}/license/back`, formData)
   },
 
   // 更新车辆维修状态（维修员端使用）
   updateMaintenanceStatus: (id: number, maintenanceStatus: number): Promise<VehicleVO | null> => {
-    return http.put(`/api/vehicle/${id}/maintenance`, { maintenanceStatus })
+    return http.put<VehicleVO>(`/vehicle/${id}/maintenance`, { maintenanceStatus })
   }
 }
 
 export const refuelingApi = {
   addRefuelingRecord: (data: any): Promise<void | null> => {
-    return http.post('/api/vehicle/refueling', data)
+    return http.post<void>('/vehicle/refueling', data)
   },
 
   getRefuelingRecords: (vehicleId: number, params: any): Promise<any[] | null> => {
-    return http.get(`/api/vehicle/refueling/vehicle/${vehicleId}`, params)
+    return http.get<any[]>(`/vehicle/refueling/vehicle/${vehicleId}`, params)
+  },
+
+  getAllRefuelingRecords: (params?: any): Promise<any[] | null> => {
+    return http.get<any[]>('/vehicle/refueling/list', params)
   }
 }
 
 export const faultApi = {
-  reportFault: (data: any): Promise<void | null> => {
-    return http.post('/api/vehicle/fault', data)
+  reportFault: (data: any): Promise<any | null> => {
+    return http.post<any>('/vehicle/fault', data)
   },
 
-  handleFault: (id: number, params: any): Promise<void | null> => {
-    return http.put(`/api/vehicle/fault/${id}/handle`, params)
+  handleFault: (id: string, repairmanId: string, repairContent: string, repairCost: string): Promise<any | null> => {
+    return http.put<any>(`/vehicle/fault/${id}/handle?repairmanId=${repairmanId}&repairContent=${encodeURIComponent(repairContent)}&repairCost=${repairCost}`)
   },
 
   getFaultRecords: (vehicleId: number, params: any): Promise<any[] | null> => {
-    return http.get(`/api/vehicle/fault/vehicle/${vehicleId}`, params)
+    return http.get<any[]>(`/vehicle/fault/vehicle/${vehicleId}`, params)
+  },
+
+  getAllFaultRecords: (params?: any): Promise<any[] | null> => {
+    return http.get<any[]>('/vehicle/fault/list', params)
   }
 }
 
 export const maintenanceApi = {
   addMaintenanceRecord: (data: any): Promise<void | null> => {
-    return http.post('/api/vehicle/maintenance', data)
+    return http.post<void>('/vehicle/maintenance', data)
   },
 
   getMaintenanceRecords: (vehicleId: number, params: any): Promise<any[] | null> => {
-    return http.get(`/api/vehicle/maintenance/vehicle/${vehicleId}`, params)
+    return http.get<any[]>(`/vehicle/maintenance/vehicle/${vehicleId}`, params)
   },
 
   getNextMaintenance: (vehicleId: number): Promise<any | null> => {
-    return http.get(`/api/vehicle/maintenance/vehicle/${vehicleId}/next`)
+    return http.get<any>(`/vehicle/maintenance/vehicle/${vehicleId}/next`)
+  },
+
+  getAllMaintenanceRecords: (params?: any): Promise<any[] | null> => {
+    return http.get<any[]>('/vehicle/maintenance/list', params)
   }
 }
 
 export const insuranceApi = {
   addInsurance: (data: any): Promise<void | null> => {
-    return http.post('/api/vehicle/insurance', data)
+    return http.post<void>('/vehicle/insurance', data)
   },
 
   getVehicleInsurance: (vehicleId: number): Promise<any[] | null> => {
-    return http.get(`/api/vehicle/insurance/vehicle/${vehicleId}`)
+    return http.get<any[]>(`/vehicle/insurance/vehicle/${vehicleId}`)
   },
 
   getCurrentInsurance: (vehicleId: number): Promise<any | null> => {
-    return http.get(`/api/vehicle/insurance/vehicle/${vehicleId}/current`)
+    return http.get<any>(`/vehicle/insurance/vehicle/${vehicleId}/current`)
   },
 
-  // 上传车辆保险信息（简化版，用于表单录入）
+  getAllInsuranceRecords: (params?: any): Promise<any[] | null> => {
+    return http.get<any[]>('/vehicle/insurance/list', params)
+  },
+
   uploadInsuranceInfo: (vehicleId: number, data: {
     insuranceCompany: string
     policyNo: string
@@ -136,6 +151,12 @@ export const insuranceApi = {
     expiryDate: string
     remark?: string
   }): Promise<void | null> => {
-    return http.post(`/api/vehicle/${vehicleId}/insurance`, data)
+    return http.post<void>(`/vehicle/${vehicleId}/insurance`, data)
+  }
+}
+
+export const vehicleListApi = {
+  getVehicleOptions: (params?: any): Promise<any[] | null> => {
+    return http.get<any[]>('/vehicle/page', params)
   }
 }

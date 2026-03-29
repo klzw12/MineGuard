@@ -123,7 +123,8 @@
 </template>
 
 <script setup lang="uts">
-	import { ref, computed, onMounted, onShow } from 'vue'
+	import { ref, computed, onMounted } from 'vue'
+	import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user.uts'
 import { checkInApi, checkOutApi, getAttendanceByDate } from '@/api/attendance.uts'
 import { getPendingTasksByDriver, startTask as startTaskApi, completeTask as completeTaskApi } from '@/api/dispatch.uts'
@@ -165,56 +166,64 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 	})
 	
 	async function loadTasks() {
-		const driverId = userStore.userInfo.value?.id
-		if (!driverId) {
+		const user = userStore.userInfo.value
+		if (!user) {
+			return
+		}
+		
+		// 检查用户是否有司机角色
+		const roleCode = user.roleCode?.toUpperCase() || ''
+		const isDriver = roleCode === 'ROLE_DRIVER' || roleCode === 'DRIVER'
+		
+		if (!isDriver) {
+			// 非司机角色，显示提示
+			tasks.value = []
 			return
 		}
 		
 		loading.value = true
 		
 		try {
-			const data = await getPendingTasksByDriver(Number(driverId))
+			const data = await getPendingTasksByDriver(Number(user.id))
 			tasks.value = data || []
 		} catch (e) {
 			console.error('加载任务失败', e)
+			tasks.value = []
 		} finally {
 			loading.value = false
 		}
 	}
 	
 	async function loadTodayAttendance() {
-		const uid = userStore.userInfo.value?.id
-		if (!uid) return
-		
 		try {
 			const today = new Date()
 			const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-			const data = await getAttendanceByDate(uid, dateStr)
+			const data = await getAttendanceByDate(dateStr)
 			attendanceInfo.value = data
 		} catch (e) {
 		}
 	}
 	
-	function formatTime(time: string): string {
+	function formatTime(time: string | null | undefined): string {
 		if (!time) return ''
 		const date = new Date(time)
 		return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 	}
 	
-	function formatDateTime(time: string | null): string {
+	function formatDateTime(time: string | null | undefined): string {
 		if (!time) return '-'
 		const date = new Date(time)
 		return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 	}
 	
-	function getStatusClass(status: number): string {
+	function getStatusClass(status: number | null | undefined): string {
 		if (status === 1) return 'normal'
 		if (status === 2) return 'late'
 		if (status === 3) return 'early'
 		return 'pending'
 	}
 	
-	function getTaskStatusClass(status: number): string {
+	function getTaskStatusClass(status: number | null | undefined): string {
 		if (status === 0) return 'pending'
 		if (status === 1) return 'accepted'
 		if (status === 2) return 'inProgress'
@@ -222,7 +231,7 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 		return 'cancelled'
 	}
 	
-	function getTaskStatusText(status: number): string {
+	function getTaskStatusText(status: number | null | undefined): string {
 		if (status === 0) return '待接单'
 		if (status === 1) return '已接单'
 		if (status === 2) return '进行中'
@@ -230,7 +239,7 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 		return '已取消'
 	}
 	
-	function getPriorityClass(priority: string): string {
+	function getPriorityClass(priority: string | null | undefined): string {
 		if (priority === 'high' || priority === '紧急') return 'high'
 		if (priority === 'medium' || priority === '普通') return 'medium'
 		return 'low'
@@ -239,23 +248,22 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 	async function checkIn() {
 		if (attendanceInfo.value?.checkInTime) return
 		
-		const uid = userStore.userInfo.value?.id
-		if (!uid) {
-			toast.error('用户信息不存在')
-			return
-		}
-		
 		submitting.value = true
 		toast.loading('打卡中...')
 		
 		try {
-			const data = await checkInApi({ userId: uid })
+			const position = await getLocation()
+			const data = await checkInApi({
+				latitude: position.latitude,
+				longitude: position.longitude,
+				address: position.address
+			})
 			if (data) {
 				attendanceInfo.value = data
 				toast.success('上班打卡成功')
 			}
 		} catch (e: any) {
-			toast.error(e.message || '打卡失败')
+			toast.error(e?.message || '打卡失败')
 		} finally {
 			submitting.value = false
 		}
@@ -264,17 +272,16 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 	async function checkOut() {
 		if (!attendanceInfo.value?.checkInTime || attendanceInfo.value?.checkOutTime) return
 		
-		const uid = userStore.userInfo.value?.id
-		if (!uid) {
-			toast.error('用户信息不存在')
-			return
-		}
-		
 		submitting.value = true
 		uni.showLoading({ title: '打卡中...', mask: true })
 		
 		try {
-			const data = await checkOutApi({ userId: uid })
+			const position = await getLocation()
+			const data = await checkOutApi({
+				latitude: position.latitude,
+				longitude: position.longitude,
+				address: position.address
+			})
 			if (data) {
 				attendanceInfo.value = data
 				uni.hideLoading()
@@ -282,17 +289,42 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 			}
 		} catch (e: any) {
 			uni.hideLoading()
-			toast.error(e.message || '打卡失败')
+			toast.error(e?.message || '打卡失败')
 		} finally {
 			submitting.value = false
 			uni.hideLoading()
 		}
 	}
 	
+	function getLocation(): Promise<{ latitude: number, longitude: number, address: string }> {
+		return new Promise((resolve, reject) => {
+			uni.getLocation({
+				type: 'gcj02',
+				geocode: true,
+				success: (res) => {
+					resolve({
+						latitude: res.latitude,
+						longitude: res.longitude,
+						address: res.address?.street || res.address?.poiName || '未知位置'
+					})
+				},
+				fail: (err) => {
+					resolve({
+						latitude: 0,
+						longitude: 0,
+						address: '获取位置失败'
+					})
+				}
+			})
+		})
+	}
+	
 	async function acceptTask(task: DispatchTaskVO) {
+		if (!task) return
+		
 		uni.showModal({
 			title: '确认接单',
-			content: `确定要接取该任务吗？\n${task.startLocation} → ${task.endLocation}`,
+			content: `确定要接取该任务吗？\n${task.startLocation || ''} → ${task.endLocation || ''}`,
 			success: async (res) => {
 				if (res.confirm) {
 					try {
@@ -301,20 +333,20 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 							url: `/api/dispatch/task/${task.id}/accept`,
 							method: 'POST'
 						})
-						if (result.code === 200) {
+						if (result?.code === 200) {
 							toast.success('接单成功')
 							
 							// 跳转到 Map 页面，拼接 URL 参数
-							const tripId = result.data?.tripId || ''
-							const vehicleId = task.vehicleId || ''
-							const driverId = task.executorId || ''
-							
-							uni.redirectTo({
-								url: `/pages/user/map/index?taskId=${task.id}&tripId=${tripId}&vehicleId=${vehicleId}&driverId=${driverId}&startLongitude=${task.startLongitude}&startLatitude=${task.startLatitude}&endLongitude=${task.endLongitude}&endLatitude=${task.endLatitude}&startLocation=${task.startLocation}&endLocation=${task.endLocation}&taskNo=${task.taskNo}`
-							})
+						const tripId = result.data?.tripId || ''
+						const vehicleId = task.vehicleId || ''
+						const driverId = userStore.userInfo.value?.id || ''
+						
+						uni.redirectTo({
+							url: `/pages/user/map/index?taskId=${task.id}&tripId=${tripId}&vehicleId=${vehicleId}&driverId=${driverId}&startLongitude=${task.startLongitude || 0}&startLatitude=${task.startLatitude || 0}&endLongitude=${task.endLongitude || 0}&endLatitude=${task.endLatitude || 0}&startLocation=${task.startLocation || ''}&endLocation=${task.endLocation || ''}&taskNo=${task.taskNo || ''}`
+						})
 						}
 					} catch (e: any) {
-						toast.error(e.message || '接单失败')
+						toast.error(e?.message || '接单失败')
 					}
 				}
 			}
@@ -322,9 +354,11 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 	}
 	
 	async function startTask(task: DispatchTaskVO) {
+		if (!task) return
+		
 		uni.showModal({
 			title: '开始行程',
-			content: `确定开始执行任务吗？\n${task.startLocation} → ${task.endLocation}`,
+			content: `确定开始执行任务吗？\n${task.startLocation || ''} → ${task.endLocation || ''}`,
 			success: async (res) => {
 				if (res.confirm) {
 					try {
@@ -333,7 +367,7 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 						toast.success('任务已开始')
 						loadTasks()
 					} catch (e: any) {
-						toast.error(e.message || '启动失败')
+						toast.error(e?.message || '启动失败')
 					}
 				}
 			}
@@ -341,9 +375,11 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 	}
 	
 	async function completeTask(task: DispatchTaskVO) {
+		if (!task) return
+		
 		uni.showModal({
 			title: '完成任务',
-			content: `确定已完成该任务吗？\n${task.startLocation} → ${task.endLocation}`,
+			content: `确定已完成该任务吗？\n${task.startLocation || ''} → ${task.endLocation || ''}`,
 			success: async (res) => {
 				if (res.confirm) {
 					try {
@@ -352,7 +388,7 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 						toast.success('任务已完成')
 						loadTasks()
 					} catch (e: any) {
-						toast.error(e.message || '操作失败')
+						toast.error(e?.message || '操作失败')
 					}
 				}
 			}
@@ -360,8 +396,10 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 	}
 	
 	function viewTask(task: DispatchTaskVO) {
+		if (!task) return
+		
 		uni.showToast({
-			title: `任务: ${task.taskNo}`,
+			title: `任务: ${task.taskNo || ''}`,
 			icon: 'none'
 		})
 	}

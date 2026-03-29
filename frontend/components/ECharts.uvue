@@ -10,7 +10,7 @@
 				class="echarts-canvas"
 				:style="{ width: canvasWidth + 'rpx', height: canvasHeight + 'rpx' }"
 				@touchstart="touchStart"
-				@touchmove="touchMove"
+				@touchmove.passive="touchMove"
 				@touchend="touchEnd"
 			></canvas>
 		</view>

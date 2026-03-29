@@ -54,7 +54,7 @@ public class VehicleStatusServiceImpl extends ServiceImpl<VehicleStatusMapper, V
                 log.info("车辆在维修中：vehicleId={}, 下次保养日期={}", vehicleId, latestMaintenance.getNextMaintenanceDate());
                 VehicleStatusVO statusVO = new VehicleStatusVO();
                 statusVO.setVehicleId(vehicleId.toString());
-                statusVO.setStatus(4); // 维修中
+                statusVO.setStatus(VehicleStatusEnum.MAINTENANCE.getCode());
                 return statusVO;
             }
         }
@@ -234,5 +234,15 @@ public class VehicleStatusServiceImpl extends ServiceImpl<VehicleStatusMapper, V
         redisCacheService.delete(fatigueRestKey);
         
         log.debug("疲劳驾驶时间重置：vehicleId={}", vehicleId);
+    }
+    
+    @Override
+    public VehicleStatus getByVehicleId(Long vehicleId) {
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<VehicleStatus> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(VehicleStatus::getVehicleId, vehicleId)
+               .orderByDesc(VehicleStatus::getCreateTime)
+               .last("LIMIT 1");
+        return getOne(wrapper);
     }
 }

@@ -26,6 +26,7 @@ import com.klzw.service.user.mapper.UserMapper;
 import com.klzw.service.user.service.QualificationService;
 import com.klzw.service.user.service.RoleChangeApplyService;
 import com.klzw.service.user.service.DriverScoreService;
+import com.klzw.service.user.service.UserService;
 import com.klzw.service.user.vo.UserVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,6 +55,7 @@ public class QualificationServiceImpl implements QualificationService {
     private final RoleChangeApplyService roleChangeApplyService;
     private final PasswordUtils passwordUtils;
     private final DriverScoreService driverScoreService;
+    private final UserService userService;
     
 
     
@@ -86,6 +88,8 @@ public class QualificationServiceImpl implements QualificationService {
         user.setBirthDate(idCardInfo.get("birth"));
         user.setAddress(idCardInfo.get("address"));
         userMapper.updateById(user);
+        
+        userService.clearUserCache(dto.getUserId());
         
         log.info("身份证验证成功，用户ID：{}，姓名：{}", dto.getUserId(), dto.getRealName());
         return true;
@@ -158,7 +162,8 @@ public class QualificationServiceImpl implements QualificationService {
         
         assignRoleToUser(dto.getUserId(), RoleEnum.DRIVER.getValue());
         
-        // 重新查询用户信息，确保获取最新的角色信息
+        userService.clearUserCache(dto.getUserId());
+        
         User updatedUser = userMapper.selectById(dto.getUserId());
         UserVO userVO = convertToUserVO(updatedUser);
         
@@ -186,7 +191,8 @@ public class QualificationServiceImpl implements QualificationService {
         saveSafetyOfficerCert(dto, user, emergencyCertUrl, certInfo);
         assignRoleToUser(dto.getUserId(), RoleEnum.SAFETY_OFFICER.getValue());
         
-        // 重新查询用户信息，确保获取最新的角色信息
+        userService.clearUserCache(dto.getUserId());
+        
         User updatedUser = userMapper.selectById(dto.getUserId());
         UserVO userVO = convertToUserVO(updatedUser);
         
@@ -214,7 +220,8 @@ public class QualificationServiceImpl implements QualificationService {
         saveRepairmanCert(dto, user, repairCertUrl, certInfo);
         assignRoleToUser(dto.getUserId(), RoleEnum.REPAIRMAN.getValue());
         
-        // 重新查询用户信息，确保获取最新的角色信息
+        userService.clearUserCache(dto.getUserId());
+        
         User updatedUser = userMapper.selectById(dto.getUserId());
         UserVO userVO = convertToUserVO(updatedUser);
         

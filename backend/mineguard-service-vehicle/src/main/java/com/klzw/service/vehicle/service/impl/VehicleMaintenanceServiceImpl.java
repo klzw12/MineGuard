@@ -21,18 +21,15 @@ public class VehicleMaintenanceServiceImpl extends ServiceImpl<VehicleMaintenanc
     @Override
     public VehicleMaintenance addMaintenanceRecord(VehicleMaintenanceDTO maintenanceDTO) {
         log.info("添加车辆保养记录: vehicleId={}, maintenanceDate={}", maintenanceDTO.getVehicleId(), maintenanceDTO.getMaintenanceDate());
-        // 转换DTO为实体类
         VehicleMaintenance maintenance = new VehicleMaintenance();
         maintenance.setVehicleId(maintenanceDTO.getVehicleId());
         maintenance.setMaintenanceType(maintenanceDTO.getMaintenanceType());
-        maintenance.setMaintenanceDate(maintenanceDTO.getMaintenanceDate().atStartOfDay());
+        if (maintenanceDTO.getMaintenanceDate() != null) {
+            maintenance.setMaintenanceDate(maintenanceDTO.getMaintenanceDate().atStartOfDay());
+        }
+        maintenance.setMaintenanceShop(maintenanceDTO.getMaintenanceShop());
         maintenance.setMaintenanceContent(maintenanceDTO.getMaintenanceContent());
         maintenance.setMaintenanceCost(maintenanceDTO.getMaintenanceCost());
-        maintenance.setNextMaintenanceDate(maintenanceDTO.getNextMaintenanceDate());
-        if (maintenanceDTO.getMileage() != null) {
-            maintenance.setMileage(maintenanceDTO.getMileage().intValue());
-        }
-        maintenance.setRemark(maintenanceDTO.getRemark());
         save(maintenance);
         return maintenance;
     }
@@ -48,6 +45,23 @@ public class VehicleMaintenanceServiceImpl extends ServiceImpl<VehicleMaintenanc
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
         wrapper.eq(VehicleMaintenance::getVehicleId, vehicleId)
                .orderByDesc(VehicleMaintenance::getMaintenanceDate);
+        
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<VehicleMaintenance> result = 
+                getBaseMapper().selectPage(pageObj, wrapper);
+        
+        return result.getRecords();
+    }
+    
+    @Override
+    public List<VehicleMaintenance> getAllMaintenanceRecords(int page, int size) {
+        log.info("获取所有保养记录: page={}, size={}", page, size);
+        
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<VehicleMaintenance> pageObj = 
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, size);
+        
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<VehicleMaintenance> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.orderByDesc(VehicleMaintenance::getMaintenanceDate);
         
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<VehicleMaintenance> result = 
                 getBaseMapper().selectPage(pageObj, wrapper);

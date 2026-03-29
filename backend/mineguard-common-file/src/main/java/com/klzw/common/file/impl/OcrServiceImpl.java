@@ -59,6 +59,12 @@ public class OcrServiceImpl implements OcrService {
         log.info("识别行驶证正面");
         return baiduOcrUtils.recognizeVehicleLicense(file, "front");
     }
+    
+    @Override
+    public String recognizeVehicleLicense(byte[] imageData) {
+        log.info("识别行驶证正面（byte[]）");
+        return baiduOcrUtils.recognizeVehicleLicense(imageData, "front");
+    }
 
     @Override
     public String recognizeVehicleLicenseBack(MultipartFile file) {

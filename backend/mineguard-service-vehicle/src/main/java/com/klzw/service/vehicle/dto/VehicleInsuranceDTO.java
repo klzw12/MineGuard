@@ -1,5 +1,6 @@
 package com.klzw.service.vehicle.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -11,13 +12,18 @@ import java.time.LocalDate;
 @Data
 public class VehicleInsuranceDTO {
     
-    private Long vehicleId; // 车辆ID
-    private String insuranceCompany; // 保险公司
-    private String insuranceNumber; // 保险单号
-    private Integer insuranceType; // 保险类型
-    private BigDecimal insuranceAmount; // 保险金额
-    private LocalDate startDate; // 开始日期
-    private LocalDate expiryDate; // 过期日期
-    private String remark; // 备注
+    private Long vehicleId;
+    private String insuranceCompany;
+    private String insuranceNumber;
+    private Integer insuranceType;
+    private BigDecimal insuranceAmount;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate startDate;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate expiryDate;
+    
+    private String remark;
     
 }

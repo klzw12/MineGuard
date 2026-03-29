@@ -356,7 +356,6 @@
 		}
 		
 		submitting.value = true
-		toast.loading('提交中...')
 		
 		try {
 			const frontBase64 = await imageToBase64(frontFilePath.value)
@@ -371,18 +370,21 @@
 				idCard: idCard.value,
 				idCardFrontBase64: frontBase64,
 				idCardBackBase64: backBase64 || undefined
-			})
+			}, { showLoading: true, showError: false })
 			
-			if (result) {
-				toast.success('实名认证提交成功')
+			if (result === true) {
+				toast.success('实名认证成功')
 				await userStore.fetchCurrentUser()
 				setTimeout(() => {
 					loadIdCardUrls()
 					loadRoleList()
 				}, 500)
+			} else {
+				toast.error('实名认证失败，请重试')
 			}
 		} catch (e: any) {
-			toast.error(e?.message || '提交失败')
+			const errMsg = e?.message || '实名认证失败'
+			toast.error(errMsg)
 		} finally {
 			submitting.value = false
 		}

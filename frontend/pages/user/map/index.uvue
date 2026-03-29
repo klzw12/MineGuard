@@ -76,7 +76,8 @@
 
 <script setup lang="uts">
 	import { ref, computed, onMounted } from 'vue'
-	import { startTaskSimulation, generateRandomEvent, type MacroRoute, type MicroTrackPoint } from '@/utils/trackSimulator.uts'
+import { onShow } from '@dcloudio/uni-app'
+import { startTaskSimulation, generateRandomEvent, type MacroRoute, type MicroTrackPoint } from '@/utils/trackSimulator.uts'
 	
 	// 任务参数
 	const taskParams = ref({
@@ -119,7 +120,7 @@
 		return isSimulating.value ? '行程中' : '未开始'
 	})
 	
-uni.onShow(() => {
+onShow(() => {
 		// 接收任务参数
 		receiveTaskParams()
 	})
@@ -156,7 +157,10 @@ uni.onShow(() => {
 				content: '请先在任务列表接单',
 				showCancel: false,
 				success: () => {
-					uni.navigateBack()
+					// 直接跳转到任务列表页面
+					uni.reLaunch({
+						url: '/pages/user/task/index'
+					})
 				}
 			})
 		}

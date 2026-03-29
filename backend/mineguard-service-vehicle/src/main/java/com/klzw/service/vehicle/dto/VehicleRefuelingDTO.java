@@ -1,9 +1,10 @@
 package com.klzw.service.vehicle.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 /**
  * 车辆加油记录DTO
@@ -15,7 +16,8 @@ public class VehicleRefuelingDTO {
     
     private Long driverId;
     
-    private LocalDateTime refuelingDate;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate refuelingDate;
     
     private String refuelingStation;
     

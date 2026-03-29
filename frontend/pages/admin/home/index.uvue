@@ -1,6 +1,7 @@
 <template>
 	<AdminLayout>
-		<view class="stats-grid">
+		<view class="dashboard-container">
+			<view class="stats-grid">
 			<view class="stat-card">
 				<view class="stat-left">
 					<text class="stat-label">在线车辆数</text>
@@ -166,6 +167,7 @@
 					</view>
 				</view>
 			</view>
+			</view>
 		</view>
 	</AdminLayout>
 </template>
@@ -246,6 +248,30 @@ import * as messageApi from '@/api/message.uts'
 </script>
 
 <style lang="scss">
+	.dashboard-container {
+		padding: 30rpx;
+		height: calc(100vh - 200rpx);
+		overflow-y: auto;
+		
+		&::-webkit-scrollbar {
+			width: 8rpx;
+		}
+		
+		&::-webkit-scrollbar-track {
+			background: rgba(255, 255, 255, 0.1);
+			border-radius: 4rpx;
+		}
+		
+		&::-webkit-scrollbar-thumb {
+			background: rgba(255, 255, 255, 0.3);
+			border-radius: 4rpx;
+			
+			&:hover {
+				background: rgba(255, 255, 255, 0.5);
+			}
+		}
+	}
+	
 	.stats-grid {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);

@@ -78,7 +78,7 @@
 				})
 			}, 1500)
 		} catch (e: any) {
-			toast.error(e.message || '修改失败')
+			toast.error(e?.message || '修改失败')
 		} finally {
 			submitting.value = false
 		}

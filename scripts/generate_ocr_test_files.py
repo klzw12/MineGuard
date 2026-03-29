@@ -5,6 +5,7 @@ OCR测试文件生成脚本
 根据人员类型批量生成对应证件的测试图像文件
 支持的人员类型：
 - admin: 管理员，仅生成身份证
+- operator: 调度员，仅生成身份证
 - driver: 司机，生成身份证和驾驶证
 - safety: 安全员，生成身份证和应急救援证
 - repair: 维修员，生成身份证和维修资格证
@@ -736,6 +737,22 @@ def generate_ocr_test_files(person_type, base_output_dir):
         print(f"  - {id_card_front_path}")
         print(f"  - {id_card_back_path}")
     
+    elif person_type == 'operator':
+        # 创建输出目录，格式为 base_output_dir/{type}/{id_number}
+        output_dir = os.path.join(base_output_dir, person_type, id_number)
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # 调度员：生成身份证正面和背面
+        id_card_front_path = os.path.join(output_dir, 'idcard_front.png')
+        draw_id_card(id_card_data, id_card_front_path)
+        
+        id_card_back_path = os.path.join(output_dir, 'idcard_back.png')
+        draw_id_card_back(id_card_data, id_card_back_path)
+        
+        print(f"生成调度员测试文件：")
+        print(f"  - {id_card_front_path}")
+        print(f"  - {id_card_back_path}")
+    
     elif person_type == 'driver':
         # 创建输出目录，格式为 base_output_dir/{type}/{id_number}
         output_dir = os.path.join(base_output_dir, person_type, id_number)
@@ -860,7 +877,7 @@ def main():
     default_output = os.path.join(script_dir, 'output')
     
     parser = argparse.ArgumentParser(description='生成OCR测试文件')
-    parser.add_argument('-t', '--type', choices=['admin', 'driver', 'safety', 'repair', 'carId'], 
+    parser.add_argument('-t', '--type', choices=['admin', 'operator', 'driver', 'safety', 'repair', 'carId'], 
                         required=True, help='人员类型')
     parser.add_argument('-o', '--output', default=default_output, 
                         help='输出目录')

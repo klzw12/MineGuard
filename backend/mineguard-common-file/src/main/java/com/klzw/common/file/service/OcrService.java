@@ -50,6 +50,13 @@ public interface OcrService {
      * @return 识别结果
      */
     String recognizeVehicleLicense(MultipartFile file);
+    
+    /**
+     * 识别行驶证正面（byte[] 输入）
+     * @param imageData 图片二进制数据
+     * @return 识别结果
+     */
+    String recognizeVehicleLicense(byte[] imageData);
 
     /**
      * 识别行驶证背面

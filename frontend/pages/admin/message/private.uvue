@@ -12,40 +12,105 @@
 						<text class="list-title">联系人</text>
 					</view>
 					
-					<view class="contact-item" 
-						v-for="(contact, index) in contacts" 
-						:key="index"
-						:class="{ active: selectedContact?.id === contact.id }"
-						@click="selectContact(contact)"
-					>
-						<view class="contact-avatar">
-							<text>{{ contact.avatar }}</text>
+					<view class="search-box">
+						<input class="search-input" 
+							type="text" 
+							placeholder="搜索用户名/姓名" 
+							placeholder-style="color: rgba(255,255,255,0.4)"
+							v-model="searchKeyword"
+							@confirm="searchUsers"
+						/>
+						<view class="search-btn" @click="searchUsers">
+							<text>搜索</text>
 						</view>
-						<view class="contact-info">
-							<text class="contact-name">{{ contact.name }}</text>
-							<text class="contact-role">{{ contact.roleName }}</text>
+					</view>
+					
+					<view class="role-filter">
+						<view class="filter-item" 
+							:class="{ active: filterRoleCode === '' }" 
+							@click="filterByRole('')">
+							<text>全部</text>
 						</view>
-						<view class="contact-badge" v-if="contact.unread > 0">
-							<text>{{ contact.unread }}</text>
+						<view class="filter-item" 
+							:class="{ active: filterRoleCode === 'DRIVER' }" 
+							@click="filterByRole('DRIVER')">
+							<text>司机</text>
 						</view>
+						<view class="filter-item" 
+							:class="{ active: filterRoleCode === 'REPAIRMAN' }" 
+							@click="filterByRole('REPAIRMAN')">
+							<text>维修员</text>
+						</view>
+						<view class="filter-item" 
+							:class="{ active: filterRoleCode === 'SAFETY_OFFICER' }" 
+							@click="filterByRole('SAFETY_OFFICER')">
+							<text>安全员</text>
+						</view>
+					</view>
+					
+					<view v-if="searchResults.length > 0" class="search-results">
+						<text class="section-title">搜索结果</text>
+						<view class="contact-item" 
+							v-for="(user, index) in searchResults" 
+							:key="'search-' + index"
+							@click="startChat(user)"
+						>
+							<view class="contact-avatar">
+								<image v-if="user.avatarUrl" :src="user.avatarUrl" class="avatar-img" mode="aspectFill" />
+								<text v-else>{{ getAvatarText(user) }}</text>
+							</view>
+							<view class="contact-info">
+								<text class="contact-name">{{ user.realName || user.username }}</text>
+								<text class="contact-role">{{ user.roleName || '未知角色' }}</text>
+							</view>
+							<view class="start-chat-btn">
+								<text>发消息</text>
+							</view>
+						</view>
+					</view>
+					
+					<view class="recent-contacts" v-if="recentContacts.length > 0">
+						<text class="section-title">最近联系人</text>
+						<view class="contact-item" 
+							v-for="(contact, index) in recentContacts" 
+							:key="'recent-' + index"
+							:class="{ active: selectedContact?.id === contact.id }"
+							@click="selectContact(contact)"
+						>
+							<view class="contact-avatar">
+								<image v-if="contact.avatar" :src="contact.avatar" class="avatar-img" mode="aspectFill" />
+								<text v-else>{{ getAvatarText(contact) }}</text>
+							</view>
+							<view class="contact-info">
+								<text class="contact-name">{{ contact.realName || contact.username }}</text>
+								<text class="contact-role">{{ contact.roleName || '未知角色' }}</text>
+							</view>
+							<view class="contact-badge" v-if="contact.unreadCount > 0">
+								<text>{{ contact.unreadCount }}</text>
+							</view>
+						</view>
+					</view>
+					
+					<view v-if="searchResults.length === 0 && recentContacts.length === 0" class="empty-contacts">
+						<text class="empty-text">搜索用户开始聊天</text>
 					</view>
 				</view>
 				
 				<view class="chat-area">
 					<view class="chat-header" v-if="selectedContact">
-						<text class="chat-title">{{ selectedContact.name }}</text>
-						<text class="chat-subtitle">{{ selectedContact.roleName }}</text>
+						<text class="chat-title">{{ selectedContact.realName || selectedContact.username }}</text>
+						<text class="chat-subtitle">{{ selectedContact.roleName || '未知角色' }}</text>
 					</view>
 					
-					<view class="message-list" v-if="selectedContact">
+					<view class="message-list" v-if="selectedContact" ref="messageListRef">
 						<view class="message-item" 
 							v-for="(msg, index) in messages" 
 							:key="index"
-							:class="{ sent: msg.sent, received: !msg.sent }"
+							:class="{ sent: isSentByMe(msg), received: !isSentByMe(msg) }"
 						>
 							<view class="message-bubble">
 								<text class="message-text">{{ msg.content }}</text>
-								<text class="message-time">{{ msg.time }}</text>
+								<text class="message-time">{{ formatTime(msg.createTime) }}</text>
 							</view>
 						</view>
 					</view>
@@ -73,43 +138,181 @@
 </template>
 
 <script setup lang="uts">
-	import { ref } from 'vue'
+	import { ref, onMounted } from 'vue'
 	import AdminSidebar from '@/components/AdminSidebar.uvue'
+	import { useUserStore } from '@/stores/user.uts'
+	import toast from '@/utils/toast.uts'
+	import { getContactList, getPrivateMessages, sendPrivateMessage, markAllMessagesAsRead } from '@/api/message.uts'
+	import { searchContacts } from '@/api/user.uts'
+	import type { ContactVO, MessageVO, UserVO } from '@/types/user.uts'
 	
-	const selectedContact = ref<any>(null)
+	const userStore = useUserStore()
+	const selectedContact = ref<ContactVO | null>(null)
 	const inputMessage = ref('')
+	const recentContacts = ref<ContactVO[]>([])
+	const messages = ref<MessageVO[]>([])
+	const searchKeyword = ref('')
+	const filterRoleCode = ref('')
+	const searchResults = ref<UserVO[]>([])
 	
-	const contacts = ref([
-		{ id: 1, name: '张师傅', roleName: '司机', avatar: '👨', unread: 2 },
-		{ id: 2, name: '李师傅', roleName: '司机', avatar: '👨', unread: 0 },
-		{ id: 3, name: '王维修', roleName: '维修员', avatar: '🔧', unread: 1 },
-		{ id: 4, name: '赵安全', roleName: '安全员', avatar: '🛡️', unread: 0 },
-		{ id: 5, name: '孙调度', roleName: '调度员', avatar: '📋', unread: 0 }
-	])
+	onMounted(() => {
+		loadRecentContacts()
+	})
 	
-	const messages = ref<any[]>([])
-	
-	function selectContact(contact: any) {
-		selectedContact.value = contact
-		
-		messages.value = [
-			{ content: '您好，请问有什么可以帮助您的？', time: '10:30', sent: false },
-			{ content: '我想确认一下明天的任务安排', time: '10:32', sent: true },
-			{ content: '好的，您明天的任务是运送货物到朝阳区，早上8点出发。', time: '10:33', sent: false },
-			{ content: '收到，谢谢！', time: '10:35', sent: true }
-		]
+	async function loadRecentContacts() {
+		try {
+			const result = await getContactList()
+			if (result) {
+				recentContacts.value = result
+			}
+		} catch (e: any) {
+			console.log('加载联系人失败:', e?.message)
+		}
 	}
 	
-	function sendMessage() {
-		if (!inputMessage.value.trim()) return
+	async function searchUsers() {
+		const keyword = searchKeyword.value.trim()
+		if (!keyword && !filterRoleCode.value) {
+			searchResults.value = []
+			return
+		}
 		
-		messages.value.push({
-			content: inputMessage.value,
-			time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
-			sent: true
-		})
+		try {
+			const result = await searchContacts({
+				keyword: keyword || undefined,
+				roleCode: filterRoleCode.value || undefined,
+				pageNum: 1,
+				pageSize: 20
+			})
+			if (result && result.records) {
+				const currentUserId = userStore.userInfo.value?.id
+				searchResults.value = result.records.filter((u: UserVO) => u.id !== currentUserId)
+			}
+		} catch (e: any) {
+			console.log('搜索用户失败:', e?.message)
+		}
+	}
+	
+	function filterByRole(roleCode: string) {
+		filterRoleCode.value = roleCode
+		if (searchKeyword.value.trim() || roleCode) {
+			searchUsers()
+		} else {
+			searchResults.value = []
+		}
+	}
+	
+	function startChat(user: UserVO) {
+		const contact: ContactVO = {
+			id: user.id,
+			username: user.username,
+			realName: user.realName || '',
+			roleName: user.roleName || '',
+			avatar: user.avatarUrl || '',
+			unreadCount: 0,
+			lastMessage: '',
+			lastMessageTime: ''
+		}
+		selectedContact.value = contact
+		messages.value = []
+		searchResults.value = []
+		searchKeyword.value = ''
+	}
+	
+	async function selectContact(contact: ContactVO) {
+		selectedContact.value = contact
 		
-		inputMessage.value = ''
+		try {
+			const result = await getPrivateMessages(String(contact.id))
+			if (result) {
+				messages.value = result
+			}
+			
+			if (contact.unreadCount > 0) {
+				await markAllMessagesAsRead()
+				contact.unreadCount = 0
+			}
+		} catch (e: any) {
+			console.log('加载消息失败:', e?.message)
+		}
+	}
+	
+	async function sendMessage() {
+		if (!inputMessage.value.trim()) {
+			toast.error('请输入消息内容')
+			return
+		}
+		
+		if (!selectedContact.value) {
+			toast.error('请选择联系人')
+			return
+		}
+		
+		const userId = userStore.userInfo.value?.id
+		if (!userId) {
+			toast.error('用户信息不存在')
+			return
+		}
+		
+		const content = inputMessage.value.trim()
+		
+		try {
+			await sendPrivateMessage(String(selectedContact.value.id), content)
+			
+			messages.value.push({
+				id: Date.now().toString(),
+				messageId: Date.now().toString(),
+				sender: userId,
+				receiver: String(selectedContact.value.id),
+				type: '1',
+				content: content,
+				status: 'sent',
+				priority: 'normal',
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
+				userId: userId,
+				title: '私聊消息',
+				isRead: 1,
+				createTime: new Date().toISOString(),
+				senderId: userId,
+				senderName: userStore.userInfo.value?.username || '我'
+			})
+			
+			inputMessage.value = ''
+		} catch (e: any) {
+			toast.error(e?.message || '发送失败')
+		}
+	}
+	
+	function isSentByMe(msg: MessageVO): boolean {
+		const userId = userStore.userInfo.value?.id
+		return msg.senderId === userId || msg.sender === userId
+	}
+	
+	function getAvatarText(contact: ContactVO | UserVO): string {
+		const name = contact.realName || contact.username
+		return name ? name.charAt(0).toUpperCase() : '?'
+	}
+	
+	function formatTime(timeStr: string | undefined): string {
+		if (!timeStr) return ''
+		
+		try {
+			let date: Date
+			if (/^\d+$/.test(timeStr)) {
+				date = new Date(parseInt(timeStr))
+			} else {
+				date = new Date(timeStr)
+			}
+			
+			if (isNaN(date.getTime())) return ''
+			
+			const hours = date.getHours().toString().padStart(2, '0')
+			const minutes = date.getMinutes().toString().padStart(2, '0')
+			return `${hours}:${minutes}`
+		} catch (e) {
+			return ''
+		}
 	}
 </script>
 
@@ -126,10 +329,11 @@
 	}
 	
 	.contact-list {
-		width: 300rpx;
+		width: 350rpx;
 		border-right: 1rpx solid rgba(255, 255, 255, 0.08);
 		display: flex;
 		flex-direction: column;
+		overflow-y: auto;
 	}
 	
 	.list-header {
@@ -141,6 +345,82 @@
 		font-size: 26rpx;
 		font-weight: bold;
 		color: #fff;
+	}
+	
+	.search-box {
+		display: flex;
+		flex-direction: row;
+		padding: 15rpx;
+		gap: 10rpx;
+	}
+	
+	.search-input {
+		flex: 1;
+		padding: 15rpx 20rpx;
+		background-color: #2a3347;
+		border-radius: 12rpx;
+		font-size: 24rpx;
+		color: #fff;
+	}
+	
+	.search-btn {
+		padding: 15rpx 20rpx;
+		background-color: #007AFF;
+		border-radius: 12rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		
+		text {
+			font-size: 24rpx;
+			color: #fff;
+		}
+	}
+	
+	.role-filter {
+		display: flex;
+		flex-direction: row;
+		padding: 10rpx 15rpx;
+		gap: 10rpx;
+		flex-wrap: wrap;
+	}
+	
+	.filter-item {
+		padding: 10rpx 20rpx;
+		background-color: #2a3347;
+		border-radius: 20rpx;
+		
+		text {
+			font-size: 22rpx;
+			color: rgba(255, 255, 255, 0.6);
+		}
+		
+		&.active {
+			background-color: #007AFF;
+			
+			text {
+				color: #fff;
+			}
+		}
+	}
+	
+	.section-title {
+		font-size: 22rpx;
+		color: rgba(255, 255, 255, 0.4);
+		padding: 15rpx 20rpx 10rpx;
+	}
+	
+	.search-results, .recent-contacts {
+		flex: 1;
+		overflow-y: auto;
+	}
+	
+	.empty-contacts {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 40rpx;
 	}
 	
 	.contact-item {
@@ -164,6 +444,13 @@
 		align-items: center;
 		justify-content: center;
 		font-size: 28rpx;
+		color: #fff;
+		overflow: hidden;
+	}
+	
+	.avatar-img {
+		width: 100%;
+		height: 100%;
 	}
 	
 	.contact-info {
@@ -194,6 +481,17 @@
 		
 		text {
 			font-size: 18rpx;
+			color: #fff;
+		}
+	}
+	
+	.start-chat-btn {
+		padding: 10rpx 20rpx;
+		background-color: #34C759;
+		border-radius: 12rpx;
+		
+		text {
+			font-size: 22rpx;
 			color: #fff;
 		}
 	}

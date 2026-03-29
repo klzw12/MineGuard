@@ -41,4 +41,11 @@ public interface VehicleStatusService extends IService<VehicleStatus> {
      * @param reportDTO 上报数据
      */
     void reportStatus(VehicleStatusReportDTO reportDTO);
+    
+    /**
+     * 根据车辆ID获取状态记录
+     * @param vehicleId 车辆ID
+     * @return 车辆状态
+     */
+    VehicleStatus getByVehicleId(Long vehicleId);
 }

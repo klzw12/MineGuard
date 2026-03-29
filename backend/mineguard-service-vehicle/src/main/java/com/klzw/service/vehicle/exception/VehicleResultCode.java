@@ -55,7 +55,12 @@ public enum VehicleResultCode {
     /**
      * 操作失败
      */
-    OPERATION_FAILED(1009, "操作失败");
+    OPERATION_FAILED(1009, "操作失败"),
+
+    /**
+     * 车牌号不一致
+     */
+    VEHICLE_NO_MISMATCH(1010, "车牌号与行驶证识别结果不一致");
 
     /**
      * 错误码

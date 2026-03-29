@@ -14,14 +14,42 @@
 export function imageToBase64(filePath: string): Promise<string> {
 	return new Promise((resolve, reject) => {
 		// #ifdef H5
-		// H5 平台使用 FileReader
-		const reader = new FileReader()
-		reader.readAsDataURL(filePath)
-		reader.onload = () => {
-			resolve(reader.result as string)
-		}
-		reader.onerror = () => {
-			reject(new Error('图片转换失败'))
+		// H5 平台使用 FileReader 读取本地文件
+		if (typeof FileReader !== 'undefined') {
+			// 检查是否是文件对象
+			if (filePath instanceof File) {
+				const reader = new FileReader()
+				reader.onload = (e) => {
+					resolve(e.target?.result as string)
+				}
+				reader.onerror = () => {
+					reject(new Error('图片转换失败'))
+				}
+				reader.readAsDataURL(filePath)
+			} else if (filePath.startsWith('data:')) {
+				// 已经是 base64 数据
+				resolve(filePath)
+			} else if (filePath.startsWith('blob:') || filePath.startsWith('http')) {
+				// 网络地址或 blob 地址
+				const xhr = new XMLHttpRequest()
+				xhr.open('GET', filePath, true)
+				xhr.responseType = 'blob'
+				xhr.onload = function() {
+					if (xhr.status === 200 && xhr.response instanceof Blob) {
+						const reader = new FileReader()
+						reader.onloadend = function() {
+							resolve(reader.result as string)
+						}
+						reader.readAsDataURL(xhr.response)
+					}
+				}
+				xhr.send()
+			} else {
+				// 本地文件路径，H5 平台无法直接读取
+				reject(new Error('H5 平台不支持读取本地文件路径'))
+			}
+		} else {
+			reject(new Error('FileReader 不支持'))
 		}
 		// #endif
 

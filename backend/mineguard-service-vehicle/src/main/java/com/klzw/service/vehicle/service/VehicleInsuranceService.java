@@ -16,6 +16,14 @@ public interface VehicleInsuranceService extends IService<VehicleInsurance> {
     VehicleInsurance addInsurance(VehicleInsuranceDTO insuranceDTO);
     
     /**
+     * 获取所有保险记录
+     * @param page 页码
+     * @param size 每页大小
+     * @return 保险记录列表
+     */
+    List<VehicleInsurance> getAllInsuranceRecords(int page, int size);
+    
+    /**
      * 获取车辆保险信息
      * @param vehicleId 车辆ID
      * @return 保险信息列表

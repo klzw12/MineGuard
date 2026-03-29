@@ -33,4 +33,10 @@ public class VehicleFault extends BaseEntity {
     
     private String repairContent;
     
+    private BigDecimal latitude;
+    
+    private BigDecimal longitude;
+    
+    private String locationAddress;
+    
 }

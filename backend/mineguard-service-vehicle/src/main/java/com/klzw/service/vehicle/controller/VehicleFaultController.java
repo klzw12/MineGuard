@@ -38,6 +38,16 @@ public class VehicleFaultController {
         return Result.success(fault);
     }
     
+    @Operation(summary = "获取所有故障记录")
+    @GetMapping("/list")
+    public Result<List<VehicleFault>> getAllFaultRecords(
+            @RequestParam(required = false) Integer status,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        List<VehicleFault> records = vehicleFaultService.getAllFaultRecords(status, page, size);
+        return Result.success(records);
+    }
+    
     @Operation(summary = "获取车辆故障记录")
     @GetMapping("/vehicle/{vehicleId}")
     public Result<List<VehicleFault>> getFaultRecords(

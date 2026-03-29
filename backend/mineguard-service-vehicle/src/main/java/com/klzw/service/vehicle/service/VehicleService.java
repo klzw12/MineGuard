@@ -54,21 +54,6 @@ public interface VehicleService extends IService<Vehicle> {
     List<VehicleVO> getVehiclePage(int page, int size, String vehicleNo, Integer status);
     
     /**
-     * 绑定用户
-     * @param id 车辆ID
-     * @param userId 用户ID
-     * @return 是否成功
-     */
-    boolean bindUser(Long id, Long userId);
-    
-    /**
-     * 解绑用户
-     * @param id 车辆ID
-     * @return 是否成功
-     */
-    boolean unbindUser(Long id);
-    
-    /**
      * 上传车辆照片
      * @param id 车辆ID
      * @param file 照片文件
@@ -149,5 +134,19 @@ public interface VehicleService extends IService<Vehicle> {
      * @return 车辆信息
      */
     Vehicle createVehicleWithPhotos(String vehicleNo, MultipartFile vehiclePhoto, MultipartFile licensePhoto);
+
+    /**
+     * 报废车辆（软删除）
+     * @param id 车辆ID
+     * @return 是否成功
+     */
+    boolean scrapVehicle(Long id);
+
+    /**
+     * 更新车辆状态
+     * @param vehicleId 车辆ID
+     * @param status 状态
+     */
+    void updateVehicleStatus(Long vehicleId, Integer status);
 
 } 

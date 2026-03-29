@@ -560,6 +560,7 @@
 9. 返回出勤记录
 
 **请假后任务重新分配逻辑**:
+
 1. 根据userId查询用户角色编码（ROLE_DRIVER/ROLE_REPAIRMAN/ROLE_SAFETY_OFFICER）
 2. 如果用户无角色或角色无需任务分配，跳过
 3. 调用DispatchClient.reassignTasksByUserLeave(userId, roleCode)

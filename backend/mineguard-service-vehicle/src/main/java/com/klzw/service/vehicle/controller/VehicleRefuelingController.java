@@ -26,6 +26,15 @@ public class VehicleRefuelingController {
         return Result.success(refueling);
     }
     
+    @Operation(summary = "获取所有加油记录")
+    @GetMapping("/list")
+    public Result<List<VehicleRefueling>> getAllRefuelingRecords(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        List<VehicleRefueling> records = vehicleRefuelingService.getAllRefuelingRecords(page, size);
+        return Result.success(records);
+    }
+    
     @Operation(summary = "获取车辆加油记录")
     @GetMapping("/vehicle/{vehicleId}")
     public Result<List<VehicleRefueling>> getRefuelingRecords(

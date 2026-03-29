@@ -2,8 +2,10 @@ package com.klzw.service.vehicle.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.klzw.common.file.service.OcrService;
+import com.klzw.common.file.service.StorageService;
 import com.klzw.service.vehicle.dto.BestVehicleQueryDTO;
 import com.klzw.service.vehicle.entity.Vehicle;
+import com.klzw.service.vehicle.entity.VehicleStatus;
 import com.klzw.service.vehicle.enums.InsuranceTypeEnum;
 import com.klzw.service.vehicle.enums.VehicleStatusEnum;
 import com.klzw.service.vehicle.mapper.VehicleMapper;
@@ -17,8 +19,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
-import java.io.File;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,12 +40,25 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     private OcrService ocrService;
     
     @Resource
+    private StorageService storageService;
+    
+    @Resource
     private com.klzw.service.vehicle.service.VehicleInsuranceService vehicleInsuranceService;
+    
+    @Resource
+    private com.klzw.service.vehicle.service.VehicleStatusService vehicleStatusService;
     
     @Override
     public Vehicle createVehicle(Vehicle vehicle) {
         log.info("创建车辆: {}", vehicle);
+        vehicle.setStatus(VehicleStatusEnum.IDLE.getCode());
         save(vehicle);
+        
+        VehicleStatus vehicleStatus = new VehicleStatus();
+        vehicleStatus.setVehicleId(vehicle.getId());
+        vehicleStatus.setStatus(VehicleStatusEnum.IDLE.getCode());
+        vehicleStatusService.save(vehicleStatus);
+        
         return vehicle;
     }
     
@@ -97,18 +113,6 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     }
     
     @Override
-    public boolean bindUser(Long id, Long userId) {
-        log.info("绑定用户功能已废弃，车辆通过调度动态分配: vehicleId={}, userId={}", id, userId);
-        return true;
-    }
-    
-    @Override
-    public boolean unbindUser(Long id) {
-        log.info("解绑用户功能已废弃，车辆通过调度动态分配: vehicleId={}", id);
-        return true;
-    }
-    
-    @Override
     public String uploadVehiclePhoto(Long id, MultipartFile file) {
         log.info("上传车辆照片: vehicleId={}, fileName={}", id, file.getOriginalFilename());
         Vehicle vehicle = getById(id);
@@ -116,26 +120,19 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
         }
         
-        // 生成唯一文件名
-        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-        String filePath = "./uploads/vehicle/" + fileName;
-        
-        // 保存文件
         try {
-            File dest = new File(filePath);
-            dest.getParentFile().mkdirs();
-            file.transferTo(dest);
+            String fileName = "vehicle/" + id + "/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            String photoUrl = storageService.upload(file.getInputStream(), fileName, file.getContentType());
+            
+            vehicle.setPhotoUrl(photoUrl);
+            updateById(vehicle);
+            
+            log.info("车辆照片上传成功: {}", photoUrl);
+            return photoUrl;
         } catch (IOException e) {
             log.error("上传车辆照片失败", e);
             throw new VehicleException(VehicleResultCode.OPERATION_FAILED, "上传照片失败：" + file.getOriginalFilename(), e);
         }
-        
-        // 更新车辆照片URL
-        String photoUrl = "/uploads/vehicle/" + fileName;
-        vehicle.setPhotoUrl(photoUrl);
-        updateById(vehicle);
-        
-        return photoUrl;
     }
     
     @Override
@@ -152,29 +149,12 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
         }
         
-        // 上传行驶证正面文件
-        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-        String filePath = "./uploads/vehicle/license/front/" + fileName;
-        
         try {
-            File dest = new File(filePath);
-            dest.getParentFile().mkdirs();
-            file.transferTo(dest);
-        } catch (IOException e) {
-            log.error("上传行驶证正面失败", e);
-            throw new VehicleException(VehicleResultCode.OPERATION_FAILED, "上传行驶证正面失败：" + file.getOriginalFilename(), e);
-        }
-        
-        // 更新行驶证正面URL
-        String licenseFrontUrl = "/uploads/vehicle/license/front/" + fileName;
-        vehicle.setLicenseFrontUrl(licenseFrontUrl);
-        
-        // 调用OCR服务进行行驶证正面识别
-        try {
-            String ocrResult = ocrService.recognizeVehicleLicense(file);
+            byte[] fileBytes = file.getBytes();
+            
+            String ocrResult = ocrService.recognizeVehicleLicense(fileBytes);
             Map<String, String> parseResult = ocrService.parseVehicleLicenseFront(ocrResult);
             
-            // 填充车辆信息
             if (parseResult.containsKey("plateNumber")) {
                 vehicle.setVehicleNo(parseResult.get("plateNumber"));
             }
@@ -186,7 +166,6 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             }
             if (parseResult.containsKey("brandModel")) {
                 vehicle.setBrandModel(parseResult.get("brandModel"));
-                // 从品牌型号中提取品牌和型号
                 String brandModel = parseResult.get("brandModel");
                 if (brandModel != null && brandModel.length() > 0) {
                     String[] parts = brandModel.split("\\s+");
@@ -214,18 +193,25 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                 try {
                     vehicle.setRegisterDate(LocalDate.parse(parseResult.get("registerDate")));
                 } catch (Exception e) {
-                    log.warn("解析注册日期失败: {}", parseResult.get("registerDate"));
+                    log.warn("解析注册日期失败：{}", parseResult.get("registerDate"));
                 }
             }
             if (parseResult.containsKey("issueDate")) {
                 try {
                     vehicle.setIssueDate(LocalDate.parse(parseResult.get("issueDate")));
                 } catch (Exception e) {
-                    log.warn("解析发证日期失败: {}", parseResult.get("issueDate"));
+                    log.warn("解析发证日期失败：{}", parseResult.get("issueDate"));
                 }
             }
+            
+            String fileName = "vehicle_license/" + id + "/front_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            String licenseFrontUrl = storageService.upload(new ByteArrayInputStream(fileBytes), fileName, file.getContentType());
+            vehicle.setLicenseFrontUrl(licenseFrontUrl);
+            
+            log.info("行驶证正面上传成功: {}", licenseFrontUrl);
         } catch (Exception e) {
             log.error("行驶证OCR识别失败", e);
+            throw new VehicleException(VehicleResultCode.OPERATION_FAILED, "OCR识别失败：" + e.getMessage(), e);
         }
         
         updateById(vehicle);
@@ -241,29 +227,18 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
         }
         
-        // 上传行驶证反面文件
-        String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-        String filePath = "./uploads/vehicle/license/back/" + fileName;
-        
         try {
-            File dest = new File(filePath);
-            dest.getParentFile().mkdirs();
-            file.transferTo(dest);
-        } catch (IOException e) {
-            log.error("上传行驶证反面失败", e);
-            throw new VehicleException(VehicleResultCode.OPERATION_FAILED, "上传行驶证反面失败：" + file.getOriginalFilename(), e);
-        }
-        
-        // 更新行驶证反面URL
-        String licenseBackUrl = "/uploads/vehicle/license/back/" + fileName;
-        vehicle.setLicenseBackUrl(licenseBackUrl);
-        
-        // 调用OCR服务进行行驶证反面识别
-        try {
+            byte[] fileBytes = file.getBytes();
+            
+            String fileName = "vehicle_license/" + id + "/back_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            String licenseBackUrl = storageService.upload(new ByteArrayInputStream(fileBytes), fileName, file.getContentType());
+            vehicle.setLicenseBackUrl(licenseBackUrl);
+            
+            log.info("行驶证反面上传成功: {}", licenseBackUrl);
+            
             String ocrResult = ocrService.recognizeVehicleLicenseBack(file);
             Map<String, String> parseResult = ocrService.parseVehicleLicenseBack(ocrResult);
             
-            // 填充车辆信息
             if (parseResult.containsKey("seatingCapacity")) {
                 try {
                     vehicle.setSeatingCapacity(Integer.parseInt(parseResult.get("seatingCapacity")));
@@ -306,12 +281,11 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
         }
         
-        // 创建保险DTO
         com.klzw.service.vehicle.dto.VehicleInsuranceDTO insuranceDTO = new com.klzw.service.vehicle.dto.VehicleInsuranceDTO();
         insuranceDTO.setVehicleId(id);
         insuranceDTO.setInsuranceCompany(insuranceCompany);
         insuranceDTO.setInsuranceNumber(policyNo);
-        insuranceDTO.setInsuranceType(InsuranceTypeEnum.COMPULSORY.getCode()); // 交强险
+        insuranceDTO.setInsuranceType(InsuranceTypeEnum.COMPULSORY.getCode());
         insuranceDTO.setStartDate(java.time.LocalDate.parse(startDate));
         insuranceDTO.setExpiryDate(java.time.LocalDate.parse(endDate));
         
@@ -328,7 +302,6 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
         }
         
-        // 转换实体类为DTO
         com.klzw.service.vehicle.dto.VehicleInsuranceDTO insuranceDTO = new com.klzw.service.vehicle.dto.VehicleInsuranceDTO();
         insuranceDTO.setVehicleId(id);
         insuranceDTO.setInsuranceCompany(insurance.getInsuranceCompany());
@@ -420,15 +393,35 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     public Vehicle createVehicleWithPhotos(String vehicleNo, MultipartFile vehiclePhoto, MultipartFile licensePhoto) {
         log.info("创建车辆并上传照片: vehicleNo={}", vehicleNo);
         
-        // 创建车辆对象
+        if (licensePhoto != null && !licensePhoto.isEmpty()) {
+            try {
+                byte[] fileBytes = licensePhoto.getBytes();
+                String ocrResult = ocrService.recognizeVehicleLicense(fileBytes);
+                Map<String, String> parseResult = ocrService.parseVehicleLicenseFront(ocrResult);
+                
+                String ocrPlateNumber = parseResult.get("plateNumber");
+                if (ocrPlateNumber != null && !ocrPlateNumber.isEmpty()) {
+                    if (!vehicleNo.equals(ocrPlateNumber)) {
+                        log.error("车牌号不一致: 传入={}, OCR识别={}", vehicleNo, ocrPlateNumber);
+                        throw new VehicleException(VehicleResultCode.VEHICLE_NO_MISMATCH, 
+                            "车牌号与行驶证识别结果不一致，传入：" + vehicleNo + "，识别：" + ocrPlateNumber);
+                    }
+                    log.info("车牌号验证通过: {}", vehicleNo);
+                }
+            } catch (VehicleException e) {
+                throw e;
+            } catch (Exception e) {
+                log.error("行驶证OCR识别失败", e);
+                throw new VehicleException(VehicleResultCode.OPERATION_FAILED, "行驶证OCR识别失败：" + e.getMessage(), e);
+            }
+        }
+        
         Vehicle vehicle = new Vehicle();
         vehicle.setVehicleNo(vehicleNo);
-        vehicle.setStatus(VehicleStatusEnum.IDLE.getCode()); // 默认空闲状态
+        vehicle.setStatus(VehicleStatusEnum.IDLE.getCode());
         
-        // 保存车辆
         save(vehicle);
         
-        // 上传车辆照片
         if (vehiclePhoto != null && !vehiclePhoto.isEmpty()) {
             try {
                 uploadVehiclePhoto(vehicle.getId(), vehiclePhoto);
@@ -437,7 +430,6 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             }
         }
         
-        // 上传行驶证照片并进行OCR识别
         if (licensePhoto != null && !licensePhoto.isEmpty()) {
             try {
                 uploadLicenseFrontAndOCR(vehicle.getId(), licensePhoto);
@@ -446,8 +438,44 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             }
         }
         
-        // 重新获取车辆信息
         return getById(vehicle.getId());
+    }
+    
+    @Override
+    public boolean scrapVehicle(Long id) {
+        log.info("报废车辆: id={}", id);
+        Vehicle vehicle = getById(id);
+        if (vehicle == null) {
+            throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
+        }
+        
+        vehicle.setDeleted(1);
+        updateById(vehicle);
+        
+        VehicleStatus vehicleStatus = vehicleStatusService.getByVehicleId(id);
+        if (vehicleStatus != null) {
+            vehicleStatus.setStatus(VehicleStatusEnum.SCRAPPED.getCode());
+            vehicleStatusService.updateById(vehicleStatus);
+        }
+        
+        return true;
+    }
+    
+    @Override
+    public void updateVehicleStatus(Long vehicleId, Integer status) {
+        log.info("更新车辆状态: vehicleId={}, status={}", vehicleId, status);
+        
+        Vehicle vehicle = getById(vehicleId);
+        if (vehicle != null) {
+            vehicle.setStatus(status);
+            updateById(vehicle);
+        }
+        
+        VehicleStatus vehicleStatus = vehicleStatusService.getByVehicleId(vehicleId);
+        if (vehicleStatus != null) {
+            vehicleStatus.setStatus(status);
+            vehicleStatusService.updateById(vehicleStatus);
+        }
     }
     
     private int calculateVehicleScore(Vehicle vehicle, com.klzw.service.vehicle.dto.BestVehicleQueryDTO query) {
@@ -502,11 +530,6 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         return reason.toString();
     }
     
-    /**
-     * 转换为VO对象
-     * @param vehicle 车辆实体
-     * @return 车辆VO
-     */
     private VehicleVO convertToVO(Vehicle vehicle) {
         VehicleVO vo = new VehicleVO();
         vo.setId(vehicle.getId() != null ? vehicle.getId().toString() : null);
@@ -516,9 +539,9 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         vo.setModel(vehicle.getModel());
         vo.setStatus(vehicle.getStatus());
         vo.setFuelLevel(vehicle.getFuelLevel());
-        vo.setPhotoUrl(vehicle.getPhotoUrl());
-        vo.setLicenseFrontUrl(vehicle.getLicenseFrontUrl());
-        vo.setLicenseBackUrl(vehicle.getLicenseBackUrl());
+        vo.setPhotoUrl(getPresignedUrl(vehicle.getPhotoUrl()));
+        vo.setLicenseFrontUrl(getPresignedUrl(vehicle.getLicenseFrontUrl()));
+        vo.setLicenseBackUrl(getPresignedUrl(vehicle.getLicenseBackUrl()));
         vo.setOwner(vehicle.getOwner());
         vo.setAddress(vehicle.getAddress());
         vo.setBrandModel(vehicle.getBrandModel());
@@ -536,11 +559,9 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         vo.setRemarks(vehicle.getRemark());
         vo.setInspectionRecord(vehicle.getInspectionRecord());
         
-        // 查询保险信息并填充
         try {
             List<com.klzw.service.vehicle.entity.VehicleInsurance> insurances = vehicleInsuranceService.getVehicleInsurance(vehicle.getId());
             if (insurances != null && !insurances.isEmpty()) {
-                // 获取当前有效的保险（状态为 1 且未过期）
                 com.klzw.service.vehicle.entity.VehicleInsurance currentInsurance = insurances.stream()
                     .filter(ins -> ins.getStatus() == 1 && 
                                    !ins.getExpiryDate().isBefore(java.time.LocalDate.now()))
@@ -560,6 +581,18 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         vo.setCreateTime(vehicle.getCreateTime());
         vo.setUpdateTime(vehicle.getUpdateTime());
         return vo;
+    }
+    
+    private String getPresignedUrl(String fileUrl) {
+        if (fileUrl == null || fileUrl.isEmpty()) {
+            return null;
+        }
+        try {
+            return storageService.getUrl(fileUrl, 3600);
+        } catch (Exception e) {
+            log.warn("获取预签名URL失败: {}", fileUrl);
+            return fileUrl;
+        }
     }
     
 }

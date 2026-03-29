@@ -75,7 +75,46 @@ public class TemplateOcrParser implements OcrParser {
         for (Map<String, Object> wordItem : wordsResult) {
             safeProcessWordItem(wordItem, keywordMap, result);
         }
+        
+        for (Map.Entry<String, String> entry : result.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (isDateField(key) && value != null) {
+                result.put(key, normalizeDate(value));
+            }
+        }
         return result;
+    }
+    
+    private boolean isDateField(String key) {
+        return key != null && (key.toLowerCase().contains("date") || 
+               key.equals("registerDate") || key.equals("issueDate") ||
+               key.equals("validUntil") || key.equals("birth") ||
+               key.equals("firstIssueDate") || key.equals("validPeriod"));
+    }
+    
+    private String normalizeDate(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) {
+            return dateStr;
+        }
+        
+        String normalized = dateStr
+            .replace("年", "-")
+            .replace("月", "-")
+            .replace("日", "")
+            .replace("/", "-");
+        
+        if (normalized.matches("\\d{4}-\\d{1,2}-\\d{1,2}")) {
+            String[] parts = normalized.split("-");
+            if (parts.length == 3) {
+                String year = parts[0];
+                String month = parts[1].length() == 1 ? "0" + parts[1] : parts[1];
+                String day = parts[2].length() == 1 ? "0" + parts[2] : parts[2];
+                return year + "-" + month + "-" + day;
+            }
+        }
+        
+        return normalized;
     }
     
     /**

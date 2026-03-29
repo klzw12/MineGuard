@@ -8,6 +8,7 @@ const userInfo = ref<UserVO | null>(null)
 const isLoggedIn = ref<boolean>(false)
 const userRole = ref<string>('user')
 const isDispatcher = ref<boolean>(false)
+const isRepairman = ref<boolean>(false)
 
 function setUserInfo(user: UserVO | null) {
   userInfo.value = user
@@ -18,23 +19,33 @@ function setUserInfo(user: UserVO | null) {
     if (roleCode === 'ROLE_ADMIN' || roleCode === 'ADMIN') {
       userRole.value = 'admin'
       isDispatcher.value = false
+      isRepairman.value = false
     } 
     else if (roleCode === 'ROLE_OPERATOR' || roleCode === 'OPERATOR') {
       if (user.status === 1) {
         userRole.value = 'operator'
         isDispatcher.value = true
+        isRepairman.value = false
       } else {
         userRole.value = 'user'
         isDispatcher.value = false
+        isRepairman.value = false
       }
+    }
+    else if (roleCode === 'ROLE_REPAIRMAN' || roleCode === 'REPAIRMAN') {
+      userRole.value = 'repairman'
+      isDispatcher.value = false
+      isRepairman.value = true
     }
     else {
       userRole.value = 'user'
       isDispatcher.value = false
+      isRepairman.value = false
     }
   } else if (user) {
     userRole.value = 'user'
     isDispatcher.value = false
+    isRepairman.value = false
   }
   
   if (user) {
@@ -42,11 +53,13 @@ function setUserInfo(user: UserVO | null) {
     uni.setStorageSync('loginStatus', true)
     uni.setStorageSync('userRole', userRole.value)
     uni.setStorageSync('isDispatcher', isDispatcher.value)
+    uni.setStorageSync('isRepairman', isRepairman.value)
   } else {
     uni.removeStorageSync('userInfo')
     uni.removeStorageSync('loginStatus')
     uni.removeStorageSync('userRole')
     uni.removeStorageSync('isDispatcher')
+    uni.removeStorageSync('isRepairman')
   }
 }
 
@@ -55,6 +68,7 @@ function loadFromStorage() {
   const storedLoginStatus = uni.getStorageSync('loginStatus')
   const storedUserRole = uni.getStorageSync('userRole')
   const storedIsDispatcher = uni.getStorageSync('isDispatcher')
+  const storedIsRepairman = uni.getStorageSync('isRepairman')
   
   if (storedUserInfo && storedLoginStatus) {
     try {
@@ -70,6 +84,7 @@ function loadFromStorage() {
   isLoggedIn.value = storedLoginStatus as boolean
   userRole.value = storedUserRole as string || 'user'
   isDispatcher.value = storedIsDispatcher as boolean || false
+  isRepairman.value = storedIsRepairman as boolean || false
 }
 
 function handleLoginRedirect(user: UserVO) {
@@ -241,6 +256,7 @@ export function useUserStore() {
     isLoggedIn,
     userRole,
     isDispatcher,
+    isRepairman,
     setUserInfo,
     loadFromStorage,
     login,

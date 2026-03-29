@@ -13,14 +13,16 @@
 					<text>🔔</text>
 					<view class="notification-badge">3</view>
 				</view>
-				<view class="user-info">
+				<view class="user-info" @click="goToProfile">
 					<view class="user-details">
 						<text class="user-name">{{ userInfo?.username || '管理员' }}</text>
-						<text class="user-role">超级管理员</text>
+						<text class="user-role">{{ userInfo?.roleName || '超级管理员' }}</text>
 					</view>
-					<view class="user-avatar">
-						<text>👤</text>
-					</view>
+					<image 
+						class="user-avatar" 
+						:src="avatarUrl || '/static/avatar/Minecraft.png'"
+						mode="aspectFill"
+					></image>
 				</view>
 			</view>
 		</view>
@@ -36,10 +38,67 @@
 <script setup lang="uts">
 	import AdminSidebar from './AdminSidebar.uvue'
 	import { useUserStore } from '@/stores/user.uts'
-	import { ref, onMounted } from 'vue'
+	import { ref, onMounted, computed } from 'vue'
+	import { onShow } from '@dcloudio/uni-app'
+	import { getAvatarSignedUrl } from '@/api/user.uts'
 	
 	const userStore = useUserStore()
-	const userInfo = ref(userStore.userInfo)
+const userInfo = computed(() => userStore.userInfo.value)
+const avatarUrl = ref('')
+const DEFAULT_AVATAR = '/static/avatar/Minecraft.png'
+
+	onMounted(() => {
+		// 加载用户信息
+		userStore.loadFromStorage()
+		userInfo.value = userStore.userInfo
+		loadAvatarUrl()
+	})
+
+	onShow(() => {
+		// 重新加载用户信息
+		userStore.loadFromStorage()
+		userInfo.value = userStore.userInfo
+		loadAvatarUrl()
+	})
+
+	async function loadAvatarUrl() {
+		try {
+			// 先尝试从本地缓存获取，检查是否过期
+			const cachedData = uni.getStorageSync('avatarCache')
+			if (cachedData) {
+				const now = Date.now()
+				const cacheTime = cachedData.timestamp
+				const expireTime = 7 * 24 * 60 * 60 * 1000 // 7天过期
+				
+				if (now - cacheTime < expireTime) {
+					avatarUrl.value = cachedData.url
+					return
+				}
+			}
+			
+			const url = await getAvatarSignedUrl()
+			if (url) {
+				avatarUrl.value = url
+				// 缓存到本地，添加时间戳
+				uni.setStorageSync('avatarCache', {
+					url: url,
+					timestamp: Date.now()
+				})
+			} else {
+				// 使用默认头像
+				avatarUrl.value = DEFAULT_AVATAR
+			}
+		} catch (e) {
+			// 发生错误时使用默认头像
+			avatarUrl.value = DEFAULT_AVATAR
+		}
+	}
+
+	const goToProfile = () => {
+		uni.navigateTo({
+			url: '/pages/admin/profile/index'
+		})
+	}
 </script>
 
 <style lang="scss">
@@ -48,6 +107,10 @@
 		flex-direction: row;
 		min-height: 100vh;
 		background-color: #1e293b;
+	}
+	
+	.admin-sidebar {
+		z-index: 999;
 	}
 	
 	.admin-navbar {

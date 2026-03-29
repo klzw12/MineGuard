@@ -20,26 +20,28 @@
 					</view>
 				</view>
 				
-				<view class="table-container">
+				<view v-if="loading" class="loading-container">
+					<text class="loading-text">加载中...</text>
+				</view>
+				
+				<view v-else-if="filteredRoles.length === 0" class="empty-container">
+					<text class="empty-text">暂无角色数据</text>
+				</view>
+				
+				<view v-else class="table-container">
 					<view class="table-row header">
 						<text class="table-cell">角色ID</text>
 						<text class="table-cell">角色名称</text>
 						<text class="table-cell">角色编码</text>
-						<text class="table-cell">用户数量</text>
-						<text class="table-cell">状态</text>
+						<text class="table-cell">描述</text>
 						<text class="table-cell">操作</text>
 					</view>
 					
-					<view class="table-row" v-for="(role, index) in filteredRoles" :key="index">
+					<view class="table-row" v-for="(role, index) in filteredRoles" :key="role.id">
 						<text class="table-cell">{{ role.id }}</text>
-						<text class="table-cell">{{ role.name }}</text>
-						<text class="table-cell">{{ role.code }}</text>
-						<text class="table-cell">{{ role.userCount }}</text>
-						<view class="table-cell">
-							<view class="status-tag" :class="role.status === 1 ? 'active' : 'inactive'">
-								<text>{{ role.status === 1 ? '启用' : '禁用' }}</text>
-							</view>
-						</view>
+						<text class="table-cell">{{ role.roleName }}</text>
+						<text class="table-cell">{{ role.roleCode }}</text>
+						<text class="table-cell">{{ role.description || '-' }}</text>
 						<view class="table-cell actions">
 							<text class="action-link" @click="editRole(role)">编辑</text>
 							<text class="action-link danger" @click="deleteRole(role)">删除</text>
@@ -48,54 +50,208 @@
 				</view>
 			</view>
 		</view>
+		
+		<!-- 添加/编辑角色弹窗 -->
+		<view v-if="modalVisible" class="modal-overlay" @click="closeModal">
+			<view class="modal-content" @click.stop>
+				<text class="modal-title">{{ isEditing ? '编辑角色' : '添加角色' }}</text>
+				
+				<view class="form-item">
+					<text class="form-label">角色名称</text>
+					<input 
+						type="text" 
+						v-model="formData.roleName" 
+						placeholder="请输入角色名称"
+						class="form-input"
+					/>
+				</view>
+				
+				<view class="form-item">
+					<text class="form-label">角色编码</text>
+					<input 
+						type="text" 
+						v-model="formData.roleCode" 
+						placeholder="请输入角色编码"
+						class="form-input"
+						:disabled="isEditing"
+					/>
+				</view>
+				
+				<view class="form-item">
+					<text class="form-label">描述</text>
+					<input 
+						type="text" 
+						v-model="formData.description" 
+						placeholder="请输入角色描述"
+						class="form-input"
+					/>
+				</view>
+				
+				<view class="modal-actions">
+					<view class="modal-btn cancel" @click="closeModal">
+						<text>取消</text>
+					</view>
+					<view class="modal-btn confirm" @click="confirmSave">
+						<text>确认</text>
+					</view>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
-	import { ref, computed } from 'vue'
+	import { ref, computed, onMounted } from 'vue'
 	import AdminSidebar from '@/components/AdminSidebar.uvue'
+	import { getAllRoles, createRole, updateRole, deleteRole } from '@/api/user.uts'
+	import type { RoleVO } from '@/types/user.uts'
 	
 	const searchKeyword = ref('')
+	const loading = ref(false)
+	const roles = ref<RoleVO[]>([])
 	
-	const roles = ref([
-		{ id: 1, name: '管理员', code: 'ADMIN', userCount: 5, status: 1 },
-		{ id: 2, name: '司机', code: 'DRIVER', userCount: 168, status: 1 },
-		{ id: 3, name: '维修员', code: 'MECHANIC', userCount: 25, status: 1 },
-		{ id: 4, name: '安全员', code: 'SAFETY', userCount: 12, status: 1 },
-		{ id: 5, name: '调度员', code: 'DISPATCHER', userCount: 8, status: 1 }
-	])
+	const modalVisible = ref(false)
+	const isEditing = ref(false)
+	const formData = ref<RoleVO>({
+		id: '',
+		roleName: '',
+		roleCode: '',
+		description: ''
+	})
 	
 	const filteredRoles = computed(() => {
 		if (!searchKeyword.value) return roles.value
 		return roles.value.filter(role => 
-			role.name.includes(searchKeyword.value) || 
-			role.code.toLowerCase().includes(searchKeyword.value.toLowerCase())
+			role.roleName?.includes(searchKeyword.value) || 
+			role.roleCode?.toLowerCase().includes(searchKeyword.value.toLowerCase())
 		)
 	})
 	
+	async function loadRoles() {
+		loading.value = true
+		try {
+			const result = await getAllRoles()
+			if (result) {
+				roles.value = result
+			}
+		} catch (e: any) {
+			uni.showToast({
+				title: e.message || '加载失败',
+				icon: 'none'
+			})
+		} finally {
+			loading.value = false
+		}
+	}
+	
 	function showAddRole() {
-		uni.showToast({ title: '添加角色功能开发中', icon: 'none' })
+		isEditing.value = false
+		formData.value = {
+			id: '',
+			roleName: '',
+			roleCode: '',
+			description: ''
+		}
+		modalVisible.value = true
 	}
 	
-	function editRole(role: any) {
-		uni.showToast({ title: '编辑角色: ' + role.name, icon: 'none' })
+	function editRole(role: RoleVO) {
+		isEditing.value = true
+		formData.value = {
+			id: role.id,
+			roleName: role.roleName,
+			roleCode: role.roleCode,
+			description: role.description || ''
+		}
+		modalVisible.value = true
 	}
 	
-	function deleteRole(role: any) {
+	function closeModal() {
+		modalVisible.value = false
+		formData.value = {
+			id: '',
+			roleName: '',
+			roleCode: '',
+			description: ''
+		}
+	}
+	
+	async function confirmSave() {
+		if (!formData.value.roleName || !formData.value.roleCode) {
+			uni.showToast({
+				title: '请填写完整信息',
+				icon: 'none'
+			})
+			return
+		}
+		
+		try {
+			if (isEditing.value) {
+				await updateRole(formData.value.id, formData.value)
+				uni.showToast({
+					title: '更新成功',
+					icon: 'success'
+				})
+			} else {
+				await createRole(formData.value)
+				uni.showToast({
+					title: '创建成功',
+					icon: 'success'
+				})
+			}
+			closeModal()
+			loadRoles()
+		} catch (e: any) {
+			uni.showToast({
+				title: e.message || '操作失败',
+				icon: 'none'
+			})
+		}
+	}
+	
+	async function deleteRole(role: RoleVO) {
 		uni.showModal({
 			title: '确认删除',
-			content: `确定要删除角色"${role.name}"吗？`,
-			success: (res) => {
+			content: `确定要删除角色"${role.roleName}"吗？`,
+			success: async (res) => {
 				if (res.confirm) {
-					uni.showToast({ title: '删除成功', icon: 'success' })
+					try {
+						await deleteRole(role.id)
+						uni.showToast({
+							title: '删除成功',
+							icon: 'success'
+						})
+						loadRoles()
+					} catch (e: any) {
+						uni.showToast({
+							title: e.message || '删除失败',
+							icon: 'none'
+						})
+					}
 				}
 			}
 		})
 	}
+	
+	onMounted(() => {
+		loadRoles()
+	})
 </script>
 
 <style lang="scss">
 	@import '@/styles/admin.scss';
+	
+	.loading-container,
+	.empty-container {
+		padding: 80rpx;
+		text-align: center;
+	}
+	
+	.loading-text,
+	.empty-text {
+		font-size: 28rpx;
+		color: #999;
+	}
 	
 	.status-tag {
 		padding: 6rpx 16rpx;
@@ -121,5 +277,85 @@
 		&.danger {
 			color: #FF3B30;
 		}
+	}
+	
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+	}
+	
+	.modal-content {
+		width: 80%;
+		max-width: 600rpx;
+		background-color: #fff;
+		border-radius: 20rpx;
+		padding: 40rpx;
+	}
+	
+	.modal-title {
+		font-size: 32rpx;
+		font-weight: bold;
+		color: #333;
+		margin-bottom: 30rpx;
+		display: block;
+		text-align: center;
+	}
+	
+	.form-item {
+		margin-bottom: 25rpx;
+	}
+	
+	.form-label {
+		font-size: 26rpx;
+		color: #333;
+		margin-bottom: 10rpx;
+		display: block;
+	}
+	
+	.form-input {
+		width: 100%;
+		height: 80rpx;
+		background-color: #f5f5f5;
+		border-radius: 10rpx;
+		padding: 0 20rpx;
+		font-size: 28rpx;
+		color: #333;
+		box-sizing: border-box;
+	}
+	
+	.modal-actions {
+		display: flex;
+		flex-direction: row;
+		gap: 20rpx;
+		margin-top: 40rpx;
+	}
+	
+	.modal-btn {
+		flex: 1;
+		height: 80rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border-radius: 10rpx;
+		font-size: 28rpx;
+	}
+	
+	.modal-btn.cancel {
+		background-color: #f5f5f5;
+		color: #666;
+	}
+	
+	.modal-btn.confirm {
+		background-color: #007AFF;
+		color: #fff;
 	}
 </style>

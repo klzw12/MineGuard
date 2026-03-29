@@ -30,7 +30,7 @@ public class VehicleInsuranceServiceImpl extends ServiceImpl<VehicleInsuranceMap
         insurance.setRemark(insuranceDTO.getRemark());
         
         LocalDate now = LocalDate.now();
-        if (now.isAfter(insurance.getExpiryDate())) {
+        if (insuranceDTO.getExpiryDate() != null && now.isAfter(insuranceDTO.getExpiryDate())) {
             insurance.setStatus(2);
         } else {
             insurance.setStatus(1);
@@ -46,6 +46,22 @@ public class VehicleInsuranceServiceImpl extends ServiceImpl<VehicleInsuranceMap
         wrapper.eq(VehicleInsurance::getVehicleId, vehicleId)
                .orderByDesc(VehicleInsurance::getExpiryDate);
         return list(wrapper);
+    }
+    
+    @Override
+    public List<VehicleInsurance> getAllInsuranceRecords(int page, int size) {
+        log.info("获取所有保险记录: page={}, size={}", page, size);
+        
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<VehicleInsurance> pageObj = 
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, size);
+        
+        LambdaQueryWrapper<VehicleInsurance> wrapper = new LambdaQueryWrapper<>();
+        wrapper.orderByDesc(VehicleInsurance::getExpiryDate);
+        
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<VehicleInsurance> result = 
+                getBaseMapper().selectPage(pageObj, wrapper);
+        
+        return result.getRecords();
     }
     
     @Override

@@ -12,8 +12,11 @@
 			
 			<!-- 用户信息 -->
 			<view class="user-info-section">
-				<view class="avatar-container" @click="openEditModal">
-					<image class="avatar" :src="userInfo.avatarUrl || '/static/avatar/Minecraft.png'"></image>
+				<view class="avatar-container" @click="chooseAvatar">
+					<image class="avatar" :src="avatarUrl || '/static/avatar/Minecraft.png'"></image>
+					<view class="avatar-overlay">
+						<text class="avatar-text">更换头像</text>
+					</view>
 				</view>
 				<view class="user-details">
 					<text class="username">{{ userInfo.realName || userInfo.username }}</text>
@@ -89,14 +92,17 @@
 
 <script setup lang="uts">
 	import { ref, onMounted } from 'vue'
+	import { onShow } from '@dcloudio/uni-app'
 	import AdminSidebar from '../../../components/AdminSidebar.uvue'
-	import { getCurrentUser, updateUser, uploadAvatar } from '@/api/user.uts'
+	import { getCurrentUser, updateUser, uploadAvatar, getAvatarSignedUrl } from '@/api/user.uts'
 	import { logout as logoutApi } from '@/api/auth.uts'
+	import { useUserStore } from '@/stores/user.uts'
 	import type { UserVO, UserUpdateDTO } from '@/types/user.uts'
 	
 	const menuIcons = ['⚙️', '🔐', '📋', 'ℹ️']
 	const menuTexts = ['系统设置', '账号安全', '操作日志', '关于系统']
 	
+	const userStore = useUserStore()
 	const userInfo = ref<UserVO>({
 		id: '',
 		username: '',
@@ -111,6 +117,8 @@
 		createTime: '',
 		updateTime: ''
 	})
+	const avatarUrl = ref('')
+	const DEFAULT_AVATAR = '/static/avatar/Minecraft.png'
 	
 	const showEditModal = ref(false)
 	const editForm = ref<UserUpdateDTO>({
@@ -152,6 +160,8 @@
 			const result = await updateUser(userInfo.value.id, editForm.value)
 			if (result) {
 				userInfo.value = result
+				// 更新本地存储的用户信息
+				updateLocalUserInfo()
 			}
 			showEditModal.value = false
 			uni.showToast({
@@ -168,6 +178,64 @@
 		}
 	}
 	
+	// 选择头像
+	function chooseAvatar() {
+		uni.chooseImage({
+			count: 1,
+			sizeType: ['compressed'],
+			sourceType: ['album', 'camera'],
+			success: (res) => {
+				const tempFilePath = res.tempFilePaths[0]
+				uploadUserAvatar(tempFilePath)
+			}
+		})
+	}
+	
+	// 上传头像
+	async function uploadUserAvatar(filePath: string) {
+		uni.showLoading({
+			title: '上传中...'
+		})
+		try {
+			const result = await uploadAvatar(filePath)
+			if (result) {
+				userInfo.value = result
+				// 更新本地存储的用户信息
+				updateLocalUserInfo()
+				// 清除缓存，确保下次获取新的头像 URL
+				uni.removeStorageSync('avatarCache')
+				await loadAvatarUrl()
+				uni.showToast({
+					title: '头像上传成功',
+					icon: 'success',
+					position: 'bottom'
+				})
+			}
+		} catch (e: any) {
+			uni.showToast({
+				title: e.message || '上传失败',
+				icon: 'none',
+				position: 'bottom'
+			})
+		} finally {
+			uni.hideLoading()
+		}
+	}
+	
+	// 更新本地存储的用户信息
+	function updateLocalUserInfo() {
+		const storedUserInfo = uni.getStorageSync('userInfo')
+		if (storedUserInfo) {
+			const parsedUserInfo = JSON.parse(storedUserInfo)
+			parsedUserInfo.avatarUrl = userInfo.value.avatarUrl
+			parsedUserInfo.username = userInfo.value.username
+			parsedUserInfo.realName = userInfo.value.realName
+			parsedUserInfo.email = userInfo.value.email
+			parsedUserInfo.roleName = userInfo.value.roleName
+			uni.setStorageSync('userInfo', JSON.stringify(parsedUserInfo))
+		}
+	}
+	
 	function handleLogout() {
 		uni.showModal({
 			title: '退出登录',
@@ -175,28 +243,67 @@
 			confirmText: '确定',
 			cancelText: '取消',
 			success: async (res) => {
-				if (res.confirm) {
-					try {
-						await logoutApi()
-					} catch (e) {
-						console.error('登出失败', e)
+					if (res.confirm) {
+						try {
+							await logoutApi()
+						} catch (e) {
+							console.error('登出失败', e)
+						}
+						uni.removeStorageSync('loginStatus')
+						uni.removeStorageSync('userRole')
+						uni.removeStorageSync('userInfo')
+						uni.removeStorageSync('token')
+						uni.removeStorageSync('avatarCache')
+						
+						uni.redirectTo({
+							url: '/pages/auth/login'
+						})
 					}
-					uni.removeStorageSync('loginStatus')
-					uni.removeStorageSync('userRole')
-					uni.removeStorageSync('userInfo')
-					uni.removeStorageSync('token')
-					
-					uni.navigateTo({
-						url: '/pages/admin/login/index'
-					})
 				}
-			}
 		})
 	}
 	
 	onMounted(() => {
 		loadUserInfo()
+		loadAvatarUrl()
 	})
+	
+	onShow(() => {
+		loadAvatarUrl()
+	})
+	
+	async function loadAvatarUrl() {
+		try {
+			// 先尝试从本地缓存获取，检查是否过期
+			const cachedData = uni.getStorageSync('avatarCache')
+			if (cachedData) {
+				const now = Date.now()
+				const cacheTime = cachedData.timestamp
+				const expireTime = 7 * 24 * 60 * 60 * 1000 // 7天过期
+				
+				if (now - cacheTime < expireTime) {
+					avatarUrl.value = cachedData.url
+					return
+				}
+			}
+			
+			const url = await getAvatarSignedUrl()
+			if (url) {
+				avatarUrl.value = url
+				// 缓存到本地，添加时间戳
+				uni.setStorageSync('avatarCache', {
+					url: url,
+					timestamp: Date.now()
+				})
+			} else {
+				// 使用默认头像
+				avatarUrl.value = DEFAULT_AVATAR
+			}
+		} catch (e) {
+			// 发生错误时使用默认头像
+			avatarUrl.value = DEFAULT_AVATAR
+		}
+	}
 </script>
 
 <style>
@@ -245,6 +352,8 @@
 	
 	.avatar-container {
 		margin-right: 30rpx;
+		position: relative;
+		cursor: pointer;
 	}
 	
 	.avatar {
@@ -252,6 +361,30 @@
 		height: 120rpx;
 		border-radius: 50%;
 		border: 3rpx solid rgba(255, 255, 255, 0.8);
+	}
+	
+	.avatar-overlay {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		height: 40rpx;
+		background: rgba(0, 0, 0, 0.5);
+		border-radius: 0 0 60rpx 60rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		opacity: 0;
+		transition: opacity 0.3s;
+	}
+	
+	.avatar-container:hover .avatar-overlay {
+		opacity: 1;
+	}
+	
+	.avatar-text {
+		font-size: 20rpx;
+		color: #fff;
 	}
 	
 	.user-details {

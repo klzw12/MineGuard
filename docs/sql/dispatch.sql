@@ -97,6 +97,7 @@ CREATE TABLE IF NOT EXISTS `dispatch_task_transport` (
     `end_longitude` DOUBLE COMMENT '结束经度',
     `end_latitude` DOUBLE COMMENT '结束纬度',
     `cargo_weight` DECIMAL(10,2) COMMENT '货物重量(吨)',
+    `estimated_commission_amount` DECIMAL(10,2) COMMENT '预计提成金额（调度时设定）',
     `cargo_type` VARCHAR(50) COMMENT '货物类型',
     `scheduled_start_time` DATETIME COMMENT '计划开始时间',
     `scheduled_end_time` DATETIME COMMENT '计划结束时间',

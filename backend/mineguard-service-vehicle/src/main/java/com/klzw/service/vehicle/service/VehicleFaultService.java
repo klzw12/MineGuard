@@ -27,6 +27,15 @@ public interface VehicleFaultService extends IService<VehicleFault> {
     VehicleFault handleFault(Long id, Long repairmanId, String repairContent, java.math.BigDecimal repairCost);
     
     /**
+     * 获取所有故障记录
+     * @param status 故障状态
+     * @param page 页码
+     * @param size 每页大小
+     * @return 故障记录列表
+     */
+    List<VehicleFault> getAllFaultRecords(Integer status, int page, int size);
+    
+    /**
      * 获取车辆故障记录
      * @param vehicleId 车辆ID
      * @param status 故障状态

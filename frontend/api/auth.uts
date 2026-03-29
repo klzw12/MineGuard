@@ -2,39 +2,39 @@ import { http, setToken, removeToken } from '@/utils/request.uts'
 import type { LoginVO, CaptchaVO, UserLoginDTO, RefreshTokenDTO, AdminVerifyDTO, UserRegisterDTO } from '@/types/user.uts'
 
 export function login(data: UserLoginDTO): Promise<LoginVO | null> {
-  return http.post('/api/auth/login', data)
+  return http.post<LoginVO>('/auth/login', data)
 }
 
 export function register(data: UserRegisterDTO): Promise<LoginVO | null> {
-  return http.post('/api/auth/register', data)
+  return http.post<LoginVO>('/auth/register', data)
 }
 
 export function logout(): Promise<void | null> {
-  return http.post('/api/auth/logout')
+  return http.post<void>('/auth/logout')
 }
 
 export function refreshToken(data: RefreshTokenDTO): Promise<LoginVO | null> {
-  return http.post('/api/auth/refresh', data)
+  return http.post<LoginVO>('/auth/refresh', data)
 }
 
 export function getCaptcha(): Promise<CaptchaVO | null> {
-  return http.get('/api/auth/captcha')
+  return http.get<CaptchaVO>('/auth/captcha')
 }
 
 export function sendSmsCode(phone: string, scene: string = 'REGISTER'): Promise<void | null> {
-  return http.post('/api/auth/sms/send', { phone, scene })
+  return http.post<void>('/auth/sms/send', { phone, scene })
 }
 
 export function verifySmsCode(phone: string, code: string): Promise<boolean | null> {
-  return http.post('/api/auth/sms/verify', { phone, code })
+  return http.post<boolean>('/auth/sms/verify', { phone, code })
 }
 
 export function resetPasswordByPhone(phone: string, smsCode: string, newPassword: string): Promise<void | null> {
-  return http.post('/api/auth/reset-password', { phone, smsCode, newPassword })
+  return http.post<void>('/auth/reset-password', { phone, smsCode, newPassword })
 }
 
 export function verifyAdmin(data: AdminVerifyDTO): Promise<LoginVO | null> {
-  return http.post('/api/auth/admin/verify', data)
+  return http.post<LoginVO>('/auth/admin/verify', data)
 }
 
 export { setToken, removeToken }

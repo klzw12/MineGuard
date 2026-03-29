@@ -332,6 +332,8 @@ CREATE TABLE IF NOT EXISTS `user_notification` (
     `title` VARCHAR(100) NOT NULL COMMENT '通知标题',
     `content` TEXT COMMENT '通知内容',
     `type` INT COMMENT '通知类型：1-系统通知，2-预警通知，3-调度通知，4-审批通知',
+    `business_id` BIGINT COMMENT '业务ID（如行程ID、车辆ID等）',
+    `business_type` VARCHAR(50) COMMENT '业务类型：TRIP-行程，VEHICLE-车辆，DRIVER-司机，DISPATCH-调度',
     `is_read` TINYINT DEFAULT 0 COMMENT '是否已读：0-未读，1-已读',
     `read_time` DATETIME COMMENT '阅读时间',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -342,27 +344,11 @@ CREATE TABLE IF NOT EXISTS `user_notification` (
     `remark` VARCHAR(500) COMMENT '备注',
     INDEX `idx_user_id` (`user_id`),
     INDEX `idx_type` (`type`),
+    INDEX `idx_business` (`business_id`, `business_type`),
     INDEX `idx_is_read` (`is_read`),
     INDEX `idx_create_time` (`create_time`),
     INDEX `idx_deleted` (`deleted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户通知表';
-
--- =====================================================
--- 初始化数据
--- =====================================================
-
--- 初始化角色数据
-INSERT INTO `role` (`id`, `role_name`, `role_code`, `description`) VALUES
-(1, '系统管理员', 'ADMIN', '系统管理员，拥有所有权限'),
-(2, '司机', 'DRIVER', '司机角色，负责车辆驾驶'),
-(3, '运营人员', 'OPERATOR', '运营人员角色，处理调度工作等，分担管理员的业务'),
-(4, '维修员', 'REPAIRMAN', '维修员角色，负责车辆维修'),
-(5, '安全员', 'SAFETY_OFFICER', '安全员角色，负责安全监督');
-
--- 注意：管理员用户初始化
--- 请通过系统的初始化脚本或管理界面创建管理员用户
--- 避免在数据库文件中直接存储密码哈希值
--- 推荐使用系统提供的密码设置功能，确保与系统加密逻辑一致
 
 -- =====================================================
 -- 12. 站内消息表（MongoDB）
@@ -669,6 +655,7 @@ CREATE TABLE IF NOT EXISTS `dispatch_task_transport` (
     `end_longitude` DOUBLE COMMENT '结束经度',
     `end_latitude` DOUBLE COMMENT '结束纬度',
     `cargo_weight` DECIMAL(10,2) COMMENT '货物重量(吨)',
+    `estimated_commission_amount` DECIMAL(10,2) COMMENT '预计提成金额（调度时设定）',
     `cargo_type` VARCHAR(50) COMMENT '货物类型',
     `scheduled_start_time` DATETIME COMMENT '计划开始时间',
     `scheduled_end_time` DATETIME COMMENT '计划结束时间',
@@ -1134,19 +1121,3 @@ CREATE TABLE IF NOT EXISTS `warning_rule` (
     INDEX `idx_status` (`status`),
     INDEX `idx_deleted` (`deleted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='预警规则表';
-
--- =====================================================
--- 初始化数据
--- =====================================================
-
--- 初始化预警规则数据
-INSERT INTO `warning_rule` (`id`, `rule_name`, `rule_code`, `warning_type`, `warning_level`, `threshold_value`, `status`, `description`) VALUES
-(1, '车辆故障预警', 'VEHICLE_FAULT', 1, 1, '故障代码', 1, '车辆故障预警规则，检测车辆上报的故障信息'),
-(2, '路线偏离预警', 'ROUTE_DEVIATION', 2, 2, '50米', 1, '路线偏离预警规则，检测车辆是否偏离规划路线'),
-(3, '危险地带预警', 'DANGER_ZONE', 3, 3, '危险区域', 1, '危险地带预警规则，检测车辆是否进入危险区域'),
-(4, '速度异常预警', 'SPEED_ABNORMAL', 4, 2, '超过限速20%', 1, '速度异常预警规则，检测车辆是否超速行驶'),
-(5, '盗卸行为预警', 'THEFT_BEHAVIOR', 5, 3, '超声波检测', 1, '盗卸行为预警规则，检测车辆是否有盗卸矿石行为'),
-(6, '疲劳驾驶预警', 'FATIGUE_DRIVING', 6, 2, '连续驾驶4小时', 1, '疲劳驾驶预警规则，检测司机是否疲劳驾驶');
-
--- 注意：预警记录数据应通过系统的预警服务自动生成
--- 避免在数据库文件中直接插入预警记录数据
