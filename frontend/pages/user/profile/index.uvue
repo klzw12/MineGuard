@@ -207,7 +207,8 @@
 
 <script setup lang="uts">
 	import { ref, computed, onMounted } from 'vue'
-	import { useUserStore } from '@/stores/user.uts'
+import { onShow } from '@dcloudio/uni-app'
+import { useUserStore } from '@/stores/user.uts'
 	import { uploadAvatar, getAvatarSignedUrl, getIdCardSignedUrls, updateUser } from '@/api/user.uts'
 	import { toast } from '@/utils/toast.uts'
 	
@@ -244,16 +245,40 @@
 		}
 		return phone
 	})
-	
-	async function loadAvatarUrl() {
-		try {
-			const url = await getAvatarSignedUrl()
-			if (url) {
-				avatarUrl.value = url
+	const DEFAULT_AVATAR = '/static/logo/default-avatar.png'
+
+async function loadAvatarUrl() {
+	try {
+		// 先尝试从本地缓存获取，检查是否过期
+		const cachedData = uni.getStorageSync('avatarCache')
+		if (cachedData) {
+			const now = Date.now()
+			const cacheTime = cachedData.timestamp
+			const expireTime = 7 * 24 * 60 * 60 * 1000 // 7天过期
+			
+			if (now - cacheTime < expireTime) {
+				avatarUrl.value = cachedData.url
+				return
 			}
-		} catch (e) {
 		}
+		
+		const url = await getAvatarSignedUrl()
+		if (url) {
+			avatarUrl.value = url
+			// 缓存到本地，添加时间戳
+			uni.setStorageSync('avatarCache', {
+				url: url,
+				timestamp: Date.now()
+			})
+		} else {
+			// 使用默认头像
+			avatarUrl.value = DEFAULT_AVATAR
+		}
+	} catch (e) {
+		// 发生错误时使用默认头像
+		avatarUrl.value = DEFAULT_AVATAR
 	}
+}
 	
 	onMounted(() => {
 		if (!userStore.userInfo.value) {
@@ -261,7 +286,7 @@
 		}
 	})
 	
-uni.onShow(() => {
+onShow(() => {
 		loadAvatarUrl()
 	})
 	
@@ -296,7 +321,7 @@ uni.onShow(() => {
 				closeUsernameModal()
 			}
 		} catch (e: any) {
-			toast.error(e.message || '修改失败')
+			toast.error(e?.message || '修改失败')
 		}
 	}
 	
@@ -337,7 +362,7 @@ uni.onShow(() => {
 				closeEmailModal()
 			}
 		} catch (e: any) {
-			toast.error(e.message || '修改失败')
+			toast.error(e?.message || '修改失败')
 		}
 	}
 	
@@ -364,7 +389,7 @@ uni.onShow(() => {
 				showIdCardModal.value = true
 			}
 		} catch (e: any) {
-			toast.error(e.message || '获取失败')
+			toast.error(e?.message || '获取失败')
 		}
 	}
 	
@@ -374,7 +399,9 @@ uni.onShow(() => {
 		idCardBackUrl.value = ''
 	}
 	
-	function previewImage(url: string) {
+	function previewImage(url: string | null | undefined) {
+		if (!url) return
+		
 		uni.previewImage({
 			urls: [url],
 			current: url
@@ -387,19 +414,23 @@ uni.onShow(() => {
 			sizeType: ['compressed'],
 			sourceType: ['album', 'camera'],
 			success: async (res) => {
-				const tempFilePath = res.tempFilePaths[0]
-				try {
-					toast.loading('上传中...')
-					const result = await uploadAvatar(tempFilePath)
-					if (result) {
-						userStore.setUserInfo(result)
-						await loadAvatarUrl()
-						toast.success('头像更新成功')
+					const tempFilePath = res.tempFilePaths[0]
+					if (!tempFilePath) return
+					
+					try {
+						toast.loading('上传中...')
+						const result = await uploadAvatar(tempFilePath)
+						if (result) {
+							userStore.setUserInfo(result)
+							// 清除缓存，确保下次获取新的头像 URL
+							uni.removeStorageSync('avatarCache')
+							await loadAvatarUrl()
+							toast.success('头像更新成功')
+						}
+					} catch (e: any) {
+						toast.error(e?.message || '上传失败')
 					}
-				} catch (e: any) {
-					toast.error(e.message || '上传失败')
 				}
-			}
 		})
 	}
 	

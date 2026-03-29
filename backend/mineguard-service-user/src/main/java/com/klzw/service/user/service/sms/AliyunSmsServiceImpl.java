@@ -6,7 +6,7 @@ import com.aliyun.dypnsapi20170525.models.SendSmsVerifyCodeRequest;
 import com.aliyun.dypnsapi20170525.models.SendSmsVerifyCodeResponse;
 import com.aliyun.tea.TeaException;
 import com.aliyun.teautil.models.RuntimeOptions;
-import com.klzw.service.user.config.AliyunSmsProperties;
+import com.klzw.service.user.properties.AliyunSmsProperties;
 import com.klzw.service.user.enums.SmsScene;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -2,6 +2,7 @@ package com.klzw.service.user.service;
 
 import com.klzw.service.user.dto.CertVerifyDTO;
 import com.klzw.service.user.dto.IdCardVerifyDTO;
+import com.klzw.service.user.vo.UserVO;
 
 /**
  * 人员资格验证服务接口
@@ -37,9 +38,9 @@ public interface QualificationService {
      * 系统会根据userId查询已验证的真实姓名进行比对
      * 
      * @param dto 证书验证DTO
-     * @return 验证结果
+     * @return 更新后的用户信息
      */
-    boolean uploadDriverCert(CertVerifyDTO dto);
+    UserVO uploadDriverCert(CertVerifyDTO dto);
 
     /**
      * 上传资格证书（安全员）
@@ -48,9 +49,9 @@ public interface QualificationService {
      * 系统会根据userId查询已验证的真实姓名进行比对
      * 
      * @param dto 证书验证DTO
-     * @return 验证结果
+     * @return 更新后的用户信息
      */
-    boolean uploadSafetyOfficerCert(CertVerifyDTO dto);
+    com.klzw.service.user.vo.UserVO uploadSafetyOfficerCert(CertVerifyDTO dto);
 
     /**
      * 上传资格证书（维修员）
@@ -59,7 +60,7 @@ public interface QualificationService {
      * 系统会根据userId查询已验证的真实姓名进行比对
      * 
      * @param dto 证书验证DTO
-     * @return 验证结果
+     * @return 更新后的用户信息
      */
-    boolean uploadRepairmanCert(CertVerifyDTO dto);
+    com.klzw.service.user.vo.UserVO uploadRepairmanCert(CertVerifyDTO dto);
 }

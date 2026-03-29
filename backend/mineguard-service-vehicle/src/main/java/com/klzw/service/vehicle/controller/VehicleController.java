@@ -29,6 +29,16 @@ public class VehicleController {
         return Result.success(createdVehicle);
     }
     
+    @Operation(summary = "创建车辆并上传照片")
+    @PostMapping("/create-with-photos")
+    public Result<Vehicle> createVehicleWithPhotos(
+            @RequestParam("vehicleNo") String vehicleNo,
+            @RequestParam(value = "vehiclePhoto", required = false) MultipartFile vehiclePhoto,
+            @RequestParam(value = "licensePhoto", required = false) MultipartFile licensePhoto) {
+        Vehicle vehicle = vehicleService.createVehicleWithPhotos(vehicleNo, vehiclePhoto, licensePhoto);
+        return Result.success(vehicle);
+    }
+    
     @Operation(summary = "更新车辆")
     @PutMapping("/{id}")
     public Result<Vehicle> updateVehicle(@PathVariable Long id, @RequestBody Vehicle vehicle) {

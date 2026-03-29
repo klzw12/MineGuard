@@ -8,7 +8,8 @@ public enum AttendanceStatusEnum {
     LATE(2, "迟到"),
     EARLY_LEAVE(3, "早退"),
     ABSENT(4, "缺勤"),
-    LEAVE(5, "请假");
+    LEAVE(5, "请假"),
+    LATE_AND_EARLY_LEAVE(6, "迟到早退");
 
     private final int value;
     private final String label;

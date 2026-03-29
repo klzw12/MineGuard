@@ -1,5 +1,6 @@
 package com.klzw.service.user.controller;
 
+import com.klzw.common.auth.context.UserContext;
 import com.klzw.common.core.result.Result;
 import com.klzw.service.user.dto.CheckInDTO;
 import com.klzw.service.user.dto.CheckOutDTO;
@@ -43,28 +44,28 @@ public class AttendanceController {
     }
 
     @Operation(summary = "获取某日考勤记录")
-    @GetMapping("/{userId}")
+    @GetMapping("/date")
     public Result<AttendanceVO> getAttendanceByDate(
-            @Parameter(description = "用户ID") @PathVariable Long userId,
             @Parameter(description = "日期") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        Long userId = UserContext.getUserId();
         AttendanceVO vo = attendanceService.getAttendanceByDate(userId, date);
         return Result.success(vo);
     }
 
     @Operation(summary = "获取某月考勤记录列表")
-    @GetMapping("/{userId}/list")
+    @GetMapping("/list")
     public Result<List<AttendanceVO>> getAttendanceListByMonth(
-            @Parameter(description = "用户ID") @PathVariable Long userId,
             @Parameter(description = "年月(yyyy-MM)") @RequestParam String yearMonth) {
+        Long userId = UserContext.getUserId();
         List<AttendanceVO> list = attendanceService.getAttendanceListByMonth(userId, yearMonth);
         return Result.success(list);
     }
 
     @Operation(summary = "获取某月考勤统计")
-    @GetMapping("/{userId}/statistics")
+    @GetMapping("/statistics")
     public Result<AttendanceStatisticsVO> getAttendanceStatistics(
-            @Parameter(description = "用户ID") @PathVariable Long userId,
             @Parameter(description = "年月(yyyy-MM)") @RequestParam String yearMonth) {
+        Long userId = UserContext.getUserId();
         AttendanceStatisticsVO statistics = attendanceService.getAttendanceStatistics(userId, yearMonth);
         return Result.success(statistics);
     }
@@ -84,11 +85,11 @@ public class AttendanceController {
     @Operation(summary = "请假申请")
     @PostMapping("/leave")
     public Result<AttendanceVO> applyLeave(
-            @Parameter(description = "用户ID") @RequestParam Long userId,
             @Parameter(description = "请假类型：1-事假 2-病假 3-年假 4-调休") @RequestParam Integer leaveType,
             @Parameter(description = "开始时间") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
             @Parameter(description = "结束时间") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
             @Parameter(description = "请假原因") @RequestParam(required = false) String reason) {
+        Long userId = UserContext.getUserId();
         AttendanceVO vo = attendanceService.applyLeave(userId, leaveType, startTime, endTime, reason);
         return Result.success(vo);
     }
@@ -100,10 +101,10 @@ public class AttendanceController {
     }
 
     @Operation(summary = "获取请假记录列表")
-    @GetMapping("/{userId}/leave-list")
+    @GetMapping("/leave-list")
     public Result<List<AttendanceVO>> getLeaveList(
-            @Parameter(description = "用户ID") @PathVariable Long userId,
             @Parameter(description = "年月(yyyy-MM)") @RequestParam String yearMonth) {
+        Long userId = UserContext.getUserId();
         return Result.success(attendanceService.getLeaveList(userId, yearMonth));
     }
 

@@ -19,7 +19,7 @@ public interface MessageClient {
      * @param type 消息类型
      * @param businessId 业务 ID
      */
-    @PostExchange("/api/message/send")
+    @PostExchange("/message/send")
     void sendMessage(
         Long userId,
         String title,
@@ -36,7 +36,7 @@ public interface MessageClient {
      * @param content 消息内容
      * @param type 消息类型
      */
-    @PostExchange("/api/message/send-by-role")
+    @PostExchange("/message/send-by-role")
     void sendMessageByRole(
         String role,
         String title,

@@ -416,6 +416,40 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                 .collect(Collectors.toList());
     }
     
+    @Override
+    public Vehicle createVehicleWithPhotos(String vehicleNo, MultipartFile vehiclePhoto, MultipartFile licensePhoto) {
+        log.info("创建车辆并上传照片: vehicleNo={}", vehicleNo);
+        
+        // 创建车辆对象
+        Vehicle vehicle = new Vehicle();
+        vehicle.setVehicleNo(vehicleNo);
+        vehicle.setStatus(VehicleStatusEnum.IDLE.getCode()); // 默认空闲状态
+        
+        // 保存车辆
+        save(vehicle);
+        
+        // 上传车辆照片
+        if (vehiclePhoto != null && !vehiclePhoto.isEmpty()) {
+            try {
+                uploadVehiclePhoto(vehicle.getId(), vehiclePhoto);
+            } catch (Exception e) {
+                log.error("上传车辆照片失败", e);
+            }
+        }
+        
+        // 上传行驶证照片并进行OCR识别
+        if (licensePhoto != null && !licensePhoto.isEmpty()) {
+            try {
+                uploadLicenseFrontAndOCR(vehicle.getId(), licensePhoto);
+            } catch (Exception e) {
+                log.error("上传行驶证照片失败", e);
+            }
+        }
+        
+        // 重新获取车辆信息
+        return getById(vehicle.getId());
+    }
+    
     private int calculateVehicleScore(Vehicle vehicle, com.klzw.service.vehicle.dto.BestVehicleQueryDTO query) {
         int score = 0;
         

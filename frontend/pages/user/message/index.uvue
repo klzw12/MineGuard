@@ -22,7 +22,6 @@
 			</view>
 		</view>
 		
-		<!-- 通知列表 -->
 		<view v-if="activeTab === 'notice'" class="message-list">
 			<view v-if="noticeMessages.length === 0" class="empty-state">
 				<text class="empty-text">暂无通知</text>
@@ -30,8 +29,8 @@
 			<view 
 				class="message-item" 
 				v-for="(msg, index) in noticeMessages" 
-				:key="msg.messageId"
-				:class="{ unread: msg.status === 'UNREAD' }"
+				:key="msg.id"
+				:class="{ unread: msg.isRead === 0 }"
 				@click="viewNotice(msg)"
 			>
 				<view class="message-left">
@@ -41,81 +40,104 @@
 				</view>
 				<view class="message-content">
 					<view class="message-header">
-						<text class="message-title">{{ getMessageTitle(msg) }}</text>
-						<text class="message-time">{{ formatTime(msg.createdAt) }}</text>
+						<text class="message-title">{{ msg.title || '通知' }}</text>
+						<text class="message-time">{{ formatTime(msg.createTime) }}</text>
 					</view>
 					<text class="message-text">{{ msg.content }}</text>
 				</view>
 			</view>
 		</view>
 		
-		<!-- 私信列表 -->
 		<view v-if="activeTab === 'private'" class="message-list">
-			<view class="private-header">
-				<text class="private-title">联系人</text>
-				<view class="add-contact" @click="showContactPicker = true">
-					<text>+ 发私信</text>
+			<view class="search-box">
+				<input 
+					class="search-input" 
+					v-model="searchKeyword" 
+					placeholder="搜索用户名/姓名" 
+					@confirm="searchUsers"
+				/>
+				<view class="search-btn" @click="searchUsers">
+					<text>搜索</text>
 				</view>
 			</view>
 			
-			<view v-if="privateMessages.length === 0" class="empty-state">
-				<text class="empty-text">暂无私信</text>
+			<view v-if="searchResults.length > 0" class="search-results">
+				<text class="section-title">搜索结果</text>
+				<view 
+					class="contact-item" 
+					v-for="(user, index) in searchResults" 
+					:key="'search-' + index"
+					@click="startChatWithUser(user)"
+				>
+					<view class="contact-avatar">
+						<image v-if="user.avatarUrl" :src="user.avatarUrl" class="avatar-img" mode="aspectFill" />
+						<text v-else>{{ getAvatarText(user.realName || user.username) }}</text>
+					</view>
+					<view class="contact-info">
+						<text class="contact-name">{{ user.realName || user.username }}</text>
+						<text class="contact-role">{{ user.roleName || '未知角色' }}</text>
+					</view>
+					<view class="start-chat-btn">
+						<text>发消息</text>
+					</view>
+				</view>
+			</view>
+			
+			<view class="private-header" v-if="contacts.length > 0">
+				<text class="private-title">最近联系人</text>
+			</view>
+			
+			<view v-if="searchResults.length === 0 && contacts.length === 0" class="empty-state">
+				<text class="empty-text">搜索用户开始聊天</text>
 			</view>
 			
 			<view 
 				class="contact-item" 
-				v-for="(msg, index) in privateMessages" 
-				:key="msg.sender"
-				@click="openChat(msg)"
+				v-for="(contact, index) in contacts" 
+				:key="contact.id"
+				@click="openChat(contact)"
 			>
 				<view class="contact-avatar">
-					<text>{{ getAvatarText(msg.senderName) }}</text>
+					<image v-if="contact.avatar" :src="contact.avatar" class="avatar-img" mode="aspectFill" />
+					<text v-else>{{ getAvatarText(contact.realName || contact.username) }}</text>
 				</view>
 				<view class="contact-info">
 					<view class="contact-header">
-						<text class="contact-name">{{ msg.senderName || '未知用户' }}</text>
-						<text class="contact-time">{{ formatTime(msg.createdAt) }}</text>
+						<text class="contact-name">{{ contact.realName || contact.username }}</text>
+						<text class="contact-time">{{ formatTime(contact.lastMessageTime) }}</text>
 					</view>
-					<text class="contact-preview">{{ msg.content }}</text>
+					<text class="contact-preview">{{ contact.lastMessage || '暂无消息' }}</text>
+				</view>
+				<view v-if="contact.unreadCount > 0" class="contact-badge">
+					<text>{{ contact.unreadCount }}</text>
 				</view>
 			</view>
 		</view>
 		
-		<!-- 联系人选择器 -->
-		<view class="picker-mask" v-if="showContactPicker" @click="showContactPicker = false">
-			<view class="picker-content" @click.stop>
-				<view class="picker-header">
-					<text class="picker-title">选择联系人</text>
-					<text class="picker-close" @click="showContactPicker = false">×</text>
+		<view class="notice-modal" v-if="showNoticeModal" @click="closeNoticeModal">
+			<view class="notice-content" @click.stop>
+				<view class="notice-header">
+					<text class="notice-title">{{ currentNotice?.title || '通知详情' }}</text>
+					<text class="notice-close" @click="closeNoticeModal">×</text>
 				</view>
-				<view class="picker-options">
-					<view v-if="contactList.length === 0" class="empty-contacts">
-						<text class="empty-text">暂无联系人</text>
-						<text class="empty-hint">请等待其他用户注册</text>
+				<view class="notice-body">
+					<view class="notice-meta">
+						<text class="notice-time">{{ formatFullTime(currentNotice?.createTime) }}</text>
 					</view>
-					<view 
-						class="picker-option" 
-						v-for="user in contactList" 
-						:key="user.id"
-						@click="selectContact(user)"
-					>
-						<view class="option-avatar">
-							<text>{{ getAvatarText(user.username) }}</text>
-						</view>
-						<view class="option-info">
-							<text class="option-name">{{ user.username }}</text>
-							<text class="option-role">{{ user.roleName || '未认证' }}</text>
-						</view>
+					<text class="notice-text">{{ currentNotice?.content }}</text>
+				</view>
+				<view class="notice-footer">
+					<view class="confirm-btn" @click="closeNoticeModal">
+						<text>我知道了</text>
 					</view>
 				</view>
 			</view>
 		</view>
 		
-		<!-- 聊天弹窗 -->
 		<view class="chat-modal" v-if="showChatModal" @click="closeChatModal">
 			<view class="chat-content" @click.stop>
 				<view class="chat-header">
-					<text class="chat-title">{{ currentChatUser?.username || '聊天' }}</text>
+					<text class="chat-title">{{ currentChatUser?.realName || currentChatUser?.username || '聊天' }}</text>
 					<text class="chat-close" @click="closeChatModal">×</text>
 				</view>
 				<view class="chat-messages">
@@ -123,12 +145,12 @@
 						class="chat-msg" 
 						v-for="(msg, index) in chatMessages" 
 						:key="index"
-						:class="{ 'my-msg': msg.sender === currentUserId }"
+						:class="{ 'my-msg': isSentByMe(msg) }"
 					>
 						<view class="msg-bubble">
 							<text>{{ msg.content }}</text>
 						</view>
-						<text class="msg-time">{{ formatTime(msg.createdAt) }}</text>
+						<text class="msg-time">{{ formatTime(msg.createTime) }}</text>
 					</view>
 				</view>
 				<view class="chat-input-area">
@@ -149,24 +171,27 @@
 
 <script setup lang="uts">
 	import { ref, computed, onMounted } from 'vue'
-import { useUserStore } from '@/stores/user.uts'
-	import { getUserMessages, markMessageAsRead, getUnreadCount, sendUnicastMessage } from '@/api/message.uts'
-	import { getUsersByRole } from '@/api/user.uts'
+	import { onShow } from '@dcloudio/uni-app'
+	import { useUserStore } from '@/stores/user.uts'
+	import { getUserMessages, markMessageAsRead, getUnreadCount, getContactList, getPrivateMessages, sendPrivateMessage, markAllMessagesAsRead } from '@/api/message.uts'
+	import { searchContacts } from '@/api/user.uts'
 	import { toast } from '@/utils/toast.uts'
-	import type { MessageVO, UserVO } from '@/types/user.uts'
+	import type { MessageVO, ContactVO, UserVO } from '@/types/user.uts'
 	
 	const userStore = useUserStore()
 	
 	const activeTab = ref('notice')
 	const unreadCount = ref(0)
 	const noticeMessages = ref<MessageVO[]>([])
-	const privateMessages = ref<MessageVO[]>([])
-	const showContactPicker = ref(false)
-	const contactList = ref<UserVO[]>([])
+	const contacts = ref<ContactVO[]>([])
 	const showChatModal = ref(false)
-	const currentChatUser = ref<UserVO | null>(null)
+	const showNoticeModal = ref(false)
+	const currentNotice = ref<MessageVO | null>(null)
+	const currentChatUser = ref<ContactVO | null>(null)
 	const chatMessages = ref<MessageVO[]>([])
 	const chatInput = ref('')
+	const searchKeyword = ref('')
+	const searchResults = ref<UserVO[]>([])
 	
 	const currentUserId = computed(() => userStore.userInfo.value?.id || '')
 	
@@ -174,123 +199,201 @@ import { useUserStore } from '@/stores/user.uts'
 		if (!userStore.userInfo.value) {
 			userStore.loadFromStorage()
 		}
-		loadMessages()
-		loadContacts()
+		loadData()
 	})
 	
-uni.onShow(() => {
-		loadMessages()
+	onShow(() => {
+		loadData()
 	})
+	
+	async function loadData() {
+		await loadMessages()
+		await loadContacts()
+	}
 	
 	async function loadMessages() {
-		const uid = currentUserId.value
-		if (!uid) return
-		
 		try {
-			const messages = await getUserMessages(uid)
+			const messages = await getUserMessages()
 			if (messages) {
-				noticeMessages.value = messages.filter((m: MessageVO) => m.type !== 'PRIVATE')
-				privateMessages.value = messages.filter((m: MessageVO) => m.type === 'PRIVATE')
+				noticeMessages.value = messages.filter((m: MessageVO) => m.type !== 1)
 			}
 			
-			const count = await getUnreadCount(uid)
+			const count = await getUnreadCount()
 			if (count !== null) {
 				unreadCount.value = count
 			}
 		} catch (e) {
+			console.log('加载消息失败:', e)
 		}
 	}
 	
 	async function loadContacts() {
 		try {
-			console.log('开始加载联系人列表...')
-			const users = await getUsersByRole()
-			console.log('获取到的用户列表:', JSON.stringify(users))
-			if (users) {
+			const result = await getContactList()
+			if (result) {
+				contacts.value = result
+			}
+		} catch (e) {
+			console.log('加载联系人失败:', e)
+		}
+	}
+	
+	async function searchUsers() {
+		const keyword = searchKeyword.value.trim()
+		if (!keyword) {
+			searchResults.value = []
+			return
+		}
+		
+		try {
+			const result = await searchContacts({
+				keyword: keyword,
+				pageNum: 1,
+				pageSize: 20
+			})
+			if (result && result.records) {
 				const uid = currentUserId.value
-				console.log('当前用户ID:', uid)
-				contactList.value = users.filter((u: UserVO) => u.id !== uid)
-				console.log('过滤后的联系人列表:', JSON.stringify(contactList.value))
-			} else {
-				console.log('用户列表为空')
+				searchResults.value = result.records.filter((u: UserVO) => u.id !== uid)
 			}
 		} catch (e: any) {
-			console.log('加载联系人失败:', e.message)
-			toast.error('加载联系人失败')
+			console.log('搜索用户失败:', e?.message)
 		}
+	}
+	
+	function startChatWithUser(user: UserVO) {
+		const contact: ContactVO = {
+			id: user.id,
+			username: user.username,
+			realName: user.realName || '',
+			roleName: user.roleName || '',
+			avatar: user.avatarUrl || '',
+			unreadCount: 0,
+			lastMessage: '',
+			lastMessageTime: ''
+		}
+		currentChatUser.value = contact
+		chatMessages.value = []
+		showChatModal.value = true
+		searchResults.value = []
+		searchKeyword.value = ''
 	}
 	
 	function switchTab(tab: string) {
 		activeTab.value = tab
+		if (tab === 'notice') {
+			searchResults.value = []
+			searchKeyword.value = ''
+		}
 	}
 	
-	function getMessageIcon(type: string): string {
+	function getMessageIcon(type: number | undefined): string {
 		switch (type) {
-			case 'TASK': return '📋'
-			case 'SYSTEM': return '🔔'
-			case 'PAYMENT': return '💰'
+			case 0: return '🔔'
+			case 1: return '💬'
 			default: return '📢'
 		}
 	}
 	
-	function getMessageTitle(msg: MessageVO): string {
-		if (msg.businessType === 'TASK') return '任务通知'
-		if (msg.businessType === 'PAYMENT') return '收入通知'
-		if (msg.businessType === 'SYSTEM') return '系统通知'
-		return '通知'
+	function formatTime(timeStr: string | undefined): string {
+		if (!timeStr) return ''
+		
+		try {
+			let date: Date
+			if (/^\d+$/.test(timeStr)) {
+				date = new Date(parseInt(timeStr))
+			} else {
+				date = new Date(timeStr)
+			}
+			
+			if (isNaN(date.getTime())) return ''
+			
+			const now = new Date()
+			const diff = now.getTime() - date.getTime()
+			
+			if (diff < 60000) return '刚刚'
+			if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
+			if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
+			if (diff < 604800000) return Math.floor(diff / 86400000) + '天前'
+			
+			return date.toLocaleDateString()
+		} catch (e) {
+			return ''
+		}
 	}
 	
-	function formatTime(time: string): string {
-		if (!time) return ''
-		const date = new Date(time)
-		const now = new Date()
-		const diff = now.getTime() - date.getTime()
+	function formatFullTime(timeStr: string | undefined): string {
+		if (!timeStr) return ''
 		
-		if (diff < 60000) return '刚刚'
-		if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
-		if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
-		if (diff < 604800000) return Math.floor(diff / 86400000) + '天前'
-		
-		return date.toLocaleDateString()
+		try {
+			let date: Date
+			if (/^\d+$/.test(timeStr)) {
+				date = new Date(parseInt(timeStr))
+			} else {
+				date = new Date(timeStr)
+			}
+			
+			if (isNaN(date.getTime())) return ''
+			
+			const year = date.getFullYear()
+			const month = (date.getMonth() + 1).toString().padStart(2, '0')
+			const day = date.getDate().toString().padStart(2, '0')
+			const hours = date.getHours().toString().padStart(2, '0')
+			const minutes = date.getMinutes().toString().padStart(2, '0')
+			
+			return `${year}-${month}-${day} ${hours}:${minutes}`
+		} catch (e) {
+			return ''
+		}
 	}
 	
-	function getAvatarText(name: string): string {
+	function getAvatarText(name: string | undefined): string {
 		if (!name) return '?'
 		return name.charAt(0).toUpperCase()
 	}
 	
 	async function viewNotice(msg: MessageVO) {
-		if (msg.status === 'UNREAD') {
+		if (!msg) return
+		
+		currentNotice.value = msg
+		showNoticeModal.value = true
+		
+		if (msg.isRead === 0) {
 			try {
-				await markMessageAsRead(msg.messageId)
-				msg.status = 'READ'
+				await markMessageAsRead(msg.id)
+				msg.isRead = 1
 				if (unreadCount.value > 0) {
 					unreadCount.value--
 				}
 			} catch (e) {
+				console.log('标记已读失败:', e)
 			}
 		}
 	}
 	
-	function selectContact(user: UserVO) {
-		showContactPicker.value = false
-		currentChatUser.value = user
-		chatMessages.value = []
-		showChatModal.value = true
+	function closeNoticeModal() {
+		showNoticeModal.value = false
+		currentNotice.value = null
 	}
 	
-	function openChat(msg: MessageVO) {
-		const uid = currentUserId.value
-		const senderId = msg.sender === uid ? msg.receiver : msg.sender
+	async function openChat(contact: ContactVO) {
+		if (!contact) return
 		
-		const user = contactList.value.find((u: UserVO) => u.id === senderId)
-		if (user) {
-			currentChatUser.value = user
-			chatMessages.value = privateMessages.value.filter((m: MessageVO) => 
-				(m.sender === senderId && m.receiver === uid) || 
-				(m.sender === uid && m.receiver === senderId)
-			)
-			showChatModal.value = true
+		currentChatUser.value = contact
+		showChatModal.value = true
+		
+		try {
+			const result = await getPrivateMessages(String(contact.id))
+			if (result) {
+				chatMessages.value = result
+			}
+			
+			if (contact.unreadCount > 0) {
+				await markAllMessagesAsRead()
+				contact.unreadCount = 0
+				await loadMessages()
+			}
+		} catch (e) {
+			console.log('加载聊天记录失败:', e)
 		}
 	}
 	
@@ -298,6 +401,12 @@ uni.onShow(() => {
 		showChatModal.value = false
 		currentChatUser.value = null
 		chatInput.value = ''
+		chatMessages.value = []
+	}
+	
+	function isSentByMe(msg: MessageVO): boolean {
+		const uid = currentUserId.value
+		return msg.senderId === uid || msg.sender === uid
 	}
 	
 	async function sendMessage() {
@@ -311,29 +420,39 @@ uni.onShow(() => {
 			return
 		}
 		
+		const uid = currentUserId.value
+		if (!uid) {
+			toast.error('用户信息不存在')
+			return
+		}
+		
+		const content = chatInput.value.trim()
+		
 		try {
-			await sendUnicastMessage({
-				receiver: currentChatUser.value.id,
-				type: 'PRIVATE',
-				content: chatInput.value.trim()
-			})
+			await sendPrivateMessage(String(currentChatUser.value.id), content)
 			
 			chatMessages.value.push({
 				id: Date.now().toString(),
 				messageId: Date.now().toString(),
-				sender: currentUserId.value,
-				receiver: currentChatUser.value.id,
-				type: 'PRIVATE',
-				content: chatInput.value.trim(),
-				status: 'READ',
-				priority: 'LOW',
+				sender: uid,
+				receiver: String(currentChatUser.value.id),
+				type: '1',
+				content: content,
+				status: 'sent',
+				priority: 'normal',
 				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString()
+				updatedAt: new Date().toISOString(),
+				userId: uid,
+				title: '私聊消息',
+				isRead: 1,
+				createTime: new Date().toISOString(),
+				senderId: uid,
+				senderName: userStore.userInfo.value?.username || '我'
 			})
 			
 			chatInput.value = ''
 		} catch (e: any) {
-			toast.error(e.message || '发送失败')
+			toast.error(e?.message || '发送失败')
 		}
 	}
 </script>
@@ -422,6 +541,66 @@ uni.onShow(() => {
 		padding: 20rpx;
 	}
 	
+	.search-box {
+		display: flex;
+		flex-direction: row;
+		padding: 15rpx 0;
+		gap: 15rpx;
+		margin-bottom: 15rpx;
+	}
+	
+	.search-input {
+		flex: 1;
+		padding: 20rpx 25rpx;
+		background-color: #fff;
+		border-radius: 40rpx;
+		font-size: 26rpx;
+		color: #333;
+		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+	}
+	
+	.search-btn {
+		padding: 20rpx 30rpx;
+		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+		border-radius: 40rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	
+	.search-btn text {
+		font-size: 26rpx;
+		color: #fff;
+		font-weight: 500;
+	}
+	
+	.search-results {
+		margin-bottom: 20rpx;
+	}
+	
+	.section-title {
+		font-size: 24rpx;
+		color: #95a5a6;
+		padding: 10rpx 0;
+		display: block;
+	}
+	
+	.start-chat-btn {
+		padding: 12rpx 24rpx;
+		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+		border-radius: 30rpx;
+	}
+	
+	.start-chat-btn text {
+		font-size: 24rpx;
+		color: #fff;
+	}
+	
+	.contact-role {
+		font-size: 22rpx;
+		color: #95a5a6;
+	}
+	
 	.empty-state {
 		display: flex;
 		justify-content: center;
@@ -495,25 +674,13 @@ uni.onShow(() => {
 		justify-content: space-between;
 		align-items: center;
 		padding: 20rpx 0;
-		margin-bottom: 20rpx;
+		margin-bottom: 10rpx;
 	}
 	
 	.private-title {
-		font-size: 32rpx;
+		font-size: 28rpx;
 		font-weight: bold;
 		color: #2c3e50;
-	}
-	
-	.add-contact {
-		background-color: #34C759;
-		padding: 16rpx 32rpx;
-		border-radius: 30rpx;
-	}
-	
-	.add-contact text {
-		font-size: 26rpx;
-		color: #fff;
-		font-weight: 500;
 	}
 	
 	.contact-item {
@@ -525,6 +692,7 @@ uni.onShow(() => {
 		display: flex;
 		flex-direction: row;
 		gap: 20rpx;
+		align-items: center;
 	}
 	
 	.contact-avatar {
@@ -535,6 +703,12 @@ uni.onShow(() => {
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		overflow: hidden;
+	}
+	
+	.avatar-img {
+		width: 100%;
+		height: 100%;
 	}
 	
 	.contact-avatar text {
@@ -574,7 +748,23 @@ uni.onShow(() => {
 		white-space: nowrap;
 	}
 	
-	.picker-mask {
+	.contact-badge {
+		min-width: 32rpx;
+		height: 32rpx;
+		background-color: #e74c3c;
+		border-radius: 16rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 0 8rpx;
+	}
+	
+	.contact-badge text {
+		font-size: 20rpx;
+		color: #fff;
+	}
+	
+	.notice-modal {
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -583,104 +773,75 @@ uni.onShow(() => {
 		background-color: rgba(0, 0, 0, 0.5);
 		display: flex;
 		justify-content: center;
-		align-items: flex-end;
+		align-items: center;
 		z-index: 999;
 	}
 	
-	.picker-content {
-		width: 100%;
-		max-height: 80vh;
-		background-color: #FFFFFF;
-		border-radius: 32rpx 32rpx 0 0;
+	.notice-content {
+		width: 85%;
+		background-color: #fff;
+		border-radius: 24rpx;
 		overflow: hidden;
 	}
 	
-	.picker-header {
+	.notice-header {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
 		align-items: center;
 		padding: 32rpx;
 		border-bottom: 2rpx solid #F0F2F5;
+		background-color: #f8fafc;
 	}
 	
-	.picker-title {
+	.notice-title {
 		font-size: 32rpx;
 		font-weight: 600;
 		color: #2c3e50;
 	}
 	
-	.picker-close {
+	.notice-close {
 		font-size: 48rpx;
 		color: #95a5a6;
 		line-height: 1;
 	}
 	
-	.picker-options {
-		padding: 16rpx 0;
-		max-height: 60vh;
-		overflow-y: auto;
+	.notice-body {
+		padding: 32rpx;
 	}
 	
-	.picker-option {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		padding: 24rpx 32rpx;
-		gap: 24rpx;
+	.notice-meta {
+		margin-bottom: 20rpx;
 	}
 	
-	.option-avatar {
-		width: 80rpx;
-		height: 80rpx;
-		background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	
-	.option-avatar text {
-		font-size: 32rpx;
-		color: #fff;
-		font-weight: bold;
-	}
-	
-	.option-info {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 8rpx;
-	}
-	
-	.option-name {
-		font-size: 30rpx;
-		color: #2c3e50;
-		font-weight: 500;
-	}
-	
-	.option-role {
+	.notice-time {
 		font-size: 24rpx;
 		color: #95a5a6;
 	}
 	
-	.empty-contacts {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 80rpx 0;
-	}
-	
-	.empty-contacts .empty-text {
+	.notice-text {
 		font-size: 28rpx;
-		color: #95a5a6;
-		margin-bottom: 16rpx;
+		color: #2c3e50;
+		line-height: 1.8;
 	}
 	
-	.empty-contacts .empty-hint {
-		font-size: 24rpx;
-		color: #bdc3c7;
+	.notice-footer {
+		padding: 20rpx 32rpx 32rpx;
+	}
+	
+	.confirm-btn {
+		background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+		border-radius: 40rpx;
+		padding: 24rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.confirm-btn text {
+		font-size: 28rpx;
+		color: #fff;
+		font-weight: 500;
 	}
 	
 	.chat-modal {

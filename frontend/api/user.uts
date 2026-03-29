@@ -2,53 +2,53 @@ import { http } from '@/utils/request.uts'
 import type { UserVO, UserRegisterDTO, UserUpdateDTO, UpdatePhoneDTO, PasswordUpdateDTO, PageResult, RoleVO, RoleChangeApplyVO, RoleChangeApplyDTO, AdminCreateUserDTO } from '@/types/user.uts'
 
 export function register(data: UserRegisterDTO): Promise<UserVO | null> {
-  return http.post('/api/auth/register', data)
+  return http.post<UserVO>('/api/auth/register', data)
 }
 
 export function adminCreateUser(data: AdminCreateUserDTO): Promise<UserVO | null> {
-  return http.post('/api/user/admin/create', data)
+  return http.post<UserVO>('/api/user/admin/create', data)
 }
 
 export function getCurrentUser(): Promise<UserVO | null> {
-  return http.get('/api/user/current')
+  return http.get<UserVO>('/api/user/current')
 }
 
 export function updateUser(id: string, data: UserUpdateDTO): Promise<UserVO | null> {
-  return http.put(`/api/user/${id}`, data)
+  return http.put<UserVO>(`/api/user/${id}`, data)
 }
 
 export function updatePassword(data: PasswordUpdateDTO): Promise<void | null> {
-  return http.put('/api/user/password', data)
+  return http.put<void>('/api/user/password', data)
 }
 
 export function updatePhone(data: UpdatePhoneDTO): Promise<UserVO | null> {
-  return http.put('/api/user/phone', data)
+  return http.put<UserVO>('/api/user/phone', data)
 }
 
 export function getUserById(id: string): Promise<UserVO | null> {
-  return http.get(`/api/user/${id}`)
+  return http.get<UserVO>(`/api/user/${id}`)
 }
 
 export function adminPageUsers(params: {
   pageNum?: number
   pageSize?: number
-  username?: string
+  keyword?: string
   status?: number
 }): Promise<PageResult<UserVO> | null> {
-  return http.get('/api/user/admin/page', params)
+  return http.get<PageResult<UserVO>>('/api/user/admin/page', params)
 }
 
 export function pageUsers(params: {
   pageNum?: number
   pageSize?: number
-  username?: string
+  keyword?: string
   status?: number
 }): Promise<PageResult<UserVO> | null> {
   return adminPageUsers(params)
 }
 
 export function adminDisableUser(id: string): Promise<void | null> {
-  return http.put(`/api/user/${id}/disable`)
+  return http.put<void>(`/api/user/admin/${id}/disable`)
 }
 
 export function disableUser(id: string): Promise<void | null> {
@@ -56,69 +56,64 @@ export function disableUser(id: string): Promise<void | null> {
 }
 
 export function adminEnableUser(id: string): Promise<void | null> {
-  return http.put(`/api/user/${id}/enable`)
+  return http.put<void>(`/api/user/admin/${id}/enable`)
 }
 
 export function enableUser(id: string): Promise<void | null> {
   return adminEnableUser(id)
 }
 
-export function assignRole(userId: string, roleId: string): Promise<void | null> {
-  return http.put(`/api/user/${userId}/role?roleId=${roleId}`)
-}
-
-export function changeUserRole(userId: string, roleId: string, reason?: string): Promise<void | null> {
-  const url = `/api/user/admin/user/${userId}/role-change?roleId=${roleId}${reason ? `&reason=${reason}` : ''}`
-  return http.put(url)
+export function getRoleList(): Promise<RoleVO[] | null> {
+  return http.get<RoleVO[]>('/api/role/list')
 }
 
 export function createRoleChangeApply(data: RoleChangeApplyDTO): Promise<string | null> {
-  return http.post('/api/user/admin/role-change/apply', data)
+  return http.post<string>('/api/user/admin/role-change/apply', data)
 }
 
 export function getMyRoleChangeApplies(): Promise<RoleChangeApplyVO[] | null> {
-  return http.get('/api/user/admin/role-change/apply/my')
+  return http.get<RoleChangeApplyVO[]>('/api/user/admin/role-change/apply/my')
 }
 
 export function getPendingRoleChangeApplies(): Promise<RoleChangeApplyVO[] | null> {
-  return http.get('/api/user/admin/role-change/apply/pending')
+  return http.get<RoleChangeApplyVO[]>('/api/user/admin/role-change/apply/pending')
 }
 
 export function getAllRoleChangeApplies(): Promise<RoleChangeApplyVO[] | null> {
-  return http.get('/api/user/admin/role-change/apply/list')
+  return http.get<RoleChangeApplyVO[]>('/api/user/admin/role-change/apply/list')
 }
 
 export function getRoleChangeAppliesByUserId(userId: string): Promise<RoleChangeApplyVO[] | null> {
-  return http.get(`/api/user/admin/role-change/apply/user/${userId}`)
+  return http.get<RoleChangeApplyVO[]>(`/api/user/admin/role-change/apply/user/${userId}`)
 }
 
 export function handleRoleChangeApply(id: string, status: number, adminOpinion?: string, handlerId?: string, handlerName?: string): Promise<void | null> {
-  return http.put(`/api/user/admin/role-change/apply/${id}/handle`, { status, adminOpinion, handlerId, handlerName })
+  return http.put<void>(`/api/user/admin/role-change/apply/${id}/handle`, { status, adminOpinion, handlerId, handlerName })
 }
 
 export function getAllRoles(): Promise<RoleVO[] | null> {
-  return http.get('/api/roles')
+  return http.get<RoleVO[]>('/api/role/list')
 }
 
 export function getUsersByRole(roleCode?: string): Promise<UserVO[] | null> {
   const url = roleCode ? `/api/user/list?roleCode=${roleCode}` : '/api/user/list'
-  return http.get(url)
+  return http.get<UserVO[]>(url)
 }
 
 export function getRoleById(id: string): Promise<RoleVO | null> {
-  return http.get(`/api/role/${id}`)
+  return http.get<RoleVO>(`/api/role/${id}`)
 }
 
 export function createRole(data: RoleVO): Promise<RoleVO | null> {
-  return http.post('/api/role', data)
+  return http.post<RoleVO>('/api/role', data)
 }
 
 export function updateRole(id: string, data: RoleVO): Promise<RoleVO | null> {
-  return http.put(`/api/role/${id}`, data)
+  return http.put<RoleVO>(`/api/role/${id}`, data)
 }
 
 export function deleteRole(id: string): Promise<boolean | null> {
-  return http.delete(`/api/role/${id}`)
+  return http.delete<boolean>(`/api/role/${id}`)
 }
 
 export function uploadAvatar(filePath: string): Promise<UserVO | null> {
@@ -155,9 +150,18 @@ export type IdCardVO = {
 }
 
 export function getAvatarSignedUrl(): Promise<string | null> {
-  return http.get('/api/user/avatar/signed-url')
+  return http.get<string>('/api/user/avatar/signed-url')
 }
 
 export function getIdCardSignedUrls(): Promise<IdCardVO | null> {
-  return http.get('/api/user/id-card/signed-urls')
+  return http.get<IdCardVO>('/api/user/id-card/signed-urls')
+}
+
+export function searchContacts(params: {
+  keyword?: string
+  roleCode?: string
+  pageNum?: number
+  pageSize?: number
+}): Promise<PageResult<UserVO> | null> {
+  return http.get<PageResult<UserVO>>('/api/user/contacts/search', params)
 }

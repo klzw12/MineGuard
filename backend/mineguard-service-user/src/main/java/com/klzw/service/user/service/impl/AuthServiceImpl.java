@@ -1,6 +1,7 @@
 package com.klzw.service.user.service.impl;
 
 import com.klzw.common.auth.constant.AuthResultCode;
+import com.klzw.common.auth.enums.RoleEnum;
 import com.klzw.common.auth.exception.AuthException;
 import com.klzw.common.auth.util.JwtUtils;
 import com.klzw.common.auth.util.PasswordUtils;
@@ -20,6 +21,8 @@ import com.klzw.service.user.entity.User;
 import com.klzw.service.user.enums.SmsScene;
 import com.klzw.service.user.exception.UserException;
 import com.klzw.service.user.constant.UserResultCode;
+import com.klzw.common.core.exception.BaseException;
+import com.klzw.common.core.enums.ResultCodeEnum;
 import com.klzw.service.user.mapper.RoleMapper;
 import com.klzw.service.user.mapper.UserMapper;
 import com.klzw.service.user.service.AuthService;
@@ -48,7 +51,6 @@ public class AuthServiceImpl implements AuthService {
     private static final Long TOKEN_EXPIRE_TIME = 7200000L;
     private static final String SMS_CODE_PREFIX = "sms:code:";
     private static final long SMS_CODE_EXPIRE = 5;
-    private static final String ADMIN_ROLE_CODE = "ADMIN";
 
     private final UserService userService;
     private final UserMapper userMapper;
@@ -106,9 +108,10 @@ public class AuthServiceImpl implements AuthService {
             throw new UserException(UserResultCode.PASSWORD_ERROR, "用户名或密码错误");
         }
 
-        // 检查用户状态，管理员即使被禁用也允许登录
+        // 检查用户状态，管理员和调度员即使被禁用也允许登录（需要完成身份验证）
         boolean isAdmin = isAdmin(user);
-        if (user.getStatus() != UserStatusEnum.ENABLED.getValue() && !isAdmin) {
+        boolean isOperator = isOperator(user);
+        if (user.getStatus() != UserStatusEnum.ENABLED.getValue() && !isAdmin && !isOperator) {
             throw new UserException(UserResultCode.USER_DISABLED);
         }
 
@@ -178,7 +181,19 @@ public class AuthServiceImpl implements AuthService {
         }
         
         Role role = roleMapper.selectById(user.getRoleId());
-        return role != null && ADMIN_ROLE_CODE.equals(role.getRoleCode());
+        return role != null && RoleEnum.ADMIN.getValue().equals(role.getRoleCode());
+    }
+
+    /**
+     * 判断用户是否为调度员
+     */
+    private boolean isOperator(User user) {
+        if (user == null || user.getRoleId() == null) {
+            return false;
+        }
+        
+        Role role = roleMapper.selectById(user.getRoleId());
+        return role != null && RoleEnum.OPERATOR.getValue().equals(role.getRoleCode());
     }
 
     @Override
@@ -255,8 +270,8 @@ public class AuthServiceImpl implements AuthService {
             throw new UserException(UserResultCode.USER_NOT_FOUND);
         }
         
-        if (!isAdmin(user)) {
-            throw new UserException(UserResultCode.PARAM_ERROR, "非管理员用户无法进行管理员认证");
+        if (!isAdmin(user) && !isOperator(user)) {
+            throw new BaseException(ResultCodeEnum.PARAM_ERROR.getCode(), "非管理端用户无法进行管理端认证");
         }
         
         // 调用普通实名认证方法处理身份证验证
@@ -294,7 +309,7 @@ public class AuthServiceImpl implements AuthService {
     
     private String uploadImageFromBytes(byte[] imageBytes, String folder) {
         if (imageBytes == null || imageBytes.length == 0) {
-            throw new UserException(UserResultCode.PARAM_ERROR, "图片不能为空");
+            throw new BaseException(ResultCodeEnum.PARAM_ERROR.getCode(), "图片不能为空");
         }
         
         try {

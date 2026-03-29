@@ -1,4 +1,4 @@
-package com.klzw.service.user.config;
+package com.klzw.service.user.properties;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

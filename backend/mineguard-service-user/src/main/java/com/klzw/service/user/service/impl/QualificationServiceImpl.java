@@ -1,6 +1,7 @@
 package com.klzw.service.user.service.impl;
 
 import com.klzw.common.core.enums.UserStatusEnum;
+import com.klzw.common.auth.enums.RoleEnum;
 import com.klzw.common.file.service.OcrService;
 import com.klzw.common.file.service.StorageService;
 import com.klzw.common.file.util.ImageUtils;
@@ -15,6 +16,8 @@ import com.klzw.service.user.entity.User;
 import com.klzw.service.user.entity.Repairman;
 import com.klzw.service.user.exception.UserException;
 import com.klzw.service.user.constant.UserResultCode;
+import com.klzw.common.core.exception.BaseException;
+import com.klzw.common.core.enums.ResultCodeEnum;
 import com.klzw.service.user.mapper.DriverMapper;
 import com.klzw.service.user.mapper.RepairmanMapper;
 import com.klzw.service.user.mapper.RoleMapper;
@@ -22,6 +25,8 @@ import com.klzw.service.user.mapper.SafetyOfficerMapper;
 import com.klzw.service.user.mapper.UserMapper;
 import com.klzw.service.user.service.QualificationService;
 import com.klzw.service.user.service.RoleChangeApplyService;
+import com.klzw.service.user.service.DriverScoreService;
+import com.klzw.service.user.vo.UserVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -48,10 +53,9 @@ public class QualificationServiceImpl implements QualificationService {
     private final RoleMapper roleMapper;
     private final RoleChangeApplyService roleChangeApplyService;
     private final PasswordUtils passwordUtils;
+    private final DriverScoreService driverScoreService;
     
-    private static final String ROLE_DRIVER = "ROLE_DRIVER";
-    private static final String ROLE_SAFETY_OFFICER = "ROLE_SAFETY_OFFICER";
-    private static final String ROLE_REPAIRMAN = "ROLE_REPAIRMAN";
+
     
     private static final Pattern ID_CARD_PATTERN = Pattern.compile("^[1-9]\\d{5}(18|19|20)\\d{2}(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])\\d{3}[\\dXx]$");
 
@@ -120,7 +124,7 @@ public class QualificationServiceImpl implements QualificationService {
 
     @Override
     @Transactional
-    public boolean uploadDriverCert(CertVerifyDTO dto) {
+    public UserVO uploadDriverCert(CertVerifyDTO dto) {
         log.info("上传驾驶证，用户ID：{}", dto.getUserId());
         
         User user = validateUserExists(dto.getUserId());
@@ -135,16 +139,36 @@ public class QualificationServiceImpl implements QualificationService {
         
         String drivingLicenseUrl = uploadImageFromBytes(imageBytes, "driving_license");
         
-        saveDriverCert(dto, user, drivingLicenseUrl, licenseInfo);
-        assignRoleToUser(dto.getUserId(), ROLE_DRIVER);
+        Driver existingDriver = driverMapper.selectByUserId(String.valueOf(dto.getUserId()));
+        Driver savedDriver = saveDriverCert(dto, user, drivingLicenseUrl, licenseInfo);
+        
+        if (existingDriver == null) {
+            Integer drivingYears = null;
+            if (licenseInfo != null) {
+                String firstIssueDateStr = licenseInfo.get("firstIssueDate");
+                if (firstIssueDateStr != null && !firstIssueDateStr.isEmpty()) {
+                    LocalDate firstIssueDate = parseDate(firstIssueDateStr);
+                    if (firstIssueDate != null) {
+                        drivingYears = calculateDrivingYears(firstIssueDate);
+                    }
+                }
+            }
+            driverScoreService.initDriverScore(savedDriver.getId(), drivingYears);
+        }
+        
+        assignRoleToUser(dto.getUserId(), RoleEnum.DRIVER.getValue());
+        
+        // 重新查询用户信息，确保获取最新的角色信息
+        User updatedUser = userMapper.selectById(dto.getUserId());
+        UserVO userVO = convertToUserVO(updatedUser);
         
         log.info("驾驶证上传成功，用户ID：{}", dto.getUserId());
-        return true;
+        return userVO;
     }
 
     @Override
     @Transactional
-    public boolean uploadSafetyOfficerCert(CertVerifyDTO dto) {
+    public UserVO uploadSafetyOfficerCert(CertVerifyDTO dto) {
         log.info("上传应急救援证，用户ID：{}", dto.getUserId());
         
         User user = validateUserExists(dto.getUserId());
@@ -160,15 +184,19 @@ public class QualificationServiceImpl implements QualificationService {
         String emergencyCertUrl = uploadImageFromBytes(imageBytes, "emergency_cert");
         
         saveSafetyOfficerCert(dto, user, emergencyCertUrl, certInfo);
-        assignRoleToUser(dto.getUserId(), ROLE_SAFETY_OFFICER);
+        assignRoleToUser(dto.getUserId(), RoleEnum.SAFETY_OFFICER.getValue());
+        
+        // 重新查询用户信息，确保获取最新的角色信息
+        User updatedUser = userMapper.selectById(dto.getUserId());
+        UserVO userVO = convertToUserVO(updatedUser);
         
         log.info("应急救援证上传成功，用户ID：{}", dto.getUserId());
-        return true;
+        return userVO;
     }
 
     @Override
     @Transactional
-    public boolean uploadRepairmanCert(CertVerifyDTO dto) {
+    public UserVO uploadRepairmanCert(CertVerifyDTO dto) {
         log.info("上传维修资格证，用户ID：{}", dto.getUserId());
         
         User user = validateUserExists(dto.getUserId());
@@ -184,10 +212,42 @@ public class QualificationServiceImpl implements QualificationService {
         String repairCertUrl = uploadImageFromBytes(imageBytes, "repair_cert");
         
         saveRepairmanCert(dto, user, repairCertUrl, certInfo);
-        assignRoleToUser(dto.getUserId(), ROLE_REPAIRMAN);
+        assignRoleToUser(dto.getUserId(), RoleEnum.REPAIRMAN.getValue());
+        
+        // 重新查询用户信息，确保获取最新的角色信息
+        User updatedUser = userMapper.selectById(dto.getUserId());
+        UserVO userVO = convertToUserVO(updatedUser);
         
         log.info("维修资格证上传成功，用户ID：{}", dto.getUserId());
-        return true;
+        return userVO;
+    }
+    
+    /**
+     * 将 User 实体转换为 UserVO
+     */
+    private UserVO convertToUserVO(User user) {
+        UserVO userVO = new UserVO();
+        userVO.setId(user.getId().toString());
+        userVO.setUsername(user.getUsername());
+        userVO.setRealName(user.getRealName());
+        userVO.setPhone(user.getPhone());
+        userVO.setEmail(user.getEmail());
+        userVO.setAvatarUrl(user.getAvatarUrl());
+        userVO.setStatus(user.getStatus());
+        userVO.setCreateTime(user.getCreateTime());
+        userVO.setUpdateTime(user.getUpdateTime());
+        
+        // 设置角色信息
+        if (user.getRoleId() != null) {
+            Role role = roleMapper.selectById(user.getRoleId());
+            if (role != null) {
+                userVO.setRoleId(role.getId().toString());
+                userVO.setRoleCode(role.getRoleCode());
+                userVO.setRoleName(role.getRoleName());
+            }
+        }
+        
+        return userVO;
     }
     
     private User validateUserExists(Long userId) {
@@ -206,7 +266,7 @@ public class QualificationServiceImpl implements QualificationService {
     
     private void validateIdCardFormat(String idCard) {
         if (idCard == null || idCard.isEmpty()) {
-            throw new UserException(UserResultCode.PARAM_ERROR, "身份证号不能为空");
+            throw new BaseException(ResultCodeEnum.PARAM_ERROR.getCode(), "身份证号不能为空");
         }
         if (!ID_CARD_PATTERN.matcher(idCard).matches()) {
             throw new UserException(UserResultCode.ID_CARD_INVALID, "身份证号格式不正确");
@@ -339,7 +399,7 @@ public class QualificationServiceImpl implements QualificationService {
         }
     }
     
-    private void saveDriverCert(CertVerifyDTO dto, User user, String drivingLicenseUrl, Map<String, String> licenseInfo) {
+    private Driver saveDriverCert(CertVerifyDTO dto, User user, String drivingLicenseUrl, Map<String, String> licenseInfo) {
         Driver existingDriver = driverMapper.selectByUserId(String.valueOf(dto.getUserId()));
         
         Driver driver = new Driver();
@@ -347,10 +407,8 @@ public class QualificationServiceImpl implements QualificationService {
         driver.setDriverName(user.getRealName());
         driver.setIdCard(user.getIdCard());
         
-        // 优先从 User 表获取身份证 URL（实名认证时已保存）
         String idCardFrontUrl = user.getIdCardFrontUrl();
         String idCardBackUrl = user.getIdCardBackUrl();
-        // 如果 User 表没有，再从 existingDriver 获取
         if (idCardFrontUrl == null && existingDriver != null) {
             idCardFrontUrl = existingDriver.getIdCardFrontUrl();
         }
@@ -370,9 +428,18 @@ public class QualificationServiceImpl implements QualificationService {
             }
             driver.setAddress(licenseInfo.get("address"));
             driver.setBirthDate(licenseInfo.get("birth"));
-            driver.setFirstIssueDate(licenseInfo.get("firstIssueDate"));
+            String firstIssueDateStr = licenseInfo.get("firstIssueDate");
+            driver.setFirstIssueDate(firstIssueDateStr);
             driver.setValidPeriod(licenseInfo.get("validPeriod"));
             driver.setLicenseNumber(licenseInfo.get("licenseNumber"));
+            
+            if (firstIssueDateStr != null && !firstIssueDateStr.isEmpty()) {
+                LocalDate firstIssueDate = parseDate(firstIssueDateStr);
+                if (firstIssueDate != null) {
+                    int drivingYears = calculateDrivingYears(firstIssueDate);
+                    driver.setDrivingYears(drivingYears);
+                }
+            }
         }
         
         if (existingDriver != null) {
@@ -382,7 +449,8 @@ public class QualificationServiceImpl implements QualificationService {
             driverMapper.insert(driver);
         }
         
-        log.info("司机资格信息已保存，用户ID：{}", dto.getUserId());
+        log.info("司机资格信息已保存，用户ID：{}，司机ID：{}", dto.getUserId(), driver.getId());
+        return driver;
     }
     
     private void saveSafetyOfficerCert(CertVerifyDTO dto, User user, String emergencyCertUrl, Map<String, String> certInfo) {
@@ -530,15 +598,15 @@ public class QualificationServiceImpl implements QualificationService {
         role.setRoleCode(roleCode);
         
         switch (roleCode) {
-            case ROLE_DRIVER:
+            case "DRIVER":
                 role.setRoleName("司机");
                 role.setDescription("司机角色，负责车辆驾驶");
                 break;
-            case ROLE_SAFETY_OFFICER:
+            case "SAFETY_OFFICER":
                 role.setRoleName("安全员");
                 role.setDescription("安全员角色，负责安全监督");
                 break;
-            case ROLE_REPAIRMAN:
+            case "REPAIRMAN":
                 role.setRoleName("维修员");
                 role.setDescription("维修员角色，负责车辆维修");
                 break;
@@ -555,7 +623,7 @@ public class QualificationServiceImpl implements QualificationService {
     
     private String uploadImage(String base64Image, String folder) {
         if (base64Image == null || base64Image.isEmpty()) {
-            throw new UserException(UserResultCode.PARAM_ERROR, "图片不能为空");
+            throw new BaseException(ResultCodeEnum.PARAM_ERROR.getCode(), "图片不能为空");
         }
         
         try {
@@ -581,5 +649,15 @@ public class QualificationServiceImpl implements QualificationService {
             return null;
         }
         return uploadImage(base64Image, folder);
+    }
+    
+    /**
+     * 计算驾龄
+     * @param firstIssueDate 初次领证日期
+     * @return 驾龄（年）
+     */
+    private int calculateDrivingYears(LocalDate firstIssueDate) {
+        LocalDate now = LocalDate.now();
+        return now.getYear() - firstIssueDate.getYear();
     }
 }

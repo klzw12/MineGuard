@@ -13,17 +13,22 @@ import com.klzw.service.user.entity.Role;
 import com.klzw.service.user.entity.User;
 import com.klzw.service.user.exception.UserException;
 import com.klzw.service.user.constant.UserResultCode;
+import com.klzw.common.core.exception.BaseException;
+import com.klzw.common.core.enums.ResultCodeEnum;
 import com.klzw.service.user.mapper.RoleMapper;
 import com.klzw.service.user.mapper.UserMapper;
 import com.klzw.service.user.service.UserService;
 import com.klzw.service.user.vo.UserVO;
 import com.klzw.service.user.vo.IdCardVO;
+import com.klzw.service.user.service.sms.SmsService;
 
 import com.klzw.common.auth.util.PasswordUtils;
+import com.klzw.common.auth.enums.RoleEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
@@ -39,6 +44,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordUtils passwordUtils;
     private final RedisCacheService redisCacheService;
     private final FileUploadServiceImpl fileUploadService;
+    private final SmsService smsService;
 
     private static final String USER_CACHE_PREFIX = "user:info:";
     private static final String AVATAR_CACHE_PREFIX = "avatar:signed_url:";
@@ -160,12 +166,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Page<UserVO> pageUsers(int pageNum, int pageSize, String username, Integer status) {
+    public Page<UserVO> pageUsers(int pageNum, int pageSize, String keyword, Integer status) {
         Page<User> page = new Page<>(pageNum, pageSize);
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
 
-        if (StringUtils.hasText(username)) {
-            wrapper.like(User::getUsername, username);
+        if (StringUtils.hasText(keyword)) {
+            wrapper.and(w -> w.like(User::getUsername, keyword)
+                    .or()
+                    .like(User::getRealName, keyword));
         }
         if (status != null) {
             wrapper.eq(User::getStatus, status);
@@ -231,6 +239,33 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
+    public void adminAssignRole(Long userId, Long roleId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new UserException(UserResultCode.USER_NOT_FOUND);
+        }
+        Role role = roleMapper.selectById(roleId);
+        if (role == null) {
+            throw new UserException(UserResultCode.ROLE_NOT_FOUND);
+        }
+
+        // 检查角色是否为ADMIN或OPERATOR
+        String roleCode = role.getRoleCode();
+        if (!RoleEnum.ADMIN.getValue().equals(roleCode) && !RoleEnum.OPERATOR.getValue().equals(roleCode)) {
+            throw new BaseException(ResultCodeEnum.PARAM_ERROR.getCode(), "只能分配管理员和调度员角色");
+        }
+
+        // 分配角色
+        user.setRoleId(roleId);
+        // 设置用户状态为禁用，需要实名认证
+        user.setStatus(UserStatusEnum.DISABLED.getValue());
+        userMapper.updateById(user);
+
+        clearUserCache(userId);
+    }
+
+    @Override
     public String getRoleCodeByUserId(Long userId) {
         User user = userMapper.selectById(userId);
         if (user == null || user.getRoleId() == null) {
@@ -267,28 +302,37 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserVO updateAvatar(Long userId, String avatarUrl) {
+    public UserVO uploadAvatar(Long userId, MultipartFile file) {
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new UserException(UserResultCode.USER_NOT_FOUND);
         }
 
-        user.setAvatarUrl(avatarUrl);
-        userMapper.updateById(user);
+        try {
+            String avatarPath = fileUploadService.upload(file, com.klzw.common.file.enums.FileBusinessTypeEnum.USER_AVATAR, String.valueOf(userId));
+            user.setAvatarUrl(avatarPath);
+            userMapper.updateById(user);
 
-        clearUserCache(userId);
-        return getUserVOById(userId);
+            clearUserCache(userId);
+            return getUserVOById(userId);
+        } catch (Exception e) {
+            throw new UserException(UserResultCode.OPERATION_FAILED, "头像上传失败：" + e.getMessage());
+        }
     }
 
     @Override
     @Transactional
-    public String adminCreateUser(AdminCreateUserDTO dto) {
+    public UserVO adminCreateUser(AdminCreateUserDTO dto) {
         User existUser = getByUsername(dto.getUsername());
         if (existUser != null) {
             throw new UserException(UserResultCode.USERNAME_EXISTS);
         }
 
+        // 验证手机号格式（如果提供了手机号）
         if (StringUtils.hasText(dto.getPhone())) {
+            if (!dto.getPhone().matches("^1[3-9]\\d{9}$")) {
+                throw new BaseException(ResultCodeEnum.PARAM_ERROR.getCode(), "手机号格式不正确");
+            }
             LambdaQueryWrapper<User> phoneWrapper = new LambdaQueryWrapper<>();
             phoneWrapper.eq(User::getPhone, dto.getPhone());
             if (userMapper.selectCount(phoneWrapper) > 0) {
@@ -296,24 +340,56 @@ public class UserServiceImpl implements UserService {
             }
         }
 
+        // 验证邮箱格式（如果提供了邮箱）
+        if (StringUtils.hasText(dto.getEmail())) {
+            if (!dto.getEmail().matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+                throw new BaseException(ResultCodeEnum.PARAM_ERROR.getCode(), "邮箱格式不正确");
+            }
+        }
+
         User user = new User();
         user.setUsername(dto.getUsername());
         user.setPassword(passwordUtils.encode(dto.getPassword()));
-        user.setRealName(dto.getRealName());
         user.setPhone(dto.getPhone());
         user.setEmail(dto.getEmail());
-        user.setStatus(UserStatusEnum.ENABLED.getValue());
+
+        // 如果提供了角色ID，验证并分配角色
+        if (dto.getRoleId() != null) {
+            Role role = roleMapper.selectById(dto.getRoleId());
+            if (role == null) {
+                throw new UserException(UserResultCode.ROLE_NOT_FOUND);
+            }
+
+            // 检查角色是否为ADMIN或OPERATOR
+            String roleCode = role.getRoleCode();
+            if (!RoleEnum.ADMIN.getValue().equals(roleCode) && !RoleEnum.OPERATOR.getValue().equals(roleCode)) {
+                throw new BaseException(ResultCodeEnum.PARAM_ERROR.getCode(), "只能分配管理员和调度员角色，其他角色需要通过资格认证申请");
+            }
+
+            user.setRoleId(dto.getRoleId());
+            // 设置用户状态为禁用，需要实名认证
+            user.setStatus(UserStatusEnum.DISABLED.getValue());
+        } else {
+            // 没有分配角色，设置为启用状态
+            user.setStatus(UserStatusEnum.ENABLED.getValue());
+        }
 
         userMapper.insert(user);
 
-        return String.valueOf(user.getId());
+        return getUserVOById(user.getId());
     }
 
     @Override
-    public UserVO updatePhone(Long userId, String newPhone) {
+    public UserVO updatePhone(Long userId, String newPhone, String smsCode) {
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new UserException(UserResultCode.USER_NOT_FOUND);
+        }
+
+        // 验证短信验证码
+        boolean smsVerified = smsService.verifySmsCode(newPhone, smsCode);
+        if (!smsVerified) {
+            throw new UserException(UserResultCode.SMS_VERIFY_FAILED, "短信验证码错误或已过期");
         }
 
         LambdaQueryWrapper<User> phoneWrapper = new LambdaQueryWrapper<>();
@@ -381,7 +457,7 @@ public class UserServiceImpl implements UserService {
         }
         
         if (user.getRealName() == null || user.getRealName().isEmpty()) {
-            throw new UserException(UserResultCode.PARAM_ERROR, "用户未完成实名认证");
+            throw new BaseException(ResultCodeEnum.PARAM_ERROR.getCode(), "用户未完成实名认证");
         }
         
         IdCardVO idCardVO = new IdCardVO();
@@ -413,5 +489,49 @@ public class UserServiceImpl implements UserService {
             }
         }
         return vo;
+    }
+
+    @Override
+    public Page<UserVO> searchContacts(String keyword, String roleCode, int pageNum, int pageSize) {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getStatus, UserStatusEnum.ENABLED.getValue());
+        
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            wrapper.and(w -> w
+                .like(User::getUsername, keyword)
+                .or()
+                .like(User::getRealName, keyword)
+            );
+        }
+        
+        if (roleCode != null && !roleCode.isEmpty()) {
+            LambdaQueryWrapper<Role> roleWrapper = new LambdaQueryWrapper<>();
+            roleWrapper.eq(Role::getRoleCode, roleCode);
+            Role role = roleMapper.selectOne(roleWrapper);
+            if (role != null) {
+                wrapper.eq(User::getRoleId, role.getId());
+            }
+        }
+        
+        wrapper.orderByDesc(User::getCreateTime);
+        
+        Page<User> page = new Page<>(pageNum, pageSize);
+        Page<User> userPage = userMapper.selectPage(page, wrapper);
+        
+        Page<UserVO> voPage = new Page<>(userPage.getCurrent(), userPage.getSize(), userPage.getTotal());
+        voPage.setRecords(userPage.getRecords().stream()
+            .map(this::convertToUserVO)
+            .collect(java.util.stream.Collectors.toList()));
+        
+        return voPage;
+    }
+
+    @Override
+    public Boolean existsUser(Long userId) {
+        if (userId == null) {
+            return false;
+        }
+        User user = userMapper.selectById(userId);
+        return user != null && user.getDeleted() == 0;
     }
 }

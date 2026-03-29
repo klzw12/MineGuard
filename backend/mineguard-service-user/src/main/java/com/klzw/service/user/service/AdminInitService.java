@@ -4,8 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.klzw.common.auth.util.PasswordUtils;
 import com.klzw.common.core.enums.UserStatusEnum;
 import com.klzw.common.database.annotation.DataSource;
-import com.klzw.service.user.config.AdminInitProperties;
+import com.klzw.service.user.properties.AdminInitProperties;
 import com.klzw.service.user.entity.User;
+import com.klzw.service.user.entity.Role;
 import com.klzw.service.user.mapper.RoleMapper;
 import com.klzw.service.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -32,9 +33,9 @@ public class AdminInitService {
         }
 
         // 先查找管理员角色
-        com.klzw.service.user.entity.Role adminRole = roleMapper.selectByRoleCode("ADMIN");
+        Role adminRole = roleMapper.selectByRoleCode("ADMIN");
         if (adminRole == null) {
-            adminRole = new com.klzw.service.user.entity.Role();
+            adminRole = new Role();
             adminRole.setRoleName("管理员");
             adminRole.setRoleCode("ADMIN");
             adminRole.setDescription("系统管理员角色");
@@ -58,6 +59,7 @@ public class AdminInitService {
         admin.setRealName(adminInitProperties.getAdminRealName());
         admin.setPhone(adminInitProperties.getAdminPhone());
         admin.setEmail(adminInitProperties.getAdminEmail());
+        // 禁用管理帐号，方便后续强制实名认证
         admin.setStatus(UserStatusEnum.DISABLED.getValue());
         admin.setRoleId(adminRole.getId());
 

@@ -3,7 +3,6 @@ package com.klzw.service.user.dto;
 import lombok.Data;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import java.io.Serializable;
 
 /**
@@ -26,24 +25,20 @@ public class AdminCreateUserDTO implements Serializable {
      * 密码
      */
     @NotBlank(message = "密码不能为空")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{6,20}$", message = "密码长度为6-20个字符，包含至少一个大写字母、一个小写字母和一个数字")
     private String password;
 
     /**
-     * 真实姓名
+     * 手机号（可选）
      */
-    @NotBlank(message = "真实姓名不能为空")
-    private String realName;
-
-    /**
-     * 手机号
-     */
-    @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")
     private String phone;
 
     /**
-     * 邮箱
+     * 邮箱（可选）
      */
-    @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", message = "邮箱格式不正确")
     private String email;
+
+    /**
+     * 角色ID（可选，只能分配管理员或调度员角色）
+     */
+    private Long roleId;
 }

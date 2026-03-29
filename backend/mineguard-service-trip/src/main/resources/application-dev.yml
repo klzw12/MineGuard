@@ -19,6 +19,7 @@ spring:
       - nacos:common-core.yml?group=Shared_Dev&refresh=true
       - nacos:common-redis.yml?group=Shared_Dev&refresh=true
       - nacos:common-web.yml?group=Shared_Dev&refresh=true
+      - nacos:common-auth.yml?group=Shared_Dev&refresh=true
       - nacos:common-mq.yml?group=Shared_Dev&refresh=true
       - nacos:common-websocket.yml?group=Shared_Dev&refresh=true
       - nacos:common-mongo.yml?group=Shared_Dev&refresh=true

@@ -1,4 +1,4 @@
-package com.klzw.service.user.config;
+package com.klzw.service.user.properties;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -11,19 +11,19 @@ import java.util.Map;
 @Component
 @ConfigurationProperties(prefix = "mineguard.sms.aliyun")
 public class AliyunSmsProperties {
-    
+
     private boolean enabled = false;
-    
+
     private String accessKeyId;
-    
+
     private String accessKeySecret;
-    
+
     private String endpoint = "dypnsapi.aliyuncs.com";
-    
+
     private String signName = "速通互联验证码";
-    
+
     private Map<String, String> templates = new HashMap<>();
-    
+
     public String getTemplateCode(String scene) {
         if (templates.containsKey(scene)) {
             return templates.get(scene);

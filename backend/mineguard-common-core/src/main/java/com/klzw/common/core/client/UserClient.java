@@ -1,6 +1,6 @@
 package com.klzw.common.core.client;
 
-import com.klzw.common.core.domain.dto.UserInfo;
+import com.klzw.common.core.result.Result;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
@@ -8,9 +8,9 @@ import org.springframework.web.service.annotation.HttpExchange;
 @HttpExchange
 public interface UserClient {
 
-    @GetExchange("/api/user/{id}")
-    UserInfo getUserById(@PathVariable("id") Long userId);
+    @GetExchange("/user/exists/{id}")
+    Boolean existsUser(@PathVariable("id") Long id);
 
-    @GetExchange("/api/user/exists/{id}")
-    Boolean existsById(@PathVariable("id") Long userId);
+    @GetExchange("/user/{id}")
+    Result<Object> getUserById(@PathVariable("id") Long id);
 }

@@ -91,4 +91,9 @@ public class DriverController {
     public Result<List<DriverVehicleVO>> getCommonVehicles(@PathVariable Long driverId) {
         return Result.success(driverService.getCommonVehicles(driverId));
     }
+
+    @GetMapping("/ids")
+    public Result<List<Long>> getDriverIds() {
+        return Result.success(driverService.getDriverIds());
+    }
 }

@@ -140,5 +140,14 @@ public interface VehicleService extends IService<Vehicle> {
      * @return 可用车辆列表
      */
     List<VehicleVO> getAvailableVehicles();
+    
+    /**
+     * 创建车辆并上传照片
+     * @param vehicleNo 车牌号
+     * @param vehiclePhoto 车辆照片
+     * @param licensePhoto 行驶证照片
+     * @return 车辆信息
+     */
+    Vehicle createVehicleWithPhotos(String vehicleNo, MultipartFile vehiclePhoto, MultipartFile licensePhoto);
 
 } 

@@ -33,4 +33,6 @@ public interface DriverService {
     List<DriverVehicleVO> getCommonVehicles(Long driverId);
 
     void incrementVehicleUseCount(Long driverId, Long vehicleId);
+
+    List<Long> getDriverIds();
 }

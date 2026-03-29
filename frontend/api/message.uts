@@ -1,30 +1,68 @@
 import { http } from '@/utils/request.uts'
-import type { MessageVO, MessageDTO } from '@/types/user.uts'
+import type { MessageVO, MessageDTO, ContactVO } from '@/types/user.uts'
 
 export function sendUnicastMessage(data: MessageDTO): Promise<void | null> {
-  return http.post('/api/messages/unicast', data)
+  return http.post<void>('/api/message/send', {
+    userId: data.receiver,
+    title: '系统消息',
+    content: data.content,
+    type: 0
+  })
 }
 
-export function sendBroadcastMessage(data: MessageDTO): Promise<void | null> {
-  return http.post('/api/messages/broadcast', data)
+export function sendBroadcastMessage(roleCode: string, title: string, content: string): Promise<void | null> {
+  return http.post<void>('/api/message/send-by-role', {
+    roleCode: roleCode,
+    title: title,
+    content: content,
+    type: 0
+  })
 }
 
-export function sendBroadcastToAll(data: MessageDTO): Promise<void | null> {
-  return http.post('/api/messages/broadcast/all', data)
+export function sendBroadcastToAll(title: string, content: string): Promise<void | null> {
+  return http.post<void>('/api/message/send-batch', {
+    userIds: [],
+    title: title,
+    content: content,
+    type: 0
+  })
 }
 
-export function getUserMessages(userId: string): Promise<MessageVO[] | null> {
-  return http.get(`/api/messages/user/${userId}`)
+export function getUserMessages(type?: number): Promise<MessageVO[] | null> {
+  let url = '/api/message/list'
+  if (type !== undefined && type !== null) {
+    url += `?type=${type}`
+  }
+  return http.get<MessageVO[]>(url)
+}
+
+export function getPrivateMessages(contactId: string): Promise<MessageVO[] | null> {
+  return http.get<MessageVO[]>(`/api/message/private/${contactId}`)
 }
 
 export function markMessageAsRead(messageId: string): Promise<void | null> {
-  return http.put(`/api/messages/${messageId}/read`)
+  return http.put<void>(`/api/message/read/${messageId}`)
+}
+
+export function markAllMessagesAsRead(): Promise<void | null> {
+  return http.put<void>('/api/message/read-all')
 }
 
 export function deleteMessage(messageId: string): Promise<void | null> {
-  return http.delete(`/api/messages/${messageId}`)
+  return http.delete<void>(`/api/message/${messageId}`)
 }
 
-export function getUnreadCount(userId: string): Promise<number | null> {
-  return http.get(`/api/messages/unread/count/${userId}`)
+export function getUnreadCount(): Promise<number | null> {
+  return http.get<number>('/api/message/unread-count')
+}
+
+export function getContactList(): Promise<ContactVO[] | null> {
+  return http.get<ContactVO[]>('/api/message/contacts')
+}
+
+export function sendPrivateMessage(receiverId: string, content: string): Promise<void | null> {
+  return http.post<void>('/api/message/private', {
+    receiverId: receiverId,
+    content: content
+  })
 }

@@ -32,9 +32,15 @@ public interface MessageHistoryService {
     
     long getUnreadCount(String receiver);
     
+    long getUnreadNotificationCount(String receiver);
+    
     MessageHistory saveOfflineMessage(String userId, Message message);
     
     List<MessageHistory> getOfflineMessages(String userId);
     
     void markOfflineMessageAsSent(String messageId);
+    
+    Page<MessageHistory> getPrivateMessages(String userId, String contactId, Pageable pageable);
+    
+    void markAllMessagesAsRead(String userId);
 }

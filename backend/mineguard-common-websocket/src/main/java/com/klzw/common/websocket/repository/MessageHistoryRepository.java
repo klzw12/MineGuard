@@ -4,6 +4,7 @@ import com.klzw.common.websocket.domain.MessageHistory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -30,4 +31,10 @@ public interface MessageHistoryRepository extends MongoRepository<MessageHistory
     void deleteByExpireTimeBefore(LocalDateTime expireTime);
     
     long countByReceiverAndReadTimeIsNull(String receiver);
+    
+    @Query(value = "{'receiver': ?0, 'readTime': null, 'messageType': {$ne: 'chat_message'}}", count = true)
+    Long countUnreadNonChatMessages(String receiver);
+    
+    @Query("{'$or': [{'sender': ?0, 'receiver': ?1}, {'sender': ?1, 'receiver': ?0}]}")
+    Page<MessageHistory> findPrivateMessages(String userId, String contactId, Pageable pageable);
 }

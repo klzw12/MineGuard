@@ -257,14 +257,16 @@
 	async function loadRoleList() {
 		try {
 			const roles = await getAllRoles()
-			if (roles) {
+			if (roles && Array.isArray(roles)) {
 				roleList.value = roles
 			}
 		} catch (e) {
 		}
 	}
 	
-	function previewImage(url: string) {
+	function previewImage(url: string | null | undefined) {
+		if (!url) return
+		
 		uni.previewImage({
 			urls: [url],
 			current: url
@@ -277,8 +279,11 @@
 			sizeType: ['compressed'],
 			sourceType: ['album', 'camera'],
 			success: (res) => {
-				frontFilePath.value = res.tempFilePaths[0]
-				frontPreview.value = res.tempFilePaths[0]
+				const tempFile = res.tempFilePaths[0]
+				if (tempFile) {
+					frontFilePath.value = tempFile
+					frontPreview.value = tempFile
+				}
 			}
 		})
 	}
@@ -289,8 +294,11 @@
 			sizeType: ['compressed'],
 			sourceType: ['album', 'camera'],
 			success: (res) => {
-				backFilePath.value = res.tempFilePaths[0]
-				backPreview.value = res.tempFilePaths[0]
+				const tempFile = res.tempFilePaths[0]
+				if (tempFile) {
+					backFilePath.value = tempFile
+					backPreview.value = tempFile
+				}
 			}
 		})
 	}
@@ -301,8 +309,11 @@
 			sizeType: ['compressed'],
 			sourceType: ['album', 'camera'],
 			success: (res) => {
-				certFilePath.value = res.tempFilePaths[0]
-				certPreview.value = res.tempFilePaths[0]
+				const tempFile = res.tempFilePaths[0]
+				if (tempFile) {
+					certFilePath.value = tempFile
+					certPreview.value = tempFile
+				}
 			}
 		})
 	}
@@ -371,7 +382,7 @@
 				}, 500)
 			}
 		} catch (e: any) {
-			toast.error(e.message || '提交失败')
+			toast.error(e?.message || '提交失败')
 		} finally {
 			submitting.value = false
 		}
@@ -421,25 +432,26 @@
 				certData.repairCertBase64 = certBase64
 			}
 			
-			let result = false
-			if (selectedCertType.value === 'driver') {
-				result = await uploadDriverCert(certData) || false
-			} else if (selectedCertType.value === 'safety_officer') {
-				result = await uploadSafetyOfficerCert(certData) || false
-			} else if (selectedCertType.value === 'repairman') {
-				result = await uploadRepairmanCert(certData) || false
-			}
-			
-			if (result) {
-				toast.success('资格认证提交成功')
-				await userStore.fetchCurrentUser()
-				certPreview.value = ''
-				certFilePath.value = ''
-				certNumber.value = ''
-				selectedCertType.value = ''
-			}
+			let result = null
+if (selectedCertType.value === 'driver') {
+	result = await uploadDriverCert(certData)
+} else if (selectedCertType.value === 'safety_officer') {
+	result = await uploadSafetyOfficerCert(certData)
+} else if (selectedCertType.value === 'repairman') {
+	result = await uploadRepairmanCert(certData)
+}
+
+if (result) {
+	toast.success('资格认证提交成功')
+	// 直接使用后端返回的 UserVO 更新本地缓存
+	userStore.setUserInfo(result)
+	certPreview.value = ''
+	certFilePath.value = ''
+	certNumber.value = ''
+	selectedCertType.value = ''
+}
 		} catch (e: any) {
-			toast.error(e.message || '提交失败')
+			toast.error(e?.message || '提交失败')
 		} finally {
 			submitting.value = false
 		}

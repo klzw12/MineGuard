@@ -1,15 +1,16 @@
 package com.klzw.service.user.service.impl;
 
 import com.klzw.common.core.client.DispatchClient;
-import com.klzw.service.user.config.AttendanceProperties;
+import com.klzw.service.user.properties.AttendanceProperties;
 import com.klzw.service.user.dto.CheckInDTO;
 import com.klzw.service.user.dto.CheckOutDTO;
-import com.klzw.service.user.entity.Driver;
 import com.klzw.service.user.entity.User;
 import com.klzw.service.user.entity.UserAttendance;
 import com.klzw.service.user.enums.AttendanceStatusEnum;
 import com.klzw.service.user.exception.UserException;
 import com.klzw.service.user.constant.UserResultCode;
+import com.klzw.common.core.exception.BaseException;
+import com.klzw.common.core.enums.ResultCodeEnum;
 import com.klzw.service.user.mapper.DriverMapper;
 import com.klzw.service.user.mapper.UserAttendanceMapper;
 import com.klzw.service.user.mapper.UserMapper;
@@ -140,6 +141,8 @@ public class AttendanceServiceImpl implements AttendanceService {
                 attendance.setEarlyLeaveMinutes((int) ChronoUnit.MINUTES.between(now, workEnd));
                 if (attendance.getStatus() == AttendanceStatusEnum.NORMAL.getValue()) {
                     attendance.setStatus(AttendanceStatusEnum.EARLY_LEAVE.getValue());
+                } else if (attendance.getStatus() == AttendanceStatusEnum.LATE.getValue()) {
+                    attendance.setStatus(AttendanceStatusEnum.LATE_AND_EARLY_LEAVE.getValue());
                 }
             }
 
@@ -190,9 +193,9 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         int shouldAttendanceDays = calculateWorkDays(startDate, endDate);
 
-        Integer actualAttendanceDays = attendanceMapper.countAttendanceDays(userId, startDate, endDate);
-        if (actualAttendanceDays == null) {
-            actualAttendanceDays = 0;
+        Integer normalDays = attendanceMapper.countNormalDays(userId, startDate, endDate);
+        if (normalDays == null) {
+            normalDays = 0;
         }
 
         Integer lateTimes = attendanceMapper.countLateTimes(userId, startDate, endDate);
@@ -205,14 +208,20 @@ public class AttendanceServiceImpl implements AttendanceService {
             earlyLeaveTimes = 0;
         }
 
-        int absentDays = shouldAttendanceDays - actualAttendanceDays;
-        if (absentDays < 0) {
-            absentDays = 0;
+        Integer lateAndEarlyLeaveTimes = attendanceMapper.countLateAndEarlyLeaveDays(userId, startDate, endDate);
+        if (lateAndEarlyLeaveTimes == null) {
+            lateAndEarlyLeaveTimes = 0;
         }
 
-        int normalDays = actualAttendanceDays - lateTimes - earlyLeaveTimes;
-        if (normalDays < 0) {
-            normalDays = 0;
+        Integer leaveDays = attendanceMapper.countLeaveDays(userId, startDate, endDate);
+        if (leaveDays == null) {
+            leaveDays = 0;
+        }
+
+        int actualAttendanceDays = normalDays + lateTimes + earlyLeaveTimes + lateAndEarlyLeaveTimes;
+        int absentDays = shouldAttendanceDays - actualAttendanceDays - leaveDays;
+        if (absentDays < 0) {
+            absentDays = 0;
         }
 
         double attendanceRate = shouldAttendanceDays > 0 
@@ -228,9 +237,10 @@ public class AttendanceServiceImpl implements AttendanceService {
         statistics.setShouldAttendanceDays(shouldAttendanceDays);
         statistics.setActualAttendanceDays(actualAttendanceDays);
         statistics.setNormalDays(normalDays);
-        statistics.setLateTimes(lateTimes);
-        statistics.setEarlyLeaveTimes(earlyLeaveTimes);
+        statistics.setLateTimes(lateTimes + lateAndEarlyLeaveTimes);
+        statistics.setEarlyLeaveTimes(earlyLeaveTimes + lateAndEarlyLeaveTimes);
         statistics.setAbsentDays(absentDays);
+        statistics.setLeaveDays(leaveDays);
         statistics.setAttendanceRate(Math.round(attendanceRate * 100.0) / 100.0);
 
         return statistics;
@@ -342,7 +352,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         }
         
         if (attendance.getStatus() != AttendanceStatusEnum.LEAVE.getValue()) {
-            throw new UserException(UserResultCode.PARAM_ERROR, "该记录不是请假记录");
+            throw new BaseException(ResultCodeEnum.PARAM_ERROR.getCode(), "该记录不是请假记录");
         }
         
         attendance.setStatus(AttendanceStatusEnum.ABSENT.getValue());

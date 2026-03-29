@@ -36,5 +36,7 @@ public interface StatisticsService {
     
     FaultStatisticsVO getFaultStatistics(StatisticsQueryDTO queryDTO);
     
+    FaultStatisticsVO getFaultOverallStatistics(StatisticsQueryDTO queryDTO);
+    
     void calculateFaultStatistics(Long vehicleId, String date);
 }

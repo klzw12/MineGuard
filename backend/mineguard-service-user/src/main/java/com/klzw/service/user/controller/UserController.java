@@ -1,18 +1,15 @@
 package com.klzw.service.user.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.klzw.common.core.result.Result;
 import com.klzw.service.user.dto.PasswordUpdateDTO;
 import com.klzw.service.user.dto.UserUpdateDTO;
-import com.klzw.service.user.dto.AdminCreateUserDTO;
 import com.klzw.service.user.dto.UpdatePhoneDTO;
 import com.klzw.service.user.entity.Role;
 import com.klzw.service.user.service.UserService;
-import com.klzw.service.user.service.sms.SmsService;
 import com.klzw.service.user.vo.IdCardVO;
 import com.klzw.service.user.vo.UserVO;
 import com.klzw.common.web.resolver.CurrentUser;
-import com.klzw.common.file.impl.FileUploadServiceImpl;
-import com.klzw.common.file.enums.FileBusinessTypeEnum;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -27,8 +24,6 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController {
 
     private final UserService userService;
-    private final FileUploadServiceImpl fileUploadService;
-    private final SmsService smsService;
 
     @Operation(summary = "获取当前用户信息")
     @GetMapping("/current")
@@ -61,11 +56,7 @@ public class UserController {
     @Operation(summary = "更新手机号")
     @PutMapping("/phone")
     public Result<UserVO> updatePhone(@CurrentUser Long userId, @Valid @RequestBody UpdatePhoneDTO dto) {
-        boolean smsVerified = smsService.verifySmsCode(dto.getNewPhone(), dto.getSmsCode());
-        if (!smsVerified) {
-            return Result.fail(400, "短信验证码错误或已过期");
-        }
-        UserVO userVO = userService.updatePhone(userId, dto.getNewPhone());
+        UserVO userVO = userService.updatePhone(userId, dto.getNewPhone(), dto.getSmsCode());
         return Result.success("手机号更新成功", userVO);
     }
 
@@ -86,13 +77,8 @@ public class UserController {
     @Operation(summary = "上传用户头像")
     @PostMapping("/avatar")
     public Result<UserVO> uploadAvatar(@CurrentUser Long userId, @RequestParam("file") MultipartFile file) {
-        try {
-            String avatarPath = fileUploadService.upload(file, FileBusinessTypeEnum.USER_AVATAR, String.valueOf(userId));
-            UserVO userVO = userService.updateAvatar(userId, avatarPath);
-            return Result.success("头像上传成功", userVO);
-        } catch (Exception e) {
-            return Result.fail(500, "头像上传失败：" + e.getMessage());
-        }
+        UserVO userVO = userService.uploadAvatar(userId, file);
+        return Result.success("头像上传成功", userVO);
     }
     
     @Operation(summary = "获取头像签名URL")
@@ -115,32 +101,21 @@ public class UserController {
         java.util.List<UserVO> users = userService.getUsersByRoleCode(roleCode);
         return Result.success(users);
     }
-
-    @Operation(summary = "管理员创建用户")
-    @PostMapping("/admin/create")
-    public Result<String> adminCreateUser(@Valid @RequestBody AdminCreateUserDTO dto) {
-        String userId = userService.adminCreateUser(dto);
-        return Result.success("用户创建成功", userId);
+    
+    @Operation(summary = "搜索联系人")
+    @GetMapping("/contacts/search")
+    public Result<Page<UserVO>> searchContacts(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String roleCode,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        Page<UserVO> page = userService.searchContacts(keyword, roleCode, pageNum, pageSize);
+        return Result.success(page);
     }
 
-    @Operation(summary = "分配角色（管理员）")
-    @PutMapping("/{id}/role")
-    public Result<Void> assignRole(@PathVariable Long id, @RequestParam Long roleId) {
-        userService.assignRole(id, roleId);
-        return Result.success("角色分配成功", null);
-    }
-
-    @Operation(summary = "禁用用户（管理员）")
-    @PutMapping("/{id}/disable")
-    public Result<Void> disableUser(@PathVariable Long id) {
-        userService.disableUser(id);
-        return Result.success("用户已禁用", null);
-    }
-
-    @Operation(summary = "启用用户（管理员）")
-    @PutMapping("/{id}/enable")
-    public Result<Void> enableUser(@PathVariable Long id) {
-        userService.enableUser(id);
-        return Result.success("用户已启用", null);
+    @Operation(summary = "检查用户是否存在")
+    @GetMapping("/exists/{id}")
+    public Result<Boolean> existsUser(@PathVariable Long id) {
+        return Result.success(userService.existsUser(id));
     }
 }

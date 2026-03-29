@@ -24,7 +24,6 @@ public enum UserResultCode {
      * 用户通用错误
      */
     USER_ERROR(2000, "用户操作失败"),
-    PARAM_ERROR(2001, "参数错误"),
 
     /**
      * 用户基本信息相关错误
@@ -42,8 +41,6 @@ public enum UserResultCode {
     PASSWORD_ERROR(2010, "密码错误"),
     PASSWORD_INVALID(2011, "密码无效"),
     OLD_PASSWORD_ERROR(2012, "原密码错误"),
-    TOKEN_ERROR(2013, "Token错误"),
-    TOKEN_EXPIRED(2014, "Token已过期"),
     SMS_SEND_FAILED(2015, "短信发送失败"),
     SMS_VERIFY_FAILED(2016, "短信验证失败"),
 

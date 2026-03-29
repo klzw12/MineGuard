@@ -68,4 +68,13 @@ public interface UserAttendanceMapper extends BaseMapper<UserAttendance> {
      */
     @Select("SELECT COUNT(*) FROM user_attendance WHERE user_id = #{userId} AND attendance_date BETWEEN #{startDate} AND #{endDate} AND status = 3 AND deleted = 0")
     Integer countEarlyLeaveTimes(@Param("userId") Long userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Select("SELECT COUNT(*) FROM user_attendance WHERE user_id = #{userId} AND attendance_date BETWEEN #{startDate} AND #{endDate} AND status = 1 AND deleted = 0")
+    Integer countNormalDays(@Param("userId") Long userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Select("SELECT COUNT(*) FROM user_attendance WHERE user_id = #{userId} AND attendance_date BETWEEN #{startDate} AND #{endDate} AND status = 5 AND deleted = 0")
+    Integer countLeaveDays(@Param("userId") Long userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Select("SELECT COUNT(*) FROM user_attendance WHERE user_id = #{userId} AND attendance_date BETWEEN #{startDate} AND #{endDate} AND status IN (2, 6) AND deleted = 0")
+    Integer countLateAndEarlyLeaveDays(@Param("userId") Long userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }

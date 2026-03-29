@@ -40,22 +40,22 @@ public class QualificationController {
 
     @Operation(summary = "上传驾驶证（司机资格认证）")
     @PostMapping("/cert/driver")
-    public Result<Boolean> uploadDriverCert(@Valid @RequestBody CertVerifyDTO dto) {
-        boolean result = qualificationService.uploadDriverCert(dto);
+    public Result<com.klzw.service.user.vo.UserVO> uploadDriverCert(@Valid @RequestBody CertVerifyDTO dto) {
+        com.klzw.service.user.vo.UserVO result = qualificationService.uploadDriverCert(dto);
         return Result.success("驾驶证上传成功", result);
     }
 
     @Operation(summary = "上传应急救援证（安全员资格认证）")
     @PostMapping("/cert/safety-officer")
-    public Result<Boolean> uploadSafetyOfficerCert(@Valid @RequestBody CertVerifyDTO dto) {
-        boolean result = qualificationService.uploadSafetyOfficerCert(dto);
+    public Result<com.klzw.service.user.vo.UserVO> uploadSafetyOfficerCert(@Valid @RequestBody CertVerifyDTO dto) {
+        com.klzw.service.user.vo.UserVO result = qualificationService.uploadSafetyOfficerCert(dto);
         return Result.success("应急救援证上传成功", result);
     }
 
     @Operation(summary = "上传维修资格证（维修员资格认证）")
     @PostMapping("/cert/repairman")
-    public Result<Boolean> uploadRepairmanCert(@Valid @RequestBody CertVerifyDTO dto) {
-        boolean result = qualificationService.uploadRepairmanCert(dto);
+    public Result<com.klzw.service.user.vo.UserVO> uploadRepairmanCert(@Valid @RequestBody CertVerifyDTO dto) {
+        com.klzw.service.user.vo.UserVO result = qualificationService.uploadRepairmanCert(dto);
         return Result.success("维修资格证上传成功", result);
     }
 }

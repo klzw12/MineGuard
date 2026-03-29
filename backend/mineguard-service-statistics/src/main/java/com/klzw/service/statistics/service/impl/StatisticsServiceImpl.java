@@ -566,6 +566,53 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
     
     @Override
+    public FaultStatisticsVO getFaultOverallStatistics(StatisticsQueryDTO queryDTO) {
+        LocalDate startDate = queryDTO.getStartDate() != null ? queryDTO.getStartDate() : LocalDate.now().minusDays(30);
+        LocalDate endDate = queryDTO.getEndDate() != null ? queryDTO.getEndDate() : LocalDate.now();
+        
+        LambdaQueryWrapper<FaultStatistics> wrapper = new LambdaQueryWrapper<>();
+        wrapper.ge(FaultStatistics::getStatisticsDate, startDate)
+               .le(FaultStatistics::getStatisticsDate, endDate);
+        
+        List<FaultStatistics> list = faultStatisticsMapper.selectList(wrapper);
+        
+        if (list == null || list.isEmpty()) {
+            return new FaultStatisticsVO();
+        }
+        
+        int totalFaultCount = 0;
+        int totalMinorFault = 0;
+        int totalMajorFault = 0;
+        int totalCriticalFault = 0;
+        BigDecimal totalCost = BigDecimal.ZERO;
+        int totalRepaired = 0;
+        int totalPending = 0;
+        
+        for (FaultStatistics stat : list) {
+            if (stat.getFaultCount() != null) totalFaultCount += stat.getFaultCount();
+            if (stat.getMinorFaultCount() != null) totalMinorFault += stat.getMinorFaultCount();
+            if (stat.getMajorFaultCount() != null) totalMajorFault += stat.getMajorFaultCount();
+            if (stat.getCriticalFaultCount() != null) totalCriticalFault += stat.getCriticalFaultCount();
+            if (stat.getTotalRepairCost() != null) totalCost = totalCost.add(stat.getTotalRepairCost());
+            if (stat.getRepairedCount() != null) totalRepaired += stat.getRepairedCount();
+            if (stat.getPendingCount() != null) totalPending += stat.getPendingCount();
+        }
+        
+        FaultStatisticsVO vo = new FaultStatisticsVO();
+        vo.setTotalFaultCount(totalFaultCount);
+        vo.setFaultCount(totalFaultCount);
+        vo.setMinorFaultCount(totalMinorFault);
+        vo.setMajorFaultCount(totalMajorFault);
+        vo.setCriticalFaultCount(totalCriticalFault);
+        vo.setTotalCost(totalCost);
+        vo.setTotalRepairCost(totalCost);
+        vo.setRepairedCount(totalRepaired);
+        vo.setPendingCount(totalPending);
+        
+        return vo;
+    }
+
+    @Override
     public void calculateFaultStatistics(Long vehicleId, String date) {
         LocalDate statisticsDate = LocalDate.parse(date);
         

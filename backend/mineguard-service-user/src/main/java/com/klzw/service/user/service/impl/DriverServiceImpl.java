@@ -1,6 +1,7 @@
 package com.klzw.service.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.klzw.common.auth.enums.RoleEnum;
 import com.klzw.common.core.client.VehicleClient;
 import com.klzw.common.core.domain.dto.VehicleInfo;
 import com.klzw.service.user.entity.Driver;
@@ -91,7 +92,7 @@ public class DriverServiceImpl implements DriverService {
         
         List<Driver> list = driverMapper.selectList(wrapper);
         return list.stream()
-            .filter(d -> hasRole(d.getUserId(), "ROLE_DRIVER"))
+            .filter(d -> hasRole(d.getUserId(), RoleEnum.DRIVER.getValue()))
             .map(this::convertToVO)
             .collect(Collectors.toList());
     }
@@ -105,7 +106,7 @@ public class DriverServiceImpl implements DriverService {
         
         List<Driver> list = driverMapper.selectList(wrapper);
         return list.stream()
-            .filter(d -> hasRole(d.getUserId(), "ROLE_REPAIRMAN"))
+            .filter(d -> hasRole(d.getUserId(), RoleEnum.REPAIRMAN.getValue()))
             .map(this::convertToVO)
             .collect(Collectors.toList());
     }
@@ -119,7 +120,7 @@ public class DriverServiceImpl implements DriverService {
         
         List<Driver> list = driverMapper.selectList(wrapper);
         return list.stream()
-            .filter(d -> hasRole(d.getUserId(), "ROLE_SAFETY_OFFICER"))
+            .filter(d -> hasRole(d.getUserId(), RoleEnum.SAFETY_OFFICER.getValue()))
             .map(this::convertToVO)
             .collect(Collectors.toList());
     }
@@ -260,6 +261,15 @@ public class DriverServiceImpl implements DriverService {
     public void incrementVehicleUseCount(Long driverId, Long vehicleId) {
         driverVehicleMapper.incrementUseCount(driverId, vehicleId);
         log.info("增加车辆使用次数：司机ID={}, 车辆ID={}", driverId, vehicleId);
+    }
+
+    @Override
+    public List<Long> getDriverIds() {
+        return driverMapper.selectList(
+            new LambdaQueryWrapper<Driver>()
+                .eq(Driver::getDeleted, 0)
+                .eq(Driver::getStatus, 1)
+        ).stream().map(Driver::getId).collect(Collectors.toList());
     }
 
     private DriverVO convertToVO(Driver entity) {

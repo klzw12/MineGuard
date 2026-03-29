@@ -18,6 +18,7 @@ public class StatisticsController {
 
     private final StatisticsService statisticsService;
 
+
     @GetMapping("/trip")
     public Result<List<TripStatisticsVO>> getTripStatistics(StatisticsQueryDTO queryDTO) {
         log.debug("获取行程统计数据：{}", queryDTO);
@@ -89,6 +90,14 @@ public class StatisticsController {
     public Result<FaultStatisticsVO> getFaultStatistics(StatisticsQueryDTO queryDTO) {
         log.debug("获取故障统计数据：{}", queryDTO);
         FaultStatisticsVO vo = statisticsService.getFaultStatistics(queryDTO);
+        return Result.success(vo);
+    }
+    
+    @GetMapping("/fault/overall")
+    public Result<FaultStatisticsVO> getFaultOverallStatistics(StatisticsQueryDTO queryDTO) {
+        log.debug("获取故障总体统计数据：{}", queryDTO);
+        FaultStatisticsVO vo = statisticsService.getFaultOverallStatistics(queryDTO);
+        log.debug("返回故障总体统计数据：{}", vo);
         return Result.success(vo);
     }
     

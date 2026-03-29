@@ -66,13 +66,15 @@ async function refreshToken(): Promise<string | null> {
   isRefreshing = true
 
   try {
+    const token = getToken()
     const response = await new Promise<{ code: number, message: string, data: { token: string, refreshToken: string } }>((resolve, reject) => {
       uni.request({
         url: BASE_URL + '/api/auth/refresh',
         method: 'POST',
         data: { refreshToken },
         header: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         success: (res) => resolve(res.data as { code: number, message: string, data: { token: string, refreshToken: string } }),
         fail: (err) => reject(err)
@@ -131,8 +133,8 @@ function request<T = any>(options: RequestOptions): Promise<T | null> {
 
         const isSuccess = response.code === 200 || response.code === undefined
         
-        if (isSuccess && response.data) {
-          if (typeof response.data === 'object' && 'token' in response.data) {
+        if (isSuccess) {
+          if (response.data && typeof response.data === 'object' && 'token' in response.data) {
             const dataWithToken = response.data as { token: string, refreshToken?: string, expiresIn?: number }
             if (dataWithToken.refreshToken) {
               setRefreshToken(dataWithToken.refreshToken)
@@ -143,8 +145,8 @@ function request<T = any>(options: RequestOptions): Promise<T | null> {
           if (url !== '/api/auth/refresh' && url !== '/api/auth/login') {
             const newToken = await refreshToken()
             if (newToken) {
-              header['Authorization'] = `Bearer ${newToken}`
-              request<T>({ url, method, data, header, showLoading: false, showError }).then(resolve).catch(reject)
+              const newHeader = { ...header, Authorization: `Bearer ${newToken}` }
+              request<T>({ url, method, data, header: newHeader, showLoading: false, showError }).then(resolve).catch(reject)
               return
             }
           }

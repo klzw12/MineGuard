@@ -34,13 +34,35 @@ public class AuthInterceptor implements HandlerInterceptor {
 
         Long userId = UserContext.getUserId();
         if (userId == null) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"code\":401,\"message\":\"用户未登录\"}");
-            return false;
+            // 尝试从请求头中读取用户信息（网关模式）
+            String gatewayUserId = request.getHeader("X-User-Id");
+            if (gatewayUserId != null) {
+                String username = request.getHeader("X-Username");
+                String roles = request.getHeader("X-User-Roles");
+                
+                // 设置用户信息到UserContext
+                try {
+                    UserContext.setUserId(Long.parseLong(gatewayUserId));
+                } catch (NumberFormatException e) {
+                    UserContext.setUserId((long) gatewayUserId.hashCode());
+                }
+                UserContext.setUserIdString(gatewayUserId);
+                UserContext.setUsername(username);
+                
+                if (org.springframework.util.StringUtils.hasText(roles)) {
+                    UserContext.setRoles(java.util.Arrays.asList(roles.split(",")));
+                }
+                
+                log.debug("Gateway mode: userId={}, username={}", gatewayUserId, username);
+            } else {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"code\":401,\"message\":\"用户未登录\"}");
+                return false;
+            }
         }
 
-        log.info("AuthInterceptor preHandle: userId={}, url={}", userId, request.getRequestURL());
+        log.info("AuthInterceptor preHandle: userId={}, url={}", UserContext.getUserId(), request.getRequestURL());
         return true;
     }
     

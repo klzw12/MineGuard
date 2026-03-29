@@ -5,6 +5,7 @@ import com.klzw.service.user.entity.User;
 import com.klzw.service.user.mapper.RoleChangeApplyMapper;
 import com.klzw.service.user.mapper.UserMapper;
 import com.klzw.service.user.service.RoleChangeApplyService;
+import com.klzw.service.user.service.UserService;
 import com.klzw.service.user.vo.RoleChangeApplyVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,7 @@ public class RoleChangeApplyServiceImpl implements RoleChangeApplyService {
 
     private final RoleChangeApplyMapper roleChangeApplyMapper;
     private final UserMapper userMapper;
+    private final UserService userService;
 
     @Override
     @Transactional
@@ -99,6 +101,8 @@ public class RoleChangeApplyServiceImpl implements RoleChangeApplyService {
                 user.setRoleId(apply.getApplyRoleId());
                 user.setUpdateTime(LocalDateTime.now());
                 userMapper.updateById(user);
+                // 清除用户缓存
+                userService.clearUserCache(user.getId());
                 log.info("用户角色已更新，用户ID：{}，新角色：{}", user.getId(), apply.getApplyRoleName());
             }
         }

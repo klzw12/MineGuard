@@ -4,6 +4,7 @@ import com.klzw.common.websocket.properties.WebSocketProperties;
 import com.klzw.common.websocket.domain.Message;
 import com.klzw.common.websocket.domain.MessageHistory;
 import com.klzw.common.websocket.enums.MessageStatusEnum;
+import com.klzw.common.websocket.enums.MessageTypeEnum;
 import com.klzw.common.websocket.repository.MessageHistoryRepository;
 import com.klzw.common.websocket.service.MessageHistoryService;
 import lombok.extern.slf4j.Slf4j;
@@ -138,6 +139,12 @@ public class MessageHistoryServiceImpl implements MessageHistoryService {
     }
 
     @Override
+    public long getUnreadNotificationCount(String receiver) {
+        Long count = messageHistoryRepository.countUnreadNonChatMessages(receiver);
+        return count != null ? count : 0L;
+    }
+
+    @Override
     public MessageHistory saveOfflineMessage(String userId, Message message) {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expireTime = now.plusDays(webSocketProperties.getOfflineMessageExpireDays());
@@ -179,5 +186,27 @@ public class MessageHistoryServiceImpl implements MessageHistoryService {
             messageHistoryRepository.save(history);
             log.info("标记离线消息已发送: messageId={}", messageId);
         }
+    }
+
+    @Override
+    public Page<MessageHistory> getPrivateMessages(String userId, String contactId, Pageable pageable) {
+        return messageHistoryRepository.findPrivateMessages(userId, contactId, pageable);
+    }
+
+    @Override
+    public void markAllMessagesAsRead(String userId) {
+        List<MessageHistory> unreadMessages = messageHistoryRepository.findByReceiverAndStatus(
+            userId, MessageStatusEnum.DELIVERED.getCode());
+        LocalDateTime now = LocalDateTime.now();
+        for (MessageHistory history : unreadMessages) {
+            if (!MessageTypeEnum.CHAT_MESSAGE.getCode().equals(history.getMessageType())) {
+                history.setStatus(MessageStatusEnum.READ.getCode());
+                history.setReadTime(now);
+                messageHistoryRepository.save(history);
+            }
+        }
+        log.info("标记所有通知消息已读: userId={}, count={}", userId, unreadMessages.stream()
+            .filter(m -> !MessageTypeEnum.CHAT_MESSAGE.getCode().equals(m.getMessageType()))
+            .count());
     }
 }

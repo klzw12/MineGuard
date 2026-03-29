@@ -1,6 +1,6 @@
 spring:
   application:
-    name: mineguard-service-statistics
+    name: statistics-service
 
 server:
   port: 8086
