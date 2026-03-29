@@ -72,17 +72,14 @@
 								<text class="status-text">{{ user.status === 1 ? '启用' : '禁用' }}</text>
 							</view>
 							<view class="action-btns">
-								<view class="action-btn" @click="showRoleModal(user)">
-									<text>分配角色</text>
-								</view>
-								<view 
-									class="action-btn" 
-									:class="user.status === 1 ? 'danger' : 'success'"
-									@click="toggleUserStatus(user)"
-								>
-									<text>{{ user.status === 1 ? '禁用' : '启用' }}</text>
-								</view>
-							</view>
+					<view 
+						class="action-btn" 
+						:class="user.status === 1 ? 'danger' : 'success'"
+						@click="toggleUserStatus(user)"
+					>
+						<text>{{ user.status === 1 ? '禁用' : '启用' }}</text>
+					</view>
+				</view>
 						</view>
 					</view>
 				</view>
@@ -99,48 +96,24 @@
 			</view>
 			
 			<view class="action-buttons">
-				<view class="primary-btn" @click="refreshList">
+				<view class="primary-btn" @click="createUser">
+					<text>创建用户</text>
+				</view>
+				<view class="primary-btn secondary" @click="refreshList">
 					<text>刷新列表</text>
 				</view>
 			</view>
 		</view>
 		
-		<view v-if="roleModalVisible" class="modal-overlay" @click="closeRoleModal">
-			<view class="modal-content" @click.stop>
-				<text class="modal-title">分配角色</text>
-				<text class="modal-subtitle">用户：{{ selectedUser?.username }}</text>
-				
-				<view class="role-list">
-					<view 
-						class="role-item" 
-						v-for="role in roleList" 
-						:key="role.id"
-						:class="{ selected: selectedRoleIds.includes(role.id) }"
-						@click="toggleRole(role.id)"
-					>
-						<text class="role-name">{{ role.roleName }}</text>
-						<text class="role-code">{{ role.roleCode }}</text>
-					</view>
-				</view>
-				
-				<view class="modal-actions">
-					<view class="modal-btn cancel" @click="closeRoleModal">
-						<text>取消</text>
-					</view>
-					<view class="modal-btn confirm" @click="confirmAssignRoles">
-						<text>确认</text>
-					</view>
-				</view>
-			</view>
-		</view>
+		
 	</view>
 </template>
 
 <script setup lang="uts">
 	import { ref, computed, onMounted } from 'vue'
 	import AdminSidebar from '../../../components/AdminSidebar.uvue'
-	import { pageUsers, disableUser, enableUser, assignRole, getAllRoles } from '@/api/user.uts'
-	import type { UserVO, RoleVO, PageResult } from '@/types/user.uts'
+	import { pageUsers, disableUser, enableUser } from '@/api/user.uts'
+	import type { UserVO, PageResult } from '@/types/user.uts'
 	
 	const loading = ref(false)
 	const searchKeyword = ref('')
@@ -149,11 +122,6 @@
 	const pageSize = ref(10)
 	const total = ref(0)
 	const userList = ref<UserVO[]>([])
-	
-	const roleModalVisible = ref(false)
-	const selectedUser = ref<UserVO | null>(null)
-	const roleList = ref<RoleVO[]>([])
-	const selectedRoleIds = ref<string[]>([])
 	
 	const totalPages = computed(() => {
 		return Math.ceil(total.value / pageSize.value) || 1
@@ -165,7 +133,7 @@
 			const result: PageResult<UserVO> = await pageUsers({
 				pageNum: pageNum.value,
 				pageSize: pageSize.value,
-				username: searchKeyword.value || undefined,
+				keyword: searchKeyword.value || undefined,
 				status: statusFilter.value ?? undefined
 			})
 			userList.value = result.records
@@ -178,14 +146,6 @@
 			})
 		} finally {
 			loading.value = false
-		}
-	}
-	
-	async function loadRoles() {
-		try {
-			roleList.value = await getAllRoles()
-		} catch (e) {
-			console.error('加载角色列表失败', e)
 		}
 	}
 	
@@ -245,66 +205,15 @@
 		}
 	}
 	
-	async function showRoleModal(user: UserVO) {
-		selectedUser.value = user
-		roleModalVisible.value = true
-		
-		if (roleList.value.length === 0) {
-			await loadRoles()
-		}
-		
-		if (user.roleId) {
-			selectedRoleIds.value = [user.roleId]
-		} else {
-			selectedRoleIds.value = []
-		}
-	}
-	
-	function closeRoleModal() {
-		roleModalVisible.value = false
-		selectedUser.value = null
-		selectedRoleIds.value = []
-	}
-	
-	function toggleRole(roleId: string) {
-		if (selectedRoleIds.value.includes(roleId)) {
-			selectedRoleIds.value = []
-		} else {
-			selectedRoleIds.value = [roleId]
-		}
-	}
-	
-	async function confirmAssignRoles() {
-		if (!selectedUser.value || selectedRoleIds.value.length === 0) {
-			uni.showToast({
-				title: '请选择角色',
-				icon: 'none',
-				position: 'bottom'
-			})
-			return
-		}
-		
-		try {
-			await assignRole(selectedUser.value.id, selectedRoleIds.value[0])
-			uni.showToast({
-				title: '分配成功',
-				icon: 'success',
-				position: 'bottom'
-			})
-			closeRoleModal()
-			loadUsers()
-		} catch (e: any) {
-			uni.showToast({
-				title: e.message || '分配失败',
-				icon: 'none',
-				position: 'bottom'
-			})
-		}
-	}
-	
 	onMounted(() => {
 		loadUsers()
 	})
+
+	function createUser() {
+		uni.navigateTo({
+			url: '/pages/admin/create-user/index'
+		})
+	}
 </script>
 
 <style lang="scss">
@@ -496,7 +405,7 @@
 		background-color: #007AFF;
 		color: #fff;
 		font-size: 22rpx;
-		border-radius: 10rpx;
+		border-radius: 15rpx;
 	}
 	
 	.action-btn.danger {
@@ -544,112 +453,23 @@
 	}
 	
 	.primary-btn {
-		flex: 1;
-		padding: 25rpx;
-		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
-		color: #fff;
-		font-size: 28rpx;
-		font-weight: bold;
-		border-radius: 15rpx;
-		text-align: center;
-		box-shadow: 0 4rpx 20rpx rgba(0, 122, 255, 0.3);
-	}
+				flex: 1;
+				padding: 25rpx;
+				background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+				color: #fff;
+				font-size: 28rpx;
+				font-weight: bold;
+				border-radius: 15rpx;
+				text-align: center;
+				box-shadow: 0 4rpx 20rpx rgba(0, 122, 255, 0.3);
+			}
+			
+			.primary-btn.secondary {
+				background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+				box-shadow: 0 4rpx 20rpx rgba(108, 117, 125, 0.3);
+			}
 	
-	.modal-overlay {
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background-color: rgba(0, 0, 0, 0.5);
-		display: flex;
-		flex-direction: row;
-		justify-content: center;
-		align-items: center;
-		z-index: 1000;
-	}
 	
-	.modal-content {
-		width: 80%;
-		max-width: 600rpx;
-		background-color: #fff;
-		border-radius: 20rpx;
-		padding: 40rpx;
-	}
-	
-	.modal-title {
-		font-size: 32rpx;
-		font-weight: bold;
-		color: #333;
-		margin-bottom: 10rpx;
-		display: block;
-	}
-	
-	.modal-subtitle {
-		font-size: 24rpx;
-		color: #999;
-		margin-bottom: 30rpx;
-		display: block;
-	}
-	
-	.role-list {
-		max-height: 500rpx;
-		overflow-y: auto;
-	}
-	
-	.role-item {
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		align-items: center;
-		padding: 25rpx;
-		margin-bottom: 15rpx;
-		background-color: #f5f5f5;
-		border-radius: 10rpx;
-		border: 2rpx solid transparent;
-	}
-	
-	.role-item.selected {
-		background-color: rgba(0, 122, 255, 0.1);
-		border-color: #007AFF;
-	}
-	
-	.role-name {
-		font-size: 28rpx;
-		color: #333;
-	}
-	
-	.role-code {
-		font-size: 22rpx;
-		color: #999;
-	}
-	
-	.modal-actions {
-		display: flex;
-		flex-direction: row;
-		gap: 20rpx;
-		margin-top: 30rpx;
-	}
-	
-	.modal-btn {
-		flex: 1;
-		height: 80rpx;
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		border-radius: 10rpx;
-		font-size: 28rpx;
-	}
-	
-	.modal-btn.cancel {
-		background-color: #f5f5f5;
-		color: #666;
-	}
-	
-	.modal-btn.confirm {
-		background-color: #007AFF;
-		color: #fff;
-	}
 	
 	@media (max-width: 768px) {
 		.admin-content {

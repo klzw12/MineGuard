@@ -2,47 +2,47 @@ import { http } from '@/utils/request.uts'
 import type { DriverVO, DriverVehicleVO } from '@/types/user'
 
 export function getDriverById(id: number): Promise<DriverVO> {
-  return http.get<DriverVO>(`/api/driver/${id}`)
+  return http.get<DriverVO>(`/user/driver/${id}`)
 }
 
 export function getDriverByUserId(userId: number): Promise<DriverVO> {
-  return http.get<DriverVO>(`/api/driver/user/${userId}`)
+  return http.get<DriverVO>(`/user/driver/user/${userId}`)
 }
 
 export function getDriverList(params: {
   driverName?: string
   status?: number
 }): Promise<DriverVO[]> {
-  return http.get<DriverVO[]>('/api/driver/list', params)
+  return http.get<DriverVO[]>('/user/driver/list', params)
 }
 
 export function updateDriverStatus(driverId: number, status: number): Promise<void> {
-  return http.put<void>(`/api/driver/${driverId}/status`, { status })
+  return http.put<void>(`/user/driver/${driverId}/status`, { status })
 }
 
 export function getAvailableDrivers(): Promise<DriverVO[]> {
-  return http.get<DriverVO[]>('/api/driver/available')
+  return http.get<DriverVO[]>('/user/driver/available')
 }
 
 export function selectBestDriver(params: {
   vehicleId?: number
   scheduledTime?: string
 }): Promise<DriverVO> {
-  return http.post<DriverVO>('/api/driver/best', params)
+  return http.post<DriverVO>('/user/driver/best', params)
 }
 
 export function addCommonVehicle(driverId: number, vehicleId: number): Promise<void> {
-  return http.post<void>(`/api/driver/${driverId}/common-vehicle`, { vehicleId })
+  return http.post<void>(`/user/driver/${driverId}/common-vehicle`, { vehicleId })
 }
 
 export function removeCommonVehicle(driverId: number, vehicleId: number): Promise<void> {
-  return http.delete<void>(`/api/driver/${driverId}/common-vehicle/${vehicleId}`)
+  return http.delete<void>(`/user/driver/${driverId}/common-vehicle/${vehicleId}`)
 }
 
 export function setDefaultVehicle(driverId: number, vehicleId: number): Promise<void> {
-  return http.put<void>(`/api/driver/${driverId}/common-vehicle/${vehicleId}/default`)
+  return http.put<void>(`/user/driver/${driverId}/common-vehicle/${vehicleId}/default`)
 }
 
 export function getCommonVehicles(driverId: number): Promise<DriverVehicleVO[]> {
-  return http.get<DriverVehicleVO[]>(`/api/driver/${driverId}/common-vehicles`)
+  return http.get<DriverVehicleVO[]>(`/user/driver/${driverId}/common-vehicles`)
 }
