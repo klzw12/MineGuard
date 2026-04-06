@@ -145,7 +145,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         try {
-            JWTClaimsSet claims = jwtUtils.parseToken(refreshToken);
+            JWTClaimsSet claims = jwtUtils.parseTokenWithoutExpiration(refreshToken);
             String username = claims.getSubject();
             if (username != null && username.endsWith(":refresh")) {
                 username = username.substring(0, username.length() - 8);

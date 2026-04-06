@@ -1,0 +1,121 @@
+export type PoiSuggestion = {
+  id: string
+  name: string
+  address: string
+  longitude: number
+  latitude: number
+  type: string
+}
+
+export type AMapPoiTip = {
+  id: string
+  name: string
+  district: string
+  address: string
+  adcode: string
+  location: string
+  typecode: string
+}
+
+export type AMapInputTipsResponse = {
+  status: string
+  info: string
+  tips: AMapPoiTip[]
+}
+
+import config from '@/config.js'
+
+const AMAP_KEY = config.amap.webServiceKey
+const AMAP_WEB_API_BASE = 'https://restapi.amap.com/v3'
+
+export function searchLocationSuggestions(keyword: string, city: string = ''): Promise<PoiSuggestion[]> {
+  return new Promise((resolve, reject) => {
+    if (!keyword || keyword.trim() === '') {
+      resolve([])
+      return
+    }
+    
+    const cityParam = city ? `&city=${encodeURIComponent(city)}` : ''
+    const url = `${AMAP_WEB_API_BASE}/assistant/inputtips?key=${AMAP_KEY}&keywords=${encodeURIComponent(keyword)}&datatype=all${cityParam}&output=json`
+    
+    uni.request({
+      url,
+      method: 'GET',
+      dataType: 'json',
+      success: (res) => {
+        if (res.statusCode === 200) {
+          const data = res.data as AMapInputTipsResponse
+          if (data.status === '1' && data.tips) {
+            const suggestions: PoiSuggestion[] = data.tips
+              .filter((tip: AMapPoiTip) => tip.location && tip.location.length > 0)
+              .map((tip: AMapPoiTip) => {
+                const [lon, lat] = tip.location.split(',')
+                return {
+                  id: tip.id || '',
+                  name: tip.name,
+                  address: tip.address || tip.district || '',
+                  longitude: parseFloat(lon),
+                  latitude: parseFloat(lat),
+                  type: tip.typecode || ''
+                }
+              })
+            resolve(suggestions)
+          } else {
+            resolve([])
+          }
+        } else {
+          reject(new Error('网络请求失败'))
+        }
+      },
+      fail: (err) => {
+        console.error('高德地图API请求失败:', err)
+        reject(err)
+      }
+    })
+  })
+}
+
+export function calculateDistance(startLon: number, startLat: number, endLon: number, endLat: number): number {
+  const R = 6371000
+  const lat1Rad = Math.PI * startLat / 180
+  const lon1Rad = Math.PI * startLon / 180
+  const lat2Rad = Math.PI * endLat / 180
+  const lon2Rad = Math.PI * endLon / 180
+  
+  const dLat = lat2Rad - lat1Rad
+  const dLon = lon2Rad - lon1Rad
+  
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  
+  return R * c
+}
+
+export function formatDistance(meters: number): string {
+  if (meters < 1000) {
+    return `${Math.round(meters)}米`
+  } else {
+    return `${(meters / 1000).toFixed(1)}公里`
+  }
+}
+
+export function estimateDuration(distanceMeters: number, avgSpeedKmh: number = 40): number {
+  const distanceKm = distanceMeters / 1000
+  const durationHours = distanceKm / avgSpeedKmh
+  return Math.round(durationHours * 60)
+}
+
+export function formatDuration(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes}分钟`
+  } else {
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    if (mins === 0) {
+      return `${hours}小时`
+    }
+    return `${hours}小时${mins}分钟`
+  }
+}

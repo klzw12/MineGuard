@@ -15,9 +15,9 @@
 			></map>
 			
 			<!-- 事件触发悬浮按钮 -->
-			<view class="event-fab" v-if="isSimulating" @click="showEventSelector">
-				<text class="fab-icon">⚠️</text>
-			</view>
+<view class="event-fab" v-if="isSimulating" @click="showEventSelector">
+	<text class="fab-icon">⚠️</text>
+</view>
 			
 			<!-- 行程信息卡片 -->
 			<view class="trip-info-card" v-if="tripInfo">
@@ -406,57 +406,57 @@ function updateMarkers(startLon: number, startLat: number, endLon: number, endLa
 	}
 	
 	/**
-	 * 显示事件选择器
-	 */
-	function showEventSelector() {
-		uni.showActionSheet({
-			itemList: ['🅿️ 停留（盗泄检测）', '⚡ 超速行驶', '🔧 车辆故障', '🗺️ 路线偏离'],
-			success: (res) => {
-				const eventTypes = ['stay', 'speed_limit', 'vehicle_failure', 'route_deviation']
-				const eventType = eventTypes[res.tapIndex]
-				triggerEvent(eventType)
-			}
-		})
-	}
-	
-	/**
-	 * 触发事件
-	 */
-	function triggerEvent(eventType: string) {
-		if (!simulationController) return
-		
-		// 触发对应的轨迹变化
-		switch (eventType) {
-			case 'stay':
-				simulationController.triggerStay(120)
-				break
-			case 'speed_limit':
-				simulationController.triggerSpeedLimit()
-				break
-			case 'vehicle_failure':
-				simulationController.triggerFailure()
-				break
-			case 'route_deviation':
-				simulationController.triggerRouteDeviation()
-				break
+ * 显示事件选择器
+ */
+function showEventSelector() {
+	uni.showActionSheet({
+		itemList: ['🅿️ 停留（盗泄检测）', '⚡ 超速行驶', '🔧 车辆故障', '🗺️ 路线偏离'],
+		success: (res) => {
+			const eventTypes = ['stay', 'speed_limit', 'vehicle_failure', 'route_deviation']
+			const eventType = eventTypes[res.tapIndex]
+			triggerEvent(eventType)
 		}
-		
-		// 发送事件到后端
-		sendEventToBackend(eventType)
+	})
+}
+
+/**
+ * 触发事件
+ */
+function triggerEvent(eventType: string) {
+	if (!simulationController) return
+	
+	// 触发对应的轨迹变化
+	switch (eventType) {
+		case 'stay':
+			simulationController.triggerStay(120)
+			break
+		case 'speed_limit':
+			simulationController.triggerSpeedLimit()
+			break
+		case 'vehicle_failure':
+			simulationController.triggerFailure()
+			break
+		case 'route_deviation':
+			simulationController.triggerRouteDeviation()
+			break
 	}
 	
-	/**
-	 * 发送事件到后端
-	 */
-	function sendEventToBackend(eventType: string) {
-		// TODO: 通过 WebSocket 或 HTTP 发送事件到后端
-		console.log('发送事件到后端:', eventType)
-		
-		uni.showToast({
-			title: '事件已发送',
-			icon: 'success'
-		})
-	}
+	// 发送事件到后端
+	sendEventToBackend(eventType)
+}
+
+/**
+ * 发送事件到后端
+ */
+function sendEventToBackend(eventType: string) {
+	// TODO: 通过 WebSocket 或 HTTP 发送事件到后端
+	console.log('发送事件到后端:', eventType)
+	
+	uni.showToast({
+		title: '事件已发送',
+		icon: 'success'
+	})
+}
 	
 	
 	

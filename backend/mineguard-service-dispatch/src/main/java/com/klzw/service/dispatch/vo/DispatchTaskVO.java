@@ -1,5 +1,7 @@
 package com.klzw.service.dispatch.vo;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -8,29 +10,42 @@ import java.time.LocalDateTime;
 @Data
 public class DispatchTaskVO {
 
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     private String taskNo;
 
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long planId;
 
     private String planName;
 
+    private Integer taskType;
+
+    private String taskTypeName;
+
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long routeId;
 
     private Integer taskSequence;
 
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long vehicleId;
 
     private String vehicleNo;
 
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long executorId;
 
     private String executorName;
 
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long driverId;
 
     private String driverName;
+
+    @JsonSerialize(using = ToStringSerializer.class)
+    private Long tripId;
 
     private String startLocation;
 

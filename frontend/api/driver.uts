@@ -1,11 +1,11 @@
 import { http } from '@/utils/request.uts'
 import type { DriverVO, DriverVehicleVO } from '@/types/user'
 
-export function getDriverById(id: number): Promise<DriverVO> {
+export function getDriverById(id: string): Promise<DriverVO> {
   return http.get<DriverVO>(`/user/driver/${id}`)
 }
 
-export function getDriverByUserId(userId: number): Promise<DriverVO> {
+export function getDriverByUserId(userId: string): Promise<DriverVO> {
   return http.get<DriverVO>(`/user/driver/user/${userId}`)
 }
 
@@ -16,7 +16,7 @@ export function getDriverList(params: {
   return http.get<DriverVO[]>('/user/driver/list', params)
 }
 
-export function updateDriverStatus(driverId: number, status: number): Promise<void> {
+export function updateDriverStatus(driverId: string, status: number): Promise<void> {
   return http.put<void>(`/user/driver/${driverId}/status`, { status })
 }
 
@@ -25,24 +25,24 @@ export function getAvailableDrivers(): Promise<DriverVO[]> {
 }
 
 export function selectBestDriver(params: {
-  vehicleId?: number
+  vehicleId?: string
   scheduledTime?: string
 }): Promise<DriverVO> {
   return http.post<DriverVO>('/user/driver/best', params)
 }
 
-export function addCommonVehicle(driverId: number, vehicleId: number): Promise<void> {
-  return http.post<void>(`/user/driver/${driverId}/common-vehicle`, { vehicleId })
+export function addCommonVehicle(userId: string, vehicleId: string): Promise<void> {
+  return http.post<void>(`/user/driver/user/${userId}/common-vehicle`, { vehicleId })
 }
 
-export function removeCommonVehicle(driverId: number, vehicleId: number): Promise<void> {
-  return http.delete<void>(`/user/driver/${driverId}/common-vehicle/${vehicleId}`)
+export function removeCommonVehicle(userId: string, vehicleId: string): Promise<void> {
+  return http.delete<void>(`/user/driver/user/${userId}/common-vehicle/${vehicleId}`)
 }
 
-export function setDefaultVehicle(driverId: number, vehicleId: number): Promise<void> {
-  return http.put<void>(`/user/driver/${driverId}/common-vehicle/${vehicleId}/default`)
+export function setDefaultVehicle(userId: string, vehicleId: string): Promise<void> {
+  return http.put<void>(`/user/driver/user/${userId}/common-vehicle/${vehicleId}/default`)
 }
 
-export function getCommonVehicles(driverId: number): Promise<DriverVehicleVO[]> {
-  return http.get<DriverVehicleVO[]>(`/user/driver/${driverId}/common-vehicles`)
+export function getCommonVehicles(userId: string): Promise<DriverVehicleVO[]> {
+  return http.get<DriverVehicleVO[]>(`/user/driver/user/${userId}/common-vehicles`)
 }

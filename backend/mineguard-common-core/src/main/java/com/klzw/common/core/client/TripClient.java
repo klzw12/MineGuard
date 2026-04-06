@@ -14,26 +14,26 @@ import java.util.Map;
 @HttpExchange
 public interface TripClient {
 
-    @GetExchange("/api/trip/active/{vehicleId}")
-    Mono<TripResponse> hasActiveTrip(@PathVariable("vehicleId") Long vehicleId);
+    @GetExchange("/trip/active/{vehicleId}")
+    Mono<com.klzw.common.core.result.Result<com.klzw.common.core.domain.dto.TripResponse>> hasActiveTrip(@PathVariable("vehicleId") Long vehicleId);
 
-    @GetExchange("/api/trip/latest/{vehicleId}")
-    Mono<TripResponse> getLatestTrip(@PathVariable("vehicleId") Long vehicleId);
+    @GetExchange("/trip/latest/{vehicleId}")
+    Mono<com.klzw.common.core.result.Result<com.klzw.common.core.domain.dto.TripResponse>> getLatestTrip(@PathVariable("vehicleId") Long vehicleId);
 
-    @PostExchange("/api/trip/{id}/pause")
-    Mono<Void> pauseTrip(@PathVariable("id") Long id);
+    @PostExchange("/trip/{id}/pause")
+    Mono<com.klzw.common.core.result.Result<Void>> pauseTrip(@PathVariable("id") Long id);
     
-    @PostExchange("/api/trip/dispatch/create")
-    Mono<Long> createTrip(@RequestBody TripCreateRequest request);
+    @PostExchange("/trip/dispatch/create")
+    Mono<com.klzw.common.core.result.Result<Long>> createTrip(@RequestBody TripCreateRequest request);
     
-    @PostExchange("/api/trip/{id}/end")
-    Mono<Void> endTrip(@PathVariable("id") Long id);
+    @PostExchange("/trip/{id}/end")
+    Mono<com.klzw.common.core.result.Result<Void>> endTrip(@PathVariable("id") Long id);
     
-    @GetExchange("/api/trip/{id}")
-    Mono<com.klzw.common.core.domain.dto.TripResponse> getTripById(@PathVariable("id") Long id);
+    @GetExchange("/trip/{id}")
+    Mono<com.klzw.common.core.result.Result<com.klzw.common.core.domain.dto.TripResponse>> getTripById(@PathVariable("id") Long id);
     
-    @GetExchange("/api/trip/statistics")
-    Map<String, Object> getStatistics(
+    @GetExchange("/trip/statistics")
+    com.klzw.common.core.result.Result<java.util.Map<String, Object>> getStatistics(
         @RequestParam("startDate") String startDate,
         @RequestParam("endDate") String endDate
     );

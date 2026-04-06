@@ -1,5 +1,6 @@
 package com.klzw.common.core.client;
 
+import com.klzw.common.core.result.Result;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
@@ -16,7 +17,7 @@ public interface TransportClient {
      * 查询运输统计
      */
     @GetExchange("/api/statistics/transport")
-    Map<String, Object> getTransportStatistics(
+    Result<Map<String, Object>> getTransportStatistics(
         @RequestParam("startDate") String startDate,
         @RequestParam("endDate") String endDate
     );
@@ -25,7 +26,7 @@ public interface TransportClient {
      * 查询车辆统计
      */
     @GetExchange("/api/statistics/vehicle")
-    java.util.List<Map<String, Object>> getVehicleStatistics(
+    Result<java.util.List<Map<String, Object>>> getVehicleStatistics(
         @RequestParam("startDate") String startDate,
         @RequestParam("endDate") String endDate
     );

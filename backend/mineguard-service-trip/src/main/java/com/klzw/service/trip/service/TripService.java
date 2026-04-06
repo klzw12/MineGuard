@@ -51,4 +51,9 @@ public interface TripService extends IService<Trip> {
      * 按日期范围查询行程统计（供 statistics 服务调用）
      */
     TripStatisticsResponseDTO getStatisticsByDateRange(String startDate, String endDate);
+    
+    /**
+     * 获取行程轨迹
+     */
+    List<com.klzw.service.trip.vo.TripTrackVO> getTracksByTripId(Long tripId);
 }

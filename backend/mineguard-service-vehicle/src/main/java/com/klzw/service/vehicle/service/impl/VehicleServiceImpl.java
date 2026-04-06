@@ -121,7 +121,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         }
         
         try {
-            String fileName = "vehicle/" + id + "/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            String fileName = "vehicle-photo/" + id + "/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
             String photoUrl = storageService.upload(file.getInputStream(), fileName, file.getContentType());
             
             vehicle.setPhotoUrl(photoUrl);
@@ -204,7 +204,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                 }
             }
             
-            String fileName = "vehicle_license/" + id + "/front_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            String fileName = "vehicle-license/" + id + "/front_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
             String licenseFrontUrl = storageService.upload(new ByteArrayInputStream(fileBytes), fileName, file.getContentType());
             vehicle.setLicenseFrontUrl(licenseFrontUrl);
             
@@ -230,7 +230,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         try {
             byte[] fileBytes = file.getBytes();
             
-            String fileName = "vehicle_license/" + id + "/back_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
+            String fileName = "vehicle-license/" + id + "/back_" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
             String licenseBackUrl = storageService.upload(new ByteArrayInputStream(fileBytes), fileName, file.getContentType());
             vehicle.setLicenseBackUrl(licenseBackUrl);
             
@@ -353,7 +353,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         List<BestVehicleVO> result = new ArrayList<>();
         for (Vehicle vehicle : vehicles) {
             BestVehicleVO vo = new BestVehicleVO();
-            vo.setVehicleId(vehicle.getId());
+            vo.setId(vehicle.getId());
             vo.setVehicleNo(vehicle.getVehicleNo());
             vo.setVehicleType(vehicle.getVehicleType());
             vo.setBrand(vehicle.getBrand());
@@ -390,8 +390,8 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     }
     
     @Override
-    public Vehicle createVehicleWithPhotos(String vehicleNo, MultipartFile vehiclePhoto, MultipartFile licensePhoto) {
-        log.info("创建车辆并上传照片: vehicleNo={}", vehicleNo);
+    public Vehicle createVehicleWithPhotos(String vehicleNo, Integer vehicleType, MultipartFile vehiclePhoto, MultipartFile licensePhoto) {
+        log.info("创建车辆并上传照片: vehicleNo={}, vehicleType={}", vehicleNo, vehicleType);
         
         if (licensePhoto != null && !licensePhoto.isEmpty()) {
             try {
@@ -418,6 +418,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         
         Vehicle vehicle = new Vehicle();
         vehicle.setVehicleNo(vehicleNo);
+        vehicle.setVehicleType(vehicleType != null ? vehicleType : 1);
         vehicle.setStatus(VehicleStatusEnum.IDLE.getCode());
         
         save(vehicle);
@@ -476,6 +477,12 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             vehicleStatus.setStatus(status);
             vehicleStatusService.updateById(vehicleStatus);
         }
+    }
+    
+    @Override
+    public boolean existsById(Long id) {
+        log.info("检查车辆是否存在: id={}", id);
+        return getById(id) != null;
     }
     
     private int calculateVehicleScore(Vehicle vehicle, com.klzw.service.vehicle.dto.BestVehicleQueryDTO query) {

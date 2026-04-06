@@ -1,4 +1,4 @@
-import { http } from '@/utils/request.uts'
+import { http, getToken } from '@/utils/request.uts'
 
 export interface EventData {
   id: number
@@ -11,6 +11,17 @@ export interface EventData {
   status: string
 }
 
+export interface WebSocketMessage {
+  messageId: string
+  messageType: string
+  sender: string
+  receiver: string
+  timestamp: number
+  priority: string
+  requireAck: boolean
+  content: Map<string, any>
+}
+
 class EventWebSocket {
   private socket: WebSocket | null = null
   private listeners: Map<string, Function[]> = new Map()
@@ -19,9 +30,16 @@ class EventWebSocket {
   private maxReconnectAttempts: number = 5
   private reconnectInterval: number = 3000
 
-  connect(url: string = 'ws://localhost:8080/api/ws/events') {
+  connect(url: string = 'ws://localhost:8080/api/ws/message') {
     try {
-      this.socket = new WebSocket(url)
+      const token = getToken()
+      if (!token) {
+        console.warn('未登录，跳过WebSocket连接')
+        return
+      }
+      
+      const wsUrl = `${url}?token=${token}`
+      this.socket = new WebSocket(wsUrl)
       
       this.socket.onopen = () => {
         console.log('WebSocket连接成功')
@@ -32,7 +50,10 @@ class EventWebSocket {
 
       this.socket.onmessage = (event) => {
         try {
-          const eventData = JSON.parse(event.data) as EventData
+          const message = JSON.parse(event.data) as WebSocketMessage
+          console.log('收到WebSocket消息:', message)
+          
+          const eventData = this.convertToEventData(message)
           this.emit('event', eventData)
         } catch (error) {
           console.error('解析事件数据失败:', error)
@@ -53,6 +74,20 @@ class EventWebSocket {
     } catch (error) {
       console.error('WebSocket连接失败:', error)
       this.attemptReconnect()
+    }
+  }
+  
+  private convertToEventData(message: WebSocketMessage): EventData {
+    const content = message.content || {}
+    return {
+      id: content['taskId'] as number || 0,
+      eventType: message.messageType,
+      eventContent: content['title'] as string || content['content'] as string || '',
+      vehicleId: content['vehicleId'] as number,
+      driverId: content['driverId'] as number,
+      tripId: content['tripId'] as number,
+      timestamp: new Date(message.timestamp).toISOString(),
+      status: 'active'
     }
   }
 
@@ -237,6 +272,12 @@ export function handleEvent(event: EventData) {
     case 'vehicle_fault':
       handleVehicleFault(event)
       break
+    case 'DISPATCH_TASK':
+      handleDispatchTask(event)
+      break
+    case 'DISPATCH_COMMAND':
+      handleDispatchCommand(event)
+      break
     default:
       handleUnknownEvent(event)
       break
@@ -272,6 +313,30 @@ function handleVehicleFault(event: EventData) {
   uni.showModal({
     title: '车辆故障',
     content: event.eventContent,
+    showCancel: false,
+    confirmText: '确定'
+  })
+}
+
+function handleDispatchTask(event: EventData) {
+  uni.showModal({
+    title: '新调度任务',
+    content: event.eventContent || '您有新的调度任务，请及时查看',
+    showCancel: true,
+    cancelText: '稍后查看',
+    confirmText: '立即查看',
+    success: (res) => {
+      if (res.confirm) {
+        uni.navigateTo({ url: '/pages/dispatch/task/index' })
+      }
+    }
+  })
+}
+
+function handleDispatchCommand(event: EventData) {
+  uni.showModal({
+    title: '调度指令',
+    content: event.eventContent || '您收到新的调度指令',
     showCancel: false,
     confirmText: '确定'
   })

@@ -151,9 +151,11 @@ public class TripWebSocketHandler extends WebSocketHandler {
             TripVO trip = tripService.getById(tripId);
             if (trip != null && trip.getVehicleId() != null) {
                 try {
+                    // 尝试将 String 类型的 vehicleId 转换为 Long
                     trackDTO.setVehicleId(Long.parseLong(trip.getVehicleId()));
                 } catch (NumberFormatException e) {
                     log.warn("车辆ID格式错误：{}", trip.getVehicleId());
+                    // 不设置 vehicleId，避免影响轨迹点存储
                 }
             }
             

@@ -22,5 +22,4 @@ public class DriverVehicle extends BaseEntity {
 
     private Integer isDefault;
 
-    private String remark;
 }

@@ -17,8 +17,14 @@ public class DispatchPlanVO {
     @Schema(description = "计划编号")
     private String planNo;
 
+    @Schema(description = "计划名称")
+    private String planName;
+
     @Schema(description = "计划日期")
     private LocalDate planDate;
+
+    @Schema(description = "计划类型：0-日常调度，1-临时调度，2-紧急调度")
+    private Integer planType;
 
     @Schema(description = "车辆ID")
     private String vehicleId;
@@ -38,23 +44,32 @@ public class DispatchPlanVO {
     @Schema(description = "路线名称")
     private String routeName;
 
+    @Schema(description = "起点位置")
+    private String startLocation;
+
+    @Schema(description = "终点位置")
+    private String endLocation;
+
     @Schema(description = "计划运输次数")
     private Integer plannedTrips;
 
-    @Schema(description = "实际运输次数")
-    private Integer actualTrips;
+    @Schema(description = "已完成运输次数")
+    private Integer completedTrips;
 
     @Schema(description = "计划运输吨位")
     private BigDecimal plannedCargoWeight;
 
-    @Schema(description = "实际运输吨位")
-    private BigDecimal actualCargoWeight;
-
-    @Schema(description = "发车时段")
+    @Schema(description = "发车时段起")
     private String startTimeSlot;
 
-    @Schema(description = "计划状态：1-待执行，2-执行中，3-已完成，4-已取消")
+    @Schema(description = "发车时段止")
+    private String endTimeSlot;
+
+    @Schema(description = "计划状态：0-待分配，1-执行中，2-已完成，3-已取消")
     private Integer status;
+
+    @Schema(description = "状态名称")
+    private String statusName;
 
     @Schema(description = "备注")
     private String remark;

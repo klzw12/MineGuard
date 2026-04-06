@@ -41,7 +41,7 @@ class BaseMongoRepositoryImplTest {
 
     @BeforeEach
     void setUp() {
-        testRepository = new TestRepository(mongoTemplate);
+        testRepository = getTestRepository(mongoTemplate);
     }
 
     @Test
@@ -386,10 +386,13 @@ class BaseMongoRepositoryImplTest {
         }
     }
 
-    // 测试Repository实现
-    private static class TestRepository extends BaseMongoRepositoryImpl<TestEntity, String> {
-        public TestRepository(MongoTemplate mongoTemplate) {
-            super(TestEntity.class, mongoTemplate);
-        }
+    // 测试Repository接口
+    private interface TestRepository extends BaseMongoRepository<TestEntity, String> {
+    }
+
+    // 获取Repository实例
+    private TestRepository getTestRepository(MongoTemplate mongoTemplate) {
+        return new org.springframework.data.mongodb.repository.support.MongoRepositoryFactory(mongoTemplate)
+            .getRepository(TestRepository.class);
     }
 }

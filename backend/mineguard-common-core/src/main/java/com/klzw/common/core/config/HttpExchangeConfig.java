@@ -38,9 +38,13 @@ public class HttpExchangeConfig {
     @Value("${service.python.url:http://localhost:8009}")
     private String pythonServiceUrl;
 
+    private static final String SERVICE_AUTH_HEADER = "X-Service-Auth";
+    private static final String SERVICE_AUTH_TOKEN = "mineguard-internal-service";
+
     private <T> T createClient(Class<T> clientClass, String baseUrl) {
         WebClient webClient = WebClient.builder()
                 .baseUrl(baseUrl)
+                .defaultHeader(SERVICE_AUTH_HEADER, SERVICE_AUTH_TOKEN)
                 .build();
         WebClientAdapter adapter = WebClientAdapter.create(webClient);
         HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();

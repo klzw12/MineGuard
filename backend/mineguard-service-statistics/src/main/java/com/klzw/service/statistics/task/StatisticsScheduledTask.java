@@ -75,9 +75,10 @@ public class StatisticsScheduledTask {
         log.info("开始执行车辆统计任务，统计日期：{}", yesterday);
         
         try {
-            List<Long> vehicleIds = vehicleClient.getVehicleIds();
+            var result = vehicleClient.getVehicleIds();
+            List<Long> vehicleIds = result != null && result.getData() != null ? result.getData() : java.util.Collections.emptyList();
             
-            if (vehicleIds != null && !vehicleIds.isEmpty()) {
+            if (!vehicleIds.isEmpty()) {
                 int successCount = 0;
                 int failCount = 0;
                 
@@ -106,9 +107,10 @@ public class StatisticsScheduledTask {
         log.info("开始执行司机统计任务，统计日期：{}", yesterday);
         
         try {
-            List<Long> driverIds = driverClient.getDriverIds();
+            var result = driverClient.getDriverIds();
+            List<Long> driverIds = result != null && result.getData() != null ? result.getData() : java.util.Collections.emptyList();
             
-            if (driverIds != null && !driverIds.isEmpty()) {
+            if (!driverIds.isEmpty()) {
                 int successCount = 0;
                 int failCount = 0;
                 

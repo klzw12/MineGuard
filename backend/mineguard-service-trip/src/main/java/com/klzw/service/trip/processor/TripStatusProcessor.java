@@ -2,6 +2,7 @@ package com.klzw.service.trip.processor;
 
 import com.klzw.common.core.client.MessageClient;
 import com.klzw.common.core.client.VehicleClient;
+import com.klzw.common.core.enums.VehicleStatusEnum;
 import com.klzw.service.trip.entity.Trip;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,24 +52,24 @@ public class TripStatusProcessor {
             }
 
             // 根据行程状态更新车辆状态
-            int vehicleStatus = 0; // 默认为离线
+            int vehicleStatus;
             switch (newStatus) {
                 case 0: // 待开始
                 case 1: // 已接单
-                    vehicleStatus = 1; // 空闲
+                    vehicleStatus = VehicleStatusEnum.IDLE.getCode();
                     break;
                 case 2: // 进行中
-                    vehicleStatus = 2; // 行驶中
+                    vehicleStatus = VehicleStatusEnum.RUNNING.getCode();
                     break;
                 case 3: // 已完成
                 case 4: // 已取消
-                    vehicleStatus = 1; // 空闲
+                    vehicleStatus = VehicleStatusEnum.IDLE.getCode();
                     break;
-                case 5: // 暂停中
-                    vehicleStatus = 3; // 特殊状态
+                case 5: // 暂停中（预警触发），车辆仍为运行中
+                    vehicleStatus = VehicleStatusEnum.RUNNING.getCode();
                     break;
                 default:
-                    vehicleStatus = 0; // 离线
+                    vehicleStatus = VehicleStatusEnum.IDLE.getCode();
             }
 
             log.info("更新车辆状态：vehicleId={}, status={}", vehicleId, vehicleStatus);

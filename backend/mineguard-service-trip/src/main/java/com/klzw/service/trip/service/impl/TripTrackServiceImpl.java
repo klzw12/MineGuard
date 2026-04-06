@@ -40,6 +40,7 @@ public class TripTrackServiceImpl implements TripTrackService {
         
         String redisKey = "trip:track:" + dto.getTripId();
         redisCacheService.lPush(redisKey, (Object) dto);
+        // 不设置过期时间，确保轨迹数据不会丢失，支持行程回放
         
         // 同时将 vehicleId 和 tripId 的关联关系存入 Redis，用于 vehicle 模块查询
         if (dto.getVehicleId() != null) {
@@ -64,6 +65,7 @@ public class TripTrackServiceImpl implements TripTrackService {
         for (TripTrackDTO dto : dtoList) {
             redisCacheService.lPush(redisKey, (Object) dto);
         }
+        // 不设置过期时间，确保轨迹数据不会丢失，支持行程回放
         
         log.info("批量上传轨迹点到Redis成功，数量：{}", dtoList.size());
     }
@@ -91,6 +93,12 @@ public class TripTrackServiceImpl implements TripTrackService {
                 .collect(Collectors.toList());
         
         tripTrackMongoRepository.saveAll(documents);
+        
+        // 持久化完成后，删除Redis中的轨迹数据，避免内存占用过大
+        if (!dtoList.isEmpty()) {
+            Long tripId = dtoList.get(0).getTripId();
+            deleteTracksFromRedis(tripId);
+        }
         
         log.info("批量写入轨迹点到MongoDB成功，数量：{}", documents.size());
     }

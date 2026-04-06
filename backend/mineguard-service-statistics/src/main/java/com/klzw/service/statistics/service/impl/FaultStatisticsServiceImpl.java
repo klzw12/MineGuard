@@ -49,9 +49,11 @@ public class FaultStatisticsServiceImpl implements FaultStatisticsService {
         entity.setStatisticsDate(statisticsDate);
         
         try {
-            Map<String, Object> response = vehicleClient.getFaultStatistics(vehicleId, date);
+            var result = vehicleClient.getFaultStatistics(vehicleId, date);
             
-            if (response != null) {
+            if (result != null && result.getCode() == 200 && result.getData() != null) {
+                Map<String, Object> response = result.getData();
+                
                 entity.setFaultCount(getIntValue(response, "faultCount"));
                 entity.setMinorFaultCount(getIntValue(response, "minorFaultCount"));
                 entity.setMajorFaultCount(getIntValue(response, "majorFaultCount"));
@@ -241,9 +243,11 @@ public class FaultStatisticsServiceImpl implements FaultStatisticsService {
         log.info("开始计算每日故障统计：日期={}", date);
         
         try {
-            List<Long> vehicleIds = vehicleClient.getVehicleIds();
+            var result = vehicleClient.getVehicleIds();
             
-            if (vehicleIds != null) {
+            if (result != null && result.getCode() == 200 && result.getData() != null) {
+                List<Long> vehicleIds = result.getData();
+                
                 for (Long vehicleId : vehicleIds) {
                     try {
                         calculateFaultStatistics(vehicleId, date.toString());

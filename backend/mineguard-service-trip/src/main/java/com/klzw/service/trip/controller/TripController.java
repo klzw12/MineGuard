@@ -134,6 +134,12 @@ public class TripController {
         return Result.success();
     }
 
+    @GetMapping("/{id}/track")
+    @Operation(summary = "获取行程轨迹")
+    public Result<List<com.klzw.service.trip.vo.TripTrackVO>> getTripTrack(@PathVariable Long id) {
+        return Result.success(tripService.getTracksByTripId(id));
+    }
+
     @GetMapping("/{id}/statistics")
     @Operation(summary = "获取行程统计")
     public Result<TripStatisticsVO> getTripStatistics(@PathVariable Long id) {

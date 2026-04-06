@@ -19,3 +19,13 @@ spring:
       - nacos:common-core.yml?group=Shared_Dev&refresh=true
       - nacos:common-redis.yml?group=Shared_Dev&refresh=true
       - nacos:common-web.yml?group=Shared_Dev&refresh=true
+      - nacos:common-mq.yml?group=Shared_Dev&refresh=true
+mineguard:
+  map:
+    gaode:
+      enabled: true
+      api-key: ${GAODE_API_KEY:1df6e350f3e74cba1f7c0b065f62ee2e}
+      api-url: "https://restapi.amap.com/v3"
+      connect-timeout: 5000
+      read-timeout: 10000
+      cache-expire: 3600

@@ -100,3 +100,15 @@ export function playTripTrack(tracks: TripTrack[]) {
   console.log('轨迹回放数据', sortedTracks)
   return sortedTracks
 }
+
+export function acceptTrip(id: number): Promise<void | null> {
+  return http.post<void>(`/trip/${id}/accept`)
+}
+
+export function getTripList(params: {
+  page?: number
+  size?: number
+  status?: number
+}): Promise<PageResult<Trip> | null> {
+  return http.get<PageResult<Trip>>('/trip/page', params)
+}

@@ -4,6 +4,7 @@ import com.klzw.common.core.client.DispatchClient;
 import com.klzw.service.user.properties.AttendanceProperties;
 import com.klzw.service.user.dto.CheckInDTO;
 import com.klzw.service.user.dto.CheckOutDTO;
+import com.klzw.service.user.dto.LeaveApplyDTO;
 import com.klzw.service.user.entity.User;
 import com.klzw.service.user.entity.UserAttendance;
 import com.klzw.service.user.enums.AttendanceStatusEnum;
@@ -15,6 +16,7 @@ import com.klzw.service.user.mapper.DriverMapper;
 import com.klzw.service.user.mapper.UserAttendanceMapper;
 import com.klzw.service.user.mapper.UserMapper;
 import com.klzw.service.user.service.AttendanceService;
+import com.klzw.service.user.service.UserService;
 import com.klzw.service.user.vo.AttendanceStatisticsVO;
 import com.klzw.service.user.vo.AttendanceVO;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +42,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final AttendanceProperties attendanceProperties;
     private final DriverMapper driverMapper;
     private final DispatchClient dispatchClient;
+    private final UserService userService;
 
     @Override
     @Transactional
@@ -328,7 +331,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     
     private void reassignDriverTasks(Long userId) {
         try {
-            String roleCode = userMapper.selectRoleCodeByUserId(userId);
+            String roleCode = userService.getRoleCodeByUserId(userId);
             if (roleCode == null) {
                 log.info("用户无角色，无需重新分配任务：userId={}", userId);
                 return;
@@ -438,6 +441,9 @@ public class AttendanceServiceImpl implements AttendanceService {
         vo.setStatus(attendance.getStatus());
         vo.setLateMinutes(attendance.getLateMinutes());
         vo.setEarlyLeaveMinutes(attendance.getEarlyLeaveMinutes());
+        vo.setLeaveType(attendance.getLeaveType());
+        vo.setLeaveStartTime(attendance.getLeaveStartTime());
+        vo.setLeaveEndTime(attendance.getLeaveEndTime());
         vo.setRemark(attendance.getRemark());
 
         AttendanceStatusEnum statusEnum = AttendanceStatusEnum.getByValue(attendance.getStatus());

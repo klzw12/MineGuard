@@ -17,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @Tag(name = "用户管理", description = "用户相关接口")
 @RestController
 @RequestMapping("/user")
@@ -117,5 +119,11 @@ public class UserController {
     @GetMapping("/exists/{id}")
     public Result<Boolean> existsUser(@PathVariable Long id) {
         return Result.success(userService.existsUser(id));
+    }
+
+    @Operation(summary = "获取今日请假用户ID列表")
+    @GetMapping("/leave-ids")
+    public Result<List<Long>> getLeaveUserIds() {
+        return Result.success(userService.getLeaveUserIds());
     }
 }

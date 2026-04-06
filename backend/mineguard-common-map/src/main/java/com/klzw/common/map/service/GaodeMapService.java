@@ -96,6 +96,7 @@ public class GaodeMapService implements GeoCodingService, RoutePlanningService, 
         return formattedAddress;
     }
 
+
     @Override
     public List<Poi> searchPoi(String keyword, double longitude, double latitude, int radius) {
         if (keyword == null || keyword.trim().isEmpty()) {
@@ -366,5 +367,59 @@ public class GaodeMapService implements GeoCodingService, RoutePlanningService, 
             throw new MapException("GeoPoint cannot be null");
         }
         validateCoordinate(point.getLongitude(), point.getLatitude());
+    }
+    
+    public List<Poi> inputTips(String keyword, String city) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            throw new MapException("Keyword cannot be empty");
+        }
+
+        Map<String, String> params = new HashMap<>();
+        params.put("keywords", keyword);
+        params.put("datatype", "all");
+        params.put("output", "json");
+        if (city != null && !city.trim().isEmpty()) {
+            params.put("city", city);
+        }
+
+        Map<String, Object> result = client.request("/assistant/inputtips", params);
+        Object tipsObj = result.get("tips");
+        List<Poi> poiList = new ArrayList<>();
+
+        if (tipsObj instanceof List) {
+            List<Map<String, Object>> tips = (List<Map<String, Object>>) tipsObj;
+            for (Map<String, Object> tip : tips) {
+                String location = (String) tip.get("location");
+                if (location == null || location.isEmpty()) {
+                    continue;
+                }
+                
+                String[] coords = location.split(",");
+                if (coords.length != 2) {
+                    continue;
+                }
+                
+                Poi poi = new Poi();
+                poi.setId((String) tip.get("id"));
+                poi.setName((String) tip.get("name"));
+                poi.setAddress((String) tip.get("address"));
+                if (poi.getAddress() == null || poi.getAddress().isEmpty()) {
+                    poi.setAddress((String) tip.get("district"));
+                }
+                poi.setType((String) tip.get("type"));
+                
+                try {
+                    double poiLon = Double.parseDouble(coords[0]);
+                    double poiLat = Double.parseDouble(coords[1]);
+                    poi.setLocation(new GeoPoint(poiLon, poiLat));
+                } catch (NumberFormatException e) {
+                    continue;
+                }
+
+                poiList.add(poi);
+            }
+        }
+
+        return poiList;
     }
 }

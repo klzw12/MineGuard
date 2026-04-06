@@ -32,4 +32,10 @@ public interface TransportTaskMapper extends BaseMapper<TransportTask> {
 
     @Select("SELECT * FROM dispatch_task_transport WHERE status = #{status} AND deleted = 0 AND scheduled_start_time BETWEEN #{startTime} AND #{endTime} ORDER BY scheduled_start_time")
     List<TransportTask> findByStatusAndTimeRange(@Param("status") Integer status, @Param("startTime") LocalDateTime startTime, @Param("endTime") LocalDateTime endTime);
+
+    @Select("SELECT DISTINCT executor_id FROM dispatch_task_transport WHERE status = 0 AND deleted = 0 AND executor_id IS NOT NULL")
+    List<Long> findAssignedButNotAcceptedDriverIds();
+
+    @Select("SELECT DISTINCT vehicle_id FROM dispatch_task_transport WHERE status = 0 AND deleted = 0 AND vehicle_id IS NOT NULL")
+    List<Long> findAssignedButNotAcceptedVehicleIds();
 }

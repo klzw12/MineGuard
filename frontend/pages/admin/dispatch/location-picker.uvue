@@ -1,0 +1,361 @@
+<template>
+	<view class="location-picker-container">
+		<view class="search-bar">
+			<input 
+				class="search-input" 
+				v-model="searchKeyword" 
+				placeholder="搜索地点名称" 
+				@input="onSearchInput"
+			/>
+			<view class="search-btn" @click="doSearch">
+				<text>搜索</text>
+			</view>
+		</view>
+		
+		<view class="search-results" v-if="showResults && searchResultList.length > 0">
+			<scroll-view class="results-scroll" scroll-y>
+				<view 
+					class="result-item" 
+					v-for="(item, index) in searchResultList" 
+					:key="index"
+					@click="selectSearchResult(item)"
+				>
+					<text class="result-name">{{ item.name }}</text>
+					<text class="result-address">{{ item.address }}</text>
+				</view>
+			</scroll-view>
+		</view>
+		
+		<view class="map-wrapper">
+			<map 
+				id="pickerMap"
+				:longitude="centerLongitude"
+				:latitude="centerLatitude"
+				:scale="mapScale"
+				:markers="markers"
+				:show-location="false"
+				@click="onMapClick"
+				style="width: 100%; height: 100%;"
+			></map>
+		</view>
+		
+		<view class="selected-info" v-if="selectedLocation">
+			<view class="info-row">
+				<text class="info-label">已选择：</text>
+				<text class="info-value">{{ selectedLocation.name }}</text>
+			</view>
+			<view class="info-row">
+				<text class="info-label">坐标：</text>
+				<text class="info-value">{{ selectedLocation.longitude.toFixed(6) }}, {{ selectedLocation.latitude.toFixed(6) }}</text>
+			</view>
+		</view>
+		
+		<view class="action-bar">
+			<view class="btn secondary" @click="cancelSelect">
+				<text>取消</text>
+			</view>
+			<view class="btn primary" @click="confirmSelect" v-if="selectedLocation">
+				<text>确认选择</text>
+			</view>
+			<view class="btn primary disabled" v-else>
+				<text>请选择位置</text>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref, onMounted } from 'vue'
+	import { searchLocationSuggestions, type PoiSuggestion } from '@/utils/gaode.uts'
+	
+	const searchKeyword = ref('')
+	const searchResultList = ref<PoiSuggestion[]>([])
+	const showResults = ref(false)
+	
+	const centerLongitude = ref(116.397428)
+	const centerLatitude = ref(39.90923)
+	const mapScale = ref(12)
+	const markers = ref<any[]>([])
+	
+	const selectedLocation = ref<PoiSuggestion | null>(null)
+	
+	let searchTimer: number | null = null
+	
+	onMounted(() => {
+		const pages = getCurrentPages()
+		const currentPage = pages[pages.length - 1]
+		const options = currentPage.$page?.options || {}
+		
+		if (options.longitude) {
+			centerLongitude.value = parseFloat(options.longitude)
+		}
+		if (options.latitude) {
+			centerLatitude.value = parseFloat(options.latitude)
+		}
+		if (options.name) {
+			selectedLocation.value = {
+				name: decodeURIComponent(options.name),
+				address: '',
+				longitude: centerLongitude.value,
+				latitude: centerLatitude.value,
+				citycode: '',
+				adcode: '',
+				type: '',
+				typecode: ''
+			}
+			updateMarker(centerLongitude.value, centerLatitude.value, decodeURIComponent(options.name))
+		}
+	})
+	
+	function onSearchInput() {
+		if (searchTimer !== null) {
+			clearTimeout(searchTimer)
+		}
+		
+		searchTimer = setTimeout(() => {
+			doSearch()
+		}, 500)
+	}
+	
+	async function doSearch() {
+		if (!searchKeyword.value || searchKeyword.value.trim() === '') {
+			searchResultList.value = []
+			showResults.value = false
+			return
+		}
+		
+		try {
+			const results = await searchLocationSuggestions(searchKeyword.value)
+			searchResultList.value = results
+			showResults.value = true
+		} catch (e) {
+			console.error('搜索失败', e)
+			searchResultList.value = []
+		}
+	}
+	
+	function selectSearchResult(item: PoiSuggestion) {
+		selectedLocation.value = item
+		centerLongitude.value = item.longitude
+		centerLatitude.value = item.latitude
+		mapScale.value = 15
+		showResults.value = false
+		searchKeyword.value = item.name
+		
+		updateMarker(item.longitude, item.latitude, item.name)
+	}
+	
+	function onMapClick(e: any) {
+		if (e.detail && e.detail.longitude && e.detail.latitude) {
+			const lon = e.detail.longitude
+			const lat = e.detail.latitude
+			
+			selectedLocation.value = {
+				name: `自定义位置 (${lon.toFixed(4)}, ${lat.toFixed(4)})`,
+				address: '',
+				longitude: lon,
+				latitude: lat,
+				citycode: '',
+				adcode: '',
+				type: '',
+				typecode: ''
+			}
+			
+			centerLongitude.value = lon
+			centerLatitude.value = lat
+			
+			updateMarker(lon, lat, '选中位置')
+		}
+	}
+	
+	function updateMarker(lon: number, lat: number, title: string) {
+		markers.value = [{
+			id: 1,
+			longitude: lon,
+			latitude: lat,
+			title: title,
+			width: 30,
+			height: 30
+		}]
+	}
+	
+	function cancelSelect() {
+		uni.navigateBack()
+	}
+	
+	function confirmSelect() {
+		if (!selectedLocation.value) return
+		
+		const pages = getCurrentPages()
+		if (pages.length >= 2) {
+			const prevPage = pages[pages.length - 2]
+			uni.$emit('locationSelected', {
+				name: selectedLocation.value.name,
+				longitude: selectedLocation.value.longitude,
+				latitude: selectedLocation.value.latitude,
+				address: selectedLocation.value.address
+			})
+		}
+		
+		uni.navigateBack()
+	}
+</script>
+
+<style lang="scss">
+	.location-picker-container {
+		height: 100vh;
+		display: flex;
+		flex-direction: column;
+		background-color: #f5f5f5;
+	}
+	
+	.search-bar {
+		display: flex;
+		flex-direction: row;
+		padding: 20rpx;
+		background-color: #fff;
+		gap: 16rpx;
+	}
+	
+	.search-input {
+		flex: 1;
+		height: 72rpx;
+		padding: 0 24rpx;
+		background-color: #f5f5f5;
+		border-radius: 36rpx;
+		font-size: 28rpx;
+	}
+	
+	.search-btn {
+		width: 140rpx;
+		height: 72rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		background-color: #007AFF;
+		border-radius: 36rpx;
+		
+		text {
+			font-size: 28rpx;
+			color: #fff;
+		}
+	}
+	
+	.search-results {
+		position: absolute;
+		top: 112rpx;
+		left: 20rpx;
+		right: 20rpx;
+		max-height: 400rpx;
+		background-color: #fff;
+		border-radius: 16rpx;
+		box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+		z-index: 100;
+	}
+	
+	.results-scroll {
+		max-height: 400rpx;
+	}
+	
+	.result-item {
+		padding: 24rpx;
+		border-bottom: 1rpx solid #f0f0f0;
+		
+		&:last-child {
+			border-bottom: none;
+		}
+	}
+	
+	.result-name {
+		display: block;
+		font-size: 28rpx;
+		color: #333;
+		margin-bottom: 8rpx;
+	}
+	
+	.result-address {
+		display: block;
+		font-size: 24rpx;
+		color: #999;
+	}
+	
+	.map-wrapper {
+		flex: 1;
+		position: relative;
+	}
+	
+	.selected-info {
+		position: absolute;
+		bottom: 180rpx;
+		left: 20rpx;
+		right: 20rpx;
+		background-color: rgba(255, 255, 255, 0.95);
+		border-radius: 16rpx;
+		padding: 24rpx;
+		box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+	}
+	
+	.info-row {
+		display: flex;
+		flex-direction: row;
+		margin-bottom: 12rpx;
+		
+		&:last-child {
+			margin-bottom: 0;
+		}
+	}
+	
+	.info-label {
+		font-size: 26rpx;
+		color: #666;
+		width: 140rpx;
+	}
+	
+	.info-value {
+		flex: 1;
+		font-size: 26rpx;
+		color: #333;
+	}
+	
+	.action-bar {
+		display: flex;
+		flex-direction: row;
+		gap: 20rpx;
+		padding: 24rpx;
+		background-color: #fff;
+		box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
+	}
+	
+	.btn {
+		flex: 1;
+		height: 88rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border-radius: 44rpx;
+		
+		text {
+			font-size: 30rpx;
+		}
+	}
+	
+	.btn.secondary {
+		background-color: #f5f5f5;
+		
+		text {
+			color: #666;
+		}
+	}
+	
+	.btn.primary {
+		background-color: #007AFF;
+		
+		text {
+			color: #fff;
+		}
+	}
+	
+	.btn.primary.disabled {
+		background-color: #ccc;
+	}
+</style>

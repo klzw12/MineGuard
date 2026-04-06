@@ -120,21 +120,17 @@
 <script setup lang="uts">
 	import AdminLayout from '../../../components/AdminLayout.uvue'
 	import { ref, computed, onMounted } from 'vue'
-	import { request } from '@/utils/request.uts'
+	import { 
+		getRouteTemplateList, 
+		getRouteTemplateById, 
+		createRouteTemplate, 
+		updateRouteTemplate, 
+		enableRouteTemplate, 
+		disableRouteTemplate,
+		type RouteTemplateVO 
+	} from '@/api/dispatch.uts'
 
-	type RouteVO = {
-		id: string,
-		routeName: string,
-		startLocation: string,
-		endLocation: string,
-		startLongitude: number,
-		startLatitude: number,
-		endLongitude: number,
-		endLatitude: number,
-		distance: number | null,
-		estimatedDuration: number | null,
-		status: number
-	}
+	type RouteVO = RouteTemplateVO
 
 	const routeList = ref<RouteVO[]>([])
 	const currentPage = ref(1)
@@ -160,14 +156,10 @@
 
 	const fetchRouteList = async () => {
 		try {
-			const res = await request({
-				url: '/api/route/page',
-				method: 'GET',
-				data: { page: currentPage.value, size: pageSize.value, status: currentStatus.value }
-			})
-			if (res.code === 200) {
-				routeList.value = res.data?.records || []
-				total.value = res.data?.total || 0
+			const res = await getRouteTemplateList()
+			if (res) {
+				routeList.value = res as RouteVO[]
+				total.value = res.length
 			}
 		} catch (e) {
 			console.error('获取路线列表失败', e)
@@ -219,14 +211,13 @@
 			success: async (res) => {
 				if (res.confirm) {
 					try {
-						const result = await request({
-							url: `/api/route/${route.id}/${newStatus === 1 ? 'enable' : 'disable'}`,
-							method: 'PUT'
-						})
-						if (result.code === 200) {
-							uni.showToast({ title: `${action}成功`, icon: 'success' })
-							fetchRouteList()
+						if (newStatus === 1) {
+							await enableRouteTemplate(String(route.id))
+						} else {
+							await disableRouteTemplate(String(route.id))
 						}
+						uni.showToast({ title: `${action}成功`, icon: 'success' })
+						fetchRouteList()
 					} catch (e) {
 						uni.showToast({ title: `${action}失败`, icon: 'none' })
 					}
@@ -258,15 +249,15 @@
 		}
 
 		try {
-			const url = editingRoute.value ? `/api/route/${editingRoute.value.id}` : '/api/route'
-			const method = editingRoute.value ? 'PUT' : 'POST'
-			
-			const res = await request({ url, method, data: formData.value })
-			if (res.code === 200) {
-				uni.showToast({ title: editingRoute.value ? '更新成功' : '创建成功', icon: 'success' })
-				closeModal()
-				fetchRouteList()
+			if (editingRoute.value) {
+				await updateRouteTemplate(String(editingRoute.value.id), formData.value)
+				uni.showToast({ title: '更新成功', icon: 'success' })
+			} else {
+				await createRouteTemplate(formData.value)
+				uni.showToast({ title: '创建成功', icon: 'success' })
 			}
+			closeModal()
+			fetchRouteList()
 		} catch (e) {
 			uni.showToast({ title: '操作失败', icon: 'none' })
 		}

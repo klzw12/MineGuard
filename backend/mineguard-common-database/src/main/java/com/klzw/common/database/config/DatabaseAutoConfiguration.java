@@ -2,6 +2,7 @@ package com.klzw.common.database.config;
 
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.klzw.common.core.properties.PaginationProperties;
+import com.klzw.common.database.handler.EntityMetaObjectHandler;
 import com.klzw.common.database.interceptor.CustomPaginationInnerInterceptor;
 import com.klzw.common.database.properties.DatabaseProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -25,5 +26,11 @@ public class DatabaseAutoConfiguration {
                 new CustomPaginationInnerInterceptor(databaseProperties, paginationProperties);
         interceptor.addInnerInterceptor(paginationInterceptor);
         return interceptor;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public EntityMetaObjectHandler entityMetaObjectHandler() {
+        return new EntityMetaObjectHandler();
     }
 }

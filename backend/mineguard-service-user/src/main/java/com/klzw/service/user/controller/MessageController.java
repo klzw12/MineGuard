@@ -3,7 +3,6 @@ package com.klzw.service.user.controller;
 import com.klzw.common.auth.context.UserContext;
 import com.klzw.common.core.result.Result;
 import com.klzw.service.user.dto.ContactVO;
-import com.klzw.service.user.dto.MessageRequestDTO;
 import com.klzw.service.user.dto.MessageVO;
 import com.klzw.service.user.service.MessageService;
 import lombok.Data;
@@ -20,8 +19,13 @@ public class MessageController {
     private final MessageService messageService;
 
     @PostMapping("/send")
-    public Result<Void> sendMessage(@RequestBody MessageRequestDTO request) {
-        messageService.sendMessage(request.getUserId(), request.getTitle(), request.getContent(), request.getType());
+    public Result<Void> sendMessage(
+            @RequestParam("userId") Long userId,
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
+            @RequestParam("type") Integer type,
+            @RequestParam("businessId") String businessId) {
+        messageService.sendMessage(userId, title, content, type);
         return Result.success();
     }
 

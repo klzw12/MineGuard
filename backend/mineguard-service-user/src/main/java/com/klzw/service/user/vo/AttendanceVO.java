@@ -43,5 +43,11 @@ public class AttendanceVO {
 
     private Integer earlyLeaveMinutes;
 
+    private Integer leaveType;
+
+    private LocalDateTime leaveStartTime;
+
+    private LocalDateTime leaveEndTime;
+
     private String remark;
 }

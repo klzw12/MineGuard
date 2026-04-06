@@ -48,6 +48,12 @@
 					>
 						<text>{{ attendanceInfo?.checkOutTime ? '已打卡' : '下班打卡' }}</text>
 					</button>
+					<button 
+						class="check-btn leave-btn" 
+						@click="goToLeave"
+					>
+						<text>请假</text>
+					</button>
 				</view>
 			</view>
 		</view>
@@ -94,7 +100,7 @@
 				<view class="task-footer">
 					<view class="task-location">
 						<text class="icon">🚗</text>
-						<text class="location-text">{{ task.vehicleNo || '待分配' }}</text>
+						<text class="location-text">{{ task.vehicleNo || (task.vehicleId ? '已分配' : '') }}</text>
 					</view>
 					<view class="task-actions">
 						<view v-if="task.status === 0" class="action-btn accept" @click="acceptTask(task)">
@@ -119,18 +125,76 @@
 				<text class="empty-desc">等待调度系统派单</text>
 			</view>
 		</view>
+		
+		<view v-if="showLeaveModal" class="modal-overlay" @click="closeLeaveModal">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">请假申请</text>
+					<text class="modal-close" @click="closeLeaveModal">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="form-label">请假类型</text>
+						<view class="leave-type-list">
+							<view 
+								v-for="(type, index) in leaveTypes" 
+								:key="index"
+								:class="['leave-type-item', { active: leaveForm.leaveType === type.value }]"
+								@click="leaveForm.leaveType = type.value"
+							>
+								<text>{{ type.label }}</text>
+							</view>
+						</view>
+					</view>
+					<view class="form-item">
+						<text class="form-label">开始时间</text>
+						<picker mode="date" :value="leaveForm.startDate" @change="onStartDateChange">
+							<view class="picker-value">
+								<text>{{ leaveForm.startDate || '请选择日期' }}</text>
+							</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">结束时间</text>
+						<picker mode="date" :value="leaveForm.endDate" @change="onEndDateChange">
+							<view class="picker-value">
+								<text>{{ leaveForm.endDate || '请选择日期' }}</text>
+							</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">请假原因</text>
+						<textarea 
+							class="reason-input" 
+							v-model="leaveForm.reason" 
+							placeholder="请输入请假原因（选填）"
+							:maxlength="200"
+						/>
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="closeLeaveModal">
+						<text>取消</text>
+					</button>
+					<button class="confirm-btn" :disabled="submitting" @click="submitLeave">
+						<text>{{ submitting ? '提交中...' : '提交' }}</text>
+					</button>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
 	import { ref, computed, onMounted } from 'vue'
-	import { onShow } from '@dcloudio/uni-app'
+ 	import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user.uts'
-import { checkInApi, checkOutApi, getAttendanceByDate } from '@/api/attendance.uts'
-import { getPendingTasksByDriver, startTask as startTaskApi, completeTask as completeTaskApi } from '@/api/dispatch.uts'
+import { checkInApi, checkOutApi, getAttendanceByDate, applyLeaveByParams } from '@/api/attendance.uts'
+import { getPendingTasksByDriver, completeTask as completeTaskApi, acceptTask as acceptTaskApi } from '@/api/dispatch.uts'
+import { startTrip as startTripApi } from '@/api/trip.uts'
 import { toast } from '@/utils/toast.uts'
-import { request } from '@/utils/request.uts'
-import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
+import type { AttendanceVO } from '@/types/user.uts'
+import type { DispatchTaskVO } from '@/types/dispatch.uts'
 	
 	const userStore = useUserStore()
 	
@@ -140,6 +204,20 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 	const submitting = ref(false)
 	const tasks = ref<DispatchTaskVO[]>([])
 	const loading = ref(false)
+	
+	const showLeaveModal = ref(false)
+	const leaveTypes = [
+		{ label: '事假', value: 1 },
+		{ label: '病假', value: 2 },
+		{ label: '年假', value: 3 },
+		{ label: '调休', value: 4 }
+	]
+	const leaveForm = ref({
+		leaveType: 1,
+		startDate: '',
+		endDate: '',
+		reason: ''
+	})
 	
 	const todayDate = computed(() => {
 		const now = new Date()
@@ -184,7 +262,8 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 		loading.value = true
 		
 		try {
-			const data = await getPendingTasksByDriver(Number(user.id))
+			// 使用字符串类型的 ID，避免精度丢失
+			const data = await getPendingTasksByDriver(user.id)
 			tasks.value = data || []
 		} catch (e) {
 			console.error('加载任务失败', e)
@@ -329,21 +408,17 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 				if (res.confirm) {
 					try {
 						toast.loading('接单中...')
-						const result = await request({
-							url: `/api/dispatch/task/${task.id}/accept`,
-							method: 'POST'
-						})
-						if (result?.code === 200) {
+						const result = await acceptTaskApi(task.id)
+						if (result) {
 							toast.success('接单成功')
 							
-							// 跳转到 Map 页面，拼接 URL 参数
-						const tripId = result.data?.tripId || ''
-						const vehicleId = task.vehicleId || ''
-						const driverId = userStore.userInfo.value?.id || ''
+							const tripId = result.tripId || ''
+							const vehicleId = task.vehicleId || ''
+							const driverId = userStore.userInfo.value?.id || ''
 						
-						uni.redirectTo({
-							url: `/pages/user/map/index?taskId=${task.id}&tripId=${tripId}&vehicleId=${vehicleId}&driverId=${driverId}&startLongitude=${task.startLongitude || 0}&startLatitude=${task.startLatitude || 0}&endLongitude=${task.endLongitude || 0}&endLatitude=${task.endLatitude || 0}&startLocation=${task.startLocation || ''}&endLocation=${task.endLocation || ''}&taskNo=${task.taskNo || ''}`
-						})
+							uni.redirectTo({
+								url: `/pages/user/map/index?taskId=${task.id}&tripId=${tripId}&vehicleId=${vehicleId}&driverId=${driverId}&startLongitude=${task.startLongitude || 0}&startLatitude=${task.startLatitude || 0}&endLongitude=${task.endLongitude || 0}&endLatitude=${task.endLatitude || 0}&startLocation=${task.startLocation || ''}&endLocation=${task.endLocation || ''}&taskNo=${task.taskNo || ''}`
+							})
 						}
 					} catch (e: any) {
 						toast.error(e?.message || '接单失败')
@@ -356,6 +431,12 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 	async function startTask(task: DispatchTaskVO) {
 		if (!task) return
 		
+		const tripId = task.tripId
+		if (!tripId) {
+			toast.error('行程信息不存在，请先接单')
+			return
+		}
+		
 		uni.showModal({
 			title: '开始行程',
 			content: `确定开始执行任务吗？\n${task.startLocation || ''} → ${task.endLocation || ''}`,
@@ -363,9 +444,17 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 				if (res.confirm) {
 					try {
 						toast.loading('启动中...')
-						await startTaskApi(task.id)
-						toast.success('任务已开始')
-						loadTasks()
+						// 直接调用trip模块开始行程（trip内部回调dispatch更新任务状态、vehicle更新车辆状态）
+						await startTripApi(parseInt(tripId))
+						toast.success('行程已开始')
+						
+						// 跳转到地图界面
+						const vehicleId = task.vehicleId || ''
+						const driverId = userStore.userInfo.value?.id || ''
+						
+						uni.redirectTo({
+							url: `/pages/user/map/index?taskId=${task.id}&tripId=${tripId}&vehicleId=${vehicleId}&driverId=${driverId}&startLongitude=${task.startLongitude || 0}&startLatitude=${task.startLatitude || 0}&endLongitude=${task.endLongitude || 0}&endLatitude=${task.endLatitude || 0}&startLocation=${task.startLocation || ''}&endLocation=${task.endLocation || ''}&taskNo=${task.taskNo || ''}`
+						})
 					} catch (e: any) {
 						toast.error(e?.message || '启动失败')
 					}
@@ -402,6 +491,71 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 			title: `任务: ${task.taskNo || ''}`,
 			icon: 'none'
 		})
+	}
+	
+	function goToLeave() {
+		const today = new Date()
+		const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+		leaveForm.value = {
+			leaveType: 1,
+			startDate: dateStr,
+			endDate: dateStr,
+			reason: ''
+		}
+		showLeaveModal.value = true
+	}
+	
+	function closeLeaveModal() {
+		showLeaveModal.value = false
+	}
+	
+	function onStartDateChange(e: any) {
+		leaveForm.value.startDate = e.detail.value
+	}
+	
+	function onEndDateChange(e: any) {
+		leaveForm.value.endDate = e.detail.value
+	}
+	
+	async function submitLeave() {
+		if (!leaveForm.value.startDate || !leaveForm.value.endDate) {
+			toast.error('请选择请假日期')
+			return
+		}
+		
+		if (leaveForm.value.startDate > leaveForm.value.endDate) {
+			toast.error('开始日期不能晚于结束日期')
+			return
+		}
+		
+		submitting.value = true
+		toast.loading('提交中...')
+		
+		try {
+			const user = userStore.userInfo.value
+			if (!user) {
+				toast.error('请先登录')
+				return
+			}
+			
+			const startTime = `${leaveForm.value.startDate}T08:00:00`
+			const endTime = `${leaveForm.value.endDate}T18:00:00`
+			
+			await applyLeaveByParams(
+				leaveForm.value.leaveType,
+				startTime,
+				endTime,
+				leaveForm.value.reason || undefined
+			)
+			
+			toast.success('请假申请成功')
+			closeLeaveModal()
+			loadTodayAttendance()
+		} catch (e: any) {
+			toast.error(e?.message || '请假申请失败')
+		} finally {
+			submitting.value = false
+		}
 	}
 </script>
 
@@ -559,6 +713,11 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 	
 	.check-btn.disabled {
 		background: #C7C7CC;
+	}
+	
+	.check-btn.leave-btn {
+		background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%);
+		flex: 0.6;
 	}
 	
 	.check-btn text {
@@ -820,5 +979,149 @@ import type { AttendanceVO, DispatchTaskVO } from '@/types/user.uts'
 	.empty-desc {
 		font-size: 28rpx;
 		color: #8F959E;
+	}
+	
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+	}
+	
+	.modal-content {
+		width: 90%;
+		max-width: 640rpx;
+		background-color: #fff;
+		border-radius: 24rpx;
+		overflow: hidden;
+	}
+	
+	.modal-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 32rpx;
+		border-bottom: 2rpx solid #F0F2F5;
+	}
+	
+	.modal-title {
+		font-size: 32rpx;
+		font-weight: 600;
+		color: #2c3e50;
+	}
+	
+	.modal-close {
+		font-size: 48rpx;
+		color: #8F959E;
+		line-height: 1;
+	}
+	
+	.modal-body {
+		padding: 32rpx;
+	}
+	
+	.form-item {
+		margin-bottom: 32rpx;
+	}
+	
+	.form-label {
+		font-size: 28rpx;
+		color: #2c3e50;
+		margin-bottom: 16rpx;
+		display: block;
+	}
+	
+	.leave-type-list {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 16rpx;
+	}
+	
+	.leave-type-item {
+		padding: 16rpx 32rpx;
+		background-color: #F7F8FA;
+		border-radius: 16rpx;
+		border: 2rpx solid transparent;
+	}
+	
+	.leave-type-item.active {
+		background-color: #E6F4FF;
+		border-color: #007AFF;
+	}
+	
+	.leave-type-item text {
+		font-size: 26rpx;
+		color: #2c3e50;
+	}
+	
+	.leave-type-item.active text {
+		color: #007AFF;
+	}
+	
+	.picker-value {
+		padding: 24rpx;
+		background-color: #F7F8FA;
+		border-radius: 16rpx;
+	}
+	
+	.picker-value text {
+		font-size: 28rpx;
+		color: #2c3e50;
+	}
+	
+	.reason-input {
+		width: 100%;
+		height: 160rpx;
+		padding: 24rpx;
+		background-color: #F7F8FA;
+		border-radius: 16rpx;
+		font-size: 28rpx;
+		color: #2c3e50;
+	}
+	
+	.modal-footer {
+		display: flex;
+		flex-direction: row;
+		gap: 24rpx;
+		padding: 24rpx 32rpx 32rpx;
+		border-top: 2rpx solid #F0F2F5;
+	}
+	
+	.cancel-btn,
+	.confirm-btn {
+		flex: 1;
+		height: 88rpx;
+		border-radius: 20rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border: none;
+	}
+	
+	.cancel-btn {
+		background-color: #F7F8FA;
+	}
+	
+	.cancel-btn text {
+		font-size: 28rpx;
+		color: #8F959E;
+	}
+	
+	.confirm-btn {
+		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+	}
+	
+	.confirm-btn text {
+		font-size: 28rpx;
+		font-weight: 600;
+		color: #fff;
 	}
 </style>

@@ -3,6 +3,7 @@ package com.klzw.service.vehicle.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.klzw.common.core.client.DispatchClient;
 import com.klzw.service.vehicle.dto.VehicleFaultDTO;
 import com.klzw.service.vehicle.dto.VehicleFaultStatisticsResponseDTO;
 import com.klzw.service.vehicle.entity.VehicleFault;
@@ -35,6 +36,9 @@ public class VehicleFaultServiceImpl extends ServiceImpl<VehicleFaultMapper, Veh
     
     @Resource
     private VehicleService vehicleService;
+    
+    @Resource
+    private DispatchClient dispatchClient;
     
     @Override
     public VehicleFault reportFault(VehicleFaultDTO faultDTO) {

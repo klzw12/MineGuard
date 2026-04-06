@@ -41,6 +41,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
+    private final com.klzw.service.user.mapper.UserAttendanceMapper userAttendanceMapper;
     private final PasswordUtils passwordUtils;
     private final RedisCacheService redisCacheService;
     private final FileUploadServiceImpl fileUploadService;
@@ -93,7 +94,7 @@ public class UserServiceImpl implements UserService {
     public UserVO register(UserRegisterDTO dto) {
         User existUser = getByUsername(dto.getUsername());
         if (existUser != null) {
-            throw new UserException(UserResultCode.USERNAME_EXISTS);
+            throw new UserException(UserResultCode.USERNAME_EXISTS,"用户已存在");
         }
 
         if (StringUtils.hasText(dto.getPhone())) {
@@ -533,5 +534,20 @@ public class UserServiceImpl implements UserService {
         }
         User user = userMapper.selectById(userId);
         return user != null && user.getDeleted() == 0;
+    }
+
+    @Override
+    public java.util.List<Long> getLeaveUserIds() {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.klzw.service.user.entity.UserAttendance> wrapper = new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(com.klzw.service.user.entity.UserAttendance::getAttendanceDate, today);
+        wrapper.eq(com.klzw.service.user.entity.UserAttendance::getStatus, 5); // 5表示请假
+        wrapper.eq(com.klzw.service.user.entity.UserAttendance::getDeleted, 0);
+        
+        java.util.List<com.klzw.service.user.entity.UserAttendance> leaveRecords = userAttendanceMapper.selectList(wrapper);
+        return leaveRecords.stream()
+            .map(com.klzw.service.user.entity.UserAttendance::getUserId)
+            .distinct()
+            .collect(java.util.stream.Collectors.toList());
     }
 }

@@ -1,26 +1,41 @@
 package com.klzw.service.dispatch.service.impl;
 
-import java.util.UUID;
+import java.util.*;
+
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.klzw.common.core.client.DriverClient;
 import com.klzw.common.core.client.UserClient;
 import com.klzw.common.core.client.VehicleClient;
 import com.klzw.common.core.domain.PageRequest;
+import com.klzw.common.core.domain.dto.VehicleInfo;
 import com.klzw.common.core.result.PageResult;
+import com.klzw.common.core.result.Result;
 import com.klzw.service.dispatch.dto.DispatchPlanDTO;
 import com.klzw.service.dispatch.entity.DispatchPlan;
+import com.klzw.service.dispatch.entity.RouteTemplate;
+import com.klzw.service.dispatch.entity.TransportTask;
+import com.klzw.service.dispatch.entity.MaintenanceTask;
+import com.klzw.service.dispatch.entity.InspectionTask;
 import com.klzw.service.dispatch.mapper.DispatchPlanMapper;
+import com.klzw.service.dispatch.mapper.RouteTemplateMapper;
+import com.klzw.service.dispatch.mapper.TransportTaskMapper;
+import com.klzw.service.dispatch.mapper.MaintenanceTaskMapper;
+import com.klzw.service.dispatch.mapper.InspectionTaskMapper;
 import com.klzw.service.dispatch.service.DispatchPlanService;
 import com.klzw.service.dispatch.vo.DispatchPlanVO;
+import com.klzw.common.mq.producer.IMessageProducer;
+import com.klzw.common.mq.constant.MqConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,8 +44,36 @@ import java.util.stream.Collectors;
 public class DispatchPlanServiceImpl implements DispatchPlanService {
 
     private final DispatchPlanMapper dispatchPlanMapper;
+    private final RouteTemplateMapper routeTemplateMapper;
+    private final DriverClient driverClient;
     private final UserClient userClient;
     private final VehicleClient vehicleClient;
+    private final TransportTaskMapper transportTaskMapper;
+    private final MaintenanceTaskMapper maintenanceTaskMapper;
+    private final InspectionTaskMapper inspectionTaskMapper;
+    private final IMessageProducer messageProducer;
+
+    @Override
+    public List<DispatchPlanVO> list(Integer status, LocalDate startDate, LocalDate endDate) {
+        LambdaQueryWrapper<DispatchPlan> wrapper = new LambdaQueryWrapper<>();
+        
+        if (status != null) {
+            wrapper.eq(DispatchPlan::getStatus, status);
+        }
+        if (startDate != null) {
+            wrapper.ge(DispatchPlan::getPlanDate, startDate);
+        }
+        if (endDate != null) {
+            wrapper.le(DispatchPlan::getPlanDate, endDate);
+        }
+        
+        wrapper.orderByDesc(DispatchPlan::getCreateTime);
+        
+        List<DispatchPlan> plans = dispatchPlanMapper.selectList(wrapper);
+        return plans.stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+    }
 
     @Override
     public PageResult<DispatchPlanVO> page(PageRequest pageRequest) {
@@ -59,15 +102,26 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long create(DispatchPlanDTO dto) {
-        validateVehicleAndDriver(dto.getVehicleId(), dto.getDriverId());
-        
         DispatchPlan plan = new DispatchPlan();
         BeanUtils.copyProperties(dto, plan);
         plan.setPlanNo(generatePlanNo());
-        plan.setStatus(1);
+        plan.setStatus(0);
+        plan.setCompletedTrips(0);
+        
+        if (dto.getRouteId() != null) {
+            RouteTemplate route = routeTemplateMapper.selectById(dto.getRouteId());
+            if (route != null) {
+                plan.setStartLocation(route.getStartLocation());
+                plan.setEndLocation(route.getEndLocation());
+                plan.setStartLongitude(route.getStartLongitude());
+                plan.setStartLatitude(route.getStartLatitude());
+                plan.setEndLongitude(route.getEndLongitude());
+                plan.setEndLatitude(route.getEndLatitude());
+            }
+        }
         
         dispatchPlanMapper.insert(plan);
-        log.info("创建调度计划成功，计划ID：{}，计划编号：{}", plan.getId(), plan.getPlanNo());
+        log.info("创建调度计划成功，计划ID：{}，计划编号：{}，类型：{}", plan.getId(), plan.getPlanNo(), plan.getPlanType());
         
         return plan.getId();
     }
@@ -80,11 +134,9 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
             throw new RuntimeException("调度计划不存在");
         }
         
-        if (plan.getStatus() != 1) {
+        if (plan.getStatus() != 0) {
             throw new RuntimeException("只有待执行的计划可以修改");
         }
-        
-        validateVehicleAndDriver(dto.getVehicleId(), dto.getDriverId());
         
         BeanUtils.copyProperties(dto, plan);
         plan.setId(id);
@@ -101,7 +153,7 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
             throw new RuntimeException("调度计划不存在");
         }
         
-        if (plan.getStatus() == 2) {
+        if (plan.getStatus() == 1) {
             throw new RuntimeException("执行中的计划不能删除");
         }
         
@@ -129,13 +181,616 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
             throw new RuntimeException("调度计划不存在");
         }
         
-        if (plan.getStatus() != 1) {
+        if (plan.getStatus() != 0) {
             throw new RuntimeException("只有待执行的计划可以执行");
         }
         
-        plan.setStatus(2);
+        plan.setStatus(1);
         dispatchPlanMapper.updateById(plan);
-        log.info("执行调度计划成功，计划ID：{}", id);
+        
+        boolean created = createTasksForPlan(plan);
+        
+        if (!created) {
+            plan.setStatus(0);
+            dispatchPlanMapper.updateById(plan);
+            throw new RuntimeException("无法分配执行人员或车辆，任务创建失败");
+        }
+        
+        log.info("执行调度计划成功，计划ID：{}，类型：{}，已创建任务", id, plan.getPlanType());
+    }
+    
+    private boolean createTasksForPlan(DispatchPlan plan) {
+        Integer planType = plan.getPlanType();
+        if (planType == null) {
+            planType = 1;
+        }
+        
+        String priority = calculatePriority(plan);
+        int taskCount = plan.getPlannedTrips() != null ? plan.getPlannedTrips() : 1;
+        
+        List<Long> executorIds = new ArrayList<>();
+        List<Long> vehicleIds = new ArrayList<>();
+        
+        Long predefinedExecutorId = plan.getDriverId();
+        Long predefinedVehicleId = plan.getVehicleId();
+        
+        if (predefinedExecutorId != null && predefinedVehicleId != null) {
+            for (int i = 0; i < taskCount; i++) {
+                executorIds.add(predefinedExecutorId);
+                vehicleIds.add(predefinedVehicleId);
+            }
+        } else if (planType == 1) {
+            List<DriverInfo> availableDrivers = getAvailableDriversList();
+            List<VehicleInfo> availableVehicles = getAvailableVehiclesList();
+            
+            if (availableDrivers.size() < taskCount) {
+                log.warn("可用司机数量不足: 需要 {}, 实际 {}", taskCount, availableDrivers.size());
+                return false;
+            }
+            if (availableVehicles.size() < taskCount) {
+                log.warn("可用车辆数量不足: 需要 {}, 实际 {}", taskCount, availableVehicles.size());
+                return false;
+            }
+            
+            Set<Long> assignedVehicleIds = new HashSet<>();
+            Long[] driverVehicleAssignments = new Long[taskCount];
+            
+            for (int i = 0; i < taskCount && i < availableDrivers.size(); i++) {
+                DriverInfo driver = availableDrivers.get(i);
+                Long commonVehicleId = getAvailableCommonVehicle(driver.getId(), availableVehicles, assignedVehicleIds);
+                if (commonVehicleId != null) {
+                    driverVehicleAssignments[i] = commonVehicleId;
+                    assignedVehicleIds.add(commonVehicleId);
+                    log.info("第一轮分配: 司机 {} 分配常用车辆 {}", driver.getDriverName(), commonVehicleId);
+                }
+            }
+            
+            for (int i = 0; i < taskCount && i < availableDrivers.size(); i++) {
+                DriverInfo driver = availableDrivers.get(i);
+                executorIds.add(driver.getUserId());
+                
+                if (driverVehicleAssignments[i] == null) {
+                    Long randomVehicleId = assignRandomVehicle(availableVehicles, assignedVehicleIds);
+                    if (randomVehicleId != null) {
+                        driverVehicleAssignments[i] = randomVehicleId;
+                        assignedVehicleIds.add(randomVehicleId);
+                        log.info("第二轮分配: 司机 {} 随机分配车辆 {}", driver.getDriverName(), randomVehicleId);
+                    } else {
+                        log.warn("无法为司机 {} 分配车辆", driver.getDriverName());
+                        return false;
+                    }
+                }
+                vehicleIds.add(driverVehicleAssignments[i]);
+            }
+        } else {
+            for (int i = 0; i < taskCount; i++) {
+                Long executorId = assignExecutor(planType, null, plan);
+                Long vehicleId = assignVehicleForPlan(plan, planType);
+                
+                if (executorId == null) {
+                    log.warn("无法分配执行人员, planId: {}, taskIndex: {}", plan.getId(), i);
+                    return false;
+                }
+                if (vehicleId == null) {
+                    log.warn("无法分配车辆, planId: {}, taskIndex: {}", plan.getId(), i);
+                    return false;
+                }
+                
+                executorIds.add(executorId);
+                vehicleIds.add(vehicleId);
+            }
+        }
+        
+        for (int i = 0; i < taskCount; i++) {
+            int sequence = i + 1;
+            String taskNo = generateTaskNo(plan.getPlanType(), sequence);
+            Long executorId = executorIds.get(i);
+            Long vehicleId = vehicleIds.get(i);
+            
+            switch (planType) {
+                case 1:
+                    createTransportTask(plan, sequence, taskNo, executorId, vehicleId, priority);
+                    break;
+                case 2:
+                    createMaintenanceTask(plan, sequence, taskNo, executorId, vehicleId, priority);
+                    break;
+                case 3:
+                    createInspectionTask(plan, sequence, taskNo, executorId, vehicleId, priority);
+                    break;
+                default:
+                    log.warn("未知的计划类型: {}", planType);
+            }
+        }
+        
+        return true;
+    }
+    
+    private Long getAvailableCommonVehicle(Long driverId, List<VehicleInfo> availableVehicles, Set<Long> assignedVehicleIds) {
+        try {
+            Result<List<Object>> result = userClient.getCommonVehicles(driverId);
+            if (result != null && result.getData() != null && !result.getData().isEmpty()) {
+                for (Object obj : result.getData()) {
+                    if (obj instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> commonVehicle = (Map<String, Object>) obj;
+                        Long vehicleId = commonVehicle.get("vehicleId") != null ? 
+                            Long.valueOf(commonVehicle.get("vehicleId").toString()) : null;
+                        
+                        if (vehicleId != null && !assignedVehicleIds.contains(vehicleId)) {
+                            boolean isAvailable = availableVehicles.stream()
+                                .anyMatch(v -> v.getId().equals(vehicleId));
+                            if (isAvailable) {
+                                return vehicleId;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("获取司机常用车辆失败: driverId={}, error={}", driverId, e.getMessage());
+        }
+        return null;
+    }
+    
+    private Long assignRandomVehicle(List<VehicleInfo> availableVehicles, Set<Long> assignedVehicleIds) {
+        for (VehicleInfo vehicle : availableVehicles) {
+            if (!assignedVehicleIds.contains(vehicle.getId())) {
+                return vehicle.getId();
+            }
+        }
+        return null;
+    }
+    
+    private List<DriverInfo> getAvailableDriversList() {
+        try {
+            Result<List<Object>> result = userClient.getAvailableDrivers();
+            if (result != null && result.getData() != null) {
+                List<DriverInfo> drivers = new ArrayList<>();
+                for (Object obj : result.getData()) {
+                    if (obj instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> map = (Map<String, Object>) obj;
+                        DriverInfo driver = new DriverInfo();
+                        driver.setId(map.get("id") != null ? Long.valueOf(map.get("id").toString()) : null);
+                        driver.setUserId(map.get("userId") != null ? Long.valueOf(map.get("userId").toString()) : null);
+                        driver.setDriverName((String) map.get("driverName"));
+                        drivers.add(driver);
+                    }
+                }
+                
+                List<Long> assignedDriverIds = transportTaskMapper.findAssignedButNotAcceptedDriverIds();
+                log.info("已分配待接单的司机ID列表: {}", assignedDriverIds);
+                
+                if (!assignedDriverIds.isEmpty()) {
+                    List<DriverInfo> filteredDrivers = drivers.stream()
+                        .filter(d -> !assignedDriverIds.contains(d.getUserId()))
+                        .collect(Collectors.toList());
+                    
+                    if (filteredDrivers.isEmpty()) {
+                        log.info("排除已分配待接单后无可用司机，放宽条件从所有在职司机中选择");
+                        return drivers;
+                    }
+                    return filteredDrivers;
+                }
+                
+                return drivers;
+            }
+        } catch (Exception e) {
+            log.error("获取可用司机列表失败", e);
+        }
+        return new ArrayList<>();
+    }
+    
+    private List<VehicleInfo> getAvailableVehiclesList() {
+        try {
+            var result = vehicleClient.getAvailableVehicles();
+            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            if (vehicles != null) {
+                List<Long> assignedVehicleIds = transportTaskMapper.findAssignedButNotAcceptedVehicleIds();
+                log.info("已分配待接单的车辆ID列表: {}", assignedVehicleIds);
+                
+                if (!assignedVehicleIds.isEmpty()) {
+                    List<VehicleInfo> filteredVehicles = vehicles.stream()
+                        .filter(v -> !assignedVehicleIds.contains(v.getId()))
+                        .collect(Collectors.toList());
+                    
+                    if (filteredVehicles.isEmpty()) {
+                        log.info("排除已分配待接单后无可用车辆，放宽条件从所有空闲车辆中选择");
+                        return vehicles;
+                    }
+                    return filteredVehicles;
+                }
+                
+                return vehicles;
+            }
+        } catch (Exception e) {
+            log.error("获取可用车辆列表失败", e);
+        }
+        return new ArrayList<>();
+    }
+    
+    private static class DriverInfo {
+        private Long id;
+        private Long userId;
+        private String driverName;
+        
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
+        public Long getUserId() { return userId; }
+        public void setUserId(Long userId) { this.userId = userId; }
+        public String getDriverName() { return driverName; }
+        public void setDriverName(String driverName) { this.driverName = driverName; }
+    }
+    
+    private String calculatePriority(DispatchPlan plan) {
+        String endTimeSlot = plan.getEndTimeSlot();
+        if (endTimeSlot == null || endTimeSlot.isEmpty()) {
+            LocalDate planDate = plan.getPlanDate();
+            if (planDate == null) {
+                return "normal";
+            }
+            endTimeSlot = planDate.toString();
+        }
+        
+        try {
+            LocalDate deadline = LocalDate.parse(endTimeSlot);
+            LocalDate today = LocalDate.now();
+            long daysUntilDeadline = java.time.temporal.ChronoUnit.DAYS.between(today, deadline);
+            
+            if (daysUntilDeadline <= 1) {
+                return "urgent";
+            } else if (daysUntilDeadline <= 3) {
+                return "high";
+            } else if (daysUntilDeadline <= 7) {
+                return "normal";
+            } else {
+                return "low";
+            }
+        } catch (Exception e) {
+            log.warn("解析截止日期失败: {}", endTimeSlot, e);
+            return "normal";
+        }
+    }
+    
+    private Long assignExecutor(Integer planType, Long vehicleId, DispatchPlan plan) {
+        try {
+            switch (planType) {
+                case 1:
+                    return assignBestDriver(vehicleId, plan);
+                case 2:
+                    return assignRandomRepairman();
+                case 3:
+                    return assignRandomSafetyOfficer();
+                default:
+                    return null;
+            }
+        } catch (Exception e) {
+            log.error("分配执行人员失败, planType: {}", planType, e);
+            return null;
+        }
+    }
+    
+    private Long assignBestDriver(Long vehicleId, DispatchPlan plan) {
+        try {
+            String scheduledTime = plan.getPlanDate() != null ? plan.getPlanDate().toString() : null;
+            Result<Object> result = userClient.selectBestDriver(vehicleId, scheduledTime);
+            
+            if (result != null && result.getData() != null) {
+                Object data = result.getData();
+                if (data instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> driverMap = (Map<String, Object>) data;
+                    Object userId = driverMap.get("userId");
+                    if (userId != null) {
+                        Long executorId = Long.valueOf(userId.toString());
+                        log.info("智能分配司机成功, userId: {}", executorId);
+                        return executorId;
+                    }
+                }
+            }
+            
+            log.warn("智能分配司机失败，尝试随机选择");
+            return assignRandomDriver();
+        } catch (Exception e) {
+            log.error("智能分配司机失败", e);
+            return assignRandomDriver();
+        }
+    }
+    
+    private Long assignRandomDriver() {
+        try {
+            Result<List<Object>> result = userClient.getAvailableDrivers();
+            if (result != null && result.getData() != null && !result.getData().isEmpty()) {
+                List<Object> drivers = result.getData();
+                int randomIndex = (int) (Math.random() * drivers.size());
+                Object driver = drivers.get(randomIndex);
+                if (driver instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> driverMap = (Map<String, Object>) driver;
+                    Object userId = driverMap.get("userId");
+                    if (userId != null) {
+                        Long executorId = Long.valueOf(userId.toString());
+                        log.info("随机分配司机成功, userId: {}", executorId);
+                        return executorId;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("随机选择司机失败", e);
+        }
+        return null;
+    }
+    
+    private Long assignRandomRepairman() {
+        try {
+            Result<List<Object>> result = userClient.getAvailableRepairmen();
+            if (result != null && result.getData() != null && !result.getData().isEmpty()) {
+                List<Object> repairmen = result.getData();
+                int randomIndex = (int) (Math.random() * repairmen.size());
+                Object repairman = repairmen.get(randomIndex);
+                if (repairman instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> map = (Map<String, Object>) repairman;
+                    Object userId = map.get("userId");
+                    if (userId != null) {
+                        Long executorId = Long.valueOf(userId.toString());
+                        log.info("随机分配维修员成功, userId: {}", executorId);
+                        return executorId;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("随机选择维修员失败", e);
+        }
+        return null;
+    }
+    
+    private Long assignRandomSafetyOfficer() {
+        try {
+            Result<List<Object>> result = userClient.getAvailableSafetyOfficers();
+            if (result != null && result.getData() != null && !result.getData().isEmpty()) {
+                List<Object> officers = result.getData();
+                int randomIndex = (int) (Math.random() * officers.size());
+                Object officer = officers.get(randomIndex);
+                if (officer instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> map = (Map<String, Object>) officer;
+                    Object userId = map.get("userId");
+                    if (userId != null) {
+                        Long executorId = Long.valueOf(userId.toString());
+                        log.info("随机分配安全员成功, userId: {}", executorId);
+                        return executorId;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("随机选择安全员失败", e);
+        }
+        return null;
+    }
+    
+    private Long assignVehicle(DispatchPlan plan) {
+        try {
+            var result = vehicleClient.selectBestVehicle(
+                    plan.getStartLongitude() != null ? BigDecimal.valueOf(plan.getStartLongitude()) : null,
+                    plan.getStartLatitude() != null ? BigDecimal.valueOf(plan.getStartLatitude()) : null,
+                    plan.getPlannedCargoWeight(),
+                    null
+            );
+            
+            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            if (vehicles != null && !vehicles.isEmpty()) {
+                VehicleInfo vehicle = vehicles.get(0);
+                Long vehicleId = vehicle.getId();
+                log.info("智能分配车辆成功, vehicleId: {}", vehicleId);
+                return vehicleId;
+            }
+        } catch (Exception e) {
+            log.error("智能分配车辆失败", e);
+        }
+        return null;
+    }
+    
+    private Long assignVehicleForPlan(DispatchPlan plan, Integer planType) {
+        if (planType == 1) {
+            return assignVehicle(plan);
+        }
+        
+        try {
+            var result = vehicleClient.getAvailableVehicles();
+            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            if (vehicles != null && !vehicles.isEmpty()) {
+                int randomIndex = (int) (Math.random() * vehicles.size());
+                VehicleInfo vehicle = vehicles.get(randomIndex);
+                Long vehicleId = vehicle.getId();
+                log.info("随机分配车辆成功, vehicleId: {}, planType: {}", vehicleId, planType);
+                return vehicleId;
+            }
+        } catch (Exception e) {
+            log.error("随机分配车辆失败", e);
+        }
+        return null;
+    }
+    
+    private void createTransportTask(DispatchPlan plan, int sequence, String taskNo, Long executorId, Long vehicleId, String priority) {
+        TransportTask task = new TransportTask();
+        task.setTaskNo(taskNo);
+        task.setPlanId(plan.getId());
+        task.setRouteId(plan.getRouteId());
+        task.setTaskSequence(sequence);
+        task.setVehicleId(vehicleId);
+        task.setExecutorId(executorId);
+        task.setStartLocation(plan.getStartLocation());
+        task.setStartLongitude(plan.getStartLongitude());
+        task.setStartLatitude(plan.getStartLatitude());
+        task.setEndLocation(plan.getEndLocation());
+        task.setEndLongitude(plan.getEndLongitude());
+        task.setEndLatitude(plan.getEndLatitude());
+        task.setCargoWeight(plan.getPlannedCargoWeight());
+        task.setStatus(0);
+        task.setPriority(priority != null ? priority : "normal");
+        
+        task.setScheduledStartTime(calculateScheduledStart(plan));
+        task.setScheduledEndTime(calculateScheduledEnd(plan));
+        
+        transportTaskMapper.insert(task);
+        log.info("创建运输任务成功，任务编号：{}，执行人：{}，车辆：{}", taskNo, executorId, vehicleId);
+        
+        sendTaskNotification(task, executorId);
+    }
+    
+    private void createMaintenanceTask(DispatchPlan plan, int sequence, String taskNo, Long executorId, Long vehicleId, String priority) {
+        MaintenanceTask task = new MaintenanceTask();
+        task.setTaskNo(taskNo);
+        task.setPlanId(plan.getId());
+        task.setVehicleId(vehicleId);
+        task.setExecutorId(executorId);
+        task.setStatus(0);
+        task.setPriority(priority != null ? priority : "normal");
+        
+        LocalDateTime scheduledStart = calculateScheduledStart(plan);
+        task.setScheduledStartTime(scheduledStart);
+        task.setScheduledEndTime(scheduledStart.plusHours(4));
+        
+        maintenanceTaskMapper.insert(task);
+        log.info("创建维修任务成功，任务编号：{}，执行人：{}，车辆：{}", taskNo, executorId, vehicleId);
+        
+        sendTaskNotification(task, executorId);
+    }
+    
+    private void createInspectionTask(DispatchPlan plan, int sequence, String taskNo, Long executorId, Long vehicleId, String priority) {
+        InspectionTask task = new InspectionTask();
+        task.setTaskNo(taskNo);
+        task.setPlanId(plan.getId());
+        task.setVehicleId(vehicleId);
+        task.setExecutorId(executorId);
+        task.setStatus(0);
+        task.setPriority(priority != null ? priority : "normal");
+        
+        LocalDateTime scheduledStart = calculateScheduledStart(plan);
+        task.setScheduledStartTime(scheduledStart);
+        task.setScheduledEndTime(scheduledStart.plusHours(4));
+        
+        inspectionTaskMapper.insert(task);
+        log.info("创建巡检任务成功，任务编号：{}，执行人：{}，车辆：{}", taskNo, executorId, vehicleId);
+        
+        sendTaskNotification(task, executorId);
+    }
+    
+    private void sendTaskNotification(Object task, Long executorId) {
+        if (executorId == null) {
+            log.warn("执行人ID为空，跳过消息推送");
+            return;
+        }
+        
+        try {
+            Map<String, Object> message = new HashMap<>();
+            message.put("taskId", extractTaskId(task));
+            message.put("taskNo", extractTaskNo(task));
+            message.put("executorId", executorId);
+            message.put("taskType", extractTaskType(task));
+            message.put("createTime", LocalDateTime.now());
+            message.put("type", "DISPATCH_TASK");
+            
+            messageProducer.sendMessage(
+                    MqConstants.DISPATCH_TASK_EXCHANGE,
+                    MqConstants.DISPATCH_TASK_ROUTING_KEY,
+                    message
+            );
+            
+            log.info("推送调度任务消息成功， taskId: {}, executorId: {}", extractTaskId(task), executorId);
+        } catch (Exception e) {
+            log.error("推送调度任务消息失败， taskId: {}, executorId: {}", extractTaskId(task), executorId, e);
+        }
+    }
+    
+    private Integer extractTaskType(Object task) {
+        if (task instanceof TransportTask) {
+            return 1;
+        } else if (task instanceof MaintenanceTask) {
+            return 2;
+        } else if (task instanceof InspectionTask) {
+            return 3;
+        }
+        return 1;
+    }
+    
+    private Long extractTaskId(Object task) {
+        if (task instanceof TransportTask) {
+            return ((TransportTask) task).getId();
+        } else if (task instanceof MaintenanceTask) {
+            return ((MaintenanceTask) task).getId();
+        } else if (task instanceof InspectionTask) {
+            return ((InspectionTask) task).getId();
+        }
+        return null;
+    }
+    
+    private String extractTaskNo(Object task) {
+        if (task instanceof TransportTask) {
+            return ((TransportTask) task).getTaskNo();
+        } else if (task instanceof MaintenanceTask) {
+            return ((MaintenanceTask) task).getTaskNo();
+        } else if (task instanceof InspectionTask) {
+            return ((InspectionTask) task).getTaskNo();
+        }
+        return null;
+    }
+    
+    private LocalDateTime calculateScheduledStart(DispatchPlan plan) {
+        String startTimeSlot = plan.getStartTimeSlot();
+        
+        if (startTimeSlot != null && !startTimeSlot.isEmpty()) {
+            try {
+                LocalDate startDate = LocalDate.parse(startTimeSlot);
+                return startDate.atTime(8, 0);
+            } catch (Exception e) {
+                log.warn("解析开始日期失败: {}", startTimeSlot);
+            }
+        }
+        
+        LocalDate planDate = plan.getPlanDate();
+        if (planDate != null) {
+            return planDate.atTime(8, 0);
+        }
+        
+        return LocalDate.now().atTime(8, 0);
+    }
+    
+    private LocalDateTime calculateScheduledEnd(DispatchPlan plan) {
+        String endTimeSlot = plan.getEndTimeSlot();
+        
+        if (endTimeSlot != null && !endTimeSlot.isEmpty()) {
+            try {
+                LocalDate endDate = LocalDate.parse(endTimeSlot);
+                return endDate.atTime(18, 0);
+            } catch (Exception e) {
+                log.warn("解析截止日期失败: {}", endTimeSlot);
+            }
+        }
+        
+        LocalDate planDate = plan.getPlanDate();
+        if (planDate != null) {
+            return planDate.atTime(18, 0);
+        }
+        
+        return LocalDate.now().atTime(18, 0);
+    }
+    
+    private String generateTaskNo(Integer planType, int sequence) {
+        String prefix;
+        if (planType == null) {
+            prefix = "TT";
+        } else {
+            prefix = switch (planType) {
+                case 1 -> "TT";
+                case 2 -> "MT";
+                case 3 -> "IT";
+                default -> "TT";
+            };
+        }
+        String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        return prefix + dateStr + String.format("%02d", sequence) + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
     }
 
     @Override
@@ -146,21 +801,13 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
             throw new RuntimeException("调度计划不存在");
         }
         
-        plan.setStatus(3);
-        dispatchPlanMapper.updateById(plan);
-        log.info("完成调度计划成功，计划ID：{}", id);
-    }
-
-    private void validateVehicleAndDriver(Long vehicleId, Long driverId) {
-        Boolean vehicleExists = vehicleClient.getById(vehicleId) != null;
-        if (!vehicleExists) {
-            throw new RuntimeException("车辆不存在或不可用");
+        if (plan.getStatus() != 1) {
+            throw new RuntimeException("只有执行中的计划可以完成");
         }
         
-        Boolean driverExists = userClient.existsById(driverId);
-        if (driverExists == null || !driverExists) {
-            throw new RuntimeException("司机不存在或不可用");
-        }
+        plan.setStatus(2);
+        dispatchPlanMapper.updateById(plan);
+        log.info("完成调度计划成功，计划ID：{}", id);
     }
 
     private String generatePlanNo() {
@@ -171,6 +818,67 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     private DispatchPlanVO convertToVO(DispatchPlan plan) {
         DispatchPlanVO vo = new DispatchPlanVO();
         BeanUtils.copyProperties(plan, vo);
+        
+        vo.setId(String.valueOf(plan.getId()));
+        vo.setVehicleId(String.valueOf(plan.getVehicleId()));
+        vo.setDriverId(String.valueOf(plan.getDriverId()));
+        if (plan.getRouteId() != null) {
+            vo.setRouteId(String.valueOf(plan.getRouteId()));
+        }
+        
+        if (plan.getCompletedTrips() == null) {
+            vo.setCompletedTrips(0);
+        }
+        
+        if (plan.getVehicleId() != null) {
+            try {
+                var result = vehicleClient.getById(plan.getVehicleId());
+                if (result != null && result.getData() != null && result.getData().getVehicleNo() != null) {
+                    vo.setVehicleNo(result.getData().getVehicleNo());
+                }
+            } catch (Exception e) {
+                log.warn("获取车辆信息失败，vehicleId: {}", plan.getVehicleId());
+            }
+        }
+        
+        if (plan.getDriverId() != null) {
+            try {
+                Result<com.klzw.common.core.domain.dto.DriverInfo> driverResult = driverClient.getById(plan.getDriverId());
+                if (driverResult != null && driverResult.getCode() == 200 && driverResult.getData() != null) {
+                    com.klzw.common.core.domain.dto.DriverInfo driverInfo = driverResult.getData();
+                    vo.setDriverName(driverInfo.getDriverName());
+                }
+            } catch (Exception e) {
+                log.warn("获取司机信息失败，driverId: {}", plan.getDriverId());
+            }
+        }
+        
+        if (plan.getRouteId() != null) {
+            try {
+                RouteTemplate route = routeTemplateMapper.selectById(plan.getRouteId());
+                if (route != null) {
+                    vo.setRouteName(route.getRouteName());
+                    vo.setStartLocation(route.getStartLocation());
+                    vo.setEndLocation(route.getEndLocation());
+                }
+            } catch (Exception e) {
+                log.warn("获取路线信息失败，routeId: {}", plan.getRouteId());
+            }
+        }
+        
+        vo.setStatusName(getStatusName(plan.getStatus()));
+        
         return vo;
+    }
+    
+    private String getStatusName(Integer status) {
+        if (status == null) return "未知";
+        return switch (status) {
+            case 0 -> "待执行";
+            case 1 -> "执行中";
+            case 2 -> "已完成";
+            case 3 -> "已取消";
+            default -> "未知";
+        };
     }
 }

@@ -350,8 +350,9 @@ public class WarningRecordServiceImpl implements WarningRecordService {
         
         String vehicleNo = "未知车辆";
         try {
-            var vehicleInfo = vehicleClient.getById(vehicleId);
-            if (vehicleInfo != null && vehicleInfo.getLicensePlate() != null) {
+            var vehicleInfoResult = vehicleClient.getById(vehicleId);
+            if (vehicleInfoResult != null && vehicleInfoResult.getCode() == 200 && vehicleInfoResult.getData() != null && vehicleInfoResult.getData().getLicensePlate() != null) {
+                var vehicleInfo = vehicleInfoResult.getData();
                 vehicleNo = vehicleInfo.getLicensePlate();
                 redisCacheService.set(key, vehicleNo, 24, TimeUnit.HOURS);
             }
@@ -372,9 +373,13 @@ public class WarningRecordServiceImpl implements WarningRecordService {
         String driverName = "未知司机";
         try {
             var userInfo = userClient.getUserById(driverId);
-            if (userInfo != null && userInfo.getRealName() != null) {
-                driverName = userInfo.getRealName();
-                redisCacheService.set(key, driverName, 24, TimeUnit.HOURS);
+            if (userInfo != null && userInfo.getData() != null) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> userData = (java.util.Map<String, Object>) userInfo.getData();
+                if (userData.get("realName") != null) {
+                    driverName = (String) userData.get("realName");
+                    redisCacheService.set(key, driverName, 24, TimeUnit.HOURS);
+                }
             }
         } catch (Exception e) {
             log.warn("查询司机信息失败：driverId={}", driverId);
@@ -392,10 +397,13 @@ public class WarningRecordServiceImpl implements WarningRecordService {
         
         String tripNo = "未知行程";
         try {
-            var tripInfo = tripClient.getTripById(tripId).block();
-            if (tripInfo != null && tripInfo.getTripNo() != null) {
-                tripNo = tripInfo.getTripNo();
-                redisCacheService.set(key, tripNo, 24, TimeUnit.HOURS);
+            var tripInfoResult = tripClient.getTripById(tripId).block();
+            if (tripInfoResult != null && tripInfoResult.getCode() == 200 && tripInfoResult.getData() != null) {
+                var tripInfo = tripInfoResult.getData();
+                if (tripInfo.getTripNo() != null) {
+                    tripNo = tripInfo.getTripNo();
+                    redisCacheService.set(key, tripNo, 24, TimeUnit.HOURS);
+                }
             }
         } catch (Exception e) {
             log.warn("查询行程信息失败：tripId={}", tripId);
@@ -414,9 +422,13 @@ public class WarningRecordServiceImpl implements WarningRecordService {
         String handlerName = "未知处理人";
         try {
             var userInfo = userClient.getUserById(handlerId);
-            if (userInfo != null && userInfo.getRealName() != null) {
-                handlerName = userInfo.getRealName();
-                redisCacheService.set(key, handlerName, 24, TimeUnit.HOURS);
+            if (userInfo != null && userInfo.getData() != null) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> userData = (java.util.Map<String, Object>) userInfo.getData();
+                if (userData.get("realName") != null) {
+                    handlerName = (String) userData.get("realName");
+                    redisCacheService.set(key, handlerName, 24, TimeUnit.HOURS);
+                }
             }
         } catch (Exception e) {
             log.warn("查询处理人信息失败：handlerId={}", handlerId);

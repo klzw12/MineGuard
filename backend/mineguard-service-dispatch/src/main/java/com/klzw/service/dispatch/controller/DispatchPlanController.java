@@ -24,6 +24,15 @@ public class DispatchPlanController {
 
     private final DispatchPlanService dispatchPlanService;
 
+    @GetMapping("/list")
+    @Operation(summary = "查询调度计划列表")
+    public Result<List<DispatchPlanVO>> list(
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDate endDate) {
+        return Result.success(dispatchPlanService.list(status, startDate, endDate));
+    }
+
     @GetMapping("/page")
     @Operation(summary = "分页查询调度计划")
     public Result<PageResult<DispatchPlanVO>> page(PageRequest pageRequest) {
@@ -63,14 +72,14 @@ public class DispatchPlanController {
         return Result.success(dispatchPlanService.getByDate(date));
     }
 
-    @PostMapping("/{id}/execute")
+    @PutMapping("/{id}/execute")
     @Operation(summary = "执行调度计划")
     public Result<Void> execute(@PathVariable Long id) {
         dispatchPlanService.execute(id);
         return Result.success();
     }
 
-    @PostMapping("/{id}/complete")
+    @PutMapping("/{id}/complete")
     @Operation(summary = "完成调度计划")
     public Result<Void> complete(@PathVariable Long id) {
         dispatchPlanService.complete(id);

@@ -6,8 +6,12 @@ import com.klzw.common.core.client.VehicleClient;
 import com.klzw.common.core.domain.dto.VehicleInfo;
 import com.klzw.service.user.entity.Driver;
 import com.klzw.service.user.entity.DriverVehicle;
+import com.klzw.service.user.entity.Repairman;
+import com.klzw.service.user.entity.SafetyOfficer;
 import com.klzw.service.user.mapper.DriverMapper;
 import com.klzw.service.user.mapper.DriverVehicleMapper;
+import com.klzw.service.user.mapper.RepairmanMapper;
+import com.klzw.service.user.mapper.SafetyOfficerMapper;
 import com.klzw.service.user.service.DriverService;
 import com.klzw.service.user.vo.DriverVehicleVO;
 import com.klzw.service.user.vo.DriverVO;
@@ -29,6 +33,8 @@ public class DriverServiceImpl implements DriverService {
     private final DriverMapper driverMapper;
     private final DriverVehicleMapper driverVehicleMapper;
     private final VehicleClient vehicleClient;
+    private final RepairmanMapper repairmanMapper;
+    private final SafetyOfficerMapper safetyOfficerMapper;
 
     @Override
     public DriverVO getById(Long id) {
@@ -99,29 +105,29 @@ public class DriverServiceImpl implements DriverService {
 
     @Override
     public List<DriverVO> getAvailableRepairmen() {
-        LambdaQueryWrapper<Driver> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Driver::getStatus, 1);
-        wrapper.eq(Driver::getDeleted, 0);
-        wrapper.orderByAsc(Driver::getCreateTime);
+        LambdaQueryWrapper<Repairman> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Repairman::getStatus, 1);
+        wrapper.eq(Repairman::getDeleted, 0);
+        wrapper.orderByAsc(Repairman::getCreateTime);
         
-        List<Driver> list = driverMapper.selectList(wrapper);
+        List<Repairman> list = repairmanMapper.selectList(wrapper);
         return list.stream()
-            .filter(d -> hasRole(d.getUserId(), RoleEnum.REPAIRMAN.getValue()))
-            .map(this::convertToVO)
+            .filter(r -> hasRole(r.getUserId(), RoleEnum.REPAIRMAN.getValue()))
+            .map(this::convertRepairmanToVO)
             .collect(Collectors.toList());
     }
 
     @Override
     public List<DriverVO> getAvailableSafetyOfficers() {
-        LambdaQueryWrapper<Driver> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Driver::getStatus, 1);
-        wrapper.eq(Driver::getDeleted, 0);
-        wrapper.orderByAsc(Driver::getCreateTime);
+        LambdaQueryWrapper<SafetyOfficer> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SafetyOfficer::getStatus, 1);
+        wrapper.eq(SafetyOfficer::getDeleted, 0);
+        wrapper.orderByAsc(SafetyOfficer::getCreateTime);
         
-        List<Driver> list = driverMapper.selectList(wrapper);
+        List<SafetyOfficer> list = safetyOfficerMapper.selectList(wrapper);
         return list.stream()
-            .filter(d -> hasRole(d.getUserId(), RoleEnum.SAFETY_OFFICER.getValue()))
-            .map(this::convertToVO)
+            .filter(s -> hasRole(s.getUserId(), RoleEnum.SAFETY_OFFICER.getValue()))
+            .map(this::convertSafetyOfficerToVO)
             .collect(Collectors.toList());
     }
     
@@ -244,9 +250,9 @@ public class DriverServiceImpl implements DriverService {
             vo.setIsDefault(dv.getIsDefault() != null && dv.getIsDefault() == 1);
             
             try {
-                VehicleInfo vehicleInfo = vehicleClient.getById(dv.getVehicleId());
-                if (vehicleInfo != null) {
-                    vo.setVehicleNo(vehicleInfo.getLicensePlate());
+                var result = vehicleClient.getById(dv.getVehicleId());
+                if (result != null && result.getData() != null) {
+                    vo.setVehicleNo(result.getData().getVehicleNo());
                 }
             } catch (Exception e) {
                 log.warn("获取车辆信息失败：车辆 ID={}", dv.getVehicleId());
@@ -289,6 +295,50 @@ public class DriverServiceImpl implements DriverService {
         
         return vo;
     }
+    
+    private DriverVO convertRepairmanToVO(Repairman entity) {
+        DriverVO vo = new DriverVO();
+        vo.setId(entity.getId());
+        vo.setUserId(entity.getUserId());
+        vo.setDriverName(entity.getRepairmanName());
+        vo.setGender(entity.getGender());
+        vo.setGenderName(getGenderName(entity.getGender()));
+        vo.setStatus(entity.getStatus());
+        vo.setStatusName(getStatusName(entity.getStatus()));
+        vo.setIdCardFrontUrl(entity.getIdCardFrontUrl());
+        vo.setIdCardBackUrl(entity.getIdCardBackUrl());
+        vo.setScore(10);
+        
+        if (entity.getIdCard() != null && entity.getIdCard().length() >= 15) {
+            String masked = entity.getIdCard().substring(0, 6) + "****" + 
+                           entity.getIdCard().substring(entity.getIdCard().length() - 4);
+            vo.setIdCardMasked(masked);
+        }
+        
+        return vo;
+    }
+    
+    private DriverVO convertSafetyOfficerToVO(SafetyOfficer entity) {
+        DriverVO vo = new DriverVO();
+        vo.setId(entity.getId());
+        vo.setUserId(entity.getUserId());
+        vo.setDriverName(entity.getOfficerName());
+        vo.setGender(entity.getGender());
+        vo.setGenderName(getGenderName(entity.getGender()));
+        vo.setStatus(entity.getStatus());
+        vo.setStatusName(getStatusName(entity.getStatus()));
+        vo.setIdCardFrontUrl(entity.getIdCardFrontUrl());
+        vo.setIdCardBackUrl(entity.getIdCardBackUrl());
+        vo.setScore(10);
+        
+        if (entity.getIdCard() != null && entity.getIdCard().length() >= 15) {
+            String masked = entity.getIdCard().substring(0, 6) + "****" + 
+                           entity.getIdCard().substring(entity.getIdCard().length() - 4);
+            vo.setIdCardMasked(masked);
+        }
+        
+        return vo;
+    }
 
     private String getGenderName(Integer gender) {
         if (gender == null) return "未知";
@@ -297,6 +347,42 @@ public class DriverServiceImpl implements DriverService {
             case 2 -> "女";
             default -> "未知";
         };
+    }
+
+    @Override
+    public void addCommonVehicleByUserId(Long userId, Long vehicleId) {
+        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
+        if (driver == null) {
+            throw new RuntimeException("司机信息不存在");
+        }
+        addCommonVehicle(driver.getId(), vehicleId);
+    }
+
+    @Override
+    public void removeCommonVehicleByUserId(Long userId, Long vehicleId) {
+        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
+        if (driver == null) {
+            throw new RuntimeException("司机信息不存在");
+        }
+        removeCommonVehicle(driver.getId(), vehicleId);
+    }
+
+    @Override
+    public void setDefaultVehicleByUserId(Long userId, Long vehicleId) {
+        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
+        if (driver == null) {
+            throw new RuntimeException("司机信息不存在");
+        }
+        setDefaultVehicle(driver.getId(), vehicleId);
+    }
+
+    @Override
+    public List<DriverVehicleVO> getCommonVehiclesByUserId(Long userId) {
+        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
+        if (driver == null) {
+            throw new RuntimeException("司机信息不存在");
+        }
+        return getCommonVehicles(driver.getId());
     }
 
     private String getStatusName(Integer status) {

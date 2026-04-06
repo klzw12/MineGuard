@@ -1,5 +1,7 @@
 package com.klzw.service.dispatch.vo;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -10,6 +12,7 @@ import java.time.LocalDateTime;
 @Schema(description = "路线模板VO")
 public class RouteTemplateVO {
 
+    @JsonSerialize(using = ToStringSerializer.class)
     @Schema(description = "路线ID")
     private Long id;
 

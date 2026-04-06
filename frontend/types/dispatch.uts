@@ -1,0 +1,117 @@
+export type DispatchTaskVO = {
+  id: string
+  taskNo: string
+  planId: string | null
+  planName: string | null
+  taskSequence: number | null
+  vehicleId: string | null
+  vehicleNo: string | null
+  driverId: string | null
+  driverName: string | null
+  tripId: string | null
+  startLocation: string
+  startLongitude: number | null
+  startLatitude: number | null
+  endLocation: string
+  endLongitude: number | null
+  endLatitude: number | null
+  scheduledStartTime: string | null
+  scheduledEndTime: string | null
+  actualStartTime: string | null
+  actualEndTime: string | null
+  cargoWeight: number | null
+  status: number
+  statusName: string | null
+  priority: string | null
+  pushTime: string | null
+  acceptTime: string | null
+  description: string | null
+  remark: string | null
+  createTime: string | null
+}
+
+export type DispatchTaskDTO = {
+  id?: string
+  planId?: string
+  taskSequence?: number
+  vehicleId?: string
+  driverId?: string
+  startLocation?: string
+  startLongitude?: number
+  startLatitude?: number
+  endLocation?: string
+  endLongitude?: number
+  endLatitude?: number
+  scheduledStartTime?: string
+  scheduledEndTime?: string
+  cargoWeight?: number
+  priority?: string
+  description?: string
+  remark?: string
+}
+
+export type RouteTemplateVO = {
+  id: string
+  routeName: string
+  startLocation: string
+  endLocation: string
+  startLongitude: number | null
+  startLatitude: number | null
+  endLongitude: number | null
+  endLatitude: number | null
+  distance: number | null
+  estimatedDuration: number | null
+  status: number
+  createTime: string | null
+}
+
+export type RouteTemplateDTO = {
+  id?: string
+  routeName: string
+  startLocation: string
+  startLongitude?: number
+  startLatitude?: number
+  endLocation: string
+  endLongitude?: number
+  endLatitude?: number
+  distance?: number
+  estimatedDuration?: number
+}
+
+export type DispatchPlanVO = {
+  id: string
+  planNo: string
+  planName: string | null
+  planDate: string
+  planType: number
+  vehicleId: string | null
+  vehicleNo: string | null
+  driverId: string | null
+  driverName: string | null
+  routeId: string | null
+  routeName: string | null
+  startLocation: string | null
+  endLocation: string | null
+  plannedTrips: number
+  completedTrips: number
+  plannedCargoWeight: number | null
+  startTimeSlot: string | null
+  endTimeSlot: string | null
+  status: number
+  statusName: string | null
+  remark: string | null
+  createTime: string | null
+}
+
+export type DispatchPlanDTO = {
+  id?: string
+  planName?: string
+  planDate: string
+  planType?: number
+  routeId?: string
+  plannedTrips?: number
+  plannedCargoWeight?: number
+  startTimeSlot?: string
+  endTimeSlot?: string
+  remark?: string
+}

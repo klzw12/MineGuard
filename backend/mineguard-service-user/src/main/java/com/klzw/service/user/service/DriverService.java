@@ -32,6 +32,14 @@ public interface DriverService {
 
     List<DriverVehicleVO> getCommonVehicles(Long driverId);
 
+    void addCommonVehicleByUserId(Long userId, Long vehicleId);
+
+    void removeCommonVehicleByUserId(Long userId, Long vehicleId);
+
+    void setDefaultVehicleByUserId(Long userId, Long vehicleId);
+
+    List<DriverVehicleVO> getCommonVehiclesByUserId(Long userId);
+
     void incrementVehicleUseCount(Long driverId, Long vehicleId);
 
     List<Long> getDriverIds();

@@ -1,5 +1,7 @@
 package com.klzw.common.websocket.enums;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 
 @Getter
@@ -28,6 +30,12 @@ public enum MessageTypeEnum {
         this.priority = priority;
     }
 
+    @JsonValue
+    public String getCode() {
+        return code;
+    }
+
+    @JsonCreator
     public static MessageTypeEnum fromCode(String code) {
         for (MessageTypeEnum type : values()) {
             if (type.getCode().equals(code)) {

@@ -10,6 +10,7 @@ import com.klzw.service.cost.dto.CostBudgetDTO;
 import com.klzw.service.cost.dto.CostDetailDTO;
 import com.klzw.service.cost.dto.CostQueryDTO;
 import com.klzw.service.cost.dto.SalaryConfigDTO;
+import com.klzw.service.cost.dto.SalaryRecordDTO;
 import com.klzw.service.cost.entity.CostBudget;
 import com.klzw.service.cost.entity.CostDetail;
 import com.klzw.service.cost.entity.SalaryConfig;
@@ -652,18 +653,24 @@ public class CostServiceImpl implements CostService {
             }
             
             try {
-                Map<String, Object> transportStats = transportClient.getTransportStatistics(startDate.toString(), endDate.toString());
-                if (transportStats != null && transportStats.get("totalCargoWeight") != null) {
-                    totalCargoWeight = new BigDecimal(transportStats.get("totalCargoWeight").toString());
+                var transportStatsResult = transportClient.getTransportStatistics(startDate.toString(), endDate.toString());
+                if (transportStatsResult != null && transportStatsResult.getCode() == 200 && transportStatsResult.getData() != null) {
+                    Map<String, Object> transportStats = transportStatsResult.getData();
+                    if (transportStats.get("totalCargoWeight") != null) {
+                        totalCargoWeight = new BigDecimal(transportStats.get("totalCargoWeight").toString());
+                    }
                 }
             } catch (Exception e) {
                 log.warn("获取运输统计数据失败：{}", e.getMessage());
             }
             
             try {
-                Map<String, Object> tripStats = tripClient.getStatistics(startDate.toString(), endDate.toString());
-                if (tripStats != null && tripStats.get("totalDistance") != null) {
-                    totalDistance = new BigDecimal(tripStats.get("totalDistance").toString());
+                var tripStatsResult = tripClient.getStatistics(startDate.toString(), endDate.toString());
+                if (tripStatsResult != null && tripStatsResult.getCode() == 200 && tripStatsResult.getData() != null) {
+                    Map<String, Object> tripStats = tripStatsResult.getData();
+                    if (tripStats.get("totalDistance") != null) {
+                        totalDistance = new BigDecimal(tripStats.get("totalDistance").toString());
+                    }
                 }
             } catch (Exception e) {
                 log.warn("获取行程统计数据失败：{}", e.getMessage());
@@ -712,9 +719,9 @@ public class CostServiceImpl implements CostService {
         try {
             int totalVehicles = 0;
             try {
-                Integer vehicleCount = vehicleClient.getVehicleCount();
-                if (vehicleCount != null) {
-                    totalVehicles = vehicleCount;
+                var vehicleCountResult = vehicleClient.getVehicleCount();
+                if (vehicleCountResult != null && vehicleCountResult.getCode() == 200 && vehicleCountResult.getData() != null) {
+                    totalVehicles = vehicleCountResult.getData();
                 }
             } catch (Exception e) {
                 log.warn("获取车辆数量失败：{}", e.getMessage());
@@ -722,7 +729,10 @@ public class CostServiceImpl implements CostService {
             
             List<Map<String, Object>> vehicleStats = null;
             try {
-                vehicleStats = transportClient.getVehicleStatistics(startDate.toString(), endDate.toString());
+                var vehicleStatsResult = transportClient.getVehicleStatistics(startDate.toString(), endDate.toString());
+                if (vehicleStatsResult != null && vehicleStatsResult.getCode() == 200 && vehicleStatsResult.getData() != null) {
+                    vehicleStats = vehicleStatsResult.getData();
+                }
             } catch (Exception e) {
                 log.warn("获取车辆统计数据失败：{}", e.getMessage());
             }
@@ -795,8 +805,9 @@ public class CostServiceImpl implements CostService {
             int emptyTrips = 0;
             
             try {
-                Map<String, Object> tripStats = tripClient.getStatistics(startDate.toString(), endDate.toString());
-                if (tripStats != null) {
+                var tripStatsResult = tripClient.getStatistics(startDate.toString(), endDate.toString());
+                if (tripStatsResult != null && tripStatsResult.getCode() == 200 && tripStatsResult.getData() != null) {
+                    Map<String, Object> tripStats = tripStatsResult.getData();
                     if (tripStats.get("totalDistance") != null) {
                         totalDistance = new BigDecimal(tripStats.get("totalDistance").toString());
                     }

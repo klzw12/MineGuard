@@ -1,6 +1,8 @@
 package com.klzw.service.dispatch.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.klzw.common.core.client.DriverClient;
+import com.klzw.common.core.result.Result;
 import com.klzw.service.dispatch.dto.DispatchTaskDTO;
 import com.klzw.service.dispatch.entity.DispatchPlan;
 import com.klzw.service.dispatch.entity.TransportTask;
@@ -26,6 +28,7 @@ public class DispatchTaskServiceImpl implements DispatchTaskService {
 
     private final TransportTaskMapper transportTaskMapper;
     private final DispatchPlanMapper dispatchPlanMapper;
+    private final DriverClient driverClient;
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
@@ -74,6 +77,27 @@ public class DispatchTaskServiceImpl implements DispatchTaskService {
     public DispatchTaskVO getById(Long id) {
         TransportTask entity = transportTaskMapper.selectById(id);
         return entity != null ? convertToVO(entity) : null;
+    }
+
+    @Override
+    public List<DispatchTaskVO> getList(Integer status, Long executorId, Long vehicleId) {
+        LambdaQueryWrapper<TransportTask> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TransportTask::getDeleted, 0);
+        
+        if (status != null) {
+            wrapper.eq(TransportTask::getStatus, status);
+        }
+        if (executorId != null) {
+            wrapper.eq(TransportTask::getExecutorId, executorId);
+        }
+        if (vehicleId != null) {
+            wrapper.eq(TransportTask::getVehicleId, vehicleId);
+        }
+        
+        wrapper.orderByDesc(TransportTask::getCreateTime);
+        
+        List<TransportTask> tasks = transportTaskMapper.selectList(wrapper);
+        return tasks.stream().map(this::convertToVO).collect(Collectors.toList());
     }
 
     @Override
@@ -244,6 +268,20 @@ public class DispatchTaskServiceImpl implements DispatchTaskService {
             DispatchPlan plan = dispatchPlanMapper.selectById(entity.getPlanId());
             if (plan != null) {
                 vo.setPlanName(plan.getPlanName());
+            }
+        }
+        
+        // 从司机服务获取司机信息
+        if (entity.getExecutorId() != null) {
+            try {
+                Result<com.klzw.common.core.domain.dto.DriverInfo> driverResult = driverClient.getById(entity.getExecutorId());
+                if (driverResult != null && driverResult.getCode() == 200 && driverResult.getData() != null) {
+                    com.klzw.common.core.domain.dto.DriverInfo driverInfo = driverResult.getData();
+                    vo.setDriverName(driverInfo.getDriverName());
+                    vo.setExecutorName(driverInfo.getDriverName());
+                }
+            } catch (Exception e) {
+                log.warn("获取司机信息失败：driverId={}, error={}", entity.getExecutorId(), e.getMessage());
             }
         }
         

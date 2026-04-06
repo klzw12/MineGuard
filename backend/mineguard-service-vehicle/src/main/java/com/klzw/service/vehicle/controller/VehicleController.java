@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Tag(name = "车辆管理", description = "车辆管理接口")
@@ -33,9 +34,10 @@ public class VehicleController {
     @PostMapping("/create-with-photos")
     public Result<Vehicle> createVehicleWithPhotos(
             @RequestParam("vehicleNo") String vehicleNo,
+            @RequestParam(value = "vehicleType", required = false, defaultValue = "1") Integer vehicleType,
             @RequestParam(value = "vehiclePhoto", required = false) MultipartFile vehiclePhoto,
             @RequestParam(value = "licensePhoto", required = false) MultipartFile licensePhoto) {
-        Vehicle vehicle = vehicleService.createVehicleWithPhotos(vehicleNo, vehiclePhoto, licensePhoto);
+        Vehicle vehicle = vehicleService.createVehicleWithPhotos(vehicleNo, vehicleType, vehiclePhoto, licensePhoto);
         return Result.success(vehicle);
     }
     
@@ -117,7 +119,15 @@ public class VehicleController {
     
     @Operation(summary = "选择最佳车辆", description = "根据货物重量、车辆状态、油量等因素综合评估推荐最佳车辆")
     @PostMapping("/best")
-    public Result<List<BestVehicleVO>> selectBestVehicles(@RequestBody BestVehicleQueryDTO query) {
+    public Result<List<BestVehicleVO>> selectBestVehicles(
+            @RequestParam(required = false) BigDecimal startLongitude,
+            @RequestParam(required = false) BigDecimal startLatitude,
+            @RequestParam(required = false) BigDecimal cargoWeight,
+            @RequestParam(required = false) String scheduledTime) {
+        BestVehicleQueryDTO query = new BestVehicleQueryDTO();
+        query.setStartLongitude(startLongitude != null ? startLongitude.doubleValue() : null);
+        query.setStartLatitude(startLatitude != null ? startLatitude.doubleValue() : null);
+        query.setCargoWeight(cargoWeight);
         List<BestVehicleVO> vehicles = vehicleService.selectBestVehicles(query);
         return Result.success(vehicles);
     }
@@ -134,6 +144,13 @@ public class VehicleController {
     public Result<Boolean> scrapVehicle(@PathVariable Long id) {
         boolean result = vehicleService.scrapVehicle(id);
         return Result.success(result);
+    }
+    
+    @Operation(summary = "检查车辆是否存在")
+    @GetMapping("/{id}/exists")
+    public Result<Boolean> existsById(@PathVariable Long id) {
+        boolean exists = vehicleService.existsById(id);
+        return Result.success(exists);
     }
     
 }

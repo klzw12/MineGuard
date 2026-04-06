@@ -52,25 +52,6 @@ public class VehicleServiceTest {
         assertEquals(vehicleId.toString(), result.getId());
     }
     
-    @Test
-    public void testBindUser() {
-        Long vehicleId = 1L;
-        Long userId = 2L;
-        
-        when(vehicleService.bindUser(vehicleId, userId)).thenReturn(true);
-        
-        boolean result = vehicleService.bindUser(vehicleId, userId);
-        assertTrue(result);
-    }
-    
-    @Test
-    public void testUnbindUser() {
-        Long vehicleId = 1L;
-        
-        when(vehicleService.unbindUser(vehicleId)).thenReturn(true);
-        
-        boolean result = vehicleService.unbindUser(vehicleId);
-        assertTrue(result);
-    }
+
     
 }

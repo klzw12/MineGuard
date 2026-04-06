@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Bean;
     "com.klzw.common.mq",
     "com.klzw.common.websocket",
     "com.klzw.common.mongodb",
-        "com.klzw.common.web"
+    "com.klzw.common.web"
 })
 @MapperScan("com.klzw.service.user.mapper")
 @RequiredArgsConstructor

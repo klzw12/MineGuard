@@ -18,6 +18,12 @@ import jakarta.servlet.http.HttpServletResponse;
 @Slf4j
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
+
+    private static final String HEADER_USER_ID = "X-User-Id";
+    private static final String HEADER_USERNAME = "X-Username";
+    private static final String HEADER_ROLES = "X-User-Roles";
+    private static final String HEADER_SERVICE_AUTH = "X-Service-Auth";
+    private static final String SERVICE_AUTH_TOKEN = "mineguard-internal-service";
     
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -32,13 +38,20 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // 检查服务间调用认证
+        String serviceAuth = request.getHeader(HEADER_SERVICE_AUTH);
+        if (SERVICE_AUTH_TOKEN.equals(serviceAuth)) {
+            log.debug("Service-to-service mode: path={}", request.getRequestURI());
+            return true;
+        }
+
         Long userId = UserContext.getUserId();
         if (userId == null) {
             // 尝试从请求头中读取用户信息（网关模式）
-            String gatewayUserId = request.getHeader("X-User-Id");
+            String gatewayUserId = request.getHeader(HEADER_USER_ID);
             if (gatewayUserId != null) {
-                String username = request.getHeader("X-Username");
-                String roles = request.getHeader("X-User-Roles");
+                String username = request.getHeader(HEADER_USERNAME);
+                String roles = request.getHeader(HEADER_ROLES);
                 
                 // 设置用户信息到UserContext
                 try {
@@ -62,18 +75,18 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
         }
 
-        log.info("AuthInterceptor preHandle: userId={}, url={}", UserContext.getUserId(), request.getRequestURL());
+        log.debug("AuthInterceptor preHandle: userId={}, url={}", UserContext.getUserId(), request.getRequestURL());
         return true;
     }
     
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
-        log.info("AuthInterceptor postHandle: {}", request.getRequestURL());
+        log.debug("AuthInterceptor postHandle: {}", request.getRequestURL());
     }
     
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
         // 注意：UserContext.clear()已在JwtAuthenticationFilter中处理，避免重复清理
-        log.info("AuthInterceptor afterCompletion: {}", request.getRequestURL());
+        log.debug("AuthInterceptor afterCompletion: {}", request.getRequestURL());
     }
 }

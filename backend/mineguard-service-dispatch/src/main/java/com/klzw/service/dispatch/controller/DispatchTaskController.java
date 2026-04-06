@@ -41,6 +41,14 @@ public class DispatchTaskController {
         return Result.success(dispatchTaskService.getById(id));
     }
 
+    @GetMapping("/list")
+    public Result<List<DispatchTaskVO>> getList(
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Long executorId,
+            @RequestParam(required = false) Long vehicleId) {
+        return Result.success(dispatchTaskService.getList(status, executorId, vehicleId));
+    }
+
     @GetMapping("/plan/{planId}")
     public Result<List<DispatchTaskVO>> getByPlanId(@PathVariable Long planId) {
         return Result.success(dispatchTaskService.getByPlanId(planId));

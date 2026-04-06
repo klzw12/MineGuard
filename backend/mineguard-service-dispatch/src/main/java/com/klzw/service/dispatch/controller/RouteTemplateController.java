@@ -28,6 +28,12 @@ public class RouteTemplateController {
         return Result.success(routeTemplateService.page(pageRequest));
     }
 
+    @GetMapping("/list")
+    @Operation(summary = "获取所有启用的路线模板")
+    public Result<List<RouteTemplateVO>> listAll() {
+        return Result.success(routeTemplateService.listAll());
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "获取路线模板详情")
     public Result<RouteTemplateVO> getById(@PathVariable Long id) {
@@ -54,11 +60,6 @@ public class RouteTemplateController {
         return Result.success();
     }
 
-    @GetMapping("/list")
-    @Operation(summary = "获取所有启用的路线模板")
-    public Result<List<RouteTemplateVO>> listAll() {
-        return Result.success(routeTemplateService.listAll());
-    }
 
     @PutMapping("/{id}/enable")
     @Operation(summary = "启用路线模板")

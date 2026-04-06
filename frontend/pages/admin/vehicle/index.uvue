@@ -70,6 +70,20 @@
 						<input type="text" v-model="formData.vehicleNo" class="form-input" placeholder="请输入车牌号" />
 					</view>
 					<view class="form-item">
+						<text class="form-label">车辆类型 *</text>
+						<view class="type-selector">
+							<view 
+								v-for="option in vehicleTypeOptions" 
+								:key="option.value" 
+								class="type-option"
+								:class="{ active: formData.vehicleType === option.value }"
+								@click="formData.vehicleType = option.value"
+							>
+								<text class="type-text">{{ option.label }}</text>
+							</view>
+						</view>
+					</view>
+					<view class="form-item">
 						<text class="form-label">上传车辆照片</text>
 						<view class="upload-area" @click="uploadVehiclePhoto">
 							<text class="upload-text" v-if="!vehiclePhotoPreview">点击上传车辆照片</text>
@@ -94,6 +108,20 @@
 					<view class="form-item">
 						<text class="form-label">车牌号</text>
 						<input type="text" v-model="editFormData.vehicleNo" class="form-input" disabled="true" style="background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6);" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">车辆类型</text>
+						<view class="type-selector">
+							<view 
+								v-for="option in vehicleTypeOptions" 
+								:key="option.value" 
+								class="type-option"
+								:class="{ active: editFormData.vehicleType === option.value }"
+								@click="editFormData.vehicleType = option.value"
+							>
+								<text class="type-text">{{ option.label }}</text>
+							</view>
+						</view>
 					</view>
 					<view class="form-item">
 						<text class="form-label">上传行驶证正面（自动识别）</text>
@@ -133,7 +161,7 @@
 							</view>
 							<view class="detail-item">
 								<text class="detail-label">车辆类型</text>
-								<text class="detail-value">{{ detailVehicle?.vehicleType || '-' }}</text>
+								<text class="detail-value">{{ getVehicleTypeText(detailVehicle?.vehicleType) }}</text>
 							</view>
 							<view class="detail-item">
 								<text class="detail-label">品牌</text>
@@ -282,14 +310,27 @@
 
 	const formData = ref({
 		vehicleNo: '',
+		vehicleType: 1,
 		vehiclePhotoPath: ''
 	})
 	
 	const editFormData = ref({
 		vehicleNo: '',
+		vehicleType: 1,
 		licenseFrontPath: '',
 		licenseBackPath: ''
 	})
+	
+	const vehicleTypeOptions = [
+		{ value: 1, label: '重型卡车' },
+		{ value: 2, label: '中型卡车' },
+		{ value: 3, label: '轻型卡车' },
+		{ value: 4, label: '矿用自卸车' },
+		{ value: 5, label: '装载机' },
+		{ value: 6, label: '挖掘机' },
+		{ value: 7, label: '救援专用车' },
+		{ value: 8, label: '其他' }
+	]
 	
 	const vehiclePhotoPreview = ref('')
 	const licenseFrontPreview = ref('')
@@ -317,6 +358,27 @@
 			4: '报废'
 		}
 		return statusMap[status] || '空闲'
+	}
+
+	const getVehicleTypeText = (type: number | string | null): string => {
+		if (type === null || type === undefined) return '-'
+		const typeNum = typeof type === 'string' ? parseInt(type) : type
+		const typeMap: Record<number, string> = {
+			1: '重型卡车',
+			2: '中型卡车',
+			3: '轻型卡车',
+			4: '矿用自卸车',
+			5: '装载机',
+			6: '挖掘机',
+			7: '救援专用车',
+			8: '其他'
+		}
+		return typeMap[typeNum] || '未知'
+	}
+
+	const getVehicleTypeLabel = (type: number): string => {
+		const option = vehicleTypeOptions.find(o => o.value === type)
+		return option ? option.label : '未知'
 	}
 
 	const loadVehicles = async () => {
@@ -381,8 +443,10 @@
 
 	const editVehicle = (vehicle: VehicleVO) => {
 		editingVehicle.value = vehicle
+		const vehicleTypeNum = vehicle.vehicleType ? (typeof vehicle.vehicleType === 'string' ? parseInt(vehicle.vehicleType) : vehicle.vehicleType) : 1
 		editFormData.value = {
 			vehicleNo: vehicle.vehicleNo,
+			vehicleType: vehicleTypeNum,
 			licenseFrontPath: '',
 			licenseBackPath: ''
 		}
@@ -395,6 +459,7 @@
 		showAddModal.value = false
 		formData.value = {
 			vehicleNo: '',
+			vehicleType: 1,
 			vehiclePhotoPath: ''
 		}
 		vehiclePhotoPreview.value = ''
@@ -405,6 +470,7 @@
 		editingVehicle.value = null
 		editFormData.value = {
 			vehicleNo: '',
+			vehicleType: 1,
 			licenseFrontPath: '',
 			licenseBackPath: ''
 		}
@@ -483,7 +549,8 @@
 						filePath: formData.value.vehiclePhotoPath,
 						name: 'vehiclePhoto',
 						formData: {
-							vehicleNo: formData.value.vehicleNo
+							vehicleNo: formData.value.vehicleNo,
+							vehicleType: String(formData.value.vehicleType)
 						},
 						header: {
 							'Authorization': `Bearer ${token}`
@@ -506,7 +573,10 @@
 					uni.request({
 						url: 'http://localhost:8080/api/vehicle/create-with-photos',
 						method: 'POST',
-						data: { vehicleNo: formData.value.vehicleNo },
+						data: { 
+							vehicleNo: formData.value.vehicleNo,
+							vehicleType: formData.value.vehicleType
+						},
 						header: {
 							'Authorization': `Bearer ${token}`,
 							'Content-Type': 'application/json'
@@ -547,6 +617,26 @@
 			const token = uni.getStorageSync('token') || ''
 			const vehicleId = editingVehicle.value.id
 			uni.showLoading({ title: '正在保存...' })
+			
+			await new Promise<void>((resolve, reject) => {
+				uni.request({
+					url: `http://localhost:8080/api/vehicle/${vehicleId}`,
+					method: 'PUT',
+					data: { 
+						vehicleType: editFormData.value.vehicleType
+					},
+					header: {
+						'Authorization': `Bearer ${token}`,
+						'Content-Type': 'application/json'
+					},
+					success: (res) => {
+						resolve()
+					},
+					fail: (err) => {
+						resolve()
+					}
+				})
+			})
 			
 			if (editFormData.value.licenseFrontPath) {
 				await new Promise<void>((resolve) => {
@@ -961,6 +1051,34 @@
 		width: 100%;
 		height: 100%;
 		border-radius: 15rpx;
+	}
+	
+	.type-selector {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 12rpx;
+	}
+	
+	.type-option {
+		padding: 16rpx 24rpx;
+		background: rgba(255, 255, 255, 0.05);
+		border: 1rpx solid rgba(255, 255, 255, 0.1);
+		border-radius: 12rpx;
+	}
+	
+	.type-option.active {
+		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+		border-color: #007AFF;
+	}
+	
+	.type-text {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.8);
+	}
+	
+	.type-option.active .type-text {
+		color: #fff;
 	}
 	
 	.modal-footer {

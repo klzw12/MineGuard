@@ -8,6 +8,7 @@ import com.klzw.service.vehicle.dto.VehicleStatusReportDTO;
 import com.klzw.service.vehicle.entity.Vehicle;
 import com.klzw.service.vehicle.entity.VehicleStatus;
 import com.klzw.service.vehicle.enums.VehicleSpecialStatusEnum;
+import com.klzw.service.vehicle.enums.VehicleStatusEnum;
 import com.klzw.service.vehicle.mapper.VehicleMapper;
 import com.klzw.service.vehicle.mapper.VehicleStatusMapper;
 import com.klzw.service.vehicle.service.VehicleStatusService;

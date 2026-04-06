@@ -37,6 +37,6 @@ public interface DriverMapper extends BaseMapper<Driver> {
      * @param roleCode 角色编码
      * @return 是否具有该角色
      */
-    @Select("SELECT COUNT(*) > 0 FROM user_role ur JOIN role r ON ur.role_id = r.id WHERE ur.user_id = #{userId} AND r.role_code = #{roleCode}")
+    @Select("SELECT COUNT(*) > 0 FROM user u JOIN role r ON u.role_id = r.id WHERE u.id = #{userId} AND r.role_code = #{roleCode}")
     boolean hasRole(@Param("userId") Long userId, @Param("roleCode") String roleCode);
 }

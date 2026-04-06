@@ -10,6 +10,8 @@ import java.util.List;
 
 public interface DispatchPlanService {
 
+    List<DispatchPlanVO> list(Integer status, LocalDate startDate, LocalDate endDate);
+
     PageResult<DispatchPlanVO> page(PageRequest pageRequest);
 
     DispatchPlanVO getById(Long id);

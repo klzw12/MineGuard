@@ -137,26 +137,12 @@
 <script setup lang="uts">
 	import AdminLayout from '../../../components/AdminLayout.uvue'
 	import { ref, computed, onMounted } from 'vue'
-	import { request } from '@/utils/request.uts'
+	import { getTripList, startTrip as startTripApi, endTrip as endTripApi, acceptTrip as acceptTripApi, createTrip, type Trip, type PageResult } from '@/api/trip.uts'
+	import { getVehiclePage } from '@/api/vehicle.uts'
+	import { getDriverList } from '@/api/driver.uts'
+	import { getRouteTemplateList } from '@/api/dispatch.uts'
 
-	type TripVO = {
-		id: string,
-		tripNo: string,
-		vehicleId: string,
-		vehicleNo: string | null,
-		driverId: string,
-		driverName: string | null,
-		routeId: string | null,
-		startLocation: string,
-		endLocation: string,
-		estimatedStartTime: string,
-		estimatedEndTime: string,
-		actualStartTime: string | null,
-		actualEndTime: string | null,
-		status: number,
-		estimatedMileage: number | null,
-		actualMileage: number | null
-	}
+	type TripVO = Trip
 
 	type VehicleOption = { id: string, vehicleNo: string }
 	type DriverOption = { id: string, name: string }
@@ -216,14 +202,10 @@
 
 	const fetchTripList = async () => {
 		try {
-			const res = await request({
-				url: '/api/trip/page',
-				method: 'GET',
-				data: { page: currentPage.value, size: pageSize.value, status: currentStatus.value }
-			})
-			if (res.code === 200) {
-				tripList.value = res.data?.records || []
-				total.value = res.data?.total || 0
+			const res = await getTripList({ page: currentPage.value, size: pageSize.value, status: currentStatus.value })
+			if (res) {
+				tripList.value = res.records || []
+				total.value = res.total || 0
 			}
 		} catch (e) {
 			console.error('获取行程列表失败', e)
@@ -233,18 +215,18 @@
 	const fetchOptions = async () => {
 		try {
 			const [vehicleRes, driverRes, routeRes] = await Promise.all([
-				request({ url: '/api/vehicle/page', method: 'GET', data: { page: 1, size: 100 } }),
-				request({ url: '/api/user/driver/list', method: 'GET' }),
-				request({ url: '/api/route/list', method: 'GET' })
+				getVehiclePage({ page: 1, size: 100 }),
+				getDriverList({}),
+				getRouteTemplateList()
 			])
-			if (vehicleRes.code === 200) {
-				vehicleOptions.value = (vehicleRes.data?.records || []).map((v: any) => ({ id: v.id, vehicleNo: v.vehicleNo }))
+			if (vehicleRes) {
+				vehicleOptions.value = (vehicleRes.records || []).map((v: any) => ({ id: String(v.id), vehicleNo: v.vehicleNo }))
 			}
-			if (driverRes.code === 200) {
-				driverOptions.value = (driverRes.data || []).map((d: any) => ({ id: d.id, name: d.realName || d.username }))
+			if (driverRes) {
+				driverOptions.value = (driverRes || []).map((d: any) => ({ id: String(d.id), name: d.realName || d.username }))
 			}
-			if (routeRes.code === 200) {
-				routeOptions.value = (routeRes.data || []).map((r: any) => ({ id: r.id, routeName: r.routeName }))
+			if (routeRes) {
+				routeOptions.value = (routeRes || []).map((r: any) => ({ id: String(r.id), routeName: r.routeName }))
 			}
 		} catch (e) {
 			console.error('获取选项失败', e)
@@ -268,11 +250,9 @@
 
 	const acceptTrip = async (trip: TripVO) => {
 		try {
-			const res = await request({ url: `/api/trip/${trip.id}/accept`, method: 'POST' })
-			if (res.code === 200) {
-				uni.showToast({ title: '接单成功', icon: 'success' })
-				fetchTripList()
-			}
+			await acceptTripApi(Number(trip.id))
+			uni.showToast({ title: '接单成功', icon: 'success' })
+			fetchTripList()
 		} catch (e) {
 			uni.showToast({ title: '接单失败', icon: 'none' })
 		}
@@ -280,11 +260,9 @@
 
 	const startTrip = async (trip: TripVO) => {
 		try {
-			const res = await request({ url: `/api/trip/${trip.id}/start`, method: 'POST' })
-			if (res.code === 200) {
-				uni.showToast({ title: '行程开始', icon: 'success' })
-				fetchTripList()
-			}
+			await startTripApi(String(trip.id))
+			uni.showToast({ title: '行程开始', icon: 'success' })
+			fetchTripList()
 		} catch (e) {
 			uni.showToast({ title: '操作失败', icon: 'none' })
 		}
@@ -297,11 +275,9 @@
 			success: async (res) => {
 				if (res.confirm) {
 					try {
-						const result = await request({ url: `/api/trip/${trip.id}/end`, method: 'POST' })
-						if (result.code === 200) {
-							uni.showToast({ title: '行程已结束', icon: 'success' })
-							fetchTripList()
-						}
+						await endTripApi(String(trip.id))
+						uni.showToast({ title: '行程已结束', icon: 'success' })
+						fetchTripList()
 					} catch (e) {
 						uni.showToast({ title: '操作失败', icon: 'none' })
 					}
@@ -322,12 +298,10 @@
 			return
 		}
 		try {
-			const res = await request({ url: '/api/trip', method: 'POST', data: formData.value })
-			if (res.code === 200) {
-				uni.showToast({ title: '创建成功', icon: 'success' })
-				showAddModal.value = false
-				fetchTripList()
-			}
+			await createTrip(formData.value)
+			uni.showToast({ title: '创建成功', icon: 'success' })
+			showAddModal.value = false
+			fetchTripList()
 		} catch (e) {
 			uni.showToast({ title: '创建失败', icon: 'none' })
 		}

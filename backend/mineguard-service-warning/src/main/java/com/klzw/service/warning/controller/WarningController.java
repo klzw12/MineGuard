@@ -12,6 +12,7 @@ import com.klzw.service.warning.service.WarningRecordService;
 import com.klzw.service.warning.service.WarningRuleService;
 import com.klzw.service.warning.vo.WarningRecordVO;
 import com.klzw.service.warning.vo.WarningRuleVO;
+import com.klzw.service.warning.processor.WarningTriggerProcessor;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -31,6 +32,7 @@ public class WarningController {
 
     private final WarningRecordService warningRecordService;
     private final WarningRuleService warningRuleService;
+    private final WarningTriggerProcessor warningTriggerProcessor;
 
     @GetMapping("/record/page")
     @Operation(summary = "分页查询预警记录")
@@ -137,6 +139,27 @@ public class WarningController {
             @RequestParam(required = false) String startTime,
             @RequestParam(required = false) String endTime) {
         return Result.success(warningRecordService.getWarningLevelStatistics(startTime, endTime));
+    }
+
+    @PostMapping("/phone/unanswered")
+    @Operation(summary = "标记电话未接")
+    public Result<Void> markPhoneUnanswered(@RequestParam Long vehicleId) {
+        warningTriggerProcessor.markPhoneUnanswered(vehicleId);
+        return Result.success();
+    }
+
+    @DeleteMapping("/phone/unanswered/clear")
+    @Operation(summary = "清除电话未接标记")
+    public Result<Void> clearPhoneUnanswered(@RequestParam Long vehicleId) {
+        warningTriggerProcessor.clearPhoneUnanswered(vehicleId);
+        return Result.success();
+    }
+
+    @PostMapping("/safe-zone/mark")
+    @Operation(summary = "标记车辆安全区域状态")
+    public Result<Void> markVehicleInSafeZone(@RequestParam Long vehicleId, @RequestParam Boolean inSafeZone) {
+        warningTriggerProcessor.markVehicleInSafeZone(vehicleId, inSafeZone);
+        return Result.success();
     }
 
     @GetMapping("/rule/page")

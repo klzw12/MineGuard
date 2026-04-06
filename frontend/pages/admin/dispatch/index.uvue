@@ -5,30 +5,119 @@
 			<view class="page-header">
 				<text class="page-title">任务调度</text>
 				<view class="header-actions">
-					<view class="action-btn secondary" @click="autoGenerateTasks">
+					<view class="action-btn primary" @click="showCreatePlan" v-if="activeTab === 'plan'">
+						<text class="action-icon">+</text>
+						<text class="action-text">新建计划</text>
+					</view>
+					<view class="action-btn secondary" @click="autoGenerateTasks" v-if="activeTab === 'task'">
 						<text class="action-text">自动生成</text>
 					</view>
-					<view class="action-btn primary" @click="showCreateTask">
+					<view class="action-btn primary" @click="showCreateRouteTemplate" v-if="activeTab === 'route'">
 						<text class="action-icon">+</text>
-						<text class="action-text">新建任务</text>
+						<text class="action-text">新建路线</text>
 					</view>
 				</view>
 			</view>
 			
-			<view class="content-card">
+			<view class="main-tabs">
+				<view class="main-tab" :class="{ active: activeTab === 'plan' }" @click="activeTab = 'plan'">
+					<text>调度计划</text>
+				</view>
+				<view class="main-tab" :class="{ active: activeTab === 'task' }" @click="activeTab = 'task'">
+					<text>调度任务</text>
+				</view>
+				<view class="main-tab" :class="{ active: activeTab === 'route' }" @click="activeTab = 'route'">
+					<text>路线模板</text>
+				</view>
+			</view>
+			
+			<view class="content-card" v-if="activeTab === 'plan'">
+				<view class="table-header">
+					<view class="filter-tabs">
+						<view class="filter-tab" :class="{ active: planStatusFilter === null }" @click="planStatusFilter = null">
+							<text>全部</text>
+						</view>
+						<view class="filter-tab" :class="{ active: planStatusFilter === 0 }" @click="planStatusFilter = 0">
+							<text>待执行</text>
+						</view>
+						<view class="filter-tab" :class="{ active: planStatusFilter === 1 }" @click="planStatusFilter = 1">
+							<text>执行中</text>
+						</view>
+						<view class="filter-tab" :class="{ active: planStatusFilter === 2 }" @click="planStatusFilter = 2">
+							<text>已完成</text>
+						</view>
+					</view>
+				</view>
+				
+				<view v-if="planLoading" class="loading-state">
+					<text class="loading-text">加载中...</text>
+				</view>
+				
+				<view v-else class="plan-list">
+					<view class="plan-card" v-for="(plan, index) in filteredPlans" :key="index">
+						<view class="plan-header">
+							<view class="plan-info">
+								<text class="plan-no">{{ plan.planNo }}</text>
+								<text class="plan-date">{{ plan.planDate }}</text>
+							</view>
+							<view class="plan-status" :class="getPlanStatusClass(plan.status)">
+								<text>{{ getPlanStatusText(plan.status) }}</text>
+							</view>
+						</view>
+						<view class="plan-body">
+							<view class="plan-row">
+								<text class="plan-label">车辆：</text>
+								<text class="plan-value">{{ plan.vehicleNo || '-' }}</text>
+							</view>
+							<view class="plan-row">
+								<text class="plan-label">司机：</text>
+								<text class="plan-value">{{ plan.driverName || '-' }}</text>
+							</view>
+							<view class="plan-row">
+								<text class="plan-label">路线：</text>
+								<text class="plan-value">{{ plan.routeName || '-' }}</text>
+							</view>
+							<view class="plan-row">
+								<text class="plan-label">运输次数：</text>
+								<text class="plan-value">{{ plan.completedTrips }}/{{ plan.plannedTrips }}</text>
+							</view>
+							<view class="plan-row">
+								<text class="plan-label">计划吨位：</text>
+								<text class="plan-value">{{ plan.plannedCargoWeight || 0 }}吨</text>
+							</view>
+							<view class="plan-row" v-if="plan.startTimeSlot">
+								<text class="plan-label">发车时段：</text>
+								<text class="plan-value">{{ plan.startTimeSlot }} {{ plan.endTimeSlot ? '- ' + plan.endTimeSlot : '' }}</text>
+							</view>
+						</view>
+						<view class="plan-actions">
+							<text class="action-link" @click="viewPlanTasks(plan)">查看任务</text>
+							<text class="action-link" @click="executePlan(plan)" v-if="plan.status === 0">执行</text>
+							<text class="action-link" @click="completePlan(plan)" v-if="plan.status === 1">完成</text>
+							<text class="action-link danger" @click="deletePlanConfirm(plan)" v-if="plan.status === 0">删除</text>
+						</view>
+					</view>
+					
+					<view v-if="filteredPlans.length === 0" class="empty-row">
+						<text class="empty-text">暂无调度计划</text>
+					</view>
+				</view>
+			</view>
+			
+			<view class="content-card" v-if="activeTab === 'task'">
 				<view class="table-header">
 					<view class="filter-tabs">
 						<view class="filter-tab" :class="{ active: statusFilter === null }" @click="statusFilter = null">
 							<text>全部</text>
 						</view>
 						<view class="filter-tab" :class="{ active: statusFilter === 0 }" @click="statusFilter = 0">
-							<text>待分配</text>
+							<text>待接单</text>
 						</view>
 						<view class="filter-tab" :class="{ active: statusFilter === 1 }" @click="statusFilter = 1">
 							<text>已接单</text>
 						</view>
 						<view class="filter-tab" :class="{ active: statusFilter === 2 }" @click="statusFilter = 2">
-							<text>进行中</text>
+							<text>执行中</text>
 						</view>
 						<view class="filter-tab" :class="{ active: statusFilter === 3 }" @click="statusFilter = 3">
 							<text>已完成</text>
@@ -47,7 +136,6 @@
 						<text class="table-cell col-driver">司机</text>
 						<text class="table-cell col-vehicle">车辆</text>
 						<text class="table-cell col-time">计划时间</text>
-						<text class="table-cell col-priority">优先级</text>
 						<text class="table-cell col-status">状态</text>
 						<text class="table-cell col-actions">操作</text>
 					</view>
@@ -58,9 +146,6 @@
 						<text class="table-cell col-driver">{{ task.driverName || '-' }}</text>
 						<text class="table-cell col-vehicle">{{ task.vehicleNo || '-' }}</text>
 						<text class="table-cell col-time">{{ formatDateTime(task.scheduledStartTime) }}</text>
-						<view class="table-cell col-priority">
-							<text :class="['priority-tag', getPriorityClass(task.priority)]">{{ task.priority || '普通' }}</text>
-						</view>
 						<view class="table-cell col-status">
 							<view class="status-tag" :class="getStatusClass(task.status)">
 								<text>{{ getStatusText(task.status) }}</text>
@@ -70,6 +155,7 @@
 							<text class="action-link" @click="viewTask(task)">详情</text>
 							<text class="action-link" @click="executeTask(task)" v-if="task.status === 0">调度</text>
 							<text class="action-link danger" @click="cancelTask(task)" v-if="task.status < 2">取消</text>
+							<text class="action-link" @click="rescheduleTask(task)" v-if="task.status === 4">重新调度</text>
 						</view>
 					</view>
 					
@@ -79,51 +165,195 @@
 				</view>
 			</view>
 			
-			<view class="create-modal" v-if="showCreateModal">
-				<view class="modal-mask" @click="showCreateModal = false"></view>
-				<view class="modal-content">
+			<view class="content-card" v-if="activeTab === 'route'">
+				<view v-if="routeLoading" class="loading-state">
+					<text class="loading-text">加载中...</text>
+				</view>
+				
+				<view v-else class="route-template-list">
+					<view class="route-card" v-for="(route, index) in routeTemplates" :key="index">
+						<view class="route-header">
+							<text class="route-name">{{ route.routeName }}</text>
+							<view class="route-status" :class="route.status === 1 ? 'enabled' : 'disabled'">
+								<text>{{ route.status === 1 ? '启用' : '禁用' }}</text>
+							</view>
+						</view>
+						<view class="route-info">
+							<view class="route-point">
+								<text class="point-label">起点：</text>
+								<text class="point-value">{{ route.startLocation }}</text>
+							</view>
+							<view class="route-point">
+								<text class="point-label">终点：</text>
+								<text class="point-value">{{ route.endLocation }}</text>
+							</view>
+							<view class="route-stats" v-if="route.distance">
+								<text class="stat-item">距离：{{ formatDistance(route.distance) }}</text>
+								<text class="stat-item" v-if="route.estimatedDuration">预计：{{ route.estimatedDuration }}分钟</text>
+							</view>
+						</view>
+						<view class="route-actions">
+							<text class="action-link" @click="editRouteTemplate(route)">编辑</text>
+							<text class="action-link" @click="toggleRouteStatus(route)">
+								{{ route.status === 1 ? '禁用' : '启用' }}
+							</text>
+							<text class="action-link danger" @click="deleteRouteTemplateConfirm(route)">删除</text>
+						</view>
+					</view>
+					
+					<view v-if="routeTemplates.length === 0" class="empty-row">
+						<text class="empty-text">暂无路线模板，请点击右上角新建</text>
+					</view>
+				</view>
+			</view>
+			
+			<view class="create-modal" v-if="showPlanModal">
+				<view class="modal-mask" @click="showPlanModal = false"></view>
+				<view class="modal-content plan-modal">
 					<view class="modal-header">
-						<text class="modal-title">新建调度任务</text>
-						<text class="modal-close" @click="showCreateModal = false">×</text>
+						<text class="modal-title">新建调度计划</text>
+						<text class="modal-close" @click="showPlanModal = false">×</text>
 					</view>
 					<view class="modal-body">
 						<view class="form-item">
-							<text class="form-label">起点</text>
-							<input class="form-input" v-model="newTask.startLocation" placeholder="请输入起点位置" />
+							<text class="form-label">计划名称</text>
+							<input class="form-input" v-model="planForm.planName" placeholder="请输入计划名称（可选）" />
 						</view>
 						<view class="form-item">
-							<text class="form-label">终点</text>
-							<input class="form-input" v-model="newTask.endLocation" placeholder="请输入终点位置" />
+							<text class="form-label">计划日期 *</text>
+							<input class="form-input" type="date" v-model="planForm.planDate" placeholder="选择日期" />
 						</view>
 						<view class="form-item">
-							<text class="form-label">货物重量 (吨)</text>
-							<input class="form-input" type="number" v-model="newTask.cargoWeight" placeholder="请输入货物重量" />
-						</view>
-						<view class="form-item">
-							<text class="form-label">优先级</text>
+							<text class="form-label">计划类型 *</text>
 							<view class="form-select">
 								<view 
-									v-for="p in priorityOptions" 
-									:key="p.value" 
 									class="select-option"
-									:class="{ active: newTask.priority === p.value }"
-									@click="newTask.priority = p.value"
+									:class="{ active: planForm.planType === 1 }"
+									@click="planForm.planType = 1"
 								>
-									<text>{{ p.label }}</text>
+									<text>运输计划</text>
 								</view>
+								<view 
+									class="select-option"
+									:class="{ active: planForm.planType === 2 }"
+									@click="planForm.planType = 2"
+								>
+									<text>维修计划</text>
+								</view>
+								<view 
+									class="select-option"
+									:class="{ active: planForm.planType === 3 }"
+									@click="planForm.planType = 3"
+								>
+									<text>巡检计划</text>
+								</view>
+							</view>
+						</view>
+						<view class="form-item" v-if="planForm.planType === 1">
+							<text class="form-label">选择路线模板</text>
+							<view class="form-select">
+								<view 
+									class="select-option"
+									:class="{ active: !planForm.routeId }"
+									@click="planForm.routeId = ''"
+								>
+									<text>不选择</text>
+								</view>
+								<view 
+									v-for="route in enabledRouteTemplates" 
+									:key="route.id"
+									class="select-option"
+									:class="{ active: planForm.routeId === route.id }"
+									@click="planForm.routeId = route.id"
+								>
+									<text>{{ route.routeName }}</text>
+								</view>
+							</view>
+						</view>
+						<view class="form-row" v-if="planForm.planType === 1">
+							<view class="form-item half">
+								<text class="form-label">计划运输次数</text>
+								<input class="form-input" type="number" v-model="planForm.plannedTrips" placeholder="次数" />
+							</view>
+							<view class="form-item half">
+								<text class="form-label">计划吨位</text>
+								<input class="form-input" type="number" v-model="planForm.plannedCargoWeight" placeholder="吨" />
+							</view>
+						</view>
+						<view class="form-row">
+							<view class="form-item half">
+								<text class="form-label">开始日期</text>
+								<input class="form-input" type="date" v-model="planForm.startTimeSlot" placeholder="选择开始日期" />
+							</view>
+							<view class="form-item half">
+								<text class="form-label">截止日期</text>
+								<input class="form-input" type="date" v-model="planForm.endTimeSlot" placeholder="选择截止日期" />
 							</view>
 						</view>
 						<view class="form-item">
 							<text class="form-label">备注</text>
-							<textarea class="form-textarea" v-model="newTask.description" placeholder="请输入备注信息"></textarea>
+							<textarea class="form-textarea" v-model="planForm.remark" placeholder="请输入备注"></textarea>
 						</view>
 					</view>
 					<view class="modal-footer">
-						<view class="btn secondary" @click="showCreateModal = false">
+						<view class="btn secondary" @click="showPlanModal = false">
 							<text>取消</text>
 						</view>
-						<view class="btn primary" @click="submitCreateTask">
+						<view class="btn primary" @click="submitPlan">
 							<text>创建</text>
+						</view>
+					</view>
+				</view>
+			</view>
+			
+			<view class="create-modal" v-if="showRouteModal">
+				<view class="modal-mask" @click="closeRouteModal"></view>
+				<view class="modal-content route-modal">
+					<view class="modal-header">
+						<text class="modal-title">{{ editingRoute ? '编辑路线模板' : '新建路线模板' }}</text>
+						<text class="modal-close" @click="closeRouteModal">×</text>
+					</view>
+					<view class="modal-body">
+						<view class="form-item">
+							<text class="form-label">路线名称</text>
+							<input class="form-input" v-model="routeForm.routeName" placeholder="请输入路线名称" />
+						</view>
+						<view class="form-item">
+							<text class="form-label">起点</text>
+							<view class="location-picker-row" @click="openLocationPicker('start')">
+								<text class="picker-value" v-if="routeForm.startLocation">{{ routeForm.startLocation }}</text>
+								<text class="picker-placeholder" v-else>点击在地图上选择起点</text>
+								<text class="picker-arrow">›</text>
+							</view>
+							<view class="coord-display" v-if="routeForm.startLongitude && routeForm.startLatitude">
+								<text class="coord-text">坐标：{{ routeForm.startLongitude.toFixed(6) }}, {{ routeForm.startLatitude.toFixed(6) }}</text>
+							</view>
+						</view>
+						<view class="form-item">
+							<text class="form-label">终点</text>
+							<view class="location-picker-row" @click="openLocationPicker('end')">
+								<text class="picker-value" v-if="routeForm.endLocation">{{ routeForm.endLocation }}</text>
+								<text class="picker-placeholder" v-else>点击在地图上选择终点</text>
+								<text class="picker-arrow">›</text>
+							</view>
+							<view class="coord-display" v-if="routeForm.endLongitude && routeForm.endLatitude">
+								<text class="coord-text">坐标：{{ routeForm.endLongitude.toFixed(6) }}, {{ routeForm.endLatitude.toFixed(6) }}</text>
+							</view>
+						</view>
+						<view class="form-item" v-if="calculatedDistance > 0">
+							<text class="form-label">距离和时长</text>
+							<view class="distance-display">
+								<text class="distance-text">距离：{{ formatDistance(calculatedDistance) }}</text>
+								<text class="duration-text">预计：{{ formatDuration(calculatedDuration) }}</text>
+							</view>
+						</view>
+					</view>
+					<view class="modal-footer">
+						<view class="btn secondary" @click="closeRouteModal">
+							<text>取消</text>
+						</view>
+						<view class="btn primary" @click="submitRouteTemplate">
+							<text>{{ editingRoute ? '保存' : '创建' }}</text>
 						</view>
 					</view>
 				</view>
@@ -133,45 +363,162 @@
 </template>
 
 <script setup lang="uts">
-	import { ref, computed, onMounted } from 'vue'
+	import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 	import AdminSidebar from '@/components/AdminSidebar.uvue'
 	import { 
 		getDispatchTaskList, 
-		createDispatchTask, 
 		executeDispatch, 
-		cancelTask as cancelTaskApi,
-		autoGenerateDispatchTasks
+		cancelDispatchTask as cancelTaskApi,
+		rescheduleTask as rescheduleTaskApi,
+		autoGenerateDispatchTasks,
+		getRouteTemplateList,
+		createRouteTemplate,
+		updateRouteTemplate,
+		deleteRouteTemplate,
+		enableRouteTemplate,
+		disableRouteTemplate,
+		getDispatchPlanList,
+		createDispatchPlan,
+		deleteDispatchPlan,
+		executeDispatchPlan,
+		completeDispatchPlan
 	} from '@/api/dispatch.uts'
-	import type { DispatchTaskVO, DispatchTaskDTO } from '@/types/user.uts'
+	import type { DispatchTaskVO, RouteTemplateVO, RouteTemplateDTO, DispatchPlanVO, DispatchPlanDTO } from '@/types/dispatch.uts'
 	import { toast } from '@/utils/toast.uts'
+	import { 
+		calculateDistance as calcDistance,
+		formatDistance,
+		formatDuration,
+		estimateDuration
+	} from '@/utils/gaode.uts'
+	
+	const activeTab = ref<'plan' | 'task' | 'route'>('plan')
 	
 	const statusFilter = ref<number | null>(null)
 	const tasks = ref<DispatchTaskVO[]>([])
 	const loading = ref(false)
-	const showCreateModal = ref(false)
 	
-	const newTask = ref<DispatchTaskDTO>({
-		startLocation: '',
-		endLocation: '',
-		cargoWeight: 0,
-		priority: 'medium',
-		description: ''
+	const planStatusFilter = ref<number | null>(null)
+	const plans = ref<DispatchPlanVO[]>([])
+	const planLoading = ref(false)
+	const showPlanModal = ref(false)
+	
+	const routeTemplates = ref<RouteTemplateVO[]>([])
+	const routeLoading = ref(false)
+	const showRouteModal = ref(false)
+	const editingRoute = ref<RouteTemplateVO | null>(null)
+	
+	const planForm = ref<DispatchPlanDTO>({
+		planName: '',
+		planDate: '',
+		planType: 1,
+		routeId: '',
+		plannedTrips: 1,
+		plannedCargoWeight: 0,
+		startTimeSlot: '',
+		endTimeSlot: '',
+		remark: ''
 	})
 	
-	const priorityOptions = [
-		{ label: '高', value: 'high' },
-		{ label: '普通', value: 'medium' },
-		{ label: '低', value: 'low' }
-	]
+	const routeForm = ref<RouteTemplateDTO>({
+		routeName: '',
+		startLocation: '',
+		startLongitude: 0,
+		startLatitude: 0,
+		endLocation: '',
+		endLongitude: 0,
+		endLatitude: 0,
+		distance: 0,
+		estimatedDuration: 0
+	})
+	
+	let currentPickingType: 'start' | 'end' = 'start'
 	
 	const filteredTasks = computed(() => {
 		if (statusFilter.value === null) return tasks.value
 		return tasks.value.filter(task => task.status === statusFilter.value)
 	})
 	
-	onMounted(() => {
-		loadTasks()
+	const filteredPlans = computed(() => {
+		if (planStatusFilter.value === null) return plans.value
+		return plans.value.filter(plan => plan.status === planStatusFilter.value)
 	})
+	
+	const enabledRouteTemplates = computed(() => {
+		return routeTemplates.value.filter(r => r.status === 1)
+	})
+	
+	const calculatedDistance = computed(() => {
+		if (routeForm.value.startLongitude && routeForm.value.startLatitude && 
+			routeForm.value.endLongitude && routeForm.value.endLatitude) {
+			return calcDistance(
+				routeForm.value.startLongitude,
+				routeForm.value.startLatitude,
+				routeForm.value.endLongitude,
+				routeForm.value.endLatitude
+			)
+		}
+		return 0
+	})
+	
+	const calculatedDuration = computed(() => {
+		if (calculatedDistance.value > 0) {
+			return estimateDuration(calculatedDistance.value)
+		}
+		return 0
+	})
+	
+	watch(activeTab, (newVal) => {
+		if (newVal === 'route') {
+			loadRouteTemplates()
+		} else if (newVal === 'task') {
+			loadTasks()
+		} else if (newVal === 'plan') {
+			loadPlans()
+		}
+	})
+	
+	onMounted(() => {
+		loadPlans()
+		loadRouteTemplates()
+		uni.$on('locationSelected', handleLocationSelected)
+	})
+	
+	onUnmounted(() => {
+		uni.$off('locationSelected', handleLocationSelected)
+	})
+	
+	function handleLocationSelected(data: any) {
+		if (currentPickingType === 'start') {
+			routeForm.value.startLocation = data.name
+			routeForm.value.startLongitude = data.longitude
+			routeForm.value.startLatitude = data.latitude
+		} else {
+			routeForm.value.endLocation = data.name
+			routeForm.value.endLongitude = data.longitude
+			routeForm.value.endLatitude = data.latitude
+		}
+	}
+	
+	async function loadPlans() {
+		planLoading.value = true
+		try {
+			const now = new Date()
+			const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+			const endDate = new Date(now.getFullYear(), now.getMonth() + 2, 0)
+			
+			const data = await getDispatchPlanList(
+				undefined,
+				formatDateForApi(startDate),
+				formatDateForApi(endDate)
+			)
+			plans.value = data || []
+		} catch (e) {
+			console.error('加载计划列表失败', e)
+		} finally {
+			planLoading.value = false
+		}
+	}
 	
 	async function loadTasks() {
 		loading.value = true
@@ -190,6 +537,18 @@
 			console.error('加载任务列表失败', e)
 		} finally {
 			loading.value = false
+		}
+	}
+	
+	async function loadRouteTemplates() {
+		routeLoading.value = true
+		try {
+			const data = await getRouteTemplateList()
+			routeTemplates.value = data || []
+		} catch (e) {
+			console.error('加载路线模板失败', e)
+		} finally {
+			routeLoading.value = false
 		}
 	}
 	
@@ -212,53 +571,136 @@
 	}
 	
 	function getStatusText(status: number): string {
-		if (status === 0) return '待分配'
+		if (status === 0) return '待接单'
 		if (status === 1) return '已接单'
-		if (status === 2) return '进行中'
+		if (status === 2) return '执行中'
 		if (status === 3) return '已完成'
 		return '已取消'
 	}
 	
-	function getPriorityClass(priority: string | null): string {
-		if (priority === 'high' || priority === '紧急') return 'high'
-		if (priority === 'low' || priority === '低') return 'low'
-		return 'medium'
+	function getPlanStatusClass(status: number): string {
+		if (status === 0) return 'pending'
+		if (status === 1) return 'in-progress'
+		if (status === 2) return 'completed'
+		return 'cancelled'
 	}
 	
-	function showCreateTask() {
-		newTask.value = {
-			startLocation: '',
-			endLocation: '',
-			cargoWeight: 0,
-			priority: 'medium',
-			description: ''
+	function getPlanStatusText(status: number): string {
+		if (status === 0) return '待执行'
+		if (status === 1) return '执行中'
+		if (status === 2) return '已完成'
+		return '已取消'
+	}
+	
+	function showCreatePlan() {
+		const today = new Date()
+		const tomorrow = new Date(today)
+		tomorrow.setDate(tomorrow.getDate() + 1)
+		
+		const formatDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+		
+		planForm.value = {
+			planName: '',
+			planDate: formatDate(today),
+			planType: 1,
+			routeId: '',
+			plannedTrips: 1,
+			plannedCargoWeight: 0,
+			startTimeSlot: formatDate(today),
+			endTimeSlot: formatDate(tomorrow),
+			remark: ''
 		}
-		showCreateModal.value = true
+		showPlanModal.value = true
 	}
 	
-	async function submitCreateTask() {
-		if (!newTask.value.startLocation || !newTask.value.endLocation) {
-			toast.error('请填写起点和终点')
+	async function submitPlan() {
+		if (!planForm.value.planDate) {
+			toast.error('请选择计划日期')
+			return
+		}
+		if (!planForm.value.planType) {
+			toast.error('请选择计划类型')
 			return
 		}
 		
 		try {
 			toast.loading('创建中...')
-			const result = await createDispatchTask(newTask.value)
+			const result = await createDispatchPlan(planForm.value)
 			if (result) {
 				toast.success('创建成功')
-				showCreateModal.value = false
-				loadTasks()
+				showPlanModal.value = false
+				loadPlans()
 			}
 		} catch (e: any) {
 			toast.error(e.message || '创建失败')
 		}
 	}
 	
+	function viewPlanTasks(plan: DispatchPlanVO) {
+		activeTab.value = 'task'
+	}
+	
+	async function executePlan(plan: DispatchPlanVO) {
+		uni.showModal({
+			title: '执行计划',
+			content: `确定要执行计划 ${plan.planNo} 吗？\n系统将生成对应的调度任务。`,
+			success: async (res) => {
+				if (res.confirm) {
+					try {
+						toast.loading('执行中...')
+						await executeDispatchPlan(plan.id)
+						toast.success('执行成功')
+						loadPlans()
+					} catch (e: any) {
+						toast.error(e.message || '执行失败')
+					}
+				}
+			}
+		})
+	}
+	
+	async function completePlan(plan: DispatchPlanVO) {
+		uni.showModal({
+			title: '完成计划',
+			content: `确定要完成计划 ${plan.planNo} 吗？`,
+			success: async (res) => {
+				if (res.confirm) {
+					try {
+						toast.loading('处理中...')
+						await completeDispatchPlan(plan.id)
+						toast.success('已完成')
+						loadPlans()
+					} catch (e: any) {
+						toast.error(e.message || '操作失败')
+					}
+				}
+			}
+		})
+	}
+	
+	function deletePlanConfirm(plan: DispatchPlanVO) {
+		uni.showModal({
+			title: '删除确认',
+			content: `确定要删除计划 ${plan.planNo} 吗？`,
+			success: async (res) => {
+				if (res.confirm) {
+					try {
+						toast.loading('删除中...')
+						await deleteDispatchPlan(plan.id)
+						toast.success('已删除')
+						loadPlans()
+					} catch (e: any) {
+						toast.error(e.message || '删除失败')
+					}
+				}
+			}
+		})
+	}
+	
 	async function executeTask(task: DispatchTaskVO) {
 		uni.showModal({
 			title: '执行调度',
-			content: `确定要执行智能调度吗？\n系统将自动分配最佳司机和车辆`,
+			content: `确定要执行智能调度吗？`,
 			success: async (res) => {
 				if (res.confirm) {
 					try {
@@ -294,6 +736,27 @@
 			}
 		})
 	}
+
+	async function rescheduleTask(task: DispatchTaskVO) {
+		uni.showModal({
+			title: '重新调度',
+			content: `确定要重新调度任务 ${task.taskNo} 吗？`,
+			success: async (res) => {
+				if (res.confirm) {
+					try {
+						toast.loading('重新调度中...')
+						const success = await rescheduleTaskApi(task.id)
+						if (success) {
+							toast.success('重新调度成功')
+							loadTasks()
+						}
+					} catch (e: any) {
+						toast.error(e.message || '重新调度失败')
+					}
+				}
+			}
+		})
+	}
 	
 	async function autoGenerateTasks() {
 		uni.showModal({
@@ -319,14 +782,156 @@
 	function viewTask(task: DispatchTaskVO) {
 		uni.showModal({
 			title: `任务详情 - ${task.taskNo}`,
-			content: `路线：${task.startLocation} → ${task.endLocation}\n司机：${task.driverName || '未分配'}\n车辆：${task.vehicleNo || '未分配'}\n状态：${getStatusText(task.status)}\n优先级：${task.priority || '普通'}\n货物重量：${task.cargoWeight || 0}吨\n备注：${task.description || '无'}`,
+			content: `路线：${task.startLocation} → ${task.endLocation}\n司机：${task.driverName || '未分配'}\n车辆：${task.vehicleNo || '未分配'}\n状态：${getStatusText(task.status)}`,
 			showCancel: false
+		})
+	}
+	
+	function showCreateRouteTemplate() {
+		editingRoute.value = null
+		routeForm.value = {
+			routeName: '',
+			startLocation: '',
+			startLongitude: 0,
+			startLatitude: 0,
+			endLocation: '',
+			endLongitude: 0,
+			endLatitude: 0,
+			distance: 0,
+			estimatedDuration: 0
+		}
+		showRouteModal.value = true
+	}
+	
+	function editRouteTemplate(route: RouteTemplateVO) {
+		editingRoute.value = route
+		routeForm.value = {
+			id: route.id,
+			routeName: route.routeName,
+			startLocation: route.startLocation,
+			startLongitude: route.startLongitude || 0,
+			startLatitude: route.startLatitude || 0,
+			endLocation: route.endLocation,
+			endLongitude: route.endLongitude || 0,
+			endLatitude: route.endLatitude || 0,
+			distance: route.distance || 0,
+			estimatedDuration: route.estimatedDuration || 0
+		}
+		showRouteModal.value = true
+	}
+	
+	function closeRouteModal() {
+		showRouteModal.value = false
+		editingRoute.value = null
+	}
+	
+	function openLocationPicker(type: 'start' | 'end') {
+		currentPickingType = type
+		uni.navigateTo({
+			url: '/pages/admin/dispatch/location-picker'
+		})
+	}
+	
+	async function submitRouteTemplate() {
+		if (!routeForm.value.routeName) {
+			toast.error('请输入路线名称')
+			return
+		}
+		if (!routeForm.value.startLocation || !routeForm.value.startLongitude) {
+			toast.error('请在地图上选择起点位置')
+			return
+		}
+		if (!routeForm.value.endLocation || !routeForm.value.endLongitude) {
+			toast.error('请在地图上选择终点位置')
+			return
+		}
+		
+		routeForm.value.distance = calculatedDistance.value
+		routeForm.value.estimatedDuration = calculatedDuration.value
+		
+		try {
+			toast.loading(editingRoute.value ? '保存中...' : '创建中...')
+			
+			if (editingRoute.value) {
+				await updateRouteTemplate(editingRoute.value.id, routeForm.value)
+				toast.success('保存成功')
+			} else {
+				await createRouteTemplate(routeForm.value)
+				toast.success('创建成功')
+			}
+			
+			showRouteModal.value = false
+			loadRouteTemplates()
+		} catch (e: any) {
+			toast.error(e.message || '操作失败')
+		}
+	}
+	
+	async function toggleRouteStatus(route: RouteTemplateVO) {
+		try {
+			toast.loading(route.status === 1 ? '禁用中...' : '启用中...')
+			
+			if (route.status === 1) {
+				await disableRouteTemplate(route.id)
+				toast.success('已禁用')
+			} else {
+				await enableRouteTemplate(route.id)
+				toast.success('已启用')
+			}
+			
+			loadRouteTemplates()
+		} catch (e: any) {
+			toast.error(e.message || '操作失败')
+		}
+	}
+	
+	function deleteRouteTemplateConfirm(route: RouteTemplateVO) {
+		uni.showModal({
+			title: '删除确认',
+			content: `确定要删除路线模板"${route.routeName}"吗？`,
+			success: async (res) => {
+				if (res.confirm) {
+					try {
+						toast.loading('删除中...')
+						await deleteRouteTemplate(route.id)
+						toast.success('已删除')
+						loadRouteTemplates()
+					} catch (e: any) {
+						toast.error(e.message || '删除失败')
+					}
+				}
+			}
 		})
 	}
 </script>
 
 <style lang="scss">
 	@import '@/styles/admin.scss';
+	
+	.main-tabs {
+		display: flex;
+		flex-direction: row;
+		gap: 0;
+		margin-bottom: 20rpx;
+		background-color: rgba(255, 255, 255, 0.05);
+		border-radius: 12rpx;
+		padding: 8rpx;
+	}
+	
+	.main-tab {
+		flex: 1;
+		padding: 20rpx 32rpx;
+		text-align: center;
+		font-size: 28rpx;
+		color: rgba(255, 255, 255, 0.6);
+		border-radius: 8rpx;
+		transition: all 0.2s;
+		
+		&.active {
+			background-color: #007AFF;
+			color: #fff;
+		}
+	}
 	
 	.filter-tabs {
 		display: flex;
@@ -405,27 +1010,6 @@
 		}
 	}
 	
-	.priority-tag {
-		padding: 4rpx 12rpx;
-		border-radius: 6rpx;
-		font-size: 20rpx;
-		
-		&.high {
-			background-color: rgba(255, 59, 48, 0.2);
-			color: #FF3B30;
-		}
-		
-		&.medium {
-			background-color: rgba(255, 149, 0, 0.2);
-			color: #FF9500;
-		}
-		
-		&.low {
-			background-color: rgba(52, 199, 89, 0.2);
-			color: #34C759;
-		}
-	}
-	
 	.action-link {
 		color: #007AFF;
 		font-size: 24rpx;
@@ -442,7 +1026,6 @@
 		&.col-driver { width: 120rpx; }
 		&.col-vehicle { width: 120rpx; }
 		&.col-time { width: 140rpx; }
-		&.col-priority { width: 100rpx; }
 		&.col-status { width: 100rpx; }
 		&.col-actions { width: 160rpx; }
 	}
@@ -467,6 +1050,176 @@
 	.empty-text {
 		font-size: 28rpx;
 		color: rgba(255, 255, 255, 0.4);
+	}
+	
+	.plan-list {
+		display: flex;
+		flex-direction: column;
+		gap: 20rpx;
+	}
+	
+	.plan-card {
+		background-color: rgba(255, 255, 255, 0.05);
+		border-radius: 16rpx;
+		padding: 24rpx;
+	}
+	
+	.plan-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 16rpx;
+	}
+	
+	.plan-info {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 16rpx;
+	}
+	
+	.plan-no {
+		font-size: 28rpx;
+		font-weight: 600;
+		color: #fff;
+	}
+	
+	.plan-date {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.5);
+	}
+	
+	.plan-status {
+		padding: 6rpx 16rpx;
+		border-radius: 8rpx;
+		font-size: 22rpx;
+		
+		&.pending {
+			background-color: rgba(255, 149, 0, 0.2);
+			color: #FF9500;
+		}
+		
+		&.in-progress {
+			background-color: rgba(88, 86, 214, 0.2);
+			color: #5856D6;
+		}
+		
+		&.completed {
+			background-color: rgba(52, 199, 89, 0.2);
+			color: #34C759;
+		}
+	}
+	
+	.plan-body {
+		margin-bottom: 16rpx;
+	}
+	
+	.plan-row {
+		display: flex;
+		flex-direction: row;
+		margin-bottom: 8rpx;
+	}
+	
+	.plan-label {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.5);
+		width: 160rpx;
+	}
+	
+	.plan-value {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.9);
+	}
+	
+	.plan-actions {
+		display: flex;
+		flex-direction: row;
+		gap: 24rpx;
+		padding-top: 16rpx;
+		border-top: 1rpx solid rgba(255, 255, 255, 0.1);
+	}
+	
+	.route-template-list {
+		display: flex;
+		flex-direction: column;
+		gap: 20rpx;
+	}
+	
+	.route-card {
+		background-color: rgba(255, 255, 255, 0.05);
+		border-radius: 16rpx;
+		padding: 24rpx;
+	}
+	
+	.route-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 16rpx;
+	}
+	
+	.route-name {
+		font-size: 30rpx;
+		font-weight: 600;
+		color: #fff;
+	}
+	
+	.route-status {
+		padding: 6rpx 16rpx;
+		border-radius: 8rpx;
+		font-size: 22rpx;
+		
+		&.enabled {
+			background-color: rgba(52, 199, 89, 0.2);
+			color: #34C759;
+		}
+		
+		&.disabled {
+			background-color: rgba(142, 142, 147, 0.2);
+			color: #8E8E93;
+		}
+	}
+	
+	.route-info {
+		margin-bottom: 16rpx;
+	}
+	
+	.route-point {
+		margin-bottom: 8rpx;
+	}
+	
+	.point-label {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.5);
+	}
+	
+	.point-value {
+		font-size: 26rpx;
+		color: rgba(255, 255, 255, 0.9);
+	}
+	
+	.route-stats {
+		display: flex;
+		flex-direction: row;
+		gap: 24rpx;
+		margin-top: 12rpx;
+		padding-top: 12rpx;
+		border-top: 1rpx solid rgba(255, 255, 255, 0.1);
+	}
+	
+	.stat-item {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.6);
+	}
+	
+	.route-actions {
+		display: flex;
+		flex-direction: row;
+		gap: 24rpx;
+		padding-top: 16rpx;
+		border-top: 1rpx solid rgba(255, 255, 255, 0.1);
 	}
 	
 	.create-modal {
@@ -496,6 +1249,14 @@
 		background-color: #1c1c1e;
 		border-radius: 20rpx;
 		overflow: hidden;
+	}
+	
+	.plan-modal {
+		width: 700rpx;
+	}
+	
+	.route-modal {
+		width: 700rpx;
 	}
 	
 	.modal-header {
@@ -559,15 +1320,12 @@
 	.form-select {
 		display: flex;
 		flex-direction: row;
-		gap: 20rpx;
+		flex-wrap: wrap;
+		gap: 16rpx;
 	}
 	
 	.select-option {
-		flex: 1;
-		height: 70rpx;
-		display: flex;
-		justify-content: center;
-		align-items: center;
+		padding: 16rpx 24rpx;
 		background-color: rgba(255, 255, 255, 0.1);
 		border-radius: 12rpx;
 		font-size: 26rpx;
@@ -577,6 +1335,90 @@
 			background-color: #007AFF;
 			color: #fff;
 		}
+		
+		&.placeholder {
+			color: rgba(255, 255, 255, 0.4);
+		}
+		
+		&.priority-low.active {
+			background-color: #8E8E93;
+		}
+		
+		&.priority-normal.active {
+			background-color: #34C759;
+		}
+		
+		&.priority-high.active {
+			background-color: #FF9500;
+		}
+		
+		&.priority-urgent.active {
+			background-color: #FF3B30;
+		}
+	}
+	
+	.form-row {
+		display: flex;
+		flex-direction: row;
+		gap: 20rpx;
+	}
+	
+	.form-item.half {
+		flex: 1;
+	}
+	
+	.location-picker-row {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		height: 80rpx;
+		padding: 0 20rpx;
+		background-color: rgba(255, 255, 255, 0.1);
+		border-radius: 12rpx;
+	}
+	
+	.picker-value {
+		flex: 1;
+		font-size: 28rpx;
+		color: #fff;
+	}
+	
+	.picker-placeholder {
+		flex: 1;
+		font-size: 28rpx;
+		color: rgba(255, 255, 255, 0.4);
+	}
+	
+	.picker-arrow {
+		font-size: 32rpx;
+		color: rgba(255, 255, 255, 0.4);
+	}
+	
+	.coord-display {
+		margin-top: 12rpx;
+		padding: 12rpx 16rpx;
+		background-color: rgba(52, 199, 89, 0.1);
+		border-radius: 8rpx;
+	}
+	
+	.coord-text {
+		font-size: 24rpx;
+		color: #34C759;
+	}
+	
+	.distance-display {
+		display: flex;
+		flex-direction: row;
+		gap: 32rpx;
+		padding: 16rpx;
+		background-color: rgba(255, 255, 255, 0.05);
+		border-radius: 12rpx;
+	}
+	
+	.distance-text, .duration-text {
+		font-size: 26rpx;
+		color: rgba(255, 255, 255, 0.8);
 	}
 	
 	.modal-footer {

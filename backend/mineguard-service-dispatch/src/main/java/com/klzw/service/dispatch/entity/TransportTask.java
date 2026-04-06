@@ -40,9 +40,9 @@ public class TransportTask extends BaseEntity {
     private Double endLatitude;
 
     private BigDecimal cargoWeight;
-    
-    private BigDecimal estimatedCommissionAmount;  // 预计提成金额（调度时设定）
-    
+
+    private BigDecimal estimatedCommissionAmount;
+
     private String cargoType;
 
     private LocalDateTime scheduledStartTime;

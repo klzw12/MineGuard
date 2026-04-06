@@ -48,6 +48,12 @@ export function applyLeave(dto: LeaveApplyDTO): Promise<AttendanceVO | null> {
   return http.post<AttendanceVO>('/attendance/leave', dto)
 }
 
+export function applyLeaveByParams(leaveType: number, startTime: string, endTime: string, reason?: string): Promise<AttendanceVO | null> {
+  const params: Record<string, any> = { leaveType, startTime, endTime }
+  if (reason) params.reason = reason
+  return http.post<AttendanceVO>('/attendance/leave', params)
+}
+
 export function cancelLeave(attendanceId: string): Promise<void | null> {
   return http.delete<void>(`/attendance/leave/${attendanceId}`)
 }

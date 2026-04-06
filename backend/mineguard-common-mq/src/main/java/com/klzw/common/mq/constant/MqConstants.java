@@ -40,4 +40,19 @@ public class MqConstants {
      */
     public static final String OFFLINE_MESSAGE_ROUTING_KEY_PREFIX = "offline.";
 
+    /**
+     * 调度任务交换机
+     */
+    public static final String DISPATCH_TASK_EXCHANGE = "dispatch.task.exchange";
+
+    /**
+     * 调度任务队列
+     */
+    public static final String DISPATCH_TASK_QUEUE = "dispatch.task.queue";
+
+    /**
+     * 调度任务路由键
+     */
+    public static final String DISPATCH_TASK_ROUTING_KEY = "dispatch.task.routing";
+
 }

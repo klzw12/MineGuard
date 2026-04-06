@@ -75,8 +75,8 @@ public class QualificationServiceImpl implements QualificationService {
         
         validateIdCardInfo(idCardInfo, dto.getRealName(), dto.getIdCard());
         
-        String idCardFrontUrl = uploadImageFromBytes(frontImageBytes, "idcard_front");
-        String idCardBackUrl = uploadOptionalImage(dto.getIdCardBackBase64(), "idcard_back");
+        String idCardFrontUrl = uploadImageFromBytes(frontImageBytes, "id-card/front");
+        String idCardBackUrl = uploadOptionalImage(dto.getIdCardBackBase64(), "id-card/back");
         
         user.setIdCardFrontUrl(idCardFrontUrl);
         user.setIdCardBackUrl(idCardBackUrl);
@@ -141,7 +141,7 @@ public class QualificationServiceImpl implements QualificationService {
         validateDrivingLicense(licenseInfo, user.getRealName());
         validateLicenseNotExpired(licenseInfo);
         
-        String drivingLicenseUrl = uploadImageFromBytes(imageBytes, "driving_license");
+        String drivingLicenseUrl = uploadImageFromBytes(imageBytes, "driving-license");
         
         Driver existingDriver = driverMapper.selectByUserId(String.valueOf(dto.getUserId()));
         Driver savedDriver = saveDriverCert(dto, user, drivingLicenseUrl, licenseInfo);
@@ -186,7 +186,7 @@ public class QualificationServiceImpl implements QualificationService {
         validateEmergencyCert(certInfo, user.getRealName());
         validateCertNotExpired(certInfo);
         
-        String emergencyCertUrl = uploadImageFromBytes(imageBytes, "emergency_cert");
+        String emergencyCertUrl = uploadImageFromBytes(imageBytes, "cert/emergency");
         
         saveSafetyOfficerCert(dto, user, emergencyCertUrl, certInfo);
         assignRoleToUser(dto.getUserId(), RoleEnum.SAFETY_OFFICER.getValue());
@@ -215,7 +215,7 @@ public class QualificationServiceImpl implements QualificationService {
         validateRepairCert(certInfo, user.getRealName());
         validateCertNotExpired(certInfo);
         
-        String repairCertUrl = uploadImageFromBytes(imageBytes, "repair_cert");
+        String repairCertUrl = uploadImageFromBytes(imageBytes, "cert/repair");
         
         saveRepairmanCert(dto, user, repairCertUrl, certInfo);
         assignRoleToUser(dto.getUserId(), RoleEnum.REPAIRMAN.getValue());

@@ -16,6 +16,8 @@ public interface DispatchTaskService {
 
     DispatchTaskVO getById(Long id);
 
+    List<DispatchTaskVO> getList(Integer status, Long executorId, Long vehicleId);
+
     List<DispatchTaskVO> getByPlanId(Long planId);
 
     List<DispatchTaskVO> getPendingByVehicleId(Long vehicleId);

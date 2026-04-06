@@ -2,6 +2,7 @@ package com.klzw.common.core.client;
 
 import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * 消息服务客户端
@@ -21,11 +22,11 @@ public interface MessageClient {
      */
     @PostExchange("/message/send")
     void sendMessage(
-        Long userId,
-        String title,
-        String content,
-        String type,
-        String businessId
+        @RequestParam("userId") Long userId,
+        @RequestParam("title") String title,
+        @RequestParam("content") String content,
+        @RequestParam("type") String type,
+        @RequestParam("businessId") String businessId
     );
 
     /**
@@ -38,9 +39,9 @@ public interface MessageClient {
      */
     @PostExchange("/message/send-by-role")
     void sendMessageByRole(
-        String role,
-        String title,
-        String content,
-        String type
+        @RequestParam("role") String role,
+        @RequestParam("title") String title,
+        @RequestParam("content") String content,
+        @RequestParam("type") String type
     );
 }

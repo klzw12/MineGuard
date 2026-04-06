@@ -4,6 +4,7 @@ import com.klzw.common.auth.context.UserContext;
 import com.klzw.common.core.result.Result;
 import com.klzw.service.user.dto.CheckInDTO;
 import com.klzw.service.user.dto.CheckOutDTO;
+import com.klzw.service.user.dto.LeaveApplyDTO;
 import com.klzw.service.user.service.AttendanceService;
 import com.klzw.service.user.vo.AttendanceStatisticsVO;
 import com.klzw.service.user.vo.AttendanceVO;
@@ -85,12 +86,9 @@ public class AttendanceController {
     @Operation(summary = "请假申请")
     @PostMapping("/leave")
     public Result<AttendanceVO> applyLeave(
-            @Parameter(description = "请假类型：1-事假 2-病假 3-年假 4-调休") @RequestParam Integer leaveType,
-            @Parameter(description = "开始时间") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
-            @Parameter(description = "结束时间") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
-            @Parameter(description = "请假原因") @RequestParam(required = false) String reason) {
+            @Parameter(description = "请假信息") @RequestBody LeaveApplyDTO dto) {
         Long userId = UserContext.getUserId();
-        AttendanceVO vo = attendanceService.applyLeave(userId, leaveType, startTime, endTime, reason);
+        AttendanceVO vo = attendanceService.applyLeave(userId, dto.getLeaveType(), dto.getStartTime(), dto.getEndTime(), dto.getReason());
         return Result.success(vo);
     }
 

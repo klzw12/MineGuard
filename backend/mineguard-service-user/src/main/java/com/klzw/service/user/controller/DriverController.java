@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/user/driver")
@@ -63,10 +64,41 @@ public class DriverController {
         return Result.success(driverService.selectBestDriver(vehicleId, scheduledTime));
     }
 
+    @PostMapping("/user/{userId}/common-vehicle")
+    public Result<Void> addCommonVehicleByUserId(
+            @PathVariable Long userId,
+            @RequestBody Map<String, Object> body) {
+        Long vehicleId = body.get("vehicleId") != null ? Long.valueOf(body.get("vehicleId").toString()) : null;
+        driverService.addCommonVehicleByUserId(userId, vehicleId);
+        return Result.success();
+    }
+
+    @DeleteMapping("/user/{userId}/common-vehicle/{vehicleId}")
+    public Result<Void> removeCommonVehicleByUserId(
+            @PathVariable Long userId,
+            @PathVariable Long vehicleId) {
+        driverService.removeCommonVehicleByUserId(userId, vehicleId);
+        return Result.success();
+    }
+
+    @PutMapping("/user/{userId}/common-vehicle/{vehicleId}/default")
+    public Result<Void> setDefaultVehicleByUserId(
+            @PathVariable Long userId,
+            @PathVariable Long vehicleId) {
+        driverService.setDefaultVehicleByUserId(userId, vehicleId);
+        return Result.success();
+    }
+
+    @GetMapping("/user/{userId}/common-vehicles")
+    public Result<List<DriverVehicleVO>> getCommonVehiclesByUserId(@PathVariable Long userId) {
+        return Result.success(driverService.getCommonVehiclesByUserId(userId));
+    }
+
     @PostMapping("/{driverId}/common-vehicle")
     public Result<Void> addCommonVehicle(
             @PathVariable Long driverId,
-            @RequestParam Long vehicleId) {
+            @RequestBody Map<String, Object> body) {
+        Long vehicleId = body.get("vehicleId") != null ? Long.valueOf(body.get("vehicleId").toString()) : null;
         driverService.addCommonVehicle(driverId, vehicleId);
         return Result.success();
     }

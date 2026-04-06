@@ -140,6 +140,28 @@ public class JwtUtils {
         }
     }
 
+    /**
+     * 解析Token但不验证过期时间（用于刷新令牌）
+     */
+    public JWTClaimsSet parseTokenWithoutExpiration(String token) {
+        try {
+            SignedJWT signedJWT = SignedJWT.parse(token);
+            
+            // 验证签名
+            if (!signedJWT.verify(getVerifier())) {
+                throw new AuthException(AuthResultCode.TOKEN_SIGNATURE_ERROR, "Token签名验证失败");
+            }
+
+            return signedJWT.getJWTClaimsSet();
+        } catch (AuthException e) {
+            throw e;
+        } catch (JOSEException e) {
+            throw new AuthException(AuthResultCode.TOKEN_SIGNATURE_ERROR, "Token签名错误", e);
+        } catch (Exception e) {
+            throw new AuthException(AuthResultCode.TOKEN_INVALID, "Token无效", e);
+        }
+    }
+
     public Long getUserIdFromToken(String token) {
         JWTClaimsSet claimsSet = parseToken(token);
         Object userIdObject = claimsSet.getClaim("userId");

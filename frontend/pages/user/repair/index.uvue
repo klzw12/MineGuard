@@ -299,12 +299,18 @@
 <script setup lang="uts">
 	import UserLayout from '../../../components/UserLayout.uvue'
 	import { ref, onMounted } from 'vue'
-	import { request } from '@/utils/request.uts'
+	import { 
+	 vehicleApi, 
+  faultApi, 
+  maintenanceApi, 
+  insuranceApi,
+  type VehicleOption
+} from '@/api/vehicle.uts'
 
 	type VehicleOption = {
-		id: string,
-		vehicleNo: string
-	}
+	id: string
+  vehicleNo: string
+}
 
 	type FaultRecord = {
 		id: string,
@@ -466,9 +472,9 @@
 
 	const fetchVehicles = async () => {
 		try {
-			const res = await request({ url: '/api/vehicle/page', method: 'GET', data: { page: 1, size: 100 } })
-			if (res.code === 200) {
-				vehicleOptions.value = (res.data || []).map((v: any) => ({ id: v.id, vehicleNo: v.vehicleNo }))
+			const res = await vehicleApi.getVehiclePage({ page: 1, size: 100 })
+			if (res) {
+				vehicleOptions.value = (res.records || []).map((v: any) => ({ id: String(v.id), vehicleNo: v.vehicleNo }))
 			}
 		} catch (e) {
 			console.error('获取车辆列表失败', e)
@@ -477,9 +483,9 @@
 
 	const fetchFaultList = async () => {
 		try {
-			const res = await request({ url: '/api/vehicle/fault/list', method: 'GET' })
-			if (res.code === 200) {
-				faultList.value = res.data || []
+			const res = await faultApi.getAllFaultRecords()
+			if (res) {
+				faultList.value = res
 			}
 		} catch (e) {
 			console.error('获取故障列表失败', e)
@@ -488,9 +494,9 @@
 
 	const fetchMaintenanceList = async () => {
 		try {
-			const res = await request({ url: '/api/vehicle/maintenance/list', method: 'GET' })
-			if (res.code === 200) {
-				maintenanceList.value = res.data || []
+			const res = await maintenanceApi.getAllMaintenanceRecords()
+			if (res) {
+				maintenanceList.value = res
 			}
 		} catch (e) {
 			console.error('获取保养列表失败', e)
@@ -499,9 +505,9 @@
 
 	const fetchInsuranceList = async () => {
 		try {
-			const res = await request({ url: '/api/vehicle/insurance/list', method: 'GET' })
-			if (res.code === 200) {
-				insuranceList.value = res.data || []
+			const res = await insuranceApi.getAllInsuranceRecords()
+			if (res) {
+				insuranceList.value = res
 			}
 		} catch (e) {
 			console.error('获取保险列表失败', e)
@@ -554,16 +560,10 @@
 			return
 		}
 		try {
-			const res = await request({
-				url: '/api/vehicle/fault',
-				method: 'POST',
-				data: faultForm.value
-			})
-			if (res.code === 200) {
-				uni.showToast({ title: '提交成功', icon: 'success' })
-				showFaultModal.value = false
-				fetchFaultList()
-			}
+			await faultApi.reportFault(faultForm.value)
+			uni.showToast({ title: '提交成功', icon: 'success' })
+			showFaultModal.value = false
+			fetchFaultList()
 		} catch (e) {
 			uni.showToast({ title: '提交失败', icon: 'none' })
 		}
@@ -575,16 +575,10 @@
 			return
 		}
 		try {
-			const res = await request({
-				url: '/api/vehicle/maintenance',
-				method: 'POST',
-				data: maintenanceForm.value
-			})
-			if (res.code === 200) {
-				uni.showToast({ title: '提交成功', icon: 'success' })
-				showMaintenanceModal.value = false
-				fetchMaintenanceList()
-			}
+			await maintenanceApi.addMaintenanceRecord(maintenanceForm.value)
+			uni.showToast({ title: '提交成功', icon: 'success' })
+			showMaintenanceModal.value = false
+			fetchMaintenanceList()
 		} catch (e) {
 			uni.showToast({ title: '提交失败', icon: 'none' })
 		}
@@ -596,16 +590,10 @@
 			return
 		}
 		try {
-			const res = await request({
-				url: '/api/vehicle/insurance',
-				method: 'POST',
-				data: insuranceForm.value
-			})
-			if (res.code === 200) {
-				uni.showToast({ title: '提交成功', icon: 'success' })
-				showInsuranceModal.value = false
-				fetchInsuranceList()
-			}
+			await insuranceApi.uploadInsuranceInfo(insuranceForm.value.vehicleId, insuranceForm.value)
+			uni.showToast({ title: '提交成功', icon: 'success' })
+			showInsuranceModal.value = false
+			fetchInsuranceList()
 		} catch (e) {
 			uni.showToast({ title: '提交失败', icon: 'none' })
 		}
@@ -620,16 +608,10 @@
 	const submitHandle = async () => {
 		if (!currentFault.value) return
 		try {
-			const res = await request({
-				url: `/api/vehicle/fault/${currentFault.value.id}/handle`,
-				method: 'PUT',
-				data: handleForm.value
-			})
-			if (res.code === 200) {
-				uni.showToast({ title: '处理成功', icon: 'success' })
-				showHandleModal.value = false
-				fetchFaultList()
-			}
+			await faultApi.handleFault(String(currentFault.value.id), handleForm.value.repairContent, handleForm.value.repairCost)
+			uni.showToast({ title: '处理成功', icon: 'success' })
+			showHandleModal.value = false
+			fetchFaultList()
 		} catch (e) {
 			uni.showToast({ title: '处理失败', icon: 'none' })
 		}

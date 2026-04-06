@@ -9,7 +9,14 @@ import lombok.Data;
 public class VehicleInfo {
     private Long id;
     private String licensePlate;
-    private Long vehicleModelId;
+    private String vehicleNo;
+    private Integer vehicleType;
+    private String brand;
+    private String model;
+    private String ratedLoad;
+    private Integer fuelLevel;
     private Integer status;
     private Long currentDriverId;
+    private Integer score;
+    private String reason;
 }

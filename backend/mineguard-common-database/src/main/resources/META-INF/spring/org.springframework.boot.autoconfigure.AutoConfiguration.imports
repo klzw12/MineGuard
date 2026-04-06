@@ -1,2 +1,3 @@
-com.klzw.common.database.config.DatabaseAutoConfiguration
 com.klzw.common.database.config.DataSourceAutoConfiguration
+com.klzw.common.database.config.DynamicDataSourceConfig
+com.klzw.common.database.config.DatabaseAutoConfiguration

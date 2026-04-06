@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.klzw.common.core.client.UserClient;
 import com.klzw.common.core.client.VehicleClient;
+import com.klzw.common.core.client.DispatchClient;
 import com.klzw.common.core.domain.PageRequest;
 import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.domain.dto.TripResponse;
@@ -45,7 +46,9 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
 
     private final UserClient userClient;
     private final VehicleClient vehicleClient;
+    private final DispatchClient dispatchClient;
     private final TripStatusProcessor tripStatusProcessor;
+    private final com.klzw.service.trip.service.TripTrackService tripTrackService;
 
     @Override
     public PageResult<TripVO> page(PageRequest pageRequest) {
@@ -198,9 +201,19 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         trip.setActualStartTime(LocalDateTime.now());
         
         getBaseMapper().updateById(trip);
-        log.info("开始行程成功，行程ID：{}", id);
+        log.info("行程开始，行程ID：{}，调度任务ID：{}", id, trip.getDispatchTaskId());
         
-        // 处理状态变化
+        // 回调dispatch模块更新调度任务状态为进行中
+        if (trip.getDispatchTaskId() != null) {
+            try {
+                dispatchClient.startTaskByTrip(trip.getDispatchTaskId());
+                log.info("已通知dispatch模块更新任务状态：调度任务ID={}", trip.getDispatchTaskId());
+            } catch (Exception e) {
+                log.error("通知dispatch模块更新任务状态失败：调度任务ID={}，错误={}", trip.getDispatchTaskId(), e.getMessage());
+            }
+        }
+        
+        // 处理状态变化（车辆状态更新 + 通知）
         tripStatusProcessor.processStatusChange(trip, oldStatus, newStatus);
     }
 
@@ -241,7 +254,17 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         getBaseMapper().updateById(trip);
         log.info("结束行程成功，行程ID：{}", id);
         
-        // 处理状态变化
+        // 回调dispatch模块完成任务
+        if (trip.getDispatchTaskId() != null) {
+            try {
+                dispatchClient.completeTaskByTrip(trip.getDispatchTaskId());
+                log.info("已通知dispatch模块完成任务：调度任务ID={}", trip.getDispatchTaskId());
+            } catch (Exception e) {
+                log.error("通知dispatch模块完成任务失败：调度任务ID={}，错误={}", trip.getDispatchTaskId(), e.getMessage());
+            }
+        }
+        
+        // 处理状态变化（车辆状态更新 + 通知）
         tripStatusProcessor.processStatusChange(trip, oldStatus, newStatus);
     }
 
@@ -373,13 +396,15 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
     }
 
     private void validateVehicleAndDriver(Long vehicleId, Long driverId) {
-        Boolean vehicleExists = vehicleClient.existsById(vehicleId);
-        if (vehicleExists == null || !vehicleExists) {
+        com.klzw.common.core.result.Result<java.lang.Boolean> vehicleExistsResult = vehicleClient.existsById(vehicleId);
+        Boolean vehicleExists = vehicleExistsResult != null && vehicleExistsResult.getCode() == 200 ? vehicleExistsResult.getData() : false;
+        if (!vehicleExists) {
             throw new TripException(TripResultCode.VEHICLE_NOT_AVAILABLE, "车辆不存在或不可用");
         }
         
-        Boolean driverExists = userClient.existsById(driverId);
-        if (driverExists == null || !driverExists) {
+        com.klzw.common.core.result.Result<java.lang.Boolean> driverExistsResult = userClient.existsUser(driverId);
+        Boolean driverExists = driverExistsResult != null && driverExistsResult.getCode() == 200 ? driverExistsResult.getData() : false;
+        if (!driverExists) {
             throw new TripException(TripResultCode.DRIVER_NOT_AVAILABLE, "司机不存在或不可用");
         }
     }
@@ -395,8 +420,9 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         BeanUtils.copyProperties(trip, vo);
         
         try {
-            var vehicleInfo = vehicleClient.getById(trip.getVehicleId());
-            if (vehicleInfo != null) {
+            var vehicleInfoResult = vehicleClient.getById(trip.getVehicleId());
+            if (vehicleInfoResult != null && vehicleInfoResult.getCode() == 200 && vehicleInfoResult.getData() != null) {
+                var vehicleInfo = vehicleInfoResult.getData();
                 vo.setVehicleNo(vehicleInfo.getLicensePlate());
             }
         } catch (Exception e) {
@@ -405,8 +431,10 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         
         try {
             var userInfo = userClient.getUserById(trip.getDriverId());
-            if (userInfo != null) {
-                vo.setDriverName(userInfo.getRealName());
+            if (userInfo != null && userInfo.getData() != null) {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> userData = (java.util.Map<String, Object>) userInfo.getData();
+                vo.setDriverName((String) userData.get("realName"));
             }
         } catch (Exception e) {
             log.warn("获取司机信息失败，driverId={}", trip.getDriverId(), e);
@@ -522,5 +550,11 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
             return null;
         }
         return trip.getEstimatedMileage();
+    }
+
+    @Override
+    public List<com.klzw.service.trip.vo.TripTrackVO> getTracksByTripId(Long tripId) {
+        // 调用 TripTrackService 获取轨迹点
+        return tripTrackService.getByTripId(tripId);
     }
 }

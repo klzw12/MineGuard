@@ -106,8 +106,7 @@ public class RouteTemplateServiceImpl implements RouteTemplateService {
     @Override
     public List<RouteTemplateVO> listAll() {
         LambdaQueryWrapper<RouteTemplate> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(RouteTemplate::getStatus, 1)
-                .orderByDesc(RouteTemplate::getCreateTime);
+        wrapper.orderByDesc(RouteTemplate::getCreateTime);
 
         List<RouteTemplate> routes = routeTemplateMapper.selectList(wrapper);
         return routes.stream()

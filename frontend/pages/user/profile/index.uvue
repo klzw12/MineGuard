@@ -83,7 +83,7 @@
 				</view>
 				<view class="menu-item" @click="navToVehicle">
 					<view class="menu-icon">🚗</view>
-					<text class="menu-text">我的车辆</text>
+					<text class="menu-text">常用车辆</text>
 					<text class="menu-arrow">›</text>
 				</view>
 				<view class="menu-item" @click="navToMessage">

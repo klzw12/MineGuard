@@ -280,67 +280,24 @@
 <script setup lang="uts">
 	import AdminLayout from '../../../components/AdminLayout.uvue'
 	import { ref, onMounted } from 'vue'
-	import { request } from '@/utils/request.uts'
+	import { 
+		costApi, 
+		type CostDetailVO, 
+		type CostStatisticsVO, 
+		type CostBudgetVO, 
+		type SalaryConfigVO 
+	} from '@/api/cost.uts'
 
-	type CostDetailVO = {
-		id: number,
-		costNo: string,
-		costType: number,
-		costTypeName: string,
-		costName: string,
-		amount: number,
-		vehicleId: number | null,
-		vehicleNo: string | null,
-		tripId: number | null,
-		tripNo: string | null,
-		userId: number | null,
-		userName: string | null,
-		costDate: string,
-		paymentMethod: string | null,
-		invoiceNo: string | null,
-		description: string | null,
-		createTime: string
-	}
-
-	type CostStatisticsVO = {
-		totalAmount: number,
-		recordCount: number
-	}
-
-	type CostBudgetVO = {
-		id: number,
-		budgetNo: string,
-		budgetName: string,
-		budgetType: number,
-		budgetTypeName: string,
-		budgetYear: number,
-		budgetMonth: number | null,
-		budgetQuarter: number | null,
-		totalBudget: number,
-		status: number,
-		statusName: string,
-		usedAmount: number,
-		remainingAmount: number
-	}
-
-	type SalaryConfigVO = {
-		id: number,
-		roleCode: string,
-		roleName: string,
-		baseSalary: number,
-		dailySalary: number,
-		hourlySalary: number,
-		overtimeRate: number,
-		performanceBonus: number,
-		status: number,
-		statusName: string
-	}
+	type CostDetailType = CostDetailVO
+	type CostStatisticsType = CostStatisticsVO
+	type CostBudgetType = CostBudgetVO
+	type SalaryConfigType = SalaryConfigVO
 
 	const currentTab = ref('detail')
-	const costList = ref<CostDetailVO[]>([])
-	const budgetList = ref<CostBudgetVO[]>([])
-	const salaryList = ref<SalaryConfigVO[]>([])
-	const statistics = ref<CostStatisticsVO>({ totalAmount: 0, recordCount: 0 })
+	const costList = ref<CostDetailType[]>([])
+	const budgetList = ref<CostBudgetType[]>([])
+	const salaryList = ref<SalaryConfigType[]>([])
+	const statistics = ref<CostStatisticsType>({ totalAmount: 0, recordCount: 0 })
 	const startDate = ref('')
 	const endDate = ref('')
 	const currentType = ref<number | null>(null)
@@ -427,22 +384,14 @@
 			if (endDate.value) params.endDate = endDate.value
 			if (currentType.value !== null) params.costType = currentType.value
 
-			const res = await request({
-				url: '/api/cost/detail/list',
-				method: 'GET',
-				data: params
-			})
-			if (res.code === 200) {
-				costList.value = res.data || []
+			const res = await costApi.getCostDetailList(params)
+			if (res) {
+				costList.value = res
 			}
 
-			const statsRes = await request({
-				url: '/api/cost/statistics',
-				method: 'GET',
-				data: params
-			})
-			if (statsRes.code === 200) {
-				statistics.value = statsRes.data || { totalAmount: 0, recordCount: 0 }
+			const statsRes = await costApi.getCostStatistics(params)
+			if (statsRes) {
+				statistics.value = statsRes
 			}
 		} catch (e) {
 			console.error('获取成本列表失败', e)
@@ -451,12 +400,9 @@
 
 	const fetchBudgetList = async () => {
 		try {
-			const res = await request({
-				url: '/api/cost/budget/list',
-				method: 'GET'
-			})
-			if (res.code === 200) {
-				budgetList.value = res.data || []
+			const res = await costApi.getBudgetList({})
+			if (res) {
+				budgetList.value = res
 			}
 		} catch (e) {
 			console.error('获取预算列表失败', e)
@@ -465,12 +411,9 @@
 
 	const fetchSalaryList = async () => {
 		try {
-			const res = await request({
-				url: '/api/cost/salary-config/list',
-				method: 'GET'
-			})
-			if (res.code === 200) {
-				salaryList.value = res.data || []
+			const res = await costApi.getSalaryConfigList()
+			if (res) {
+				salaryList.value = res
 			}
 		} catch (e) {
 			console.error('获取薪资配置列表失败', e)
@@ -479,43 +422,24 @@
 
 	const fetchAnalysisData = async () => {
 		try {
-			const params: any = {}
-			if (startDate.value) params.startDate = startDate.value
-			if (endDate.value) params.endDate = endDate.value
-
-			const energyRes = await request({
-				url: '/api/cost/analysis/energy',
-				method: 'GET',
-				data: params
-			})
-			if (energyRes.code === 200 && energyRes.data) {
-				energyAnalysis.value = energyRes.data
+			const energyRes = await costApi.getEnergyAnalysis(startDate.value, endDate.value)
+			if (energyRes) {
+				energyAnalysis.value = energyRes
 			}
 
-			const utilizationRes = await request({
-				url: '/api/cost/analysis/utilization',
-				method: 'GET',
-				data: params
-			})
-			if (utilizationRes.code === 200 && utilizationRes.data) {
-				utilizationAnalysis.value = utilizationRes.data
+			const utilizationRes = await costApi.getUtilizationAnalysis(startDate.value, endDate.value)
+			if (utilizationRes) {
+				utilizationAnalysis.value = utilizationRes
 			}
 
-			const idleRes = await request({
-				url: '/api/cost/analysis/idle-rate',
-				method: 'GET',
-				data: params
-			})
-			if (idleRes.code === 200 && idleRes.data) {
-				idleRateAnalysis.value = idleRes.data
+			const idleRateRes = await costApi.getIdleRateAnalysis(startDate.value, endDate.value)
+			if (idleRateRes) {
+				idleRateAnalysis.value = idleRateRes
 			}
 
-			const alertsRes = await request({
-				url: '/api/cost/budget/alerts',
-				method: 'GET'
-			})
-			if (alertsRes.code === 200) {
-				budgetAlerts.value = alertsRes.data || []
+			const alertsRes = await costApi.getBudgetAlerts()
+			if (alertsRes) {
+				budgetAlerts.value = alertsRes
 			}
 		} catch (e) {
 			console.error('获取成本分析数据失败', e)
@@ -558,14 +482,9 @@
 			success: async (res) => {
 				if (res.confirm) {
 					try {
-						const result = await request({
-							url: `/api/cost/detail/${id}`,
-							method: 'DELETE'
-						})
-						if (result.code === 200) {
-							uni.showToast({ title: '删除成功', icon: 'success' })
-							fetchCostList()
-						}
+						await costApi.deleteCostDetail(id)
+						uni.showToast({ title: '删除成功', icon: 'success' })
+						fetchCostList()
 					} catch (e) {
 						uni.showToast({ title: '删除失败', icon: 'none' })
 					}
@@ -608,14 +527,9 @@
 			success: async (res) => {
 				if (res.confirm) {
 					try {
-						const result = await request({
-							url: `/api/cost/salary-config/${id}`,
-							method: 'DELETE'
-						})
-						if (result.code === 200) {
-							uni.showToast({ title: '删除成功', icon: 'success' })
-							fetchSalaryList()
-						}
+						await costApi.deleteSalaryConfig(id)
+						uni.showToast({ title: '删除成功', icon: 'success' })
+						fetchSalaryList()
 					} catch (e) {
 						uni.showToast({ title: '删除失败', icon: 'none' })
 					}
@@ -631,22 +545,15 @@
 		}
 
 		try {
-			const url = editingCost.value ? `/api/cost/detail` : '/api/cost/detail'
-			const method = editingCost.value ? 'PUT' : 'POST'
-			const data: any = { ...formData.value }
-			if (editingCost.value) data.id = editingCost.value.id
-
-			const res = await request({
-				url,
-				method,
-				data
-			})
-
-			if (res.code === 200) {
-				uni.showToast({ title: editingCost.value ? '更新成功' : '添加成功', icon: 'success' })
-				closeModal()
-				fetchCostList()
+			if (editingCost.value) {
+				await costApi.updateCostDetail({ id: editingCost.value.id, ...formData.value })
+				uni.showToast({ title: '更新成功', icon: 'success' })
+			} else {
+				await costApi.addCostDetail(formData.value)
+				uni.showToast({ title: '添加成功', icon: 'success' })
 			}
+			closeModal()
+			fetchCostList()
 		} catch (e) {
 			uni.showToast({ title: '操作失败', icon: 'none' })
 		}

@@ -178,6 +178,13 @@
 			}
 		},
 		{
+			"path": "pages/admin/dispatch/location-picker",
+			"style": {
+				"navigationBarTitleText": "选择位置",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/admin/message/broadcast",
 			"style": {
 				"navigationBarTitleText": "全局广播"

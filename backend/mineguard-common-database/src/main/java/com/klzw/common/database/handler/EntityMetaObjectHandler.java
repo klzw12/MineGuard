@@ -3,7 +3,6 @@ package com.klzw.common.database.handler;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.klzw.common.auth.context.UserContext;
 import org.apache.ibatis.reflection.MetaObject;
-import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
@@ -18,7 +17,6 @@ import java.time.LocalDateTime;
  * - updateBy: 更新人ID
  * - deleted: 逻辑删除标记
  */
-@Component
 public class EntityMetaObjectHandler implements MetaObjectHandler {
 
     /**
@@ -34,7 +32,7 @@ public class EntityMetaObjectHandler implements MetaObjectHandler {
         this.strictInsertFill(metaObject, "updateTime", LocalDateTime.class, now);
         this.strictInsertFill(metaObject, "createBy", Long.class, userId);
         this.strictInsertFill(metaObject, "updateBy", Long.class, userId);
-        this.strictInsertFill(metaObject, "deleted", Integer.class, 0);
+        this.setFieldValByName("deleted", 0, metaObject);
     }
 
     /**

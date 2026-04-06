@@ -4,9 +4,11 @@ import com.klzw.common.database.datasource.DynamicDataSource;
 import com.klzw.common.database.properties.DatabaseProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
@@ -20,7 +22,9 @@ import java.util.Map;
  * 注意：此配置需要主从数据源都存在才会生效
  */
 @Slf4j
-@Configuration
+@AutoConfiguration
+@AutoConfigureAfter(DataSourceAutoConfiguration.class)
+@ConditionalOnBean(name = {"masterDataSource", "slaveDataSource"})
 @EnableConfigurationProperties(DatabaseProperties.class)
 public class DynamicDataSourceConfig {
 

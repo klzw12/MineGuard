@@ -1,13 +1,17 @@
 package com.klzw.common.mq.config;
 
-import com.klzw.common.mq.constant.MqConstants;
+import com.klzw.common.mq.producer.IMessageProducer;
+import com.klzw.common.mq.producer.RabbitMqProducer;
 import com.klzw.common.mq.properties.RabbitMqProperties;
-import org.springframework.amqp.core.*;
+import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.transaction.RabbitTransactionManager;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -20,6 +24,12 @@ import org.springframework.context.annotation.Bean;
 @ConditionalOnProperty(prefix = "mineguard.mq.rabbit", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(RabbitMqProperties.class)
 public class RabbitMqAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    public MessageConverter jsonMessageConverter() {
+        return new Jackson2JsonMessageConverter();
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -44,9 +54,16 @@ public class RabbitMqAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
+    public RabbitAdmin rabbitAdmin(ConnectionFactory connectionFactory) {
+        return new RabbitAdmin(connectionFactory);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory, MessageConverter jsonMessageConverter) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMandatory(true);
+        rabbitTemplate.setMessageConverter(jsonMessageConverter);
         return rabbitTemplate;
     }
 
@@ -58,51 +75,19 @@ public class RabbitMqAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(ConnectionFactory connectionFactory) {
+    public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(ConnectionFactory connectionFactory, MessageConverter jsonMessageConverter) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setAcknowledgeMode(AcknowledgeMode.MANUAL);
         factory.setConcurrentConsumers(3);
         factory.setMaxConcurrentConsumers(10);
+        factory.setMessageConverter(jsonMessageConverter);
         return factory;
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public FanoutExchange deadLetterExchange() {
-        return new FanoutExchange(MqConstants.DEAD_LETTER_EXCHANGE);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public Queue deadLetterQueue() {
-        return QueueBuilder.durable(MqConstants.DEAD_LETTER_QUEUE).build();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public Binding deadLetterBinding() {
-        return BindingBuilder.bind(deadLetterQueue()).to(deadLetterExchange());
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public DirectExchange delayExchange() {
-        return new DirectExchange(MqConstants.DELAY_EXCHANGE);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public Queue delayQueue() {
-        return QueueBuilder.durable(MqConstants.DELAY_QUEUE)
-                .withArgument("x-dead-letter-exchange", MqConstants.DEAD_LETTER_EXCHANGE)
-                .withArgument("x-dead-letter-routing-key", "")
-                .build();
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public Binding delayBinding() {
-        return BindingBuilder.bind(delayQueue()).to(delayExchange()).with(MqConstants.DELAY_ROUTING_KEY);
+    public IMessageProducer messageProducer(RabbitTemplate rabbitTemplate) {
+        return new RabbitMqProducer(rabbitTemplate);
     }
 }

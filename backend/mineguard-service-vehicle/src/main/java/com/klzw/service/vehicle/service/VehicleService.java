@@ -129,11 +129,12 @@ public interface VehicleService extends IService<Vehicle> {
     /**
      * 创建车辆并上传照片
      * @param vehicleNo 车牌号
+     * @param vehicleType 车辆类型
      * @param vehiclePhoto 车辆照片
      * @param licensePhoto 行驶证照片
      * @return 车辆信息
      */
-    Vehicle createVehicleWithPhotos(String vehicleNo, MultipartFile vehiclePhoto, MultipartFile licensePhoto);
+    Vehicle createVehicleWithPhotos(String vehicleNo, Integer vehicleType, MultipartFile vehiclePhoto, MultipartFile licensePhoto);
 
     /**
      * 报废车辆（软删除）
@@ -148,5 +149,12 @@ public interface VehicleService extends IService<Vehicle> {
      * @param status 状态
      */
     void updateVehicleStatus(Long vehicleId, Integer status);
+
+    /**
+     * 检查车辆是否存在
+     * @param id 车辆ID
+     * @return 是否存在
+     */
+    boolean existsById(Long id);
 
 } 

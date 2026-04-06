@@ -39,4 +39,5 @@ public class VehicleFault extends BaseEntity {
     
     private String locationAddress;
     
+    private Long reporterId;
 }

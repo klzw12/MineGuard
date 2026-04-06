@@ -133,7 +133,7 @@
 	const changeStatus = async (newStatus: number) => {
 		if (!selectedDriver.value) return
 		try {
-			await updateDriverStatus(Number(selectedDriver.value.id), newStatus)
+			await updateDriverStatus(selectedDriver.value.id, newStatus)
 			selectedDriver.value.status = newStatus
 			selectedDriver.value.statusName = newStatus === 1 ? '在职' : newStatus === 2 ? '休假' : '停职'
 			loadDrivers()

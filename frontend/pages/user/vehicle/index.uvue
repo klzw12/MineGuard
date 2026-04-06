@@ -1,144 +1,287 @@
 <template>
 	<view class="page-container">
 		<view class="header">
-			<text class="title">车辆状态</text>
+			<text class="title">常用车辆</text>
+			<view v-if="isCertified" class="add-btn" @click="showAddModal">
+				<text class="add-icon">+</text>
+				<text class="add-text">添加</text>
+			</view>
 		</view>
 		
 		<view class="content">
-			<view class="vehicle-card">
-				<view class="vehicle-header">
-					<view class="vehicle-info">
-						<text class="vehicle-name">矿用卡车 KG-001</text>
-						<text class="vehicle-type">重型卡车</text>
-					</view>
-					<view class="status-badge online">
-						<text>在线</text>
-					</view>
+			<view v-if="loading" class="loading-state">
+				<text class="loading-text">加载中...</text>
+			</view>
+			
+			<!-- 未认证提示 -->
+			<view v-else-if="!isCertified" class="uncertified-state">
+				<text class="uncertified-icon">🔒</text>
+				<text class="uncertified-title">需要资格认证</text>
+				<text class="uncertified-desc">完成司机认证、维修员认证或安全员认证后，方可使用常用车辆功能</text>
+				<view class="uncertified-btn" @click="goToCertification">
+					<text>前往认证</text>
 				</view>
-				
-				<view class="vehicle-visual">
-					<view class="vehicle-icon">🚛</view>
-				</view>
-				
-				<view class="stats-grid">
-					<view class="stat-item">
-						<text class="stat-label">当前位置</text>
-						<text class="stat-value">矿区A-12号</text>
+			</view>
+			
+			<view v-else-if="commonVehicles.length > 0" class="vehicle-list">
+				<view v-for="item in commonVehicles" :key="item.id" class="vehicle-card">
+					<view class="vehicle-header">
+						<view class="vehicle-info">
+							<text class="vehicle-no">{{ item.vehicleNo || '未知车辆' }}</text>
+							<view class="vehicle-tags">
+								<view v-if="item.isDefault" class="tag default-tag">
+									<text>默认</text>
+								</view>
+								<view class="tag use-tag">
+									<text>使用{{ item.useCount || 0 }}次</text>
+								</view>
+							</view>
+						</view>
+						<view class="vehicle-actions">
+							<view v-if="!item.isDefault" class="action-btn default-btn" @click="setDefaultVehicle(item)">
+								<text>设为默认</text>
+							</view>
+							<view class="action-btn remove-btn" @click="removeVehicle(item)">
+								<text>移除</text>
+							</view>
+						</view>
 					</view>
-					<view class="stat-item">
-						<text class="stat-label">行驶里程</text>
-						<text class="stat-value">12,580 km</text>
-					</view>
-					<view class="stat-item">
-						<text class="stat-label">油箱剩余</text>
-						<text class="stat-value">75%</text>
-					</view>
-					<view class="stat-item">
-						<text class="stat-label">发动机温度</text>
-						<text class="stat-value">85°C</text>
+					<view class="vehicle-footer">
+						<text class="last-use" v-if="item.lastUseTime">上次使用: {{ formatTime(item.lastUseTime) }}</text>
+						<text class="last-use" v-else>暂无使用记录</text>
 					</view>
 				</view>
 			</view>
 			
-			<view class="section">
-				<view class="section-header">
-					<text class="section-title">健康状态</text>
-				</view>
-				<view class="health-list">
-					<view class="health-item">
-						<view class="health-info">
-							<text class="health-name">发动机</text>
-							<text class="health-desc">运行正常</text>
-						</view>
-						<view class="health-status good">
-							<text>良好</text>
-						</view>
-					</view>
-					<view class="health-item">
-						<view class="health-info">
-							<text class="health-name">刹车系统</text>
-							<text class="health-desc">刹车片磨损15%</text>
-						</view>
-						<view class="health-status warning">
-							<text>注意</text>
-						</view>
-					</view>
-					<view class="health-item">
-						<view class="health-info">
-							<text class="health-name">轮胎</text>
-							<text class="health-desc">胎压正常</text>
-						</view>
-						<view class="health-status good">
-							<text>良好</text>
-						</view>
-					</view>
-					<view class="health-item">
-						<view class="health-info">
-							<text class="health-name">液压系统</text>
-							<text class="health-desc">压力稳定</text>
-						</view>
-						<view class="health-status good">
-							<text>良好</text>
-						</view>
-					</view>
+			<view v-else class="empty-state">
+				<text class="empty-icon">🚗</text>
+				<text class="empty-text">暂无常用车辆</text>
+				<text class="empty-desc">添加常用车辆后，调度任务将优先分配您熟悉的车辆</text>
+				<view class="empty-btn" @click="showAddModal">
+					<text>添加常用车辆</text>
 				</view>
 			</view>
-			
-			<view class="section">
-				<view class="section-header">
-					<text class="section-title">快速操作</text>
+		</view>
+		
+		<!-- 添加常用车辆弹窗 -->
+		<view class="modal-mask" v-if="showModal" @click="closeModal">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">添加常用车辆</text>
+					<text class="modal-close" @click="closeModal">×</text>
 				</view>
-				<view class="action-grid">
-					<view class="action-item" @click="reportFault">
-						<view class="action-icon">⚠️</view>
-						<text class="action-text">上报故障</text>
+				<view class="modal-body">
+					<view v-if="modalLoading" class="modal-loading">
+						<text>加载可用车辆...</text>
 					</view>
-					<view class="action-item" @click="requestService">
-						<view class="action-icon">🔧</view>
-						<text class="action-text">申请维保</text>
+					<view v-else-if="availableVehicles.length > 0" class="vehicle-select-list">
+						<view 
+							v-for="vehicle in availableVehicles" 
+							:key="vehicle.id" 
+							class="vehicle-select-item"
+							:class="{ selected: selectedVehicleId === vehicle.id }"
+							@click="selectVehicle(vehicle)"
+						>
+							<view class="vehicle-select-info">
+								<text class="vehicle-select-no">{{ vehicle.vehicleNo }}</text>
+								<text class="vehicle-select-type">{{ getVehicleTypeText(vehicle.vehicleType) }}</text>
+							</view>
+							<view v-if="selectedVehicleId === vehicle.id" class="vehicle-select-check">
+								<text>✓</text>
+							</view>
+						</view>
 					</view>
-					<view class="action-item" @click="vehicleLocation">
-						<view class="action-icon">📍</view>
-						<text class="action-text">查看位置</text>
+					<view v-else class="modal-empty">
+						<text>暂无可用车辆</text>
 					</view>
-					<view class="action-item" @click="vehicleHistory">
-						<view class="action-icon">📊</view>
-						<text class="action-text">行驶记录</text>
-					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="modal-btn cancel" @click="closeModal">取消</button>
+					<button class="modal-btn confirm" :disabled="!selectedVehicleId" @click="addVehicle">确认添加</button>
 				</view>
 			</view>
 		</view>
 	</view>
 </template>
 
-<script lang="uts">
-	export default {
-		methods: {
-			reportFault() {
-				uni.showToast({
-					title: '上报故障',
-					icon: 'none'
-				})
-			},
-			requestService() {
-				uni.showToast({
-					title: '申请维保',
-					icon: 'none'
-				})
-			},
-			vehicleLocation() {
-				uni.showToast({
-					title: '查看位置',
-					icon: 'none'
-				})
-			},
-			vehicleHistory() {
-				uni.showToast({
-					title: '行驶记录',
-					icon: 'none'
-				})
-			}
+<script setup lang="uts">
+	import { ref, onMounted } from 'vue'
+	import { onShow } from '@dcloudio/uni-app'
+	import { useUserStore } from '@/stores/user.uts'
+	import { getCommonVehicles, addCommonVehicle, removeCommonVehicle, setDefaultVehicle as setDefaultVehicleApi, getDriverByUserId } from '@/api/driver.uts'
+	import { getAvailableVehicles } from '@/api/dispatch.uts'
+	import { toast } from '@/utils/toast.uts'
+	import type { DriverVehicleVO } from '@/types/user.uts'
+ 	
+	const userStore = useUserStore()
+	
+	const loading = ref(false)
+	const isCertified = ref(false)
+	const commonVehicles = ref<DriverVehicleVO[]>([])
+	const showModal = ref(false)
+	const modalLoading = ref(false)
+	const availableVehicles = ref<any[]>([])
+	const selectedVehicleId = ref<string | null>(null)
+	
+	function getVehicleTypeText(type: number | string | null): string {
+		if (type === null || type === undefined) return '未知类型'
+		const typeNum = typeof type === 'string' ? parseInt(type) : type
+		const typeMap: Record<number, string> = {
+			1: '重型卡车',
+			2: '中型卡车',
+			3: '轻型卡车',
+			4: '矿用自卸车',
+			5: '装载机',
+			6: '挖掘机',
+			7: '救援专用车',
+			8: '其他'
 		}
+		return typeMap[typeNum] || '未知类型'
+	}
+	
+	onMounted(() => {
+		checkCertification()
+	})
+	
+	onShow(() => {
+		checkCertification()
+	})
+	
+	async function checkCertification() {
+		const userId = userStore.userInfo.value?.id
+		if (!userId) {
+			toast.error('请先登录')
+			return
+		}
+		
+		loading.value = true
+		try {
+			const driver = await getDriverByUserId(userId)
+			if (driver && driver.status === 1) {
+				isCertified.value = true
+				loadCommonVehicles()
+			} else {
+				isCertified.value = false
+			}
+		} catch (e) {
+			console.error('检查认证状态失败', e)
+			isCertified.value = false
+		} finally {
+			loading.value = false
+		}
+	}
+	
+	function goToCertification() {
+		uni.navigateTo({
+			url: '/pages/user/qualification/index'
+		})
+	}
+	
+	async function loadCommonVehicles() {
+		const userId = userStore.userInfo.value?.id
+		if (!userId) {
+			toast.error('请先登录')
+			return
+		}
+		
+		try {
+			const data = await getCommonVehicles(userId)
+			commonVehicles.value = data || []
+		} catch (e) {
+			console.error('加载常用车辆失败', e)
+			commonVehicles.value = []
+		}
+	}
+	
+	async function showAddModal() {
+		showModal.value = true
+		modalLoading.value = true
+		selectedVehicleId.value = null
+		
+		try {
+			const data = await getAvailableVehicles()
+			const existingIds = commonVehicles.value.map(v => v.vehicleId)
+			availableVehicles.value = (data || []).filter(v => !existingIds.includes(v.id))
+		} catch (e) {
+			console.error('加载可用车辆失败', e)
+			availableVehicles.value = []
+		} finally {
+			modalLoading.value = false
+		}
+	}
+	
+	function closeModal() {
+		showModal.value = false
+		selectedVehicleId.value = null
+	}
+	
+	function selectVehicle(vehicle: any) {
+		selectedVehicleId.value = vehicle.id
+	}
+	
+	async function addVehicle() {
+		if (!selectedVehicleId.value) {
+			toast.error('请选择车辆')
+			return
+		}
+		
+		const userId = userStore.userInfo.value?.id
+		if (!userId) {
+			toast.error('请先登录')
+			return
+		}
+		
+		try {
+			toast.loading('添加中...')
+			await addCommonVehicle(userId, selectedVehicleId.value)
+			toast.success('添加成功')
+			closeModal()
+			loadCommonVehicles()
+		} catch (e: any) {
+			toast.error(e?.message || '添加失败')
+		}
+	}
+	
+	async function removeVehicle(item: DriverVehicleVO) {
+		uni.showModal({
+			title: '确认移除',
+			content: `确定要移除车辆 ${item.vehicleNo || ''} 吗？`,
+			success: async (res) => {
+				if (res.confirm) {
+					const userId = userStore.userInfo.value?.id
+					if (!userId) return
+					
+					try {
+						toast.loading('移除中...')
+						await removeCommonVehicle(userId, item.vehicleId)
+						toast.success('移除成功')
+						loadCommonVehicles()
+					} catch (e: any) {
+						toast.error(e?.message || '移除失败')
+					}
+				}
+			}
+		})
+	}
+	
+	async function setDefaultVehicle(item: DriverVehicleVO) {
+		const userId = userStore.userInfo.value?.id
+		if (!userId) return
+		
+		try {
+			toast.loading('设置中...')
+			await setDefaultVehicleApi(userId, item.vehicleId)
+			toast.success('设置成功')
+			loadCommonVehicles()
+		} catch (e: any) {
+			toast.error(e?.message || '设置失败')
+		}
+	}
+	
+	function formatTime(time: string | null | undefined): string {
+		if (!time) return '-'
+		const date = new Date(time)
+		return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 	}
 </script>
 
@@ -151,6 +294,10 @@
 	.header {
 		padding: 40rpx 32rpx 24rpx;
 		background-color: #FFFFFF;
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
 	}
 	
 	.title {
@@ -159,15 +306,53 @@
 		color: #1A1A1A;
 	}
 	
+	.add-btn {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 8rpx;
+		padding: 16rpx 24rpx;
+		background-color: #34C759;
+		border-radius: 24rpx;
+	}
+	
+	.add-icon {
+		font-size: 32rpx;
+		color: #FFFFFF;
+		font-weight: 600;
+	}
+	
+	.add-text {
+		font-size: 26rpx;
+		color: #FFFFFF;
+	}
+	
 	.content {
 		padding: 24rpx 32rpx 32rpx;
 	}
 	
+	.loading-state {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 100rpx 0;
+	}
+	
+	.loading-text {
+		font-size: 28rpx;
+		color: #8F959E;
+	}
+	
+	.vehicle-list {
+		display: flex;
+		flex-direction: column;
+		gap: 24rpx;
+	}
+	
 	.vehicle-card {
 		background-color: #FFFFFF;
-		border-radius: 32rpx;
-		padding: 40rpx;
-		margin-bottom: 24rpx;
+		border-radius: 24rpx;
+		padding: 32rpx;
 	}
 	
 	.vehicle-header {
@@ -175,171 +360,315 @@
 		flex-direction: row;
 		justify-content: space-between;
 		align-items: flex-start;
-		margin-bottom: 40rpx;
+		margin-bottom: 24rpx;
 	}
 	
 	.vehicle-info {
 		display: flex;
 		flex-direction: column;
-		gap: 8rpx;
+		gap: 12rpx;
 	}
 	
-	.vehicle-name {
+	.vehicle-no {
 		font-size: 36rpx;
 		font-weight: 600;
 		color: #1A1A1A;
 	}
 	
-	.vehicle-type {
-		font-size: 26rpx;
-		color: #8F959E;
+	.vehicle-tags {
+		display: flex;
+		flex-direction: row;
+		gap: 12rpx;
 	}
 	
-	.status-badge {
-		padding: 12rpx 32rpx;
-		border-radius: 32rpx;
-		font-size: 26rpx;
-		font-weight: 500;
+	.tag {
+		padding: 6rpx 16rpx;
+		border-radius: 12rpx;
+		font-size: 22rpx;
 	}
 	
-	.status-badge.online {
+	.default-tag {
+		background-color: #E6F4FF;
+		color: #007AFF;
+	}
+	
+	.use-tag {
 		background-color: #F0FFF4;
 		color: #34C759;
 	}
 	
-	.vehicle-visual {
+	.vehicle-actions {
 		display: flex;
-		justify-content: center;
-		align-items: center;
-		padding: 60rpx 0;
-		margin-bottom: 40rpx;
-		background: linear-gradient(135deg, #F0FFF4 0%, #E6F4FF 100%);
-		border-radius: 24rpx;
+		flex-direction: row;
+		gap: 16rpx;
 	}
 	
-	.vehicle-icon {
-		font-size: 160rpx;
+	.action-btn {
+		padding: 12rpx 24rpx;
+		border-radius: 16rpx;
+		font-size: 24rpx;
 	}
 	
-	.stats-grid {
-		display: grid;
-		grid-template-columns: repeat(2, 1fr);
-		gap: 32rpx;
+	.default-btn {
+		background-color: #007AFF;
+		color: #FFFFFF;
 	}
 	
-	.stat-item {
-		display: flex;
-		flex-direction: column;
-		gap: 8rpx;
+	.remove-btn {
+		background-color: #FF3B30;
+		color: #FFFFFF;
 	}
 	
-	.stat-label {
+	.vehicle-footer {
+		padding-top: 20rpx;
+		border-top: 2rpx solid #F0F2F5;
+	}
+	
+	.last-use {
 		font-size: 24rpx;
 		color: #8F959E;
 	}
 	
-	.stat-value {
-		font-size: 30rpx;
-		font-weight: 500;
-		color: #1A1A1A;
+	.empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 120rpx 0;
 	}
 	
-	.section {
-		background-color: #FFFFFF;
-		border-radius: 32rpx;
-		padding: 40rpx;
-		margin-bottom: 24rpx;
-	}
-	
-	.section-header {
+	.empty-icon {
+		font-size: 120rpx;
 		margin-bottom: 32rpx;
 	}
 	
-	.section-title {
+	.empty-text {
+		font-size: 32rpx;
+		font-weight: 500;
+		color: #1A1A1A;
+		margin-bottom: 16rpx;
+	}
+	
+	.empty-desc {
+		font-size: 26rpx;
+		color: #8F959E;
+		text-align: center;
+		margin-bottom: 40rpx;
+		padding: 0 40rpx;
+	}
+	
+	.empty-btn {
+		padding: 20rpx 48rpx;
+		background-color: #34C759;
+		border-radius: 24rpx;
+	}
+	
+	.empty-btn text {
+		font-size: 28rpx;
+		color: #FFFFFF;
+		font-weight: 500;
+	}
+	
+	.uncertified-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 120rpx 40rpx;
+		background-color: #FFFFFF;
+		border-radius: 24rpx;
+		margin: 24rpx 0;
+	}
+	
+	.uncertified-icon {
+		font-size: 120rpx;
+		margin-bottom: 32rpx;
+	}
+	
+	.uncertified-title {
+		font-size: 36rpx;
+		font-weight: 600;
+		color: #1A1A1A;
+		margin-bottom: 16rpx;
+	}
+	
+	.uncertified-desc {
+		font-size: 26rpx;
+		color: #8F959E;
+		text-align: center;
+		margin-bottom: 40rpx;
+		line-height: 1.6;
+	}
+	
+	.uncertified-btn {
+		padding: 20rpx 48rpx;
+		background-color: #007AFF;
+		border-radius: 24rpx;
+	}
+	
+	.uncertified-btn text {
+		font-size: 28rpx;
+		color: #FFFFFF;
+		font-weight: 500;
+	}
+	
+	.modal-mask {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 999;
+	}
+	
+	.modal-content {
+		width: 640rpx;
+		max-height: 80vh;
+		background-color: #FFFFFF;
+		border-radius: 24rpx;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+	
+	.modal-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 32rpx;
+		border-bottom: 2rpx solid #F0F2F5;
+	}
+	
+	.modal-title {
 		font-size: 32rpx;
 		font-weight: 600;
 		color: #1A1A1A;
 	}
 	
-	.health-list {
-		display: flex;
-		flex-direction: column;
-		gap: 24rpx;
+	.modal-close {
+		font-size: 48rpx;
+		color: #8F959E;
+		line-height: 1;
 	}
 	
-	.health-item {
+	.modal-body {
+		flex: 1;
+		padding: 24rpx;
+		overflow-y: auto;
+		max-height: 60vh;
+	}
+	
+	.modal-loading {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 60rpx 0;
+	}
+	
+	.modal-loading text {
+		font-size: 28rpx;
+		color: #8F959E;
+	}
+	
+	.vehicle-select-list {
+		display: flex;
+		flex-direction: column;
+		gap: 16rpx;
+	}
+	
+	.vehicle-select-item {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
 		align-items: center;
-		padding: 24rpx 0;
-		border-bottom: 2rpx solid #F0F2F5;
+		padding: 24rpx;
+		background-color: #F7F8FA;
+		border-radius: 16rpx;
+		border: 4rpx solid transparent;
 	}
 	
-	.health-item:last-child {
-		border-bottom: none;
+	.vehicle-select-item.selected {
+		background-color: #E6F4FF;
+		border-color: #007AFF;
 	}
 	
-	.health-info {
+	.vehicle-select-info {
 		display: flex;
 		flex-direction: column;
-		gap: 4rpx;
+		gap: 8rpx;
 	}
 	
-	.health-name {
+	.vehicle-select-no {
 		font-size: 30rpx;
 		font-weight: 500;
 		color: #1A1A1A;
 	}
 	
-	.health-desc {
+	.vehicle-select-type {
 		font-size: 24rpx;
 		color: #8F959E;
 	}
 	
-	.health-status {
-		padding: 8rpx 24rpx;
-		border-radius: 24rpx;
-		font-size: 24rpx;
-		font-weight: 500;
-	}
-	
-	.health-status.good {
-		background-color: #F0FFF4;
-		color: #34C759;
-	}
-	
-	.health-status.warning {
-		background-color: #FFF7E6;
-		color: #FF9500;
-	}
-	
-	.action-grid {
-		display: grid;
-		grid-template-columns: repeat(4, 1fr);
-		gap: 32rpx;
-	}
-	
-	.action-item {
+	.vehicle-select-check {
+		width: 48rpx;
+		height: 48rpx;
 		display: flex;
-		flex-direction: column;
+		justify-content: center;
 		align-items: center;
-		gap: 16rpx;
+		background-color: #007AFF;
+		border-radius: 50%;
 	}
 	
-	.action-icon {
-		width: 96rpx;
+	.vehicle-select-check text {
+		font-size: 28rpx;
+		color: #FFFFFF;
+	}
+	
+	.modal-empty {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		padding: 60rpx 0;
+	}
+	
+	.modal-empty text {
+		font-size: 28rpx;
+		color: #8F959E;
+	}
+	
+	.modal-footer {
+		display: flex;
+		flex-direction: row;
+		border-top: 2rpx solid #F0F2F5;
+	}
+	
+	.modal-btn {
+		flex: 1;
 		height: 96rpx;
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		background-color: #F7F8FA;
-		border-radius: 24rpx;
-		font-size: 48rpx;
+		font-size: 30rpx;
+		border: none;
+		border-radius: 0;
 	}
 	
-	.action-text {
-		font-size: 24rpx;
-		color: #5A5F6B;
+	.modal-btn.cancel {
+		background-color: #FFFFFF;
+		color: #8F959E;
+		border-right: 2rpx solid #F0F2F5;
+	}
+	
+	.modal-btn.confirm {
+		background-color: #FFFFFF;
+		color: #34C759;
+		font-weight: 500;
+	}
+	
+	.modal-btn.confirm:disabled {
+		color: #C7C7CC;
 	}
 </style>

@@ -1,86 +1,158 @@
 import { http } from '@/utils/request.uts'
-import type { DispatchTaskVO, DispatchTaskDTO } from '@/types/user.uts'
+import type { DispatchTaskVO, DispatchTaskDTO, RouteTemplateVO, RouteTemplateDTO, DispatchPlanVO, DispatchPlanDTO } from '@/types/dispatch.uts'
+
+// ==================== 调度计划 API ====================
+
+export function getDispatchPlanList(status?: number, startDate?: string, endDate?: string): Promise<DispatchPlanVO[] | null> {
+  return http.get<DispatchPlanVO[]>('/dispatch/plan/list', { status, startDate, endDate })
+}
+
+export function createDispatchPlan(data: DispatchPlanDTO): Promise<string | null> {
+  return http.post<string>('/dispatch/plan', data)
+}
+
+export function updateDispatchPlan(id: string, data: DispatchPlanDTO): Promise<void | null> {
+  return http.put<void>(`/dispatch/plan/${id}`, data)
+}
+
+export function deleteDispatchPlan(id: string): Promise<void | null> {
+  return http.delete<void>(`/dispatch/plan/${id}`)
+}
+
+export function getDispatchPlanById(id: string): Promise<DispatchPlanVO | null> {
+  return http.get<DispatchPlanVO>(`/dispatch/plan/${id}`)
+}
+
+export function executeDispatchPlan(id: string): Promise<void | null> {
+  return http.put<void>(`/dispatch/plan/${id}/execute`)
+}
+
+export function completeDispatchPlan(id: string): Promise<void | null> {
+  return http.put<void>(`/dispatch/plan/${id}/complete`)
+}
+
+// ==================== 调度任务 API ====================
 
 export function createDispatchTask(data: DispatchTaskDTO): Promise<DispatchTaskVO | null> {
-  return http.post<DispatchTaskVO>('/api/dispatch/task', data)
+  return http.post<DispatchTaskVO>('/dispatch/main/task', data)
 }
 
-export function updateDispatchTask(data: DispatchTaskDTO): Promise<DispatchTaskVO | null> {
-  return http.put<DispatchTaskVO>('/api/dispatch/task', data)
+export function updateDispatchTask(id: string, data: DispatchTaskDTO): Promise<DispatchTaskVO | null> {
+  return http.put<DispatchTaskVO>(`/dispatch/main/task/${id}`, data)
 }
 
-export function deleteDispatchTask(id: number): Promise<void | null> {
-  return http.delete<void>(`/api/dispatch/task/${id}`)
+export function deleteDispatchTask(id: string): Promise<void | null> {
+  return http.delete<void>(`/dispatch/main/task/${id}`)
 }
 
-export function getDispatchTaskById(id: number): Promise<DispatchTaskVO | null> {
-  return http.get<DispatchTaskVO>(`/api/dispatch/task/${id}`)
-}
-
-export function getDispatchTasksByPlanId(planId: number): Promise<DispatchTaskVO[] | null> {
-  return http.get<DispatchTaskVO[]>(`/api/dispatch/task/plan/${planId}`)
-}
-
-export function getPendingTasksByVehicle(vehicleId: number): Promise<DispatchTaskVO[] | null> {
-  return http.get<DispatchTaskVO[]>(`/api/dispatch/task/vehicle/${vehicleId}/pending`)
-}
-
-export function getPendingTasksByDriver(driverId: number): Promise<DispatchTaskVO[] | null> {
-  return http.get<DispatchTaskVO[]>(`/api/dispatch/task/driver/${driverId}/pending`)
-}
-
-export function assignVehicle(taskId: number, vehicleId: number): Promise<void | null> {
-  return http.put<void>(`/api/dispatch/task/${taskId}/assign-vehicle`, { vehicleId })
-}
-
-export function assignDriver(taskId: number, driverId: number): Promise<void | null> {
-  return http.put<void>(`/api/dispatch/task/${taskId}/assign-driver`, { driverId })
-}
-
-export function startTask(taskId: number): Promise<void | null> {
-  return http.put<void>(`/api/dispatch/task/${taskId}/start`)
-}
-
-export function completeTask(taskId: number): Promise<void | null> {
-  return http.put<void>(`/api/dispatch/task/${taskId}/complete`)
-}
-
-export function cancelTask(taskId: number): Promise<void | null> {
-  return http.put<void>(`/api/dispatch/task/${taskId}/cancel`)
-}
-
-export function reassignTask(taskId: number, newVehicleId: number, newDriverId: number): Promise<void | null> {
-  return http.put<void>(`/api/dispatch/task/${taskId}/reassign`, { newVehicleId, newDriverId })
-}
-
-export function getAvailableTasksForReassignment(startTime: string, endTime: string): Promise<DispatchTaskVO[] | null> {
-  return http.get<DispatchTaskVO[]>('/api/dispatch/task/available', { startTime, endTime })
-}
-
-export function dynamicAdjustVehicleFault(vehicleId: number): Promise<void | null> {
-  return http.post<void>(`/api/dispatch/task/dynamic-adjust/vehicle-fault/${vehicleId}`)
-}
-
-export function dynamicAdjustDriverLeave(driverId: number): Promise<void | null> {
-  return http.post<void>(`/api/dispatch/task/dynamic-adjust/driver-leave/${driverId}`)
-}
-
-export function dynamicAdjustRouteBlock(routeId: number): Promise<void | null> {
-  return http.post<void>(`/api/dispatch/task/dynamic-adjust/route-block/${routeId}`)
+export function getDispatchTaskById(id: string): Promise<DispatchTaskVO | null> {
+  return http.get<DispatchTaskVO>(`/dispatch/main/task/${id}`)
 }
 
 export function getDispatchTaskList(status?: number, startDate?: string, endDate?: string): Promise<DispatchTaskVO[] | null> {
-  return http.get<DispatchTaskVO[]>('/api/dispatch/task/list', { status, startDate, endDate })
+  return http.get<DispatchTaskVO[]>('/dispatch/main/task/list', { status, startDate, endDate })
 }
 
-export function executeDispatch(taskId: number): Promise<boolean | null> {
-  return http.post<boolean>(`/api/dispatch/task/${taskId}/execute`)
+export function executeDispatch(taskId: string): Promise<boolean | null> {
+  return http.post<boolean>(`/dispatch/main/task/${taskId}/execute`)
 }
 
-export function cancelDispatchTask(taskId: number): Promise<boolean | null> {
-  return http.post<boolean>(`/api/dispatch/task/${taskId}/cancel`)
+export function cancelDispatchTask(taskId: string): Promise<boolean | null> {
+  return http.post<boolean>(`/dispatch/main/task/${taskId}/cancel`)
+}
+
+export function getDispatchTasksByPlanId(planId: string): Promise<DispatchTaskVO[] | null> {
+  return http.get<DispatchTaskVO[]>(`/dispatch/main/task/plan/${planId}`)
+}
+
+export function getPendingTasksByVehicle(vehicleId: string): Promise<DispatchTaskVO[] | null> {
+  return http.get<DispatchTaskVO[]>(`/dispatch/main/task/vehicle/${vehicleId}/pending`)
+}
+
+export function getPendingTasksByDriver(userId: string): Promise<DispatchTaskVO[] | null> {
+  return http.get<DispatchTaskVO[]>(`/dispatch/main/task/driver/${userId}/pending`)
+}
+
+export function assignVehicle(taskId: string, vehicleId: string): Promise<void | null> {
+  return http.put<void>(`/dispatch/main/task/${taskId}/assign-vehicle`, { vehicleId })
+}
+
+export function assignDriver(taskId: string, driverId: string): Promise<void | null> {
+  return http.put<void>(`/dispatch/main/task/${taskId}/assign-driver`, { driverId })
+}
+
+export function startTask(taskId: string): Promise<{ tripId?: string } | null> {
+  return http.put<{ tripId?: string }>(`/dispatch/main/task/${taskId}/start`)
+}
+
+export function completeTask(taskId: string): Promise<void | null> {
+  return http.put<void>(`/dispatch/main/task/${taskId}/complete`)
+}
+
+export function acceptTask(taskId: string): Promise<{ tripId?: string } | null> {
+  return http.post<{ tripId?: string }>(`/dispatch/main/task/${taskId}/accept`)
+}
+
+export function rescheduleTask(taskId: string): Promise<boolean | null> {
+  return http.post<boolean>(`/dispatch/main/task/${taskId}/reschedule`)
+}
+
+export function reassignTask(taskId: string, newVehicleId: string, newDriverId: string): Promise<void | null> {
+  return http.put<void>(`/dispatch/main/task/${taskId}/reassign`, { newVehicleId, newDriverId })
+}
+
+export function getAvailableTasksForReassignment(startTime: string, endTime: string): Promise<DispatchTaskVO[] | null> {
+  return http.get<DispatchTaskVO[]>('/dispatch/main/task/available-for-reassignment', { startTime, endTime })
+}
+
+export function dynamicAdjustDriverLeave(driverId: string): Promise<void | null> {
+  return http.post<void>(`/dispatch/main/task/dynamic-adjust/driver-leave/${driverId}`)
+}
+
+export function dynamicAdjustRouteBlock(routeId: string): Promise<void | null> {
+  return http.post<void>(`/dispatch/main/task/dynamic-adjust/route-block/${routeId}`)
 }
 
 export function autoGenerateDispatchTasks(): Promise<number | null> {
-  return http.post<number>('/api/dispatch/task/auto-generate')
+  return http.post<number>('/dispatch/main/task/auto-generate')
+}
+
+// ==================== 路线模板 API ====================
+
+export function getRouteTemplateList(): Promise<RouteTemplateVO[] | null> {
+  return http.get<RouteTemplateVO[]>('/dispatch/route-template/list')
+}
+
+export function getRouteTemplateById(id: string): Promise<RouteTemplateVO | null> {
+  return http.get<RouteTemplateVO>(`/dispatch/route-template/${id}`)
+}
+
+export function createRouteTemplate(data: RouteTemplateDTO): Promise<string | null> {
+  return http.post<string>('/dispatch/route-template', data)
+}
+
+export function updateRouteTemplate(id: string, data: RouteTemplateDTO): Promise<void | null> {
+  return http.put<void>(`/dispatch/route-template/${id}`, data)
+}
+
+export function deleteRouteTemplate(id: string): Promise<void | null> {
+  return http.delete<void>(`/dispatch/route-template/${id}`)
+}
+
+export function enableRouteTemplate(id: string): Promise<void | null> {
+  return http.put<void>(`/dispatch/route-template/${id}/enable`)
+}
+
+export function disableRouteTemplate(id: string): Promise<void | null> {
+  return http.put<void>(`/dispatch/route-template/${id}/disable`)
+}
+
+// ==================== 车辆和司机选择 API ====================
+
+export function getAvailableVehicles(): Promise<any[] | null> {
+  return http.get<any[]>('/vehicle/available')
+}
+
+export function getAvailableDrivers(): Promise<any[] | null> {
+  return http.get<any[]>('/user/driver/available')
 }

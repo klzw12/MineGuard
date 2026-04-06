@@ -150,4 +150,11 @@ public interface UserService {
      * @return 是否存在
      */
     Boolean existsUser(Long userId);
+
+    /**
+     * 获取今日请假用户ID列表
+     * 
+     * @return 请假用户ID列表
+     */
+    java.util.List<Long> getLeaveUserIds();
 }
