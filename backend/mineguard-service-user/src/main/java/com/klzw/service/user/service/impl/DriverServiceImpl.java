@@ -8,10 +8,12 @@ import com.klzw.service.user.entity.Driver;
 import com.klzw.service.user.entity.DriverVehicle;
 import com.klzw.service.user.entity.Repairman;
 import com.klzw.service.user.entity.SafetyOfficer;
+import com.klzw.service.user.entity.UserAttendance;
 import com.klzw.service.user.mapper.DriverMapper;
 import com.klzw.service.user.mapper.DriverVehicleMapper;
 import com.klzw.service.user.mapper.RepairmanMapper;
 import com.klzw.service.user.mapper.SafetyOfficerMapper;
+import com.klzw.service.user.mapper.UserAttendanceMapper;
 import com.klzw.service.user.service.DriverService;
 import com.klzw.service.user.vo.DriverVehicleVO;
 import com.klzw.service.user.vo.DriverVO;
@@ -36,6 +38,7 @@ public class DriverServiceImpl implements DriverService {
     private final VehicleClient vehicleClient;
     private final RepairmanMapper repairmanMapper;
     private final SafetyOfficerMapper safetyOfficerMapper;
+    private final UserAttendanceMapper userAttendanceMapper;
 
     @Override
     public DriverVO getById(Long id) {
@@ -428,27 +431,66 @@ public class DriverServiceImpl implements DriverService {
 
     private double calculateScore(DriverVO driver) {
         double score = 10.0;
-        
-        // 基础分：驾龄加分（每3年+1分，上限15分）
+
         if (driver.getDrivingYears() != null && driver.getDrivingYears() > 0) {
             score += Math.min(driver.getDrivingYears() / 3.0, 5);
         }
-        
-        // 状态分：在职状态加分
+
         if (driver.getStatus() != null && driver.getStatus() == 1) {
             score += 5;
         }
-        
-        // 常用车辆熟悉度加分（每辆车+1分）
+
         if (driver.getCommonVehicles() != null && !driver.getCommonVehicles().isEmpty()) {
             score += Math.min(driver.getCommonVehicles().size(), 5);
         }
-        
-        // 出勤次数加分（从司机原始分数获取，每次出勤+0.1分，上限10分）
-        if (driver.getScore() != null) {
-            score += Math.min(driver.getScore() * 0.1, 10);
+
+        if (driver.getUserId() != null) {
+            try {
+                LocalDate now = LocalDate.now();
+                LocalDate monthStart = now.minusDays(30);
+                Integer normalDays = userAttendanceMapper.countNormalDays(driver.getUserId(), monthStart, now);
+                if (normalDays != null && normalDays > 0) {
+                    score += Math.min(normalDays * 0.5, 10);
+                }
+                Integer lateAndEarly = userAttendanceMapper.countLateAndEarlyLeaveDays(driver.getUserId(), monthStart, now);
+                if (lateAndEarly != null && lateAndEarly > 0) {
+                    score -= Math.min(lateAndEarly * 0.5, 5);
+                }
+            } catch (Exception e) {
+                log.warn("查询司机出勤数据失败：driverId={}", driver.getId());
+            }
+
+            try {
+                int completedTrips = driverMapper.countCompletedTrips(driver.getUserId());
+                int totalTrips = driverMapper.countTotalTrips(driver.getUserId());
+                if (totalTrips > 0) {
+                    double completionRate = (double) completedTrips / totalTrips;
+                    score += completionRate * 10;
+                }
+                score += Math.min(completedTrips * 0.3, 8);
+            } catch (Exception e) {
+                log.warn("查询司机行程数据失败：driverId={}", driver.getId());
+            }
         }
-        
-        return Math.min(score, 100);
+
+        if (driver.getCommonVehicles() != null && !driver.getCommonVehicles().isEmpty()) {
+            try {
+                for (DriverVehicleVO dv : driver.getCommonVehicles()) {
+                    if (dv.getVehicleId() != null && dv.getUseCount() != null && dv.getUseCount() > 3) {
+                        var result = vehicleClient.getById(dv.getVehicleId());
+                        if (result != null && result.getData() != null) {
+                            var vInfo = result.getData();
+                            if (vInfo.getFuelLevel() != null && vInfo.getFuelLevel() >= 70) {
+                                score += 1;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("查询车辆状态失败：driverId={}", driver.getId());
+            }
+        }
+
+        return Math.max(0, Math.min(score, 100));
     }
 }

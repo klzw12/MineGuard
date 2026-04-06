@@ -145,14 +145,4 @@ export function enableRouteTemplate(id: string): Promise<void | null> {
 
 export function disableRouteTemplate(id: string): Promise<void | null> {
   return http.put<void>(`/dispatch/route-template/${id}/disable`)
-}
-
-// ==================== 车辆和司机选择 API ====================
-
-export function getAvailableVehicles(): Promise<any[] | null> {
-  return http.get<any[]>('/vehicle/available')
-}
-
-export function getAvailableDrivers(): Promise<any[] | null> {
-  return http.get<any[]>('/user/driver/available')
-}
+// ==================== 路线模板 API ====================

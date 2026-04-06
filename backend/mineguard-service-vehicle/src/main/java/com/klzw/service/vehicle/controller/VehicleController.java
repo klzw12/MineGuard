@@ -1,5 +1,6 @@
 package com.klzw.service.vehicle.controller;
 
+import com.klzw.common.core.domain.dto.VehicleInfo;
 import com.klzw.common.core.result.Result;
 import com.klzw.service.vehicle.dto.BestVehicleQueryDTO;
 import com.klzw.service.vehicle.entity.Vehicle;
@@ -119,7 +120,7 @@ public class VehicleController {
     
     @Operation(summary = "选择最佳车辆", description = "根据货物重量、车辆状态、油量等因素综合评估推荐最佳车辆")
     @PostMapping("/best")
-    public Result<List<BestVehicleVO>> selectBestVehicles(
+    public Result<List<VehicleInfo>> selectBestVehicles(
             @RequestParam(required = false) BigDecimal startLongitude,
             @RequestParam(required = false) BigDecimal startLatitude,
             @RequestParam(required = false) BigDecimal cargoWeight,
@@ -128,15 +129,52 @@ public class VehicleController {
         query.setStartLongitude(startLongitude != null ? startLongitude.doubleValue() : null);
         query.setStartLatitude(startLatitude != null ? startLatitude.doubleValue() : null);
         query.setCargoWeight(cargoWeight);
+        query.setScheduledTime(scheduledTime);
         List<BestVehicleVO> vehicles = vehicleService.selectBestVehicles(query);
-        return Result.success(vehicles);
+        List<VehicleInfo> result = vehicles.stream().map(v -> {
+            VehicleInfo info = new VehicleInfo();
+            info.setId(v.getId());
+            info.setVehicleNo(v.getVehicleNo());
+            info.setVehicleType(v.getVehicleType());
+            info.setBrand(v.getBrand());
+            info.setModel(v.getModel());
+            info.setRatedLoad(v.getRatedLoad());
+            info.setFuelLevel(v.getFuelLevel());
+            info.setStatus(v.getStatus());
+            info.setCurrentDriverId(v.getCurrentDriverId());
+            info.setScore(v.getScore());
+            info.setReason(v.getReason());
+            info.setCargoWeight(query.getCargoWeight());
+            info.setStartLongitude(query.getStartLongitude());
+            info.setStartLatitude(query.getStartLatitude());
+            return info;
+        }).collect(java.util.stream.Collectors.toList());
+        return Result.success(result);
     }
-    
+
     @Operation(summary = "获取所有可用车辆", description = "获取所有空闲状态的车辆列表")
     @GetMapping("/available")
-    public Result<List<VehicleVO>> getAvailableVehicles() {
+    public Result<List<VehicleInfo>> getAvailableVehicles() {
         List<VehicleVO> vehicles = vehicleService.getAvailableVehicles();
-        return Result.success(vehicles);
+        List<VehicleInfo> result = vehicles.stream().map(v -> {
+            VehicleInfo info = new VehicleInfo();
+            try {
+                info.setId(v.getId() != null ? Long.parseLong(v.getId()) : null);
+            } catch (Exception ignored) {}
+            info.setVehicleNo(v.getVehicleNo());
+            info.setVehicleType(v.getVehicleType());
+            info.setBrand(v.getBrand());
+            info.setModel(v.getModel());
+            info.setRatedLoad(v.getRatedLoad());
+            info.setFuelLevel(v.getFuelLevel());
+            info.setStatus(v.getStatus());
+            info.setPhotoUrl(v.getPhotoUrl());
+            info.setLicenseFrontUrl(v.getLicenseFrontUrl());
+            info.setLicenseBackUrl(v.getLicenseBackUrl());
+            info.setOwner(v.getOwner());
+            return info;
+        }).collect(java.util.stream.Collectors.toList());
+        return Result.success(result);
     }
     
     @Operation(summary = "报废车辆", description = "将车辆标记为报废状态（软删除）")

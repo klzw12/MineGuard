@@ -2,13 +2,11 @@ package com.klzw.common.core.domain.dto;
 
 import lombok.Data;
 
-/**
- * 车辆信息DTO
- */
+import java.math.BigDecimal;
+
 @Data
 public class VehicleInfo {
     private Long id;
-    private String licensePlate;
     private String vehicleNo;
     private Integer vehicleType;
     private String brand;
@@ -19,4 +17,11 @@ public class VehicleInfo {
     private Long currentDriverId;
     private Integer score;
     private String reason;
+    private String photoUrl;
+    private String licenseFrontUrl;
+    private String licenseBackUrl;
+    private String owner;
+    private BigDecimal cargoWeight;
+    private Double startLongitude;
+    private Double startLatitude;
 }

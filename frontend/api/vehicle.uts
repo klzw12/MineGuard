@@ -13,6 +13,21 @@ export interface VehicleVO {
   updateTime: string
 }
 
+export interface VehicleInfo {
+  id: number
+  vehicleNo: string
+  vehicleType: number
+  brand: string
+  model: string
+  ratedLoad: string
+  fuelLevel: number
+  status: number
+  currentDriverId?: number
+  score?: number
+  reason?: string
+  photoUrl?: string
+}
+
 export interface VehicleCreateDTO {
   vehicleNo: string
   vehicleType: string
@@ -48,6 +63,10 @@ export const vehicleApi = {
 
   getVehiclePage: (params: any): Promise<PageResult<VehicleVO> | null> => {
     return http.get<PageResult<VehicleVO>>('/vehicle/page', params)
+  },
+
+  getAvailableVehicles: (): Promise<VehicleInfo[] | null> => {
+    return http.get<VehicleInfo[]>('/vehicle/available')
   },
 
   // 管理端专用接口

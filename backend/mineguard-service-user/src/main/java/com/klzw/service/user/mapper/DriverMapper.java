@@ -55,6 +55,17 @@ public interface DriverMapper extends BaseMapper<Driver> {
             "AND scheduled_start_time >= #{startTime} " +
             "AND scheduled_start_time <= #{endTime} " +
             "AND deleted = 0")
-    List<Long> findBusyDriverIds(@Param("startTime") LocalDateTime startTime, 
+    List<Long> findBusyDriverIds(@Param("startTime") LocalDateTime startTime,
                                    @Param("endTime") LocalDateTime endTime);
+
+    @Select("SELECT COUNT(*) FROM dispatch_task_transport " +
+            "WHERE executor_id = #{driverUserId} " +
+            "AND status = 3 " +
+            "AND deleted = 0")
+    int countCompletedTrips(@Param("driverUserId") Long driverUserId);
+
+    @Select("SELECT COUNT(*) FROM dispatch_task_transport " +
+            "WHERE executor_id = #{driverUserId} " +
+            "AND deleted = 0")
+    int countTotalTrips(@Param("driverUserId") Long driverUserId);
 }

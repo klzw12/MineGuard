@@ -109,7 +109,7 @@
 	import { onShow } from '@dcloudio/uni-app'
 	import { useUserStore } from '@/stores/user.uts'
 	import { getCommonVehicles, addCommonVehicle, removeCommonVehicle, setDefaultVehicle as setDefaultVehicleApi, getDriverByUserId } from '@/api/driver.uts'
-	import { getAvailableVehicles } from '@/api/dispatch.uts'
+	import { vehicleApi } from '@/api/vehicle.uts'
 	import { toast } from '@/utils/toast.uts'
 	import type { DriverVehicleVO } from '@/types/user.uts'
  	
@@ -199,7 +199,7 @@
 		selectedVehicleId.value = null
 		
 		try {
-			const data = await getAvailableVehicles()
+			const data = await vehicleApi.getAvailableVehicles()
 			const existingIds = commonVehicles.value.map(v => v.vehicleId)
 			availableVehicles.value = (data || []).filter(v => !existingIds.includes(v.id))
 		} catch (e) {

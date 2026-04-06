@@ -331,25 +331,42 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     
     @Override
     public List<BestVehicleVO> selectBestVehicles(com.klzw.service.vehicle.dto.BestVehicleQueryDTO query) {
-        log.info("选择最佳车辆: cargoWeight={}, vehicleType={}", query.getCargoWeight(), query.getVehicleType());
-        
-        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper = 
+        log.info("选择最佳车辆: cargoWeight={}, vehicleType={}, scheduledTime={}", query.getCargoWeight(), query.getVehicleType(), query.getScheduledTime());
+
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper =
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-        
+
         wrapper.eq(Vehicle::getStatus, VehicleStatusEnum.IDLE.getCode());
-        
+
         if (query.getVehicleType() != null) {
             wrapper.eq(Vehicle::getVehicleType, query.getVehicleType());
         }
-        
+
         if (query.getExcludeVehicleIds() != null && !query.getExcludeVehicleIds().isEmpty()) {
             wrapper.notIn(Vehicle::getId, query.getExcludeVehicleIds());
         }
-        
+
+        if (query.getScheduledTime() != null && !query.getScheduledTime().isEmpty()) {
+            try {
+                java.time.LocalDate targetDate = java.time.LocalDate.parse(query.getScheduledTime());
+                java.time.LocalDateTime startTime = targetDate.atStartOfDay();
+                java.time.LocalDateTime endTime = targetDate.atTime(23, 59, 59);
+                List<Long> busyVehicleIds = getBaseMapper().findBusyVehicleIds(startTime, endTime);
+                if (busyVehicleIds != null && !busyVehicleIds.isEmpty()) {
+                    log.info("时间段 {} 已有任务的车辆ID: {}", query.getScheduledTime(), busyVehicleIds);
+                    if (!busyVehicleIds.isEmpty()) {
+                        wrapper.notIn(Vehicle::getId, busyVehicleIds);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("解析计划时间失败: {}, 将不过滤车辆", query.getScheduledTime());
+            }
+        }
+
         wrapper.orderByDesc(Vehicle::getFuelLevel);
-        
+
         List<Vehicle> vehicles = list(wrapper);
-        
+
         List<BestVehicleVO> result = new ArrayList<>();
         for (Vehicle vehicle : vehicles) {
             BestVehicleVO vo = new BestVehicleVO();
@@ -361,16 +378,16 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             vo.setRatedLoad(vehicle.getRatedLoad());
             vo.setFuelLevel(vehicle.getFuelLevel());
             vo.setStatus(vehicle.getStatus());
-            
+
             int score = calculateVehicleScore(vehicle, query);
             vo.setScore(score);
             vo.setReason(generateRecommendReason(vehicle, score));
-            
+
             result.add(vo);
         }
-        
+
         result.sort((a, b) -> b.getScore().compareTo(a.getScore()));
-        
+
         return result.stream().limit(5).collect(Collectors.toList());
     }
     

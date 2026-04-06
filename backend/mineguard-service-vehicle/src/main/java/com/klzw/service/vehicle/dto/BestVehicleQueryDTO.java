@@ -23,4 +23,7 @@ public class BestVehicleQueryDTO {
 
     @Schema(description = "排除的车辆ID列表(已分配的车辆)")
     private java.util.List<Long> excludeVehicleIds;
+
+    @Schema(description = "计划执行时间，用于过滤该时间段已有行程的车辆")
+    private String scheduledTime;
 }
