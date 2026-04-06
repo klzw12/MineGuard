@@ -291,8 +291,13 @@ public class DispatchServiceImpl implements DispatchService {
     }
 
     private Long selectBestVehicle(TransportTask task) {
+        return selectBestVehicle(task, task.getExecutorId());
+    }
+
+    private Long selectBestVehicle(TransportTask task, Long driverId) {
         try {
             var result = vehicleClient.selectBestVehicle(
+                driverId,
                 task.getStartLongitude() != null ? new java.math.BigDecimal(task.getStartLongitude().toString()) : null,
                 task.getStartLatitude() != null ? new java.math.BigDecimal(task.getStartLatitude().toString()) : null,
                 task.getCargoWeight(),
@@ -333,7 +338,7 @@ public class DispatchServiceImpl implements DispatchService {
         
         for (TransportTask task : pendingTasks) {
             try {
-                Long newVehicleId = selectBestVehicle(task);
+                Long newVehicleId = selectBestVehicle(task, task.getExecutorId());
                 if (newVehicleId != null) {
                     task.setVehicleId(newVehicleId);
                     task.setUpdateTime(LocalDateTime.now());
@@ -509,14 +514,14 @@ public class DispatchServiceImpl implements DispatchService {
                     
                     Long newVehicleId = selectVehicleByDriverCommonVehicles(newDriver.getId(), task);
                     if (newVehicleId == null) {
-                        newVehicleId = selectBestVehicle(task);
+                        newVehicleId = selectBestVehicle(task, newDriver.getId());
                     }
                     task.setVehicleId(newVehicleId);
-                    
+
                     task.setStatus(0);
                     task.setUpdateTime(LocalDateTime.now());
                     transportTaskMapper.updateById(task);
-                    
+
                     log.info("运输任务重新分配完成：任务 ID={}, 新司机 ID={}, 新用户 ID={}, 新车辆 ID={}", 
                         task.getId(), newDriver.getId(), newDriver.getUserId(), newVehicleId);
                     
@@ -1303,7 +1308,7 @@ public class DispatchServiceImpl implements DispatchService {
             // 重新分配车辆
             Long newVehicleId = selectVehicleByDriverCommonVehicles(newDriver.getId(), task);
             if (newVehicleId == null) {
-                newVehicleId = selectBestVehicle(task);
+                newVehicleId = selectBestVehicle(task, newDriver.getId());
             }
             if (newVehicleId != null) {
                 task.setVehicleId(newVehicleId);
@@ -1339,7 +1344,13 @@ public class DispatchServiceImpl implements DispatchService {
         BigDecimal longitude = faultInfo.get("longitude") != null ? new BigDecimal(faultInfo.get("longitude").toString()) : null;
         String locationAddress = faultInfo.get("locationAddress") != null ? faultInfo.get("locationAddress").toString() : null;
         
-        Long repairmanId = selectAvailableRepairman();
+        Long repairmanId;
+        if (severity != null && severity >= 3) {
+            repairmanId = selectUrgentRepairman();
+            log.info("严重故障(severity={})，使用紧急维修员选择策略", severity);
+        } else {
+            repairmanId = selectAvailableRepairman();
+        }
         if (repairmanId == null) {
             log.warn("没有可用的维修员，无法创建维修任务");
             return null;
@@ -1386,6 +1397,38 @@ public class DispatchServiceImpl implements DispatchService {
             return repairmen.get(0).getId();
         } catch (Exception e) {
             log.error("获取可用维修员失败: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    private Long selectUrgentRepairman() {
+        try {
+            Result<List<DriverInfo>> result = driverClient.getAvailableRepairmen();
+            List<DriverInfo> repairmen = result != null && result.getData() != null ? result.getData() : Collections.emptyList();
+
+            if (repairmen.isEmpty()) {
+                log.warn("没有可用维修员（紧急模式）");
+                return null;
+            }
+
+            List<Long> activeExecutorIds = maintenanceTaskMapper.findActiveExecutorIds();
+            log.info("当前有活跃任务的维修员ID: {}", activeExecutorIds);
+
+            for (DriverInfo repairman : repairmen) {
+                if (!activeExecutorIds.contains(repairman.getId())) {
+                    log.info("紧急故障优先选择空闲维修员：维修员ID={}, 姓名={}", repairman.getId(), repairman.getDriverName());
+                    return repairman.getId();
+                }
+            }
+
+            log.info("所有维修员都有活跃任务，退回选择评分最高的维修员");
+            DriverInfo best = repairmen.stream()
+                .filter(r -> r.getScore() != null)
+                .max(Comparator.comparing(DriverInfo::getScore))
+                .orElse(repairmen.get(0));
+            return best.getId();
+        } catch (Exception e) {
+            log.error("获取紧急维修员失败: {}", e.getMessage());
         }
         return null;
     }

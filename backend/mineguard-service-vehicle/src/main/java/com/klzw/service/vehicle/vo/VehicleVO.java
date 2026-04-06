@@ -24,7 +24,9 @@ public class VehicleVO {
     private Integer status;
     
     private Integer fuelLevel;
-    
+
+    private Integer score;
+
     private String photoUrl;
     
     private String licenseFrontUrl;

@@ -1,6 +1,8 @@
 package com.klzw.service.vehicle.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.klzw.common.core.client.DriverClient;
+import com.klzw.common.core.domain.dto.DriverVehicleInfo;
 import com.klzw.common.file.service.OcrService;
 import com.klzw.common.file.service.StorageService;
 import com.klzw.service.vehicle.dto.BestVehicleQueryDTO;
@@ -47,6 +49,9 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     
     @Resource
     private com.klzw.service.vehicle.service.VehicleStatusService vehicleStatusService;
+
+    @Resource
+    private DriverClient driverClient;
     
     @Override
     public Vehicle createVehicle(Vehicle vehicle) {
@@ -331,7 +336,8 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     
     @Override
     public List<BestVehicleVO> selectBestVehicles(com.klzw.service.vehicle.dto.BestVehicleQueryDTO query) {
-        log.info("选择最佳车辆: cargoWeight={}, vehicleType={}, scheduledTime={}", query.getCargoWeight(), query.getVehicleType(), query.getScheduledTime());
+        log.info("选择最佳车辆: cargoWeight={}, vehicleType={}, scheduledTime={}, driverId={}",
+            query.getCargoWeight(), query.getVehicleType(), query.getScheduledTime(), query.getDriverId());
 
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper =
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
@@ -344,6 +350,21 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
 
         if (query.getExcludeVehicleIds() != null && !query.getExcludeVehicleIds().isEmpty()) {
             wrapper.notIn(Vehicle::getId, query.getExcludeVehicleIds());
+        }
+
+        java.util.Set<Long> commonVehicleIdSet = java.util.Collections.emptySet();
+        if (query.getDriverId() != null) {
+            try {
+                var result = driverClient.getCommonVehicles(query.getDriverId());
+                if (result != null && result.getData() != null && !result.getData().isEmpty()) {
+                    commonVehicleIdSet = result.getData().stream()
+                        .map(DriverVehicleInfo::getVehicleId)
+                        .collect(java.util.stream.Collectors.toSet());
+                    log.info("司机 {} 的常用车辆ID: {}", query.getDriverId(), commonVehicleIdSet);
+                }
+            } catch (Exception e) {
+                log.warn("查询司机常用车辆失败：driverId={}", query.getDriverId());
+            }
         }
 
         if (query.getScheduledTime() != null && !query.getScheduledTime().isEmpty()) {
@@ -367,6 +388,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
 
         List<Vehicle> vehicles = list(wrapper);
 
+        List<Vehicle> vehiclesToUpdate = new ArrayList<>();
         List<BestVehicleVO> result = new ArrayList<>();
         for (Vehicle vehicle : vehicles) {
             BestVehicleVO vo = new BestVehicleVO();
@@ -380,10 +402,24 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             vo.setStatus(vehicle.getStatus());
 
             int score = calculateVehicleScore(vehicle, query);
+
+            if (!commonVehicleIdSet.isEmpty() && commonVehicleIdSet.contains(vehicle.getId())) {
+                score += 15;
+                log.info("车辆 {} 是司机常用车，加分+15", vehicle.getId());
+            }
+
             vo.setScore(score);
             vo.setReason(generateRecommendReason(vehicle, score));
 
+            vehicle.setScore(score);
+            vehiclesToUpdate.add(vehicle);
+
             result.add(vo);
+        }
+
+        if (!vehiclesToUpdate.isEmpty()) {
+            updateBatchById(vehiclesToUpdate);
+            log.info("批量更新车辆评分：{} 辆", vehiclesToUpdate.size());
         }
 
         result.sort((a, b) -> b.getScore().compareTo(a.getScore()));
@@ -563,6 +599,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         vo.setModel(vehicle.getModel());
         vo.setStatus(vehicle.getStatus());
         vo.setFuelLevel(vehicle.getFuelLevel());
+        vo.setScore(vehicle.getScore());
         vo.setPhotoUrl(getPresignedUrl(vehicle.getPhotoUrl()));
         vo.setLicenseFrontUrl(getPresignedUrl(vehicle.getLicenseFrontUrl()));
         vo.setLicenseBackUrl(getPresignedUrl(vehicle.getLicenseBackUrl()));

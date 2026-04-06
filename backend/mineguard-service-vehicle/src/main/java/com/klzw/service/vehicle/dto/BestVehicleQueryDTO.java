@@ -26,4 +26,7 @@ public class BestVehicleQueryDTO {
 
     @Schema(description = "计划执行时间，用于过滤该时间段已有行程的车辆")
     private String scheduledTime;
+
+    @Schema(description = "司机ID，用于考虑司机-车辆绑定关系")
+    private Long driverId;
 }

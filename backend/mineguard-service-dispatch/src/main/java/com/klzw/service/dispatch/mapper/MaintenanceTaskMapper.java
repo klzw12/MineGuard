@@ -29,4 +29,7 @@ public interface MaintenanceTaskMapper extends BaseMapper<MaintenanceTask> {
 
     @Select("SELECT * FROM dispatch_task_maintenance WHERE fault_type = #{faultType} AND deleted = 0 ORDER BY create_time DESC")
     List<MaintenanceTask> findByFaultType(@Param("faultType") Integer faultType);
+
+    @Select("SELECT DISTINCT executor_id FROM dispatch_task_maintenance WHERE status IN (0, 1, 2) AND deleted = 0 AND executor_id IS NOT NULL")
+    List<Long> findActiveExecutorIds();
 }

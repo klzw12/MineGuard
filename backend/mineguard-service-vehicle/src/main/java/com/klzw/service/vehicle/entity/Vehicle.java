@@ -23,7 +23,9 @@ public class Vehicle extends BaseEntity {
     private Integer status;
     
     private Integer fuelLevel;
-    
+
+    private Integer score;
+
     private String photoUrl;
     
     private String licenseFrontUrl;

@@ -517,6 +517,7 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     private Long assignVehicle(DispatchPlan plan) {
         try {
             var result = vehicleClient.selectBestVehicle(
+                    null,
                     plan.getStartLongitude() != null ? BigDecimal.valueOf(plan.getStartLongitude()) : null,
                     plan.getStartLatitude() != null ? BigDecimal.valueOf(plan.getStartLatitude()) : null,
                     plan.getPlannedCargoWeight(),

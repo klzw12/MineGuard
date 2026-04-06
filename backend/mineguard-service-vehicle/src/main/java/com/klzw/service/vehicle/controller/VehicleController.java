@@ -121,11 +121,13 @@ public class VehicleController {
     @Operation(summary = "选择最佳车辆", description = "根据货物重量、车辆状态、油量等因素综合评估推荐最佳车辆")
     @PostMapping("/best")
     public Result<List<VehicleInfo>> selectBestVehicles(
+            @RequestParam(required = false) Long driverId,
             @RequestParam(required = false) BigDecimal startLongitude,
             @RequestParam(required = false) BigDecimal startLatitude,
             @RequestParam(required = false) BigDecimal cargoWeight,
             @RequestParam(required = false) String scheduledTime) {
         BestVehicleQueryDTO query = new BestVehicleQueryDTO();
+        query.setDriverId(driverId);
         query.setStartLongitude(startLongitude != null ? startLongitude.doubleValue() : null);
         query.setStartLatitude(startLatitude != null ? startLatitude.doubleValue() : null);
         query.setCargoWeight(cargoWeight);
@@ -140,6 +142,7 @@ public class VehicleController {
             info.setModel(v.getModel());
             info.setRatedLoad(v.getRatedLoad());
             info.setFuelLevel(v.getFuelLevel());
+            info.setScore(v.getScore());
             info.setStatus(v.getStatus());
             info.setCurrentDriverId(v.getCurrentDriverId());
             info.setScore(v.getScore());

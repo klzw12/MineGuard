@@ -253,6 +253,18 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         
         getBaseMapper().updateById(trip);
         log.info("结束行程成功，行程ID：{}", id);
+
+        try {
+            List<com.klzw.service.trip.dto.TripTrackDTO> tracks = tripTrackService.getTracksFromRedis(id);
+            if (tracks != null && !tracks.isEmpty()) {
+                tripTrackService.batchSaveTracks(tracks);
+                log.info("行程结束，轨迹已持久化到MongoDB：行程ID={}, 轨迹点数={}", id, tracks.size());
+            } else {
+                log.info("行程结束，无轨迹数据需要持久化：行程ID={}", id);
+            }
+        } catch (Exception e) {
+            log.error("行程结束持久化轨迹失败（不影响主流程）：行程ID={}, 错误={}", id, e.getMessage());
+        }
         
         // 回调dispatch模块完成任务
         if (trip.getDispatchTaskId() != null) {
@@ -400,6 +412,20 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         Boolean vehicleExists = vehicleExistsResult != null && vehicleExistsResult.getCode() == 200 ? vehicleExistsResult.getData() : false;
         if (!vehicleExists) {
             throw new TripException(TripResultCode.VEHICLE_NOT_AVAILABLE, "车辆不存在或不可用");
+        }
+
+        com.klzw.common.core.result.Result<com.klzw.common.core.domain.dto.VehicleStatus> vehicleStatusResult = vehicleClient.getStatus(vehicleId);
+        if (vehicleStatusResult != null && vehicleStatusResult.getCode() == 200 && vehicleStatusResult.getData() != null) {
+            int vehicleStatusCode = vehicleStatusResult.getData().getStatus();
+            if (vehicleStatusCode != com.klzw.common.core.enums.VehicleStatusEnum.IDLE.getCode()) {
+                String statusName = com.klzw.common.core.enums.VehicleStatusEnum.getByCode(vehicleStatusCode) != null
+                        ? com.klzw.common.core.enums.VehicleStatusEnum.getByCode(vehicleStatusCode).getName()
+                        : "未知";
+                throw new TripException(TripResultCode.VEHICLE_NOT_AVAILABLE,
+                        "车辆当前状态为[" + statusName + "]，非空闲状态，无法创建行程");
+            }
+        } else {
+            log.warn("获取车辆状态失败，跳过状态检查：车辆ID={}", vehicleId);
         }
         
         com.klzw.common.core.result.Result<java.lang.Boolean> driverExistsResult = userClient.existsUser(driverId);

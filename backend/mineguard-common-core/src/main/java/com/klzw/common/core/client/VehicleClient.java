@@ -34,6 +34,7 @@ public interface VehicleClient {
 
     @PostExchange("/vehicle/best")
     Result<List<VehicleInfo>> selectBestVehicle(
+        @RequestParam(required = false) Long driverId,
         @RequestParam(required = false) BigDecimal startLongitude,
         @RequestParam(required = false) BigDecimal startLatitude,
         @RequestParam(required = false) BigDecimal cargoWeight,
