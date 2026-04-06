@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user.uts'
 import toast from '@/utils/toast.uts'
 import { imageToBase64 } from '@/utils/image.uts'
@@ -87,6 +87,27 @@ const canSubmit = computed(() => {
   return realName.value.trim() && 
          idCard.value.trim() && 
          frontFilePath.value
+})
+
+onMounted(() => {
+  if (userStore.userInfo.value?.status === 1) {
+    uni.showModal({
+      title: '提示',
+      content: '您的账号已经通过认证，无需重复认证',
+      showCancel: false,
+      success: () => {
+        if (userStore.userRole.value === 'admin' || userStore.userRole.value === 'operator') {
+          uni.redirectTo({
+            url: '/pages/admin/home/index'
+          })
+        } else {
+          uni.switchTab({
+            url: '/pages/user/task/index'
+          })
+        }
+      }
+    })
+  }
 })
 
 function chooseImage(type: string) {

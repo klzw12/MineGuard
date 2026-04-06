@@ -1,4 +1,4 @@
-import { http } from '@/utils/request.uts'
+import { http, getToken, BASE_URL } from '@/utils/request.uts'
 import type { UserVO, UserRegisterDTO, UserUpdateDTO, UpdatePhoneDTO, PasswordUpdateDTO, PageResult, RoleVO, RoleChangeApplyVO, RoleChangeApplyDTO, AdminCreateUserDTO } from '@/types/user.uts'
 
 export function register(data: UserRegisterDTO): Promise<UserVO | null> {
@@ -118,9 +118,9 @@ export function deleteRole(id: string): Promise<boolean | null> {
 
 export function uploadAvatar(filePath: string): Promise<UserVO | null> {
   return new Promise((resolve, reject) => {
-    const token = uni.getStorageSync('token') || ''
+    const token = getToken()
     uni.uploadFile({
-      url: 'http://localhost:8080/api/user/avatar',
+      url: BASE_URL + '/user/avatar',
       filePath: filePath,
       name: 'file',
       header: {

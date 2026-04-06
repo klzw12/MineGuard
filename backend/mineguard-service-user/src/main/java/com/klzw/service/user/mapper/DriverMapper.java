@@ -6,6 +6,9 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 /**
  * 司机信息 Mapper 接口
  */
@@ -39,4 +42,19 @@ public interface DriverMapper extends BaseMapper<Driver> {
      */
     @Select("SELECT COUNT(*) > 0 FROM user u JOIN role r ON u.role_id = r.id WHERE u.id = #{userId} AND r.role_code = #{roleCode}")
     boolean hasRole(@Param("userId") Long userId, @Param("roleCode") String roleCode);
+
+    /**
+     * 查找指定时间段内已有任务的司机ID列表
+     *
+     * @param startTime 开始时间
+     * @param endTime 结束时间
+     * @return 忙碌的司机ID列表
+     */
+    @Select("SELECT DISTINCT executor_id FROM dispatch_task_transport " +
+            "WHERE status IN (0, 1, 2) " +
+            "AND scheduled_start_time >= #{startTime} " +
+            "AND scheduled_start_time <= #{endTime} " +
+            "AND deleted = 0")
+    List<Long> findBusyDriverIds(@Param("startTime") LocalDateTime startTime, 
+                                   @Param("endTime") LocalDateTime endTime);
 }

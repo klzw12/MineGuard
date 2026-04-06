@@ -10,51 +10,41 @@ const userRole = ref<string>('user')
 const isDispatcher = ref<boolean>(false)
 const isRepairman = ref<boolean>(false)
 
+const ROLE_MAP: Map<string, string> = new Map([
+  ['ROLE_ADMIN', 'admin'],
+  ['ADMIN', 'admin'],
+  ['ROLE_OPERATOR', 'operator'],
+  ['OPERATOR', 'operator'],
+  ['ROLE_REPAIRMAN', 'repairman'],
+  ['REPAIRMAN', 'repairman']
+])
+
+function resolveRole(roleCode: string | null | undefined): string {
+  if (!roleCode) return 'user'
+  const upperCode = roleCode.toUpperCase()
+  return ROLE_MAP.get(upperCode) || 'user'
+}
+
 function setUserInfo(user: UserVO | null) {
   userInfo.value = user
   isLoggedIn.value = user !== null
   
-  if (user && user.roleCode) {
-    const roleCode = (user.roleCode || '').toUpperCase()
-    if (roleCode === 'ROLE_ADMIN' || roleCode === 'ADMIN') {
-      userRole.value = 'admin'
-      isDispatcher.value = false
-      isRepairman.value = false
-    } 
-    else if (roleCode === 'ROLE_OPERATOR' || roleCode === 'OPERATOR') {
-      if (user.status === 1) {
-        userRole.value = 'operator'
-        isDispatcher.value = true
-        isRepairman.value = false
-      } else {
-        userRole.value = 'user'
-        isDispatcher.value = false
-        isRepairman.value = false
-      }
-    }
-    else if (roleCode === 'ROLE_REPAIRMAN' || roleCode === 'REPAIRMAN') {
-      userRole.value = 'repairman'
-      isDispatcher.value = false
-      isRepairman.value = true
-    }
-    else {
-      userRole.value = 'user'
-      isDispatcher.value = false
-      isRepairman.value = false
-    }
-  } else if (user) {
-    userRole.value = 'user'
-    isDispatcher.value = false
-    isRepairman.value = false
-  }
-  
   if (user) {
+    const role = resolveRole(user.roleCode)
+    userRole.value = role
+    isDispatcher.value = (role === 'operator' || role === 'admin') && user.status === 1
+    isRepairman.value = role === 'repairman'
+    
     uni.setStorageSync('userInfo', JSON.stringify(user))
     uni.setStorageSync('loginStatus', true)
     uni.setStorageSync('userRole', userRole.value)
     uni.setStorageSync('isDispatcher', isDispatcher.value)
     uni.setStorageSync('isRepairman', isRepairman.value)
   } else {
+    userRole.value = 'user'
+    isDispatcher.value = false
+    isRepairman.value = false
+    
     uni.removeStorageSync('userInfo')
     uni.removeStorageSync('loginStatus')
     uni.removeStorageSync('userRole')

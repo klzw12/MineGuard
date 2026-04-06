@@ -11,6 +11,7 @@
 						class="avatar" 
 						:src="avatarUrl" 
 						mode="aspectFill"
+						@error="onAvatarError"
 					></image>
 					<view class="avatar-edit-icon">📷</view>
 				</view>
@@ -192,11 +193,11 @@
 					<view class="id-card-images">
 						<view class="id-card-item" v-if="idCardFrontUrl">
 							<text class="id-card-label">身份证正面</text>
-							<image class="id-card-image" :src="idCardFrontUrl" mode="aspectFit" @click="previewImage(idCardFrontUrl)"></image>
+							<image class="id-card-image" :src="idCardFrontUrl" mode="aspectFit" @click="previewImage(idCardFrontUrl)" @error="onIdCardError('front')"></image>
 						</view>
 						<view class="id-card-item" v-if="idCardBackUrl">
 							<text class="id-card-label">身份证背面</text>
-							<image class="id-card-image" :src="idCardBackUrl" mode="aspectFit" @click="previewImage(idCardBackUrl)"></image>
+							<image class="id-card-image" :src="idCardBackUrl" mode="aspectFit" @click="previewImage(idCardBackUrl)" @error="onIdCardError('back')"></image>
 						</view>
 					</view>
 				</view>
@@ -246,6 +247,34 @@ import { useUserStore } from '@/stores/user.uts'
 		return phone
 	})
 	const DEFAULT_AVATAR = '/static/logo/default-avatar.png'
+	let avatarRetryCount = 0
+	const MAX_RETRY_COUNT = 2
+
+async function onAvatarError() {
+		if (avatarRetryCount < MAX_RETRY_COUNT) {
+			avatarRetryCount++
+			await loadAvatarUrl()
+		} else {
+			avatarUrl.value = DEFAULT_AVATAR
+			avatarRetryCount = 0
+		}
+	}
+
+async function onIdCardError(type: string) {
+		try {
+			toast.loading('重新获取...')
+			const data = await getIdCardSignedUrls()
+			if (data) {
+				if (type === 'front') {
+					idCardFrontUrl.value = data.frontUrl || ''
+				} else if (type === 'back') {
+					idCardBackUrl.value = data.backUrl || ''
+				}
+			}
+		} catch (e: any) {
+			toast.error('图片加载失败，请稍后重试')
+		}
+	}
 
 async function loadAvatarUrl() {
 	try {

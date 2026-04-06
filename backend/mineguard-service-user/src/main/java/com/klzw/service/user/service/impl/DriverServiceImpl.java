@@ -21,6 +21,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -144,12 +145,41 @@ public class DriverServiceImpl implements DriverService {
             return null;
         }
         
+        // 如果指定了计划时间，过滤掉该时间段已有任务的司机
+        if (scheduledTime != null && !scheduledTime.isEmpty()) {
+            try {
+                LocalDate targetDate = LocalDate.parse(scheduledTime);
+                LocalDateTime startTime = targetDate.atStartOfDay();
+                LocalDateTime endTime = targetDate.atTime(23, 59, 59);
+                
+                List<Long> busyDriverIds = driverMapper.findBusyDriverIds(startTime, endTime);
+                if (!busyDriverIds.isEmpty()) {
+                    log.info("时间段 {} 已有任务的司机ID: {}", scheduledTime, busyDriverIds);
+                    int beforeSize = availableDrivers.size();
+                    availableDrivers = availableDrivers.stream()
+                        .filter(d -> !busyDriverIds.contains(d.getId()))
+                        .collect(java.util.stream.Collectors.toList());
+                    
+                    if (availableDrivers.isEmpty()) {
+                        log.warn("时间段 {} 所有司机都有任务，放宽条件返回所有可用司机", scheduledTime);
+                        availableDrivers = getAvailableDrivers();
+                    } else {
+                        log.info("时间段 {} 过滤后剩余 {} 个可用司机（原 {} 个）", 
+                            scheduledTime, availableDrivers.size(), beforeSize);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("解析计划时间失败: {}, 将不过滤", scheduledTime);
+            }
+        }
+        
         if (vehicleId != null) {
             for (DriverVO driver : availableDrivers) {
                 List<DriverVehicleVO> commonVehicles = getCommonVehicles(driver.getId());
                 for (DriverVehicleVO dv : commonVehicles) {
                     if (vehicleId.equals(dv.getVehicleId())) {
                         driver.setScore((int) calculateScore(driver));
+                        log.info("为车辆 {} 找到匹配常用车司机: {}", vehicleId, driver.getDriverName());
                         return driver;
                     }
                 }
@@ -399,16 +429,24 @@ public class DriverServiceImpl implements DriverService {
     private double calculateScore(DriverVO driver) {
         double score = 10.0;
         
-        if (driver.getDrivingYears() != null && driver.getDrivingYears() > 5) {
-            score += driver.getDrivingYears() * 0.5;
+        // 基础分：驾龄加分（每3年+1分，上限15分）
+        if (driver.getDrivingYears() != null && driver.getDrivingYears() > 0) {
+            score += Math.min(driver.getDrivingYears() / 3.0, 5);
         }
         
+        // 状态分：在职状态加分
         if (driver.getStatus() != null && driver.getStatus() == 1) {
             score += 5;
         }
         
+        // 常用车辆熟悉度加分（每辆车+1分）
         if (driver.getCommonVehicles() != null && !driver.getCommonVehicles().isEmpty()) {
-            score += driver.getCommonVehicles().size() * 2;
+            score += Math.min(driver.getCommonVehicles().size(), 5);
+        }
+        
+        // 出勤次数加分（从司机原始分数获取，每次出勤+0.1分，上限10分）
+        if (driver.getScore() != null) {
+            score += Math.min(driver.getScore() * 0.1, 10);
         }
         
         return Math.min(score, 100);

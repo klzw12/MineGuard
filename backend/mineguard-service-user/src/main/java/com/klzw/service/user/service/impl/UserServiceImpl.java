@@ -17,6 +17,7 @@ import com.klzw.common.core.exception.BaseException;
 import com.klzw.common.core.enums.ResultCodeEnum;
 import com.klzw.service.user.mapper.RoleMapper;
 import com.klzw.service.user.mapper.UserMapper;
+import com.klzw.service.user.mapper.UserAttendanceMapper;
 import com.klzw.service.user.service.UserService;
 import com.klzw.service.user.vo.UserVO;
 import com.klzw.service.user.vo.IdCardVO;
@@ -25,6 +26,8 @@ import com.klzw.service.user.service.sms.SmsService;
 import com.klzw.common.auth.util.PasswordUtils;
 import com.klzw.common.auth.enums.RoleEnum;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,12 +39,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
-    private final com.klzw.service.user.mapper.UserAttendanceMapper userAttendanceMapper;
+    private final UserAttendanceMapper userAttendanceMapper;
     private final PasswordUtils passwordUtils;
     private final RedisCacheService redisCacheService;
     private final FileUploadServiceImpl fileUploadService;
@@ -49,8 +53,10 @@ public class UserServiceImpl implements UserService {
 
     private static final String USER_CACHE_PREFIX = "user:info:";
     private static final String AVATAR_CACHE_PREFIX = "avatar:signed_url:";
+    private static final String ID_CARD_CACHE_PREFIX = "idcard:signed_url:";
     private static final long USER_CACHE_EXPIRE = 30;
     private static final long AVATAR_CACHE_EXPIRE_SECONDS = 7 * 24 * 3600;
+    private static final long ID_CARD_CACHE_EXPIRE_SECONDS = 3600;
 
     @Override
     public User getByUsername(String username) {
@@ -452,6 +458,23 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public IdCardVO getIdCardSignedUrls(Long userId) {
+        String cacheKey = ID_CARD_CACHE_PREFIX + userId;
+        
+        // 尝试从Redis缓存获取
+        String cachedJson = redisCacheService.get(cacheKey);
+        if (cachedJson != null && !cachedJson.isEmpty()) {
+            try {
+                IdCardVO cached = new IdCardVO();
+                String[] parts = cachedJson.split("\\|\\|");
+                if (parts.length >= 1) cached.setRealName(parts[0]);
+                if (parts.length >= 2 && !parts[1].isEmpty()) cached.setFrontUrl(parts[1]);
+                if (parts.length >= 3 && !parts[2].isEmpty()) cached.setBackUrl(parts[2]);
+                return cached;
+            } catch (Exception e) {
+                log.warn("解析身份证签名URL缓存失败: {}", e.getMessage());
+            }
+        }
+        
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new UserException(UserResultCode.USER_NOT_FOUND);
@@ -465,11 +488,21 @@ public class UserServiceImpl implements UserService {
         idCardVO.setRealName(user.getRealName());
         
         if (user.getIdCardFrontUrl() != null && !user.getIdCardFrontUrl().isEmpty()) {
-            idCardVO.setFrontUrl(fileUploadService.getSignedUrl(user.getIdCardFrontUrl(), 3600L));
+            idCardVO.setFrontUrl(fileUploadService.getSignedUrl(user.getIdCardFrontUrl(), ID_CARD_CACHE_EXPIRE_SECONDS));
         }
         
         if (user.getIdCardBackUrl() != null && !user.getIdCardBackUrl().isEmpty()) {
-            idCardVO.setBackUrl(fileUploadService.getSignedUrl(user.getIdCardBackUrl(), 3600L));
+            idCardVO.setBackUrl(fileUploadService.getSignedUrl(user.getIdCardBackUrl(), ID_CARD_CACHE_EXPIRE_SECONDS));
+        }
+        
+        // 写入Redis缓存（使用简单格式：realName||frontUrl||backUrl）
+        try {
+            String json = (idCardVO.getRealName() != null ? idCardVO.getRealName() : "") 
+                + "||" + (idCardVO.getFrontUrl() != null ? idCardVO.getFrontUrl() : "")
+                + "||" + (idCardVO.getBackUrl() != null ? idCardVO.getBackUrl() : "");
+            redisCacheService.set(cacheKey, json, ID_CARD_CACHE_EXPIRE_SECONDS, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.warn("写入身份证签名URL缓存失败: {}", e.getMessage());
         }
         
         return idCardVO;

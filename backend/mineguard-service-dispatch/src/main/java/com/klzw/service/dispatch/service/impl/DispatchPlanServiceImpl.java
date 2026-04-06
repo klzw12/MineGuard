@@ -8,6 +8,8 @@ import com.klzw.common.core.client.DriverClient;
 import com.klzw.common.core.client.UserClient;
 import com.klzw.common.core.client.VehicleClient;
 import com.klzw.common.core.domain.PageRequest;
+import com.klzw.common.core.domain.dto.DriverInfo;
+import com.klzw.common.core.domain.dto.DriverVehicleInfo;
 import com.klzw.common.core.domain.dto.VehicleInfo;
 import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.result.Result;
@@ -307,21 +309,16 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     
     private Long getAvailableCommonVehicle(Long driverId, List<VehicleInfo> availableVehicles, Set<Long> assignedVehicleIds) {
         try {
-            Result<List<Object>> result = userClient.getCommonVehicles(driverId);
+            Result<List<DriverVehicleInfo>> result = driverClient.getCommonVehicles(driverId);
             if (result != null && result.getData() != null && !result.getData().isEmpty()) {
-                for (Object obj : result.getData()) {
-                    if (obj instanceof Map) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> commonVehicle = (Map<String, Object>) obj;
-                        Long vehicleId = commonVehicle.get("vehicleId") != null ? 
-                            Long.valueOf(commonVehicle.get("vehicleId").toString()) : null;
-                        
-                        if (vehicleId != null && !assignedVehicleIds.contains(vehicleId)) {
-                            boolean isAvailable = availableVehicles.stream()
-                                .anyMatch(v -> v.getId().equals(vehicleId));
-                            if (isAvailable) {
-                                return vehicleId;
-                            }
+                for (DriverVehicleInfo commonVehicle : result.getData()) {
+                    Long vehicleId = commonVehicle.getVehicleId();
+                    
+                    if (vehicleId != null && !assignedVehicleIds.contains(vehicleId)) {
+                        boolean isAvailable = availableVehicles.stream()
+                            .anyMatch(v -> v.getId().equals(vehicleId));
+                        if (isAvailable) {
+                            return vehicleId;
                         }
                     }
                 }
@@ -343,20 +340,9 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     
     private List<DriverInfo> getAvailableDriversList() {
         try {
-            Result<List<Object>> result = userClient.getAvailableDrivers();
+            Result<List<DriverInfo>> result = driverClient.getAvailableDrivers();
             if (result != null && result.getData() != null) {
-                List<DriverInfo> drivers = new ArrayList<>();
-                for (Object obj : result.getData()) {
-                    if (obj instanceof Map) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> map = (Map<String, Object>) obj;
-                        DriverInfo driver = new DriverInfo();
-                        driver.setId(map.get("id") != null ? Long.valueOf(map.get("id").toString()) : null);
-                        driver.setUserId(map.get("userId") != null ? Long.valueOf(map.get("userId").toString()) : null);
-                        driver.setDriverName((String) map.get("driverName"));
-                        drivers.add(driver);
-                    }
-                }
+                List<DriverInfo> drivers = result.getData();
                 
                 List<Long> assignedDriverIds = transportTaskMapper.findAssignedButNotAcceptedDriverIds();
                 log.info("已分配待接单的司机ID列表: {}", assignedDriverIds);
@@ -407,19 +393,6 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
             log.error("获取可用车辆列表失败", e);
         }
         return new ArrayList<>();
-    }
-    
-    private static class DriverInfo {
-        private Long id;
-        private Long userId;
-        private String driverName;
-        
-        public Long getId() { return id; }
-        public void setId(Long id) { this.id = id; }
-        public Long getUserId() { return userId; }
-        public void setUserId(Long userId) { this.userId = userId; }
-        public String getDriverName() { return driverName; }
-        public void setDriverName(String driverName) { this.driverName = driverName; }
     }
     
     private String calculatePriority(DispatchPlan plan) {
@@ -473,20 +446,13 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     private Long assignBestDriver(Long vehicleId, DispatchPlan plan) {
         try {
             String scheduledTime = plan.getPlanDate() != null ? plan.getPlanDate().toString() : null;
-            Result<Object> result = userClient.selectBestDriver(vehicleId, scheduledTime);
+            Result<DriverInfo> result = driverClient.selectBestDriver(vehicleId, scheduledTime);
             
             if (result != null && result.getData() != null) {
-                Object data = result.getData();
-                if (data instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> driverMap = (Map<String, Object>) data;
-                    Object userId = driverMap.get("userId");
-                    if (userId != null) {
-                        Long executorId = Long.valueOf(userId.toString());
-                        log.info("智能分配司机成功, userId: {}", executorId);
-                        return executorId;
-                    }
-                }
+                DriverInfo driver = result.getData();
+                Long executorId = driver.getUserId();
+                log.info("智能分配司机成功, userId: {}, driverName: {}", executorId, driver.getDriverName());
+                return executorId;
             }
             
             log.warn("智能分配司机失败，尝试随机选择");
@@ -499,21 +465,14 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     
     private Long assignRandomDriver() {
         try {
-            Result<List<Object>> result = userClient.getAvailableDrivers();
+            Result<List<DriverInfo>> result = driverClient.getAvailableDrivers();
             if (result != null && result.getData() != null && !result.getData().isEmpty()) {
-                List<Object> drivers = result.getData();
+                List<DriverInfo> drivers = result.getData();
                 int randomIndex = (int) (Math.random() * drivers.size());
-                Object driver = drivers.get(randomIndex);
-                if (driver instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> driverMap = (Map<String, Object>) driver;
-                    Object userId = driverMap.get("userId");
-                    if (userId != null) {
-                        Long executorId = Long.valueOf(userId.toString());
-                        log.info("随机分配司机成功, userId: {}", executorId);
-                        return executorId;
-                    }
-                }
+                DriverInfo driver = drivers.get(randomIndex);
+                Long executorId = driver.getUserId();
+                log.info("随机分配司机成功, userId: {}, driverName: {}", executorId, driver.getDriverName());
+                return executorId;
             }
         } catch (Exception e) {
             log.error("随机选择司机失败", e);
@@ -523,21 +482,14 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     
     private Long assignRandomRepairman() {
         try {
-            Result<List<Object>> result = userClient.getAvailableRepairmen();
+            Result<List<DriverInfo>> result = driverClient.getAvailableRepairmen();
             if (result != null && result.getData() != null && !result.getData().isEmpty()) {
-                List<Object> repairmen = result.getData();
+                List<DriverInfo> repairmen = result.getData();
                 int randomIndex = (int) (Math.random() * repairmen.size());
-                Object repairman = repairmen.get(randomIndex);
-                if (repairman instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> map = (Map<String, Object>) repairman;
-                    Object userId = map.get("userId");
-                    if (userId != null) {
-                        Long executorId = Long.valueOf(userId.toString());
-                        log.info("随机分配维修员成功, userId: {}", executorId);
-                        return executorId;
-                    }
-                }
+                DriverInfo repairman = repairmen.get(randomIndex);
+                Long executorId = repairman.getUserId();
+                log.info("随机分配维修员成功, userId: {}, driverName: {}", executorId, repairman.getDriverName());
+                return executorId;
             }
         } catch (Exception e) {
             log.error("随机选择维修员失败", e);
@@ -547,21 +499,14 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     
     private Long assignRandomSafetyOfficer() {
         try {
-            Result<List<Object>> result = userClient.getAvailableSafetyOfficers();
+            Result<List<DriverInfo>> result = driverClient.getAvailableSafetyOfficers();
             if (result != null && result.getData() != null && !result.getData().isEmpty()) {
-                List<Object> officers = result.getData();
+                List<DriverInfo> officers = result.getData();
                 int randomIndex = (int) (Math.random() * officers.size());
-                Object officer = officers.get(randomIndex);
-                if (officer instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> map = (Map<String, Object>) officer;
-                    Object userId = map.get("userId");
-                    if (userId != null) {
-                        Long executorId = Long.valueOf(userId.toString());
-                        log.info("随机分配安全员成功, userId: {}", executorId);
-                        return executorId;
-                    }
-                }
+                DriverInfo officer = officers.get(randomIndex);
+                Long executorId = officer.getUserId();
+                log.info("随机分配安全员成功, userId: {}, driverName: {}", executorId, officer.getDriverName());
+                return executorId;
             }
         } catch (Exception e) {
             log.error("随机选择安全员失败", e);
