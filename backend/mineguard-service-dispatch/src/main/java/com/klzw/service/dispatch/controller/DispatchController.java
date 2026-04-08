@@ -147,56 +147,68 @@ public class DispatchController {
     @PostMapping("/task/{taskId}/accept")
     public Result<java.util.Map<String, String>> acceptTask(@PathVariable Long taskId) {
         log.debug("司机接单：ID={}", taskId);
+        TransportTask task = dispatchService.getDispatchTask(taskId);
+        if (task == null) {
+            return Result.fail(910, "任务不存在");
+        }
+        if (task.getStatus() != 0) {
+            return Result.fail(911, "任务状态错误，只能接取待接单状态的任务");
+        }
+        
+        Integer originalStatus = task.getStatus();
+        task.setStatus(1);
+        task.setAcceptTime(LocalDateTime.now());
+        task.setUpdateTime(LocalDateTime.now());
+        dispatchService.updateDispatchTask(task);
+        
+        Long driverId = task.getExecutorId();
+        Long vehicleId = task.getVehicleId();
+        if (driverId != null && vehicleId != null) {
+            try {
+                TripCreateRequest request = new TripCreateRequest();
+                request.setVehicleId(vehicleId);
+                request.setDriverId(driverId);
+                request.setDispatchTaskId(taskId);
+                request.setStartLocation(task.getStartLocation());
+                request.setEndLocation(task.getEndLocation());
+                request.setStartLongitude(task.getStartLongitude());
+                request.setStartLatitude(task.getStartLatitude());
+                request.setEndLongitude(task.getEndLongitude());
+                request.setEndLatitude(task.getEndLatitude());
+                request.setEstimatedStartTime(task.getScheduledStartTime());
+                request.setEstimatedEndTime(task.getScheduledEndTime());
+                request.setTripType(1);
+                request.setRemark("司机接单自动生成，任务编号：" + task.getTaskNo());
+                
+                Long tripId = dispatchService.createTripFromTask(task, driverId, vehicleId);
+                if (tripId != null) {
+                    java.util.Map<String, String> result = new java.util.HashMap<>();
+                    result.put("tripId", tripId.toString());
+                    return Result.success(result);
+                } else {
+                    log.warn("创建行程返回null，回滚任务状态：taskId={}", taskId);
+                    rollbackTaskStatus(task, originalStatus);
+                    return Result.fail(913, "创建行程失败，任务已恢复为待接单状态");
+                }
+            } catch (Exception e) {
+                log.error("创建行程失败：任务 ID={}, 错误={}", taskId, e.getMessage());
+                rollbackTaskStatus(task, originalStatus);
+                return Result.fail(913, "创建行程失败：" + e.getMessage() + "，任务已恢复为待接单状态");
+            }
+        }
+        
+        return Result.success(new java.util.HashMap<>());
+    }
+    
+    private void rollbackTaskStatus(TransportTask task, Integer originalStatus) {
         try {
-            TransportTask task = dispatchService.getDispatchTask(taskId);
-            if (task == null) {
-                return Result.fail(910, "任务不存在");
-            }
-            if (task.getStatus() != 0) {
-                return Result.fail(911, "任务状态错误，只能接取待接单状态的任务");
-            }
-            
-            // 更新任务状态为已接单
-            task.setStatus(1);
-            task.setAcceptTime(LocalDateTime.now());
+            task.setStatus(originalStatus);
+            task.setAcceptTime(null);
             task.setUpdateTime(LocalDateTime.now());
             dispatchService.updateDispatchTask(task);
-            
-            // 创建行程
-            Long driverId = task.getExecutorId();
-            Long vehicleId = task.getVehicleId();
-            if (driverId != null && vehicleId != null) {
-                try {
-                    TripCreateRequest request = new TripCreateRequest();
-                    request.setVehicleId(vehicleId);
-                    request.setDriverId(driverId);
-                    request.setDispatchTaskId(taskId);
-                    request.setStartLocation(task.getStartLocation());
-                    request.setEndLocation(task.getEndLocation());
-                    request.setStartLongitude(task.getStartLongitude());
-                    request.setStartLatitude(task.getStartLatitude());
-                    request.setEndLongitude(task.getEndLongitude());
-                    request.setEndLatitude(task.getEndLatitude());
-                    request.setEstimatedStartTime(task.getScheduledStartTime());
-                    request.setEstimatedEndTime(task.getScheduledEndTime());
-                    request.setTripType(1);
-                    request.setRemark("司机接单自动生成，任务编号：" + task.getTaskNo());
-                    
-                    Long tripId = dispatchService.createTripFromTask(task, driverId, vehicleId);
-                    if (tripId != null) {
-                        java.util.Map<String, String> result = new java.util.HashMap<>();
-                        result.put("tripId", tripId.toString());
-                        return Result.success(result);
-                    }
-                } catch (Exception e) {
-                    log.error("创建行程失败：任务 ID={}, 错误={}", taskId, e.getMessage());
-                }
-            }
-            
-            return Result.success(new java.util.HashMap<>());
+            log.info("任务状态已回滚：taskId={}, status={}", task.getId(), originalStatus);
         } catch (Exception e) {
-            log.error("司机接单失败：任务 ID={}, 错误={}", taskId, e.getMessage());
-            return Result.fail(912, "司机接单失败");
+            log.error("回滚任务状态失败：taskId={}, error={}", task.getId(), e.getMessage());
         }
     }
 
