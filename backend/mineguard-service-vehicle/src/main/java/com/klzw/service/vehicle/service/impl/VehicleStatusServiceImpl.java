@@ -75,33 +75,40 @@ public class VehicleStatusServiceImpl extends ServiceImpl<VehicleStatusMapper, V
                 statusVO = new VehicleStatusVO();
                 statusVO.setVehicleId(vehicleId.toString());
             }
-            statusVO.setStatus(2); // 行驶中
+            statusVO.setStatus(VehicleStatusEnum.RUNNING.getCode()); // 行驶中
             return statusVO;
         }
+        
         
         // 3. 无 tripId = 空闲/离线
         log.info("车辆空闲/离线：vehicleId={}", vehicleId);
         VehicleStatusVO statusVO = new VehicleStatusVO();
         statusVO.setVehicleId(vehicleId.toString());
-        statusVO.setStatus(0); // 离线
+        statusVO.setStatus(VehicleStatusEnum.IDLE.getCode()); // 空闲
         return statusVO;
     }
 
     @Override
     public VehicleStatus updateStatus(Long vehicleId, VehicleStatus status) {
-        log.info("更新车辆状态：vehicleId={}, status={}", vehicleId, status);
+        VehicleStatusVO oldStatusVO = getRealTimeStatus(vehicleId);
+        Integer oldStatus = oldStatusVO != null ? oldStatusVO.getStatus() : null;
+        Integer newStatus = status.getStatus();
         
-        // 1. 保存状态到数据库
+        log.info("车辆状态变更：vehicleId={}, oldStatus={}, newStatus={}, remark={}", 
+            vehicleId, oldStatus, newStatus, status.getRemark());
+        
         status.setVehicleId(vehicleId);
         save(status);
         
-        // 2. 更新 Redis 缓存
         String redisKey = "vehicle:status:" + vehicleId;
         VehicleStatusVO statusVO = convertToVO(status);
-        redisCacheService.set(redisKey, statusVO, 30, TimeUnit.MINUTES);
+        int expireMinutes = newStatus != null && newStatus.equals(VehicleStatusEnum.RUNNING.getCode()) 
+            ? 5 : 60;
+        redisCacheService.set(redisKey, statusVO, expireMinutes, TimeUnit.MINUTES);
         
-        // 3. 推送状态变更
         vehicleStatusPushService.pushStatusChange(vehicleId, statusVO);
+        
+        log.info("车辆状态更新完成：vehicleId={}, status={}, Redis缓存过期={}分钟", vehicleId, newStatus, expireMinutes);
         
         return status;
     }

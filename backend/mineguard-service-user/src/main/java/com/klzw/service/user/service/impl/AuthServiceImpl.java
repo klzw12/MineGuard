@@ -264,7 +264,7 @@ public class AuthServiceImpl implements AuthService {
     public UserVO verifyAdmin(AdminVerifyDTO dto) {
         log.info("管理员认证，用户 ID：{}", dto.getUserId());
         
-        Long userId = Long.parseLong(dto.getUserId());
+        Long userId = dto.getUserId();
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new UserException(UserResultCode.USER_NOT_FOUND);

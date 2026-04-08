@@ -75,8 +75,20 @@ public class VehicleFaultServiceImpl extends ServiceImpl<VehicleFaultMapper, Veh
         fault.setStatus(FaultStatusEnum.RESOLVED.getCode());
         updateById(fault);
         
-        vehicleService.updateVehicleStatus(fault.getVehicleId(), VehicleStatusEnum.IDLE.getCode());
-        log.info("车辆状态已恢复为空闲: vehicleId={}", fault.getVehicleId());
+        Integer targetStatus = VehicleStatusEnum.IDLE.getCode();
+        try {
+            com.klzw.common.core.result.Result<com.klzw.common.core.domain.dto.TripResponse> tripResult = 
+                dispatchClient.getActiveTripByVehicleId(fault.getVehicleId());
+            if (tripResult != null && tripResult.getCode() == 200 && tripResult.getData() != null) {
+                targetStatus = VehicleStatusEnum.RUNNING.getCode();
+                log.info("车辆有活跃行程，故障解决后恢复为运行中状态：vehicleId={}", fault.getVehicleId());
+            }
+        } catch (Exception e) {
+            log.warn("检查车辆活跃行程失败，默认恢复为空闲状态：vehicleId={}, error={}", fault.getVehicleId(), e.getMessage());
+        }
+        
+        vehicleService.updateVehicleStatus(fault.getVehicleId(), targetStatus);
+        log.info("车辆状态已恢复：vehicleId={}, status={}", fault.getVehicleId(), targetStatus);
         
         return fault;
     }

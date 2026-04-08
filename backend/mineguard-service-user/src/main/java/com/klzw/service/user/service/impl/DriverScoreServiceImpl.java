@@ -175,9 +175,9 @@ public class DriverScoreServiceImpl implements DriverScoreService {
         driver.setUpdateTime(LocalDateTime.now());
         driverMapper.updateById(driver);
         
-        sendSevereWarning(driver, "盗泻行为，账户已封禁");
+        sendSevereWarning(driver, "盗窃行为，账户已封禁");
         
-        log.warn("盗泻处理：司机ID={}, 分数清零，账户封禁", driverId);
+        log.warn("盗窃处理：司机ID={}, 分数清零，账户封禁", driverId);
     }
 
     @Override

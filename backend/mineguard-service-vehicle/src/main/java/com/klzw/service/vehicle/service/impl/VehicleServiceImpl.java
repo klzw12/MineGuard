@@ -270,7 +270,8 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                 vehicle.setInspectionRecord(parseResult.get("inspectionRecord"));
             }
         } catch (Exception e) {
-            log.error("行驶证反面OCR识别失败", e);
+            log.error("行驶证反面OCR识别失败：vehicleId={}", id, e);
+            throw new VehicleException(VehicleResultCode.OPERATION_FAILED, "行驶证反面OCR识别失败：" + e.getMessage());
         }
         
         updateById(vehicle);
@@ -388,7 +389,6 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
 
         List<Vehicle> vehicles = list(wrapper);
 
-        List<Vehicle> vehiclesToUpdate = new ArrayList<>();
         List<BestVehicleVO> result = new ArrayList<>();
         for (Vehicle vehicle : vehicles) {
             BestVehicleVO vo = new BestVehicleVO();
@@ -411,15 +411,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             vo.setScore(score);
             vo.setReason(generateRecommendReason(vehicle, score));
 
-            vehicle.setScore(score);
-            vehiclesToUpdate.add(vehicle);
-
             result.add(vo);
-        }
-
-        if (!vehiclesToUpdate.isEmpty()) {
-            updateBatchById(vehiclesToUpdate);
-            log.info("批量更新车辆评分：{} 辆", vehiclesToUpdate.size());
         }
 
         result.sort((a, b) -> b.getScore().compareTo(a.getScore()));

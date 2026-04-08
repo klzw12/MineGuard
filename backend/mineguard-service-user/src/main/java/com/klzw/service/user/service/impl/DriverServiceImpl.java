@@ -3,12 +3,11 @@ package com.klzw.service.user.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.klzw.common.auth.enums.RoleEnum;
 import com.klzw.common.core.client.VehicleClient;
-import com.klzw.common.core.domain.dto.VehicleInfo;
 import com.klzw.service.user.entity.Driver;
 import com.klzw.service.user.entity.DriverVehicle;
 import com.klzw.service.user.entity.Repairman;
 import com.klzw.service.user.entity.SafetyOfficer;
-import com.klzw.service.user.entity.UserAttendance;
+import com.klzw.service.user.enums.DriverStatusEnum;
 import com.klzw.service.user.mapper.DriverMapper;
 import com.klzw.service.user.mapper.DriverVehicleMapper;
 import com.klzw.service.user.mapper.RepairmanMapper;
@@ -96,7 +95,7 @@ public class DriverServiceImpl implements DriverService {
     @Override
     public List<DriverVO> getAvailableDrivers() {
         LambdaQueryWrapper<Driver> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Driver::getStatus, 1);
+        wrapper.eq(Driver::getStatus, DriverStatusEnum.EMPLOYED.getValue());
         wrapper.eq(Driver::getDeleted, 0);
         wrapper.orderByAsc(Driver::getCreateTime);
         
@@ -171,8 +170,16 @@ public class DriverServiceImpl implements DriverService {
                             scheduledTime, availableDrivers.size(), beforeSize);
                     }
                 }
+            } catch (java.time.format.DateTimeParseException e) {
+                log.error("计划时间格式错误: {}, 期望格式: yyyy-MM-dd", scheduledTime);
+                throw new com.klzw.common.core.exception.BaseException(
+                    com.klzw.common.core.enums.ResultCodeEnum.PARAM_ERROR.getCode(),
+                    "计划时间格式错误，期望格式: yyyy-MM-dd");
             } catch (Exception e) {
-                log.warn("解析计划时间失败: {}, 将不过滤", scheduledTime);
+                log.error("解析计划时间失败: {}", scheduledTime, e);
+                throw new com.klzw.common.core.exception.BaseException(
+                    com.klzw.common.core.enums.ResultCodeEnum.PARAM_ERROR.getCode(),
+                    "计划时间解析失败: " + e.getMessage());
             }
         }
         
@@ -436,7 +443,7 @@ public class DriverServiceImpl implements DriverService {
             score += Math.min(driver.getDrivingYears() / 3.0, 5);
         }
 
-        if (driver.getStatus() != null && driver.getStatus() == 1) {
+        if (driver.getStatus() != null && driver.getStatus().equals(DriverStatusEnum.EMPLOYED.getValue())) {
             score += 5;
         }
 
