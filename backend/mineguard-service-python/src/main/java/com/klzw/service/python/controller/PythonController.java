@@ -1,11 +1,16 @@
 package com.klzw.service.python.controller;
 
 import com.klzw.common.core.result.Result;
+import com.klzw.service.python.service.AsyncExportService;
 import com.klzw.service.python.service.PythonService;
+import com.klzw.service.python.vo.ExportTaskVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -17,6 +22,7 @@ import java.util.Map;
 public class PythonController {
 
     private final PythonService pythonService;
+    private final AsyncExportService asyncExportService;
 
     @PostMapping("/clean/driving-data")
     @Operation(summary = "清洗驾驶数据")
@@ -95,6 +101,49 @@ public class PythonController {
     @Operation(summary = "健康检查")
     public Result<Map<String, Object>> healthCheck() {
         return Result.success(pythonService.healthCheck());
+    }
+
+    @PostMapping("/export/async/{exportType}")
+    @Operation(summary = "异步导出报表", description = "exportType: statistics, trip, cost, vehicle, driver")
+    public Result<String> exportAsync(
+            @Parameter(description = "导出类型") @PathVariable String exportType,
+            @RequestBody Map<String, Object> exportRequest) {
+        String taskId = asyncExportService.submitExportTask(exportType, exportRequest);
+        return Result.success(taskId);
+    }
+
+    @GetMapping("/export/status/{taskId}")
+    @Operation(summary = "查询导出任务状态")
+    public Result<ExportTaskVO> getExportStatus(
+            @Parameter(description = "任务ID") @PathVariable String taskId) {
+        ExportTaskVO task = asyncExportService.getTaskStatus(taskId);
+        if (task == null) {
+            return Result.fail("任务不存在");
+        }
+        return Result.success(task);
+    }
+
+    @GetMapping("/export/result/{taskId}")
+    @Operation(summary = "下载导出结果")
+    public ResponseEntity<byte[]> getExportResult(
+            @Parameter(description = "任务ID") @PathVariable String taskId) {
+        try {
+            byte[] data = asyncExportService.getTaskResult(taskId);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=export_" + taskId + ".xlsx")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(data);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/export/cancel/{taskId}")
+    @Operation(summary = "取消导出任务")
+    public Result<Void> cancelExport(
+            @Parameter(description = "任务ID") @PathVariable String taskId) {
+        asyncExportService.cancelTask(taskId);
+        return Result.success();
     }
 
 }

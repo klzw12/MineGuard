@@ -986,18 +986,22 @@ public class CostServiceImpl implements CostService {
     public Long calculateAndRecordTripCommission(Long tripId, Long driverId, double estimatedAmount) {
         log.info("计算并记录 Trip 提成：tripId={}, driverId={}, estimatedAmount={}", tripId, driverId, estimatedAmount);
         
+        int pythonScore = 60;
+        double commission = 0;
+        
         try {
-            // 1. 调用 Python 服务获取驾驶行为评分
-            int pythonScore = pythonClient.analyzeDrivingBehavior(tripId);
+            pythonScore = pythonClient.analyzeDrivingBehavior(tripId);
             log.info("Python 评分结果：tripId={}, score={}", tripId, pythonScore);
-            
-            // 2. 计算提成金额 = 预计金额 × (Python 得分 / 100)
-            double commission = estimatedAmount * (pythonScore / 100.0);
+        } catch (Exception e) {
+            log.warn("调用 Python 服务分析驾驶行为失败，使用默认分数60：tripId={}, error={}", tripId, e.getMessage());
+        }
+        
+        try {
+            commission = estimatedAmount * (pythonScore / 100.0);
             log.info("提成计算：预计金额={}元，Python 得分={}, 提成={}元", estimatedAmount, pythonScore, commission);
             
-            // 3. 创建成本记录
             CostDetailDTO dto = new CostDetailDTO();
-            dto.setCostType(3); // 人工成本
+            dto.setCostType(3);
             dto.setCostName("Trip 任务提成");
             dto.setAmount(BigDecimal.valueOf(commission));
             dto.setUserId(driverId);
@@ -1005,15 +1009,14 @@ public class CostServiceImpl implements CostService {
             dto.setCostDate(LocalDate.now());
             dto.setRemark(String.format("Python 评分=%d, 提成比例=%.0f%%", pythonScore, pythonScore));
             
-            // 4. 保存成本记录
             CostDetailVO vo = addCostDetail(dto);
             log.info("Trip 提成记录成功：tripId={}, costId={}, commission={}元", tripId, vo.getId(), commission);
             
             return vo.getId();
             
         } catch (Exception e) {
-            log.error("计算并记录 Trip 提成失败：tripId={}, driverId={}", tripId, driverId, e);
-            throw new RuntimeException("计算 Trip 提成失败", e);
+            log.error("保存 Trip 提成记录失败：tripId={}, driverId={}", tripId, driverId, e);
+            return null;
         }
     }
 }

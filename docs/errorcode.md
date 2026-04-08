@@ -5,30 +5,45 @@
 | 模块 | 错误码范围 | 枚举类 |
 | ---- | --------- | ------ |
 | core | 200, 400-605 | `ResultCodeEnum` |
-| web | 701-727 | `WebResultCode` |
-| auth | 800-854 | `AuthResultCode` |
+| web | 700-727 | `WebResultCode` |
+| auth | 800-863 | `AuthResultCode` |
 | redis | 900-955 | `RedisResultCode` |
-| database | 1000-1064 | `DatabaseResultCode` |
-| file | 1200-1219 | `FileResultCode` |
-| mq | 1100-1151 | `MqResultCode` |
-| mongodb | 1300-1374 | `MongoDbResultCode` |
+| dispatch | 1000-1099 | `DispatchResultCode` |
+| database | 1100-1164 | `DatabaseResultCode` |
+| mq | 1200-1251 | `MqResultCode` |
+| file | 1300-1399 | `FileResultCode` |
+| mongodb | 1400-1474 | `MongoDbResultCode` |
 | websocket | 1500-1519 | `WebSocketResultCode` |
+| vehicle | 2000-2010 | `VehicleResultCode` |
+| user | 2100-2151 | `UserResultCode` |
+| warning | 2200-2221 | `WarningResultCode` |
+| trip | 2300-2341 | `TripResultCode` |
+| statistics | 2400-2420 | `StatisticsResultCode` |
+| cost | 2500-2520 | `CostResultCode` |
+| ai | 2600-2642 | `AiResultCode` |
 
 ## 2. 预留范围
 
 | 范围 | 用途 | 状态 |
 |------|------|------|
 | 700-799 | Web层扩展 | 已使用 701-727 |
-| 800-899 | 认证模块 | 已使用 800-854 |
-| 900-999 | Redis模块 | 已使用 900-954 |
-| 1000-1099 | 数据库模块 | 已使用 1000-1064 |
-| 1100-1199 | 消息队列模块 | 已使用 1100-1151 |
-| 1200-1299 | 文件存储模块 | 已使用 1200-1219 |
-| 1300-1399 | MongoDB模块 | 已使用 1300-1374 |
-| 1400-1499 | 预留 | 未使用 |
+| 800-899 | 认证模块 | 已使用 800-863 |
+| 900-999 | Redis模块 | 已使用 900-955 |
+| 1000-1099 | 调度模块 | 已使用 1000-1099 |
+| 1100-1199 | 数据库模块 | 已使用 1100-1164 |
+| 1200-1299 | 消息队列模块 | 已使用 1200-1251 |
+| 1300-1399 | 文件存储模块 | 已使用 1300-1399 |
+| 1400-1499 | MongoDB模块 | 已使用 1400-1474 |
 | 1500-1599 | WebSocket模块 | 已使用 1500-1519 |
 | 1600-1999 | 预留 | 未使用 |
-| 2000-3999 | 业务模块预留 | 未使用 |
+| 2000-2099 | 车辆模块 | 已使用 2001-2010 |
+| 2100-2199 | 用户模块 | 已使用 2100-2151 |
+| 2200-2299 | 预警模块 | 已使用 2200-2221 |
+| 2300-2399 | 行程模块 | 已使用 2300-2341 |
+| 2400-2499 | 统计模块 | 已使用 2400-2420 |
+| 2500-2599 | 成本模块 | 已使用 2500-2520 |
+| 2600-2699 | AI模块 | 已使用 2600-2642 |
+| 2700-3999 | 预留 | 未使用 |
 
 ## 3. 各模块错误码详情
 
@@ -109,6 +124,11 @@
 | 852 | REGISTER_FAILED | 注册失败 |
 | 853 | VERIFICATION_FAILED | 验证失败 |
 | 854 | SESSION_EXPIRED | 会话已过期 |
+| 860 | SMS_SEND_FAILED | 短信发送失败 |
+| 861 | SMS_CODE_ERROR | 验证码错误 |
+| 862 | SMS_CODE_EXPIRED | 验证码已过期 |
+| 863 | SMS_SEND_FREQUENCY_ERROR | 短信发送频率过高 |
+| 899 | SYSTEM_ERROR | 系统错误 |
 
 ### 3.4 Redis 模块 (RedisResultCode)
 
@@ -144,137 +164,162 @@
 | 954 | OPERATION_NOT_SUPPORTED | 不支持的操作 |
 | 955 | PARAMETER_ERROR | 参数错误 |
 
-### 3.5 Database 数据库模块 (DatabaseResultCode)
+### 3.5 Dispatch 调度模块 (DispatchResultCode)
 
 | 错误码 | 常量名 | 说明 |
 |--------|--------|------|
-| 1000 | DATABASE_ERROR | 数据库操作失败 |
-| 1001 | DATABASE_CONNECTION_ERROR | 数据库连接失败 |
-| 1002 | CONNECTION_TIMEOUT | 数据库连接超时 |
-| 1003 | CONNECTION_POOL_EXHAUSTED | 数据库连接池耗尽 |
-| 1004 | CONNECTION_CLOSED | 数据库连接已关闭 |
-| 1005 | INVALID_CONNECTION_CONFIG | 数据库连接配置无效 |
-| 1010 | SQL_EXECUTION_ERROR | SQL执行失败 |
-| 1011 | SQL_SYNTAX_ERROR | SQL语法错误 |
-| 1012 | QUERY_TIMEOUT | 查询超时 |
-| 1013 | UPDATE_TIMEOUT | 更新超时 |
-| 1014 | BATCH_EXECUTION_ERROR | 批量执行失败 |
-| 1020 | TRANSACTION_ERROR | 事务执行失败 |
-| 1021 | TRANSACTION_TIMEOUT | 事务超时 |
-| 1022 | TRANSACTION_ROLLBACK | 事务回滚 |
-| 1023 | TRANSACTION_NOT_ACTIVE | 事务未激活 |
-| 1024 | NESTED_TRANSACTION_ERROR | 嵌套事务错误 |
-| 1030 | DATA_SOURCE_ERROR | 数据源配置错误 |
-| 1031 | DATA_SOURCE_NOT_FOUND | 数据源不存在 |
-| 1032 | DATA_SOURCE_SWITCH_ERROR | 数据源切换失败 |
-| 1033 | MASTER_SLAVE_SYNC_ERROR | 主从同步错误 |
-| 1034 | READ_WRITE_SPLIT_ERROR | 读写分离错误 |
-| 1040 | PAGINATION_ERROR | 分页参数错误 |
-| 1041 | PAGE_NUMBER_INVALID | 页码无效 |
-| 1042 | PAGE_SIZE_INVALID | 每页大小无效 |
-| 1043 | PAGE_SIZE_EXCEEDED | 每页大小超过限制 |
-| 1044 | SORT_FIELD_INVALID | 排序字段无效 |
-| 1050 | RECORD_NOT_FOUND | 记录不存在 |
-| 1051 | DUPLICATE_KEY_ERROR | 主键冲突 |
-| 1052 | DATA_INTEGRITY_ERROR | 数据完整性错误 |
-| 1053 | FOREIGN_KEY_CONSTRAINT_ERROR | 外键约束错误 |
-| 1054 | UNIQUE_CONSTRAINT_ERROR | 唯一约束错误 |
-| 1055 | NULL_VALUE_ERROR | 空值错误 |
-| 1060 | MAPPER_NOT_FOUND | Mapper未找到 |
-| 1061 | ENTITY_NOT_FOUND | 实体类未找到 |
-| 1062 | TABLE_NOT_FOUND | 表不存在 |
-| 1063 | FIELD_NOT_FOUND | 字段不存在 |
-| 1064 | TYPE_HANDLER_ERROR | 类型处理器错误 |
+| 1000 | DISPATCH_FAILED | 调度失败 |
+| 1001 | PARAMETER_ERROR | 参数错误 |
+| 1002 | NO_AVAILABLE_DRIVER | 无可用司机 |
+| 1003 | NO_AVAILABLE_VEHICLE | 无可用车辆 |
+| 1004 | DISPATCH_ALGORITHM_ERROR | 调度算法执行失败 |
+| 1010 | TASK_NOT_FOUND | 调度任务不存在 |
+| 1011 | TASK_STATUS_ERROR | 任务状态错误 |
+| 1012 | TASK_OPERATION_FAILED | 任务操作失败 |
+| 1013 | TASK_CANCELLED | 任务已取消 |
+| 1020 | ROUTE_TEMPLATE_CREATE_FAILED | 路线模板创建失败 |
+| 1021 | ROUTE_TEMPLATE_NOT_FOUND | 路线模板不存在 |
+| 1022 | ROUTE_BLOCK_ADJUST_FAILED | 线路堵塞调整失败 |
+| 1030 | VEHICLE_NOT_FOUND | 车辆不存在 |
+| 1031 | VEHICLE_NOT_AVAILABLE | 车辆不可用 |
+| 1032 | VEHICLE_FAULT_ADJUST_FAILED | 车辆故障调整失败 |
+| 1040 | DRIVER_NOT_FOUND | 司机不存在 |
+| 1041 | DRIVER_NOT_AVAILABLE | 司机不可用 |
+| 1042 | DRIVER_LEAVE_ADJUST_FAILED | 司机请假调整失败 |
+| 1099 | SYSTEM_ERROR | 系统错误 |
 
-### 3.6 MQ 消息队列模块 (MqResultCode)
+### 3.6 Database 数据库模块 (DatabaseResultCode)
 
 | 错误码 | 常量名 | 说明 |
 |--------|--------|------|
-| 1100 | MQ_ERROR | 消息队列操作失败 |
-| 1101 | MQ_CONNECTION_ERROR | 消息队列连接失败 |
-| 1102 | MQ_TIMEOUT_ERROR | 消息队列操作超时 |
-| 1110 | PRODUCER_SEND_ERROR | 消息发送失败 |
-| 1111 | PRODUCER_TRANSACTION_ERROR | 事务消息处理失败 |
-| 1120 | CONSUMER_PROCESS_ERROR | 消息消费失败 |
-| 1121 | CONSUMER_RETRY_EXCEEDED | 消息重试次数超过限制 |
-| 1130 | QUEUE_NOT_FOUND | 队列不存在 |
-| 1131 | QUEUE_FULL | 队列已满 |
-| 1140 | EXCHANGE_NOT_FOUND | 交换机不存在 |
-| 1141 | EXCHANGE_TYPE_ERROR | 交换机类型错误 |
-| 1150 | MESSAGE_FORMAT_ERROR | 消息格式错误 |
-| 1151 | MESSAGE_TOO_LARGE | 消息过大 |
+| 1100 | DATABASE_ERROR | 数据库操作失败 |
+| 1101 | DATABASE_CONNECTION_ERROR | 数据库连接失败 |
+| 1102 | CONNECTION_TIMEOUT | 数据库连接超时 |
+| 1103 | CONNECTION_POOL_EXHAUSTED | 数据库连接池耗尽 |
+| 1104 | CONNECTION_CLOSED | 数据库连接已关闭 |
+| 1105 | INVALID_CONNECTION_CONFIG | 数据库连接配置无效 |
+| 1110 | SQL_EXECUTION_ERROR | SQL执行失败 |
+| 1111 | SQL_SYNTAX_ERROR | SQL语法错误 |
+| 1112 | QUERY_TIMEOUT | 查询超时 |
+| 1113 | UPDATE_TIMEOUT | 更新超时 |
+| 1114 | BATCH_EXECUTION_ERROR | 批量执行失败 |
+| 1120 | TRANSACTION_ERROR | 事务执行失败 |
+| 1121 | TRANSACTION_TIMEOUT | 事务超时 |
+| 1122 | TRANSACTION_ROLLBACK | 事务回滚 |
+| 1123 | TRANSACTION_NOT_ACTIVE | 事务未激活 |
+| 1124 | NESTED_TRANSACTION_ERROR | 嵌套事务错误 |
+| 1130 | DATA_SOURCE_ERROR | 数据源配置错误 |
+| 1131 | DATA_SOURCE_NOT_FOUND | 数据源不存在 |
+| 1132 | DATA_SOURCE_SWITCH_ERROR | 数据源切换失败 |
+| 1133 | MASTER_SLAVE_SYNC_ERROR | 主从同步错误 |
+| 1134 | READ_WRITE_SPLIT_ERROR | 读写分离错误 |
+| 1140 | PAGINATION_ERROR | 分页参数错误 |
+| 1141 | PAGE_NUMBER_INVALID | 页码无效 |
+| 1142 | PAGE_SIZE_INVALID | 每页大小无效 |
+| 1143 | PAGE_SIZE_EXCEEDED | 每页大小超过限制 |
+| 1144 | SORT_FIELD_INVALID | 排序字段无效 |
+| 1150 | RECORD_NOT_FOUND | 记录不存在 |
+| 1151 | DUPLICATE_KEY_ERROR | 主键冲突 |
+| 1152 | DATA_INTEGRITY_ERROR | 数据完整性错误 |
+| 1153 | FOREIGN_KEY_CONSTRAINT_ERROR | 外键约束错误 |
+| 1154 | UNIQUE_CONSTRAINT_ERROR | 唯一约束错误 |
+| 1155 | NULL_VALUE_ERROR | 空值错误 |
+| 1160 | MAPPER_NOT_FOUND | Mapper未找到 |
+| 1161 | ENTITY_NOT_FOUND | 实体类未找到 |
+| 1162 | TABLE_NOT_FOUND | 表不存在 |
+| 1163 | FIELD_NOT_FOUND | 字段不存在 |
+| 1164 | TYPE_HANDLER_ERROR | 类型处理器错误 |
 
-### 3.7 File 文件存储模块 (FileResultCode)
+### 3.7 MQ 消息队列模块 (MqResultCode)
 
 | 错误码 | 常量名 | 说明 |
 |--------|--------|------|
-| 1200 | STORAGE_CONNECTION_FAILED | 存储连接失败 |
-| 1201 | STORAGE_TIMEOUT | 存储操作超时 |
-| 1202 | STORAGE_DATA_ERROR | 存储数据错误 |
-| 1203 | BUCKET_INIT_FAILED | 存储桶初始化失败 |
-| 1204 | BUCKET_NOT_FOUND | 存储桶不存在 |
-| 1205 | BUCKET_CREATE_FAILED | 存储桶创建失败 |
-| 1206 | BUCKET_DELETE_FAILED | 存储桶删除失败 |
-| 1207 | FILE_NOT_FOUND | 文件不存在 |
-| 1208 | FILE_UPLOAD_FAILED | 文件上传失败 |
-| 1209 | FILE_DOWNLOAD_FAILED | 文件下载失败 |
-| 1210 | FILE_DELETE_FAILED | 文件删除失败 |
-| 1211 | FILE_OPERATION_FAILED | 文件操作失败 |
-| 1212 | FILE_SIZE_EXCEEDED | 文件大小超出限制 |
-| 1213 | FILE_TYPE_NOT_ALLOWED | 文件类型不允许 |
-| 1214 | FILE_PATH_INVALID | 文件路径无效 |
-| 1215 | URL_GENERATE_FAILED | URL生成失败 |
-| 1216 | PRESIGNED_URL_FAILED | 预签名URL生成失败 |
-| 1217 | STORAGE_CONFIG_ERROR | 存储配置错误 |
-| 1218 | STORAGE_INIT_FAILED | 存储初始化失败 |
-| 1219 | STORAGE_TYPE_NOT_SUPPORTED | 不支持的存储类型 |
+| 1200 | MQ_ERROR | 消息队列操作失败 |
+| 1201 | MQ_CONNECTION_ERROR | 消息队列连接失败 |
+| 1202 | MQ_TIMEOUT_ERROR | 消息队列操作超时 |
+| 1210 | PRODUCER_SEND_ERROR | 消息发送失败 |
+| 1211 | PRODUCER_TRANSACTION_ERROR | 事务消息处理失败 |
+| 1220 | CONSUMER_PROCESS_ERROR | 消息消费失败 |
+| 1221 | CONSUMER_RETRY_EXCEEDED | 消息重试次数超过限制 |
+| 1230 | QUEUE_NOT_FOUND | 队列不存在 |
+| 1231 | QUEUE_FULL | 队列已满 |
+| 1240 | EXCHANGE_NOT_FOUND | 交换机不存在 |
+| 1241 | EXCHANGE_TYPE_ERROR | 交换机类型错误 |
+| 1250 | MESSAGE_FORMAT_ERROR | 消息格式错误 |
+| 1251 | MESSAGE_TOO_LARGE | 消息过大 |
 
-### 3.8 MongoDB 模块 (MongoDbResultCode)
+### 3.8 File 文件存储模块 (FileResultCode)
 
 | 错误码 | 常量名 | 说明 |
 |--------|--------|------|
-| 1300 | MONGODB_ERROR | MongoDB操作失败 |
-| 1301 | CONNECTION_ERROR | MongoDB连接失败 |
-| 1302 | CONNECTION_TIMEOUT | MongoDB连接超时 |
-| 1303 | CONNECTION_POOL_EXHAUSTED | MongoDB连接池耗尽 |
-| 1304 | INVALID_CONNECTION_STRING | 无效的MongoDB连接字符串 |
-| 1305 | AUTHENTICATION_ERROR | MongoDB认证失败 |
-| 1310 | COLLECTION_ERROR | 集合操作失败 |
-| 1311 | COLLECTION_NOT_FOUND | 集合不存在 |
-| 1312 | COLLECTION_ALREADY_EXISTS | 集合已存在 |
-| 1313 | CREATE_COLLECTION_ERROR | 创建集合失败 |
-| 1314 | DROP_COLLECTION_ERROR | 删除集合失败 |
-| 1320 | DOCUMENT_ERROR | 文档操作失败 |
-| 1321 | DOCUMENT_NOT_FOUND | 文档不存在 |
-| 1322 | INSERT_DOCUMENT_ERROR | 插入文档失败 |
-| 1323 | UPDATE_DOCUMENT_ERROR | 更新文档失败 |
-| 1324 | DELETE_DOCUMENT_ERROR | 删除文档失败 |
-| 1325 | DUPLICATE_KEY_ERROR | 文档键值冲突 |
-| 1330 | INDEX_ERROR | 索引操作失败 |
-| 1331 | CREATE_INDEX_ERROR | 创建索引失败 |
-| 1332 | DROP_INDEX_ERROR | 删除索引失败 |
-| 1333 | INDEX_NOT_FOUND | 索引不存在 |
-| 1334 | INVALID_INDEX_SPEC | 无效的索引规范 |
-| 1335 | TTL_INDEX_ERROR | TTL索引操作失败 |
-| 1340 | AGGREGATION_ERROR | 聚合操作失败 |
-| 1341 | PIPELINE_ERROR | 聚合管道错误 |
-| 1342 | AGGREGATION_TIMEOUT | 聚合操作超时 |
-| 1343 | INVALID_AGGREGATION_STAGE | 无效的聚合阶段 |
-| 1350 | GEO_ERROR | 地理空间操作失败 |
-| 1351 | INVALID_GEO_JSON | 无效的GeoJSON格式 |
-| 1352 | GEO_INDEX_MISSING | 缺少地理空间索引 |
-| 1353 | GEO_QUERY_ERROR | 地理空间查询失败 |
-| 1354 | COORDINATE_OUT_OF_RANGE | 坐标值超出范围 |
-| 1360 | TIME_SERIES_ERROR | 时序数据操作失败 |
-| 1361 | INVALID_TIME_FIELD | 无效的时间字段 |
-| 1362 | TIME_SERIES_COLLECTION_ERROR | 时序集合操作失败 |
-| 1370 | QUERY_ERROR | 查询操作失败 |
-| 1371 | QUERY_TIMEOUT | 查询超时 |
-| 1372 | BULK_OPERATION_ERROR | 批量操作失败 |
-| 1373 | TRANSACTION_ERROR | 事务操作失败 |
-| 1374 | SESSION_ERROR | 会话操作失败 |
+| 1300 | STORAGE_CONNECTION_FAILED | 存储连接失败 |
+| 1301 | STORAGE_TIMEOUT | 存储操作超时 |
+| 1302 | STORAGE_DATA_ERROR | 存储数据错误 |
+| 1303 | BUCKET_INIT_FAILED | 存储桶初始化失败 |
+| 1304 | BUCKET_NOT_FOUND | 存储桶不存在 |
+| 1305 | BUCKET_CREATE_FAILED | 存储桶创建失败 |
+| 1306 | BUCKET_DELETE_FAILED | 存储桶删除失败 |
+| 1307 | FILE_NOT_FOUND | 文件不存在 |
+| 1308 | FILE_UPLOAD_FAILED | 文件上传失败 |
+| 1309 | FILE_DOWNLOAD_FAILED | 文件下载失败 |
+| 1310 | FILE_DELETE_FAILED | 文件删除失败 |
+| 1311 | FILE_OPERATION_FAILED | 文件操作失败 |
+| 1312 | FILE_SIZE_EXCEEDED | 文件大小超出限制 |
+| 1313 | FILE_TYPE_NOT_ALLOWED | 文件类型不允许 |
+| 1314 | FILE_PATH_INVALID | 文件路径无效 |
+| 1315 | URL_GENERATE_FAILED | URL生成失败 |
+| 1316 | PRESIGNED_URL_FAILED | 预签名URL生成失败 |
+| 1317 | STORAGE_CONFIG_ERROR | 存储配置错误 |
+| 1318 | STORAGE_INIT_FAILED | 存储初始化失败 |
+| 1319 | STORAGE_TYPE_NOT_SUPPORTED | 不支持的存储类型 |
+| 1399 | PARAM_ERROR | 参数错误 |
 
-### 3.9 WebSocket 模块 (WebSocketResultCode)
+### 3.9 MongoDB 模块 (MongoDbResultCode)
+
+| 错误码 | 常量名 | 说明 |
+|--------|--------|------|
+| 1400 | MONGODB_ERROR | MongoDB操作失败 |
+| 1401 | CONNECTION_ERROR | MongoDB连接失败 |
+| 1402 | CONNECTION_TIMEOUT | MongoDB连接超时 |
+| 1403 | CONNECTION_POOL_EXHAUSTED | MongoDB连接池耗尽 |
+| 1404 | INVALID_CONNECTION_STRING | 无效的MongoDB连接字符串 |
+| 1405 | AUTHENTICATION_ERROR | MongoDB认证失败 |
+| 1410 | COLLECTION_ERROR | 集合操作失败 |
+| 1411 | COLLECTION_NOT_FOUND | 集合不存在 |
+| 1412 | COLLECTION_ALREADY_EXISTS | 集合已存在 |
+| 1413 | CREATE_COLLECTION_ERROR | 创建集合失败 |
+| 1414 | DROP_COLLECTION_ERROR | 删除集合失败 |
+| 1420 | DOCUMENT_ERROR | 文档操作失败 |
+| 1421 | DOCUMENT_NOT_FOUND | 文档不存在 |
+| 1422 | INSERT_DOCUMENT_ERROR | 插入文档失败 |
+| 1423 | UPDATE_DOCUMENT_ERROR | 更新文档失败 |
+| 1424 | DELETE_DOCUMENT_ERROR | 删除文档失败 |
+| 1425 | DUPLICATE_KEY_ERROR | 文档键值冲突 |
+| 1430 | INDEX_ERROR | 索引操作失败 |
+| 1431 | CREATE_INDEX_ERROR | 创建索引失败 |
+| 1432 | DROP_INDEX_ERROR | 删除索引失败 |
+| 1433 | INDEX_NOT_FOUND | 索引不存在 |
+| 1434 | INVALID_INDEX_SPEC | 无效的索引规范 |
+| 1435 | TTL_INDEX_ERROR | TTL索引操作失败 |
+| 1440 | AGGREGATION_ERROR | 聚合操作失败 |
+| 1441 | PIPELINE_ERROR | 聚合管道错误 |
+| 1442 | AGGREGATION_TIMEOUT | 聚合操作超时 |
+| 1443 | INVALID_AGGREGATION_STAGE | 无效的聚合阶段 |
+| 1450 | GEO_ERROR | 地理空间操作失败 |
+| 1451 | INVALID_GEO_JSON | 无效的GeoJSON格式 |
+| 1452 | GEO_INDEX_MISSING | 缺少地理空间索引 |
+| 1453 | GEO_QUERY_ERROR | 地理空间查询失败 |
+| 1454 | COORDINATE_OUT_OF_RANGE | 坐标值超出范围 |
+| 1460 | TIME_SERIES_ERROR | 时序数据操作失败 |
+| 1461 | INVALID_TIME_FIELD | 无效的时间字段 |
+| 1462 | TIME_SERIES_COLLECTION_ERROR | 时序集合操作失败 |
+| 1470 | QUERY_ERROR | 查询操作失败 |
+| 1471 | QUERY_TIMEOUT | 查询超时 |
+| 1472 | BULK_OPERATION_ERROR | 批量操作失败 |
+| 1473 | TRANSACTION_ERROR | 事务操作失败 |
+| 1474 | SESSION_ERROR | 会话操作失败 |
+
+### 3.10 WebSocket 模块 (WebSocketResultCode)
 
 | 错误码 | 常量名 | 说明 |
 |--------|--------|------|
@@ -299,6 +344,116 @@
 | 1518 | ENCRYPTION_ERROR | 消息加密/解密失败 |
 | 1519 | INTERNAL_ERROR | WebSocket内部错误 |
 
+### 3.11 Vehicle 车辆模块 (VehicleResultCode)
+
+| 错误码 | 常量名 | 说明 |
+|--------|--------|------|
+| 2001 | VEHICLE_NOT_FOUND | 车辆不存在 |
+| 2002 | VEHICLE_NO_EXISTS | 车牌号已存在 |
+| 2003 | VEHICLE_STATUS_NOT_ALLOWED | 车辆状态不允许该操作 |
+| 2004 | FAULT_NOT_FOUND | 故障记录不存在 |
+| 2005 | INSURANCE_NOT_FOUND | 保险记录不存在 |
+| 2006 | MAINTENANCE_NOT_FOUND | 保养记录不存在 |
+| 2007 | REFUELING_NOT_FOUND | 加油记录不存在 |
+| 2008 | PARAMETER_ERROR | 参数错误 |
+| 2009 | OPERATION_FAILED | 操作失败 |
+| 2010 | VEHICLE_NO_MISMATCH | 车牌号与行驶证识别结果不一致 |
+
+### 3.12 User 用户模块 (UserResultCode)
+
+| 错误码 | 常量名 | 说明 |
+|--------|--------|------|
+| 2100 | USER_ERROR | 用户操作失败 |
+| 2101 | USER_NOT_FOUND | 用户不存在 |
+| 2102 | USERNAME_EXISTS | 用户名已存在 |
+| 2103 | PHONE_EXISTS | 手机号已被注册 |
+| 2104 | EMAIL_EXISTS | 邮箱已被注册 |
+| 2105 | USER_DISABLED | 用户已被禁用 |
+| 2106 | USER_TYPE_ERROR | 用户类型错误 |
+| 2110 | PASSWORD_ERROR | 密码错误 |
+| 2111 | PASSWORD_INVALID | 密码无效 |
+| 2112 | OLD_PASSWORD_ERROR | 原密码错误 |
+| 2115 | SMS_SEND_FAILED | 短信发送失败 |
+| 2116 | SMS_VERIFY_FAILED | 短信验证失败 |
+| 2120 | ROLE_NOT_FOUND | 角色不存在 |
+| 2121 | ROLE_DISABLED | 角色已禁用 |
+| 2122 | ROLE_ASSIGN_FAILED | 角色分配失败 |
+| 2123 | USER_ROLE_NOT_FOUND | 用户角色不存在 |
+| 2130 | PERMISSION_DENIED | 权限不足 |
+| 2131 | PERMISSION_NOT_FOUND | 权限不存在 |
+| 2140 | ID_CARD_EXISTS | 身份证号已被注册 |
+| 2141 | ID_CARD_INVALID | 身份证号无效 |
+| 2142 | OCR_FAILED | OCR识别失败 |
+| 2143 | CERTIFICATE_EXPIRED | 证书已过期 |
+| 2144 | CERTIFICATE_INVALID | 证书无效 |
+| 2145 | QUALIFICATION_NOT_VERIFIED | 资格未认证 |
+| 2146 | QUALIFICATION_VERIFY_FAILED | 资格认证失败 |
+| 2150 | DATA_ERROR | 数据错误 |
+| 2151 | OPERATION_FAILED | 操作失败 |
+
+### 3.13 Warning 预警模块 (WarningResultCode)
+
+| 错误码 | 常量名 | 说明 |
+|--------|--------|------|
+| 2200 | WARNING_RULE_NOT_FOUND | 预警规则不存在 |
+| 2201 | WARNING_RULE_CODE_EXISTS | 规则编码已存在 |
+| 2202 | WARNING_RULE_DISABLED | 预警规则已禁用 |
+| 2210 | WARNING_RECORD_NOT_FOUND | 预警记录不存在 |
+| 2211 | WARNING_ALREADY_HANDLED | 预警已处理 |
+| 2212 | WARNING_ALREADY_CLOSED | 预警已关闭 |
+| 2220 | WARNING_THRESHOLD_INVALID | 预警阈值无效 |
+| 2221 | WARNING_NOTIFY_FAILED | 预警通知发送失败 |
+
+### 3.14 Trip 行程模块 (TripResultCode)
+
+| 错误码 | 常量名 | 说明 |
+|--------|--------|------|
+| 2300 | TRIP_NOT_FOUND | 行程不存在 |
+| 2301 | TRIP_ALREADY_STARTED | 行程已开始 |
+| 2302 | TRIP_ALREADY_ENDED | 行程已结束 |
+| 2303 | TRIP_NOT_STARTED | 行程未开始 |
+| 2304 | TRIP_STATUS_ERROR | 行程状态错误 |
+| 2310 | ROUTE_NOT_FOUND | 路线不存在 |
+| 2311 | ROUTE_NAME_EXISTS | 路线名称已存在 |
+| 2320 | DISPATCH_PLAN_NOT_FOUND | 调度计划不存在 |
+| 2321 | DISPATCH_PLAN_EXECUTED | 调度计划已执行 |
+| 2330 | TRACK_UPLOAD_FAILED | 轨迹上传失败 |
+| 2331 | TRACK_NOT_FOUND | 轨迹记录不存在 |
+| 2340 | VEHICLE_NOT_AVAILABLE | 车辆不可用 |
+| 2341 | DRIVER_NOT_AVAILABLE | 司机不可用 |
+
+### 3.15 Statistics 统计模块 (StatisticsResultCode)
+
+| 错误码 | 常量名 | 说明 |
+|--------|--------|------|
+| 2400 | STATISTICS_DATA_NOT_FOUND | 统计数据不存在 |
+| 2410 | REPORT_NOT_FOUND | 报表不存在 |
+| 2411 | REPORT_GENERATE_FAILED | 报表生成失败 |
+| 2420 | EXPORT_FAILED | 导出失败 |
+
+### 3.16 Cost 成本模块 (CostResultCode)
+
+| 错误码 | 常量名 | 说明 |
+|--------|--------|------|
+| 2500 | COST_RECORD_NOT_FOUND | 成本记录不存在 |
+| 2510 | BUDGET_NOT_FOUND | 预算不存在 |
+| 2511 | BUDGET_EXCEEDED | 预算已超支 |
+| 2512 | BUDGET_DISABLED | 预算已禁用 |
+| 2520 | BILLING_RULE_NOT_FOUND | 计费规则不存在 |
+
+### 3.17 AI 模块 (AiResultCode)
+
+| 错误码 | 常量名 | 说明 |
+|--------|--------|------|
+| 2600 | AI_MODEL_NOT_FOUND | AI模型不存在 |
+| 2601 | AI_MODEL_DISABLED | AI模型已禁用 |
+| 2610 | AI_ANALYSIS_FAILED | AI分析失败 |
+| 2620 | AI_PREDICTION_FAILED | AI预测失败 |
+| 2630 | AI_ANOMALY_DETECTION_FAILED | 异常检测失败 |
+| 2640 | AI_PROVIDER_NOT_AVAILABLE | AI服务提供商不可用 |
+| 2641 | AI_API_KEY_INVALID | AI API密钥无效 |
+| 2642 | AI_REQUEST_TIMEOUT | AI请求超时 |
+
 ## 4. 变更记录
 
 | 日期 | 变更内容 |
@@ -309,3 +464,6 @@
 | 2026-03-07 | 简化文档结构，与代码完全同步 |
 | 2026-03-12 | Redis模块增加PARAMETER_ERROR(955)错误码 |
 | 2026-03-12 | Auth模块增加PARAMETER_ERROR(801)错误码 |
+| 2026-04-08 | 修复错误码重复问题，重新分配各模块错误码范围 |
+| 2026-04-08 | 新增业务模块错误码：Dispatch(1000-1099)、Vehicle(2000-2099)、User(2100-2199)、Warning(2200-2299)、Trip(2300-2399)、Statistics(2400-2499)、Cost(2500-2599)、AI(2600-2699) |
+| 2026-04-08 | 调整基础模块错误码范围：Database(1100-1199)、MQ(1200-1299)、File(1300-1399)、MongoDB(1400-1499) |
