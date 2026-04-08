@@ -1,7 +1,9 @@
 package com.klzw.service.statistics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.klzw.common.core.client.StatisticsClient;
+import com.klzw.common.core.client.CostClient;
+import com.klzw.common.core.client.TripClient;
+import com.klzw.common.core.client.VehicleClient;
 import com.klzw.service.statistics.dto.StatisticsQueryDTO;
 import com.klzw.service.statistics.entity.*;
 import com.klzw.service.statistics.mapper.*;
@@ -22,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
- * 统计服务实现类（使用 StatisticsClient 调用其他服务 + Redis 缓存）
+ * 统计服务实现类（使用 TripClient/CostClient/VehicleClient 调用各服务 + Redis 缓存）
  */
 @Slf4j
 @Service
@@ -33,9 +35,11 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final CostStatisticsMapper costStatisticsMapper;
     private final VehicleStatisticsMapper vehicleStatisticsMapper;
     private final DriverStatisticsMapper driverStatisticsMapper;
-    private final TransportStatisticsMapper transportStatisticsMapper;
     private final FaultStatisticsMapper faultStatisticsMapper;
-    private final StatisticsClient statisticsClient;
+    private final TransportStatisticsMapper transportStatisticsMapper;
+    private final TripClient tripClient;
+    private final CostClient costClient;
+    private final VehicleClient vehicleClient;
     private final RedisTemplate<String, Object> redisTemplate;
     
     private static final long CACHE_EXPIRE_DAYS = 1; // 缓存过期时间：1 天
@@ -61,8 +65,8 @@ public class StatisticsServiceImpl implements StatisticsService {
         entity.setStatisticsDate(statisticsDate);
         
         try {
-            // 使用 StatisticsClient 调用 trip-service
-            java.util.Map<String, Object> tripStats = statisticsClient.getTripStatistics(date, date);
+            com.klzw.common.core.result.Result<java.util.Map<String, Object>> tripResult = tripClient.getStatistics(date, date);
+            java.util.Map<String, Object> tripStats = tripResult != null && tripResult.getCode() == 200 ? tripResult.getData() : null;
             
             if (tripStats != null) {
                 Object tripCountObj = tripStats.get("tripCount");
@@ -130,8 +134,8 @@ public class StatisticsServiceImpl implements StatisticsService {
         entity.setStatisticsDate(statisticsDate);
         
         try {
-            // 调用 cost-service 获取成本统计数据
-            java.util.Map<String, Object> costStats = statisticsClient.getCostStatistics(date, date);
+            com.klzw.common.core.result.Result<java.util.Map<String, Object>> costResult = costClient.getCostStatistics(date, date);
+            java.util.Map<String, Object> costStats = costResult != null && costResult.getCode() == 200 ? costResult.getData() : null;
             
             if (costStats != null) {
                 entity.setFuelCost(getBigDecimalValue(costStats, "fuelCost"));
@@ -635,8 +639,8 @@ public class StatisticsServiceImpl implements StatisticsService {
         entity.setStatisticsDate(statisticsDate);
         
         try {
-            // 使用 StatisticsClient 调用 vehicle-service 获取故障统计数据
-            java.util.Map<String, Object> faultStats = statisticsClient.getFaultStatistics(date, date);
+            com.klzw.common.core.result.Result<java.util.Map<String, Object>> faultResult = vehicleClient.getFaultStatistics(date, date);
+            java.util.Map<String, Object> faultStats = faultResult != null && faultResult.getCode() == 200 ? faultResult.getData() : null;
             
             if (faultStats != null) {
                 entity.setFaultCount(getIntegerValue(faultStats, "faultCount"));

@@ -105,4 +105,9 @@ public class HttpExchangeConfig {
     public PythonClient pythonClient() {
         return createClient(PythonClient.class, pythonServiceUrl);
     }
+
+    @Bean
+    public AiClient aiClient() {
+        return createClient(AiClient.class, aiServiceUrl);
+    }
 }
