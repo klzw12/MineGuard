@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.klzw.common.core.client.UserClient;
 import com.klzw.common.core.client.VehicleClient;
 import com.klzw.common.core.client.DispatchClient;
+import com.klzw.common.core.client.WarningClient;
 import com.klzw.common.core.domain.PageRequest;
 import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.domain.dto.TripResponse;
@@ -47,6 +48,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
     private final UserClient userClient;
     private final VehicleClient vehicleClient;
     private final DispatchClient dispatchClient;
+    private final WarningClient warningClient;
     private final TripStatusProcessor tripStatusProcessor;
     private final com.klzw.service.trip.service.TripTrackService tripTrackService;
 
@@ -580,7 +582,19 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
 
     @Override
     public List<com.klzw.service.trip.vo.TripTrackVO> getTracksByTripId(Long tripId) {
-        // 调用 TripTrackService 获取轨迹点
         return tripTrackService.getByTripId(tripId);
+    }
+
+    public List<Map<String, Object>> getTripWarningRecords(Long tripId) {
+        log.info("获取行程预警记录：tripId={}", tripId);
+        try {
+            var result = warningClient.getRecordsByTripId(tripId);
+            if (result != null && result.getCode() == 200 && result.getData() != null) {
+                return result.getData();
+            }
+        } catch (Exception e) {
+            log.warn("获取行程预警记录失败：tripId={}, error={}", tripId, e.getMessage());
+        }
+        return List.of();
     }
 }

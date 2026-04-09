@@ -1,0 +1,19 @@
+export const ENV = {
+  DEV: 'development',
+  PROD: 'production'
+}
+
+const currentEnv = ENV.DEV
+
+export const config = {
+  env: currentEnv,
+  baseUrl: currentEnv === ENV.DEV ? 'http://localhost:8080/api' : 'https://api.mineguard.com/api',
+  wsUrl: currentEnv === ENV.DEV ? 'ws://localhost:8080/ws' : 'wss://ws.mineguard.com/ws',
+  wsApiUrl: currentEnv === ENV.DEV ? 'ws://localhost:8080/api/ws' : 'wss://api.mineguard.com/api/ws',
+  uploadUrl: currentEnv === ENV.DEV ? 'http://localhost:8080/api' : 'https://api.mineguard.com/api'
+}
+
+export const BASE_URL = config.baseUrl
+export const WS_URL = config.wsUrl
+export const WS_API_URL = config.wsApiUrl
+export const UPLOAD_URL = config.uploadUrl

@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.klzw.common.core.client.DispatchClient;
+import com.klzw.common.core.client.WarningClient;
+import com.klzw.common.core.domain.dto.WarningCreateDTO;
 import com.klzw.service.vehicle.dto.VehicleFaultDTO;
 import com.klzw.service.vehicle.dto.VehicleFaultStatisticsResponseDTO;
 import com.klzw.service.vehicle.entity.VehicleFault;
@@ -39,6 +41,9 @@ public class VehicleFaultServiceImpl extends ServiceImpl<VehicleFaultMapper, Veh
     
     @Resource
     private DispatchClient dispatchClient;
+
+    @Resource
+    private WarningClient warningClient;
     
     @Override
     public VehicleFault reportFault(VehicleFaultDTO faultDTO) {
@@ -57,6 +62,24 @@ public class VehicleFaultServiceImpl extends ServiceImpl<VehicleFaultMapper, Veh
         
         vehicleService.updateVehicleStatus(faultDTO.getVehicleId(), VehicleStatusEnum.FAULT.getCode());
         log.info("车辆状态已更新为故障: vehicleId={}", faultDTO.getVehicleId());
+        
+        try {
+            WarningCreateDTO warningDTO = new WarningCreateDTO();
+            warningDTO.setWarningType(1);
+            warningDTO.setWarningLevel(faultDTO.getSeverity() != null && faultDTO.getSeverity() >= 3 ? 3 : 2);
+            warningDTO.setVehicleId(faultDTO.getVehicleId());
+            warningDTO.setWarningContent("车辆故障报告：" + faultDTO.getFaultDescription());
+            if (faultDTO.getLatitude() != null) {
+                warningDTO.setLatitude(faultDTO.getLatitude().doubleValue());
+            }
+            if (faultDTO.getLongitude() != null) {
+                warningDTO.setLongitude(faultDTO.getLongitude().doubleValue());
+            }
+            warningClient.createWarning(warningDTO);
+            log.info("已创建故障预警：vehicleId={}, faultType={}", faultDTO.getVehicleId(), faultDTO.getFaultType());
+        } catch (Exception e) {
+            log.warn("创建故障预警失败：vehicleId={}, error={}", faultDTO.getVehicleId(), e.getMessage());
+        }
         
         return fault;
     }

@@ -1,9 +1,11 @@
 package com.klzw.service.statistics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.klzw.common.core.client.AiClient;
 import com.klzw.common.core.client.CostClient;
 import com.klzw.common.core.client.TripClient;
 import com.klzw.common.core.client.VehicleClient;
+import com.klzw.common.core.client.WarningClient;
 import com.klzw.service.statistics.dto.StatisticsQueryDTO;
 import com.klzw.service.statistics.entity.*;
 import com.klzw.service.statistics.mapper.*;
@@ -19,12 +21,14 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
- * 统计服务实现类（使用 TripClient/CostClient/VehicleClient 调用各服务 + Redis 缓存）
+ * 统计服务实现类（使用 TripClient/CostClient/VehicleClient/AiClient/WarningClient 调用各服务 + Redis 缓存）
  */
 @Slf4j
 @Service
@@ -35,11 +39,15 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final CostStatisticsMapper costStatisticsMapper;
     private final VehicleStatisticsMapper vehicleStatisticsMapper;
     private final DriverStatisticsMapper driverStatisticsMapper;
-    private final FaultStatisticsMapper faultStatisticsMapper;
     private final TransportStatisticsMapper transportStatisticsMapper;
+    private final FaultStatisticsMapper faultStatisticsMapper;
+    
     private final TripClient tripClient;
     private final CostClient costClient;
     private final VehicleClient vehicleClient;
+    private final AiClient aiClient;
+    private final WarningClient warningClient;
+    
     private final RedisTemplate<String, Object> redisTemplate;
     
     private static final long CACHE_EXPIRE_DAYS = 1; // 缓存过期时间：1 天
@@ -829,5 +837,49 @@ public class StatisticsServiceImpl implements StatisticsService {
             log.warn("转换 Integer 失败：key={}, value={}", key, obj);
             return 0;
         }
+    }
+
+    public Map<String, Object> analyzeStatisticsWithAI(String date) {
+        log.info("使用 AI 分析统计数据：date={}", date);
+        try {
+            Map<String, Object> statisticsData = new HashMap<>();
+            statisticsData.put("date", date);
+            statisticsData.put("tripStats", calculateTripStatistics(date));
+            statisticsData.put("costStats", calculateCostStatistics(date));
+            
+            var result = aiClient.analyzeStatisticsData(statisticsData);
+            if (result != null && result.getCode() == 200) {
+                return result.getData();
+            }
+        } catch (Exception e) {
+            log.warn("AI 分析统计数据失败：date={}, error={}", date, e.getMessage());
+        }
+        return new HashMap<>();
+    }
+
+    public Map<String, Object> getWarningTrend(int days) {
+        log.info("获取预警趋势：days={}", days);
+        try {
+            var result = warningClient.getTrend(days);
+            if (result != null && result.getCode() == 200 && result.getData() != null) {
+                return Map.of("trend", result.getData());
+            }
+        } catch (Exception e) {
+            log.warn("获取预警趋势失败：days={}, error={}", days, e.getMessage());
+        }
+        return new HashMap<>();
+    }
+
+    public Map<String, Object> getWarningStatistics(String startTime, String endTime) {
+        log.info("获取预警统计：startTime={}, endTime={}", startTime, endTime);
+        try {
+            var result = warningClient.getStatistics(startTime, endTime);
+            if (result != null && result.getCode() == 200 && result.getData() != null) {
+                return result.getData();
+            }
+        } catch (Exception e) {
+            log.warn("获取预警统计失败：startTime={}, endTime={}, error={}", startTime, endTime, e.getMessage());
+        }
+        return new HashMap<>();
     }
 }

@@ -1,5 +1,7 @@
 // 轨迹模拟器 - 宏观 + 微观结合的轨迹存储策略
 
+import { WS_URL } from './config.uts'
+
 export type Coordinate = {
     longitude: number
     latitude: number
@@ -273,7 +275,7 @@ export function startTaskSimulation(
             return
         }
         
-        const wsUrl = `ws://localhost:8080/ws/trip?tripId=${tripIdParam}`
+        const wsUrl = `${WS_URL}/trip?tripId=${tripIdParam}`
         ws = new WebSocket(wsUrl)
         
         ws.onopen = () => {

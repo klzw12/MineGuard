@@ -110,4 +110,9 @@ public class HttpExchangeConfig {
     public AiClient aiClient() {
         return createClient(AiClient.class, aiServiceUrl);
     }
+
+    @Bean
+    public TaskClient taskClient() {
+        return createClient(TaskClient.class, dispatchServiceUrl);
+    }
 }

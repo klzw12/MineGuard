@@ -266,8 +266,8 @@
 </template>
 
 <script setup lang="uts">
-	import AdminLayout from '../../../components/AdminLayout.uvue'
-	import { ref, computed, onMounted } from 'vue'
+    import AdminLayout from '../../../components/AdminSidebar.uvue'
+    import { UPLOAD_URL } from '@/utils/config.uts'	import { ref, computed, onMounted } from 'vue'
 	import { http } from '@/utils/request.uts'
 
 	type VehicleVO = {
@@ -545,7 +545,7 @@
 			if (formData.value.vehiclePhotoPath) {
 				await new Promise<void>((resolve, reject) => {
 					uni.uploadFile({
-						url: 'http://localhost:8080/api/vehicle/create-with-photos',
+    url: `${UPLOAD_URL}/vehicle/create-with-photos`,
 						filePath: formData.value.vehiclePhotoPath,
 						name: 'vehiclePhoto',
 						formData: {
@@ -571,8 +571,8 @@
 			} else {
 				await new Promise<void>((resolve, reject) => {
 					uni.request({
-						url: 'http://localhost:8080/api/vehicle/create-with-photos',
-						method: 'POST',
+    url: `${UPLOAD_URL}/vehicle/create-with-photos`,
+    method: 'POST',
 						data: { 
 							vehicleNo: formData.value.vehicleNo,
 							vehicleType: formData.value.vehicleType
@@ -620,8 +620,8 @@
 			
 			await new Promise<void>((resolve, reject) => {
 				uni.request({
-					url: `http://localhost:8080/api/vehicle/${vehicleId}`,
-					method: 'PUT',
+    url: `${UPLOAD_URL}/vehicle/${vehicleId}`,
+    method: 'PUT',
 					data: { 
 						vehicleType: editFormData.value.vehicleType
 					},
@@ -641,7 +641,7 @@
 			if (editFormData.value.licenseFrontPath) {
 				await new Promise<void>((resolve) => {
 					uni.uploadFile({
-						url: `http://localhost:8080/api/vehicle/${vehicleId}/license/front`,
+    url: `${UPLOAD_URL}/vehicle/${vehicleId}/license/front`,
 						filePath: editFormData.value.licenseFrontPath,
 						name: 'file',
 						header: {
@@ -656,7 +656,7 @@
 			if (editFormData.value.licenseBackPath) {
 				await new Promise<void>((resolve) => {
 					uni.uploadFile({
-						url: `http://localhost:8080/api/vehicle/${vehicleId}/license/back`,
+						url: `${UPLOAD_URL}/vehicle/${vehicleId}/license/back`,
 						filePath: editFormData.value.licenseBackPath,
 						name: 'file',
 						header: {

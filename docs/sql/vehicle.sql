@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS `vehicle` (
     `model` VARCHAR(50) COMMENT '型号',
     `status` INTEGER DEFAULT 0 COMMENT '状态：0-空闲，1-运行中，2-维护中，3-故障，4-报废',
     `fuel_level` INTEGER COMMENT '油量百分比(0-100)',
+    `score` INTEGER DEFAULT 0 COMMENT '车辆评分(0-100)',
     `photo_url` VARCHAR(255) COMMENT '车辆照片URL',
     `license_front_url` VARCHAR(255) COMMENT '行驶证正面URL',
     `license_back_url` VARCHAR(255) COMMENT '行驶证背面URL',
