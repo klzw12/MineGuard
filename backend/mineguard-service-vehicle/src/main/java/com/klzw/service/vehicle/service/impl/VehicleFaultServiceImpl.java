@@ -16,10 +16,10 @@ import com.klzw.service.vehicle.service.VehicleFaultService;
 import com.klzw.service.vehicle.service.VehicleService;
 import com.klzw.service.vehicle.exception.VehicleException;
 import com.klzw.service.vehicle.exception.VehicleResultCode;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,19 +31,16 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class VehicleFaultServiceImpl extends ServiceImpl<VehicleFaultMapper, VehicleFault> implements VehicleFaultService {
     
-    @Resource
-    private VehicleFaultMapper vehicleFaultMapper;
+    private final VehicleFaultMapper vehicleFaultMapper;
     
-    @Resource
-    private VehicleService vehicleService;
+    private final VehicleService vehicleService;
     
-    @Resource
-    private DispatchClient dispatchClient;
+    private final DispatchClient dispatchClient;
 
-    @Resource
-    private WarningClient warningClient;
+    private final WarningClient warningClient;
     
     @Override
     public VehicleFault reportFault(VehicleFaultDTO faultDTO) {

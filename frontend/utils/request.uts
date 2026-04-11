@@ -1,5 +1,7 @@
 import { BASE_URL } from './config.uts'
 
+export { BASE_URL }
+
 export type RequestOptions = {
   url: string
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'

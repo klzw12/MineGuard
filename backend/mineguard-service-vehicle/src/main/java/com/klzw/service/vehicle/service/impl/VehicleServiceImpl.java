@@ -16,11 +16,11 @@ import com.klzw.service.vehicle.exception.VehicleException;
 import com.klzw.service.vehicle.exception.VehicleResultCode;
 import com.klzw.service.vehicle.vo.BestVehicleVO;
 import com.klzw.service.vehicle.vo.VehicleVO;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.Resource;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,22 +36,18 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> implements VehicleService {
     
-    @Resource
-    private OcrService ocrService;
+    private final OcrService ocrService;
     
-    @Resource
-    private StorageService storageService;
+    private final StorageService storageService;
     
-    @Resource
-    private com.klzw.service.vehicle.service.VehicleInsuranceService vehicleInsuranceService;
+    private final com.klzw.service.vehicle.service.VehicleInsuranceService vehicleInsuranceService;
     
-    @Resource
-    private com.klzw.service.vehicle.service.VehicleStatusService vehicleStatusService;
+    private final com.klzw.service.vehicle.service.VehicleStatusService vehicleStatusService;
 
-    @Resource
-    private DriverClient driverClient;
+    private final DriverClient driverClient;
     
     @Override
     public Vehicle createVehicle(Vehicle vehicle) {

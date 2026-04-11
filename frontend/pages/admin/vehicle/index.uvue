@@ -267,7 +267,8 @@
 
 <script setup lang="uts">
     import AdminLayout from '../../../components/AdminSidebar.uvue'
-    import { UPLOAD_URL } from '@/utils/config.uts'	import { ref, computed, onMounted } from 'vue'
+    import { UPLOAD_URL } from '@/utils/config.uts'
+	import { ref, computed, onMounted } from 'vue'
 	import { http } from '@/utils/request.uts'
 
 	type VehicleVO = {
