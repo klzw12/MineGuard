@@ -22,20 +22,45 @@
 				</view>
 			</view>
 			
+			<!-- 时间范围选择 -->
+			<view class="time-filter">
+				<view 
+					class="filter-item" 
+					:class="{ active: timeRange === 'day' }"
+					@click="setTimeRange('day')"
+				>
+					<text>今日</text>
+				</view>
+				<view 
+					class="filter-item" 
+					:class="{ active: timeRange === 'week' }"
+					@click="setTimeRange('week')"
+				>
+					<text>本周</text>
+				</view>
+				<view 
+					class="filter-item" 
+					:class="{ active: timeRange === 'month' }"
+					@click="setTimeRange('month')"
+				>
+					<text>本月</text>
+				</view>
+			</view>
+			
 			<view class="stats-row">
 				<view class="stat-item">
-					<text class="stat-value">28</text>
-					<text class="stat-label">完成任务</text>
+					<text class="stat-value">{{ attendanceStats.actualAttendanceDays || 0 }}</text>
+					<text class="stat-label">出勤天数</text>
 				</view>
 				<view class="divider"></view>
 				<view class="stat-item">
-					<text class="stat-value">1,250</text>
-					<text class="stat-label">行驶里程</text>
+					<text class="stat-value">{{ (tripStats.totalDistance || 0).toFixed(0) }}</text>
+					<text class="stat-label">行驶里程(km)</text>
 				</view>
 				<view class="divider"></view>
 				<view class="stat-item">
-					<text class="stat-value">98%</text>
-					<text class="stat-label">安全率</text>
+					<text class="stat-value">{{ tripStats.tripCount || 0 }}</text>
+					<text class="stat-label">行程次数</text>
 				</view>
 			</view>
 		</view>
@@ -212,6 +237,8 @@ import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user.uts'
 	import { uploadAvatar, getAvatarSignedUrl, getIdCardSignedUrls, updateUser } from '@/api/user.uts'
 	import { toast } from '@/utils/toast.uts'
+	import { statisticsApi, DriverStatisticsVO } from '@/api/statistics.uts'
+	import { getAttendanceStatistics, AttendanceStatisticsVO } from '@/api/attendance.uts'
 	
 	const userStore = useUserStore()
 	
@@ -224,6 +251,44 @@ import { useUserStore } from '@/stores/user.uts'
 	const showEmailModal = ref(false)
 	const editUsername = ref('')
 	const editEmail = ref('')
+	const timeRange = ref<'day' | 'week' | 'month'>('day')
+	
+	const attendanceStats = ref<AttendanceStatisticsVO>({
+		userId: '',
+		userName: '',
+		month: '',
+		totalAttendanceDays: 0,
+		actualAttendanceDays: 0,
+		normalDays: 0,
+		lateTimes: 0,
+		earlyLeaveTimes: 0,
+		absentDays: 0,
+		leaveDays: 0,
+		attendanceRate: 0,
+		attendanceDays: 0,
+		attendanceHours: 0,
+		lateCount: 0,
+		earlyLeaveCount: 0
+	})
+	
+	const tripStats = ref<DriverStatisticsVO>({
+		id: 0,
+		userId: 0,
+		userName: '',
+		statisticsDate: '',
+		attendanceDays: 0,
+		attendanceHours: 0,
+		tripCount: 0,
+		totalDistance: 0,
+		cargoWeight: 0,
+		lateCount: 0,
+		earlyLeaveCount: 0,
+		warningCount: 0,
+		violationCount: 0,
+		overSpeedCount: 0,
+		routeDeviationCount: 0,
+		performanceScore: 0
+	})
 	
 	const userName = computed(() => userStore.userInfo.value?.username || '未登录')
 	const userRole = computed(() => userStore.userInfo.value?.roleName || '未认证')
@@ -317,7 +382,93 @@ async function loadAvatarUrl() {
 	
 onShow(() => {
 		loadAvatarUrl()
+		loadStatistics()
 	})
+	
+	function setTimeRange(range: 'day' | 'week' | 'month') {
+		timeRange.value = range
+		loadStatistics()
+	}
+	
+	function getDateRange(): { startDate: string, endDate: string } {
+		const now = new Date()
+		const year = now.getFullYear()
+		const month = String(now.getMonth() + 1).padStart(2, '0')
+		const day = String(now.getDate()).padStart(2, '0')
+		const today = `${year}-${month}-${day}`
+		
+		if (timeRange.value === 'day') {
+			return { startDate: today, endDate: today }
+		} else if (timeRange.value === 'week') {
+			const weekStart = new Date(now)
+			weekStart.setDate(now.getDate() - now.getDay() + 1)
+			const ws = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`
+			return { startDate: ws, endDate: today }
+		} else {
+			const monthStart = `${year}-${month}-01`
+			return { startDate: monthStart, endDate: today }
+		}
+	}
+	
+	async function loadStatistics() {
+		const uid = userStore.userInfo.value?.id
+		if (!uid) return
+		
+		const dateRange = getDateRange()
+		
+		// 加载出勤统计
+		try {
+			const yearMonth = dateRange.startDate.substring(0, 7)
+			const attendanceResult = await getAttendanceStatistics(yearMonth)
+			if (attendanceResult) {
+				attendanceStats.value = attendanceResult
+			}
+		} catch (e) {
+			console.error('加载出勤统计失败', e)
+		}
+		
+		// 加载行程统计
+		try {
+			const driverResult = await statisticsApi.getDriverStatistics({
+				userId: uid,
+				startDate: dateRange.startDate,
+				endDate: dateRange.endDate
+			})
+			if (driverResult && driverResult.length > 0) {
+				// 合并多天的数据
+				let totalTripCount = 0
+				let totalDistance = 0
+				let totalCargoWeight = 0
+				
+				driverResult.forEach(item => {
+					totalTripCount += item.tripCount || 0
+					totalDistance += item.totalDistance || 0
+					totalCargoWeight += item.cargoWeight || 0
+				})
+				
+				tripStats.value = {
+					id: 0,
+					userId: parseInt(uid),
+					userName: userStore.userInfo.value?.realName || '',
+					statisticsDate: dateRange.startDate,
+					attendanceDays: 0,
+					attendanceHours: 0,
+					tripCount: totalTripCount,
+					totalDistance: totalDistance,
+					cargoWeight: totalCargoWeight,
+					lateCount: 0,
+					earlyLeaveCount: 0,
+					warningCount: 0,
+					violationCount: 0,
+					overSpeedCount: 0,
+					routeDeviationCount: 0,
+					performanceScore: 0
+				}
+			}
+		} catch (e) {
+			console.error('加载行程统计失败', e)
+		}
+	}
 	
 	function showEditUsernameModal() {
 		editUsername.value = userStore.userInfo.value?.username || ''
@@ -611,6 +762,34 @@ onShow(() => {
 	.user-id {
 		font-size: 24rpx;
 		color: rgba(255, 255, 255, 0.6);
+	}
+	
+	.time-filter {
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		gap: 16rpx;
+		margin-bottom: 30rpx;
+		
+		.filter-item {
+			padding: 12rpx 24rpx;
+			border-radius: 20rpx;
+			background-color: rgba(255, 255, 255, 0.15);
+			
+			text {
+				font-size: 24rpx;
+				color: rgba(255, 255, 255, 0.8);
+			}
+			
+			&.active {
+				background-color: rgba(255, 255, 255, 0.3);
+				
+				text {
+					color: #fff;
+					font-weight: 500;
+				}
+			}
+		}
 	}
 	
 	.stats-row {
