@@ -250,12 +250,21 @@ export type AttendanceDTO = {
 }
 
 export type AttendanceStatisticsVO = {
-  totalDays: number
+  userId: string
+  userName: string
+  month: string
+  totalAttendanceDays: number
+  actualAttendanceDays: number
   normalDays: number
-  lateDays: number
-  earlyLeaveDays: number
+  lateTimes: number
+  earlyLeaveTimes: number
   absentDays: number
+  leaveDays: number
   attendanceRate: number
+  attendanceDays: number
+  attendanceHours: number
+  lateCount: number
+  earlyLeaveCount: number
 }
 
 export type SupplementAttendanceDTO = {

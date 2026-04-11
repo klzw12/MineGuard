@@ -1,70 +1,158 @@
 <template>
-	<view class="user-task-container">
+	<view class="user-home-container">
 		<view class="top-navbar">
-			<view class="search-bar">
-				<text class="search-icon">🔍</text>
-				<input type="text" placeholder="搜索任务..." placeholder-style="color: rgba(255,255,255,0.4)" />
+			<view class="user-info">
+				<image class="avatar" :src="userInfo?.avatarUrl || '/static/default-avatar.png'" mode="aspectFill"></image>
+				<view class="user-text">
+					<text class="greeting">{{ getGreeting() }}</text>
+					<text class="username">{{ userInfo?.realName || userInfo?.username || '用户' }}</text>
+				</view>
 			</view>
-			<view class="filter-btn">
+			<view class="notification-btn" @click="goToMessages">
 				<text>🔔</text>
+				<view class="badge" v-if="unreadCount > 0">
+					<text>{{ unreadCount > 99 ? '99+' : unreadCount }}</text>
+				</view>
 			</view>
 		</view>
 		
 		<view class="content-area">
-			<view class="current-task-section">
-				<view class="current-task-card">
-					<view class="task-header">
-						<text class="task-title">当前任务进行中</text>
-						<view class="task-status-tag">
-							<text>进行中</text>
-						</view>
-					</view>
-					<view class="task-location">
-						<text class="location-icon">📍</text>
-						<text class="location-text">广州市天河区珠江新城花城大道123号</text>
-					</view>
-					<view class="task-details">
-						<view class="detail-item">
-							<text class="detail-label">距离</text>
-							<text class="detail-value">12.5公里</text>
-						</view>
-						<view class="detail-item">
-							<text class="detail-label">收入</text>
-							<text class="detail-value highlight">¥280</text>
-						</view>
-						<view class="detail-item">
-							<text class="detail-label">剩余</text>
-							<text class="detail-value">2小时15分钟</text>
-						</view>
-					</view>
-					<button class="action-button">前往执行</button>
+			<!-- 时间范围选择 -->
+			<view class="time-filter">
+				<view 
+					class="filter-item" 
+					:class="{ active: timeRange === 'day' }"
+					@click="setTimeRange('day')"
+				>
+					<text>今日</text>
+				</view>
+				<view 
+					class="filter-item" 
+					:class="{ active: timeRange === 'week' }"
+					@click="setTimeRange('week')"
+				>
+					<text>本周</text>
+				</view>
+				<view 
+					class="filter-item" 
+					:class="{ active: timeRange === 'month' }"
+					@click="setTimeRange('month')"
+				>
+					<text>本月</text>
 				</view>
 			</view>
 			
-			<view class="pending-tasks-section">
-				<text class="section-title">待接单任务</text>
-				<view class="pending-tasks-grid">
-					<view class="pending-task-card" v-for="i in 2" :key="i">
-						<view class="task-route">
-							<view class="route-point start">
-								<view class="point-dot green"></view>
-								<text class="point-label">起点</text>
-								<text class="point-location">深圳市南山区科技园</text>
-							</view>
-							<view class="route-point end">
-								<view class="point-dot red"></view>
-								<text class="point-label">终点</text>
-								<text class="point-location">广州市白云区机场路</text>
-							</view>
-						</view>
-						<view class="task-info-row">
-							<view class="info-tag">
-								<text class="tag-icon">📦</text>
-								<text class="tag-text">电子产品</text>
-							</view>
-							<text class="task-weight">500kg</text>
-						</view>
+			<!-- 出勤统计卡片 -->
+			<view class="stats-card attendance-card">
+				<view class="card-header">
+					<text class="card-title">📊 出勤统计</text>
+				</view>
+				<view class="stats-grid">
+					<view class="stat-item">
+						<text class="stat-value">{{ attendanceStats.actualAttendanceDays || 0 }}</text>
+						<text class="stat-label">出勤天数</text>
 					</view>
+					<view class="stat-item">
+						<text class="stat-value">{{ attendanceStats.attendanceHours || 0 }}</text>
+						<text class="stat-label">出勤时长(h)</text>
+					</view>
+					<view class="stat-item">
+						<text class="stat-value warning">{{ attendanceStats.lateTimes || 0 }}</text>
+						<text class="stat-label">迟到次数</text>
+					</view>
+					<view class="stat-item">
+						<text class="stat-value warning">{{ attendanceStats.earlyLeaveTimes || 0 }}</text>
+						<text class="stat-label">早退次数</text>
+					</view>
+				</view>
+				<view class="attendance-rate">
+					<text class="rate-label">出勤率</text>
+					<view class="rate-bar">
+						<view class="rate-fill" :style="{ width: (attendanceStats.attendanceRate || 0) + '%' }"></view>
+					</view>
+					<text class="rate-value">{{ (attendanceStats.attendanceRate || 0).toFixed(1) }}%</text>
+				</view>
+			</view>
+			
+			<!-- 行程统计卡片 -->
+			<view class="stats-card trip-card">
+				<view class="card-header">
+					<text class="card-title">🚗 行程统计</text>
+				</view>
+				<view class="stats-grid">
+					<view class="stat-item">
+						<text class="stat-value">{{ tripStats.tripCount || 0 }}</text>
+						<text class="stat-label">行程次数</text>
+					</view>
+					<view class="stat-item">
+						<text class="stat-value">{{ (tripStats.totalDistance || 0).toFixed(1) }}</text>
+						<text class="stat-label">行驶里程(km)</text>
+					</view>
+					<view class="stat-item">
+						<text class="stat-value">{{ (tripStats.cargoWeight || 0).toFixed(1) }}</text>
+						<text class="stat-label">运输吨位(t)</text>
+					</view>
+					<view class="stat-item">
+						<text class="stat-value highlight">{{ (tripStats.performanceScore || 0).toFixed(1) }}</text>
+						<text class="stat-label">绩效评分</text>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 违规预警卡片 -->
+			<view class="stats-card warning-card">
+				<view class="card-header">
+					<text class="card-title">⚠️ 违规预警</text>
+				</view>
+				<view class="warning-grid">
+					<view class="warning-item">
+						<text class="warning-icon">🚨</text>
+						<text class="warning-count">{{ tripStats.warningCount || 0 }}</text>
+						<text class="warning-label">预警次数</text>
+					</view>
+					<view class="warning-item">
+						<text class="warning-icon">📋</text>
+						<text class="warning-count">{{ tripStats.violationCount || 0 }}</text>
+						<text class="warning-label">违章次数</text>
+					</view>
+					<view class="warning-item">
+						<text class="warning-icon">⚡</text>
+						<text class="warning-count">{{ tripStats.overSpeedCount || 0 }}</text>
+						<text class="warning-label">超速次数</text>
+					</view>
+					<view class="warning-item">
+						<text class="warning-icon">🔀</text>
+						<text class="warning-count">{{ tripStats.routeDeviationCount || 0 }}</text>
+						<text class="warning-label">路线偏离</text>
+					</view>
+				</view>
+			</view>
+			
+			<!-- 快捷操作 -->
+			<view class="quick-actions">
+				<view class="action-item" @click="goToCheckIn">
+					<view class="action-icon green">
+						<text>📍</text>
+					</view>
+					<text class="action-text">打卡签到</text>
+				</view>
+				<view class="action-item" @click="goToTripList">
+					<view class="action-icon blue">
+						<text>📋</text>
+					</view>
+					<text class="action-text">行程记录</text>
+				</view>
+				<view class="action-item" @click="goToAttendanceList">
+					<view class="action-icon orange">
+						<text>📅</text>
+					</view>
+					<text class="action-text">考勤记录</text>
+				</view>
+				<view class="action-item" @click="goToProfile">
+					<view class="action-icon purple">
+						<text>👤</text>
+					</view>
+					<text class="action-text">个人中心</text>
 				</view>
 			</view>
 		</view>
@@ -72,251 +160,488 @@
 </template>
 
 <script setup lang="uts">
+	import { ref, onMounted, computed } from 'vue'
+	import { statisticsApi, DriverStatisticsVO } from '@/api/statistics.uts'
+	import { getAttendanceStatistics, AttendanceStatisticsVO } from '@/api/attendance.uts'
+	import { getToken } from '@/utils/request.uts'
+	
+	type UserInfo = {
+		id: string
+		username: string
+		realName: string
+		avatarUrl: string
+	}
+	
+	const userInfo = ref<UserInfo | null>(null)
+	const timeRange = ref<'day' | 'week' | 'month'>('day')
+	const unreadCount = ref(0)
+	
+	const attendanceStats = ref<AttendanceStatisticsVO>({
+		userId: '',
+		userName: '',
+		month: '',
+		totalAttendanceDays: 0,
+		actualAttendanceDays: 0,
+		normalDays: 0,
+		lateTimes: 0,
+		earlyLeaveTimes: 0,
+		absentDays: 0,
+		leaveDays: 0,
+		attendanceRate: 0,
+		attendanceDays: 0,
+		attendanceHours: 0,
+		lateCount: 0,
+		earlyLeaveCount: 0
+	})
+	
+	const tripStats = ref<DriverStatisticsVO>({
+		id: 0,
+		userId: 0,
+		userName: '',
+		statisticsDate: '',
+		attendanceDays: 0,
+		attendanceHours: 0,
+		tripCount: 0,
+		totalDistance: 0,
+		cargoWeight: 0,
+		lateCount: 0,
+		earlyLeaveCount: 0,
+		warningCount: 0,
+		violationCount: 0,
+		overSpeedCount: 0,
+		routeDeviationCount: 0,
+		performanceScore: 0
+	})
+	
+	function getGreeting(): string {
+		const hour = new Date().getHours()
+		if (hour < 6) return '夜深了'
+		if (hour < 9) return '早上好'
+		if (hour < 12) return '上午好'
+		if (hour < 14) return '中午好'
+		if (hour < 18) return '下午好'
+		if (hour < 22) return '晚上好'
+		return '夜深了'
+	}
+	
+	function setTimeRange(range: 'day' | 'week' | 'month') {
+		timeRange.value = range
+		loadStatistics()
+	}
+	
+	function getDateRange(): { startDate: string, endDate: string } {
+		const now = new Date()
+		const year = now.getFullYear()
+		const month = String(now.getMonth() + 1).padStart(2, '0')
+		const day = String(now.getDate()).padStart(2, '0')
+		const today = `${year}-${month}-${day}`
+		
+		if (timeRange.value === 'day') {
+			return { startDate: today, endDate: today }
+		} else if (timeRange.value === 'week') {
+			const weekStart = new Date(now)
+			weekStart.setDate(now.getDate() - now.getDay() + 1)
+			const ws = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`
+			return { startDate: ws, endDate: today }
+		} else {
+			const monthStart = `${year}-${month}-01`
+			return { startDate: monthStart, endDate: today }
+		}
+	}
+	
+	async function loadStatistics() {
+		const userId = userInfo.value?.id
+		if (!userId) return
+		
+		const dateRange = getDateRange()
+		
+		// 加载出勤统计
+		try {
+			const yearMonth = dateRange.startDate.substring(0, 7)
+			const attendanceResult = await getAttendanceStatistics(yearMonth)
+			if (attendanceResult) {
+				attendanceStats.value = attendanceResult
+			}
+		} catch (e) {
+			console.error('加载出勤统计失败', e)
+		}
+		
+		// 加载行程统计
+		try {
+			const driverResult = await statisticsApi.getDriverStatistics({
+				userId: userId,
+				startDate: dateRange.startDate,
+				endDate: dateRange.endDate
+			})
+			if (driverResult && driverResult.length > 0) {
+				// 合并多天的数据
+				let totalTripCount = 0
+				let totalDistance = 0
+				let totalCargoWeight = 0
+				let totalAttendanceDays = 0
+				let totalAttendanceHours = 0
+				let totalLateCount = 0
+				let totalEarlyLeaveCount = 0
+				let totalWarningCount = 0
+				let totalViolationCount = 0
+				let totalOverSpeedCount = 0
+				let totalRouteDeviationCount = 0
+				let totalPerformanceScore = 0
+				
+				driverResult.forEach(item => {
+					totalTripCount += item.tripCount || 0
+					totalDistance += item.totalDistance || 0
+					totalCargoWeight += item.cargoWeight || 0
+					totalAttendanceDays += item.attendanceDays || 0
+					totalAttendanceHours += item.attendanceHours || 0
+					totalLateCount += item.lateCount || 0
+					totalEarlyLeaveCount += item.earlyLeaveCount || 0
+					totalWarningCount += item.warningCount || 0
+					totalViolationCount += item.violationCount || 0
+					totalOverSpeedCount += item.overSpeedCount || 0
+					totalRouteDeviationCount += item.routeDeviationCount || 0
+					totalPerformanceScore += item.performanceScore || 0
+				})
+				
+				tripStats.value = {
+					id: 0,
+					userId: parseInt(userId),
+					userName: userInfo.value?.realName || '',
+					statisticsDate: dateRange.startDate,
+					attendanceDays: totalAttendanceDays,
+					attendanceHours: totalAttendanceHours,
+					tripCount: totalTripCount,
+					totalDistance: totalDistance,
+					cargoWeight: totalCargoWeight,
+					lateCount: totalLateCount,
+					earlyLeaveCount: totalEarlyLeaveCount,
+					warningCount: totalWarningCount,
+					violationCount: totalViolationCount,
+					overSpeedCount: totalOverSpeedCount,
+					routeDeviationCount: totalRouteDeviationCount,
+					performanceScore: driverResult.length > 0 ? totalPerformanceScore / driverResult.length : 0
+				}
+			}
+		} catch (e) {
+			console.error('加载行程统计失败', e)
+		}
+	}
+	
+	function loadUserInfo() {
+		try {
+			const stored = uni.getStorageSync('userInfo')
+			if (stored) {
+				userInfo.value = JSON.parse(stored) as UserInfo
+			}
+		} catch (e) {
+			console.error('加载用户信息失败', e)
+		}
+	}
+	
+	function goToMessages() {
+		uni.navigateTo({ url: '/pages/user/message/index' })
+	}
+	
+	function goToCheckIn() {
+		uni.navigateTo({ url: '/pages/user/attendance/index' })
+	}
+	
+	function goToTripList() {
+		uni.navigateTo({ url: '/pages/user/trip/index' })
+	}
+	
+	function goToAttendanceList() {
+		uni.navigateTo({ url: '/pages/user/attendance/index' })
+	}
+	
+	function goToProfile() {
+		uni.navigateTo({ url: '/pages/user/profile/index' })
+	}
+	
+	onMounted(() => {
+		loadUserInfo()
+		if (userInfo.value?.id) {
+			loadStatistics()
+		}
+	})
 </script>
 
 <style lang="scss">
-	.user-task-container {
+	.user-home-container {
 		min-height: 100vh;
-		background-color: #f8fafc;
-		display: flex;
-		flex-direction: column;
+		background-color: #f5f7fa;
 	}
 	
 	.top-navbar {
 		background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-		padding: 30rpx 40rpx;
-		padding-top: 60rpx;
+		padding: 40rpx 30rpx;
+		padding-top: 80rpx;
 		display: flex;
 		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+	}
+	
+	.user-info {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
 		gap: 20rpx;
-		align-items: center;
-	}
-	
-	.search-bar {
-		flex: 1;
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		background-color: rgba(255, 255, 255, 0.1);
-		border-radius: 16rpx;
-		padding: 20rpx 30rpx;
 		
-		.search-icon {
-			font-size: 28rpx;
-			margin-right: 15rpx;
-			opacity: 0.7;
+		.avatar {
+			width: 80rpx;
+			height: 80rpx;
+			border-radius: 50%;
+			border: 4rpx solid rgba(255, 255, 255, 0.3);
 		}
 		
-		input {
-			flex: 1;
-			font-size: 26rpx;
-			color: #fff;
+		.user-text {
+			display: flex;
+			flex-direction: column;
+			gap: 6rpx;
+			
+			.greeting {
+				font-size: 24rpx;
+				color: rgba(255, 255, 255, 0.7);
+			}
+			
+			.username {
+				font-size: 32rpx;
+				font-weight: bold;
+				color: #fff;
+			}
 		}
 	}
 	
-	.filter-btn {
+	.notification-btn {
 		width: 70rpx;
 		height: 70rpx;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background-color: rgba(255, 255, 255, 0.1);
-		border-radius: 16rpx;
-		font-size: 28rpx;
+		background-color: rgba(255, 255, 255, 0.15);
+		border-radius: 50%;
+		font-size: 32rpx;
+		position: relative;
+		
+		.badge {
+			position: absolute;
+			top: -5rpx;
+			right: -5rpx;
+			min-width: 32rpx;
+			height: 32rpx;
+			background-color: #e74c3c;
+			border-radius: 16rpx;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 0 8rpx;
+			
+			text {
+				font-size: 20rpx;
+				color: #fff;
+			}
+		}
 	}
 	
 	.content-area {
-		flex: 1;
 		padding: 30rpx;
 	}
 	
-	.current-task-section {
-		margin-bottom: 40rpx;
-	}
-	
-	.current-task-card {
-		background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-		border-radius: 24rpx;
-		padding: 35rpx;
-		box-shadow: 0 8rpx 30rpx rgba(0, 0, 0, 0.15);
-	}
-	
-	.task-header {
+	.time-filter {
 		display: flex;
 		flex-direction: row;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 25rpx;
+		background-color: #fff;
+		border-radius: 16rpx;
+		padding: 8rpx;
+		margin-bottom: 30rpx;
 		
-		.task-title {
-			font-size: 32rpx;
-			font-weight: bold;
-			color: #fff;
-		}
-		
-		.task-status-tag {
-			padding: 10rpx 24rpx;
-			background-color: rgba(255, 255, 255, 0.15);
-			border-radius: 20rpx;
+		.filter-item {
+			flex: 1;
+			padding: 16rpx 0;
+			text-align: center;
+			border-radius: 12rpx;
 			
 			text {
-				font-size: 22rpx;
-				color: rgba(255, 255, 255, 0.9);
-			}
-		}
-	}
-	
-	.task-location {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		margin-bottom: 30rpx;
-		
-		.location-icon {
-			font-size: 28rpx;
-			margin-right: 12rpx;
-		}
-		
-		.location-text {
-			flex: 1;
-			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.8);
-			line-height: 1.5;
-		}
-	}
-	
-	.task-details {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 20rpx;
-		margin-bottom: 30rpx;
-		
-		.detail-item {
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			
-			.detail-label {
-				font-size: 22rpx;
-				color: rgba(255, 255, 255, 0.6);
-				margin-bottom: 8rpx;
+				font-size: 26rpx;
+				color: #666;
 			}
 			
-			.detail-value {
-				font-size: 28rpx;
-				font-weight: 500;
-				color: #fff;
+			&.active {
+				background-color: #2c3e50;
 				
-				&.highlight {
-					color: #ffc107;
+				text {
+					color: #fff;
+					font-weight: 500;
 				}
 			}
 		}
 	}
 	
-	.action-button {
-		width: 100%;
-		height: 80rpx;
-		background-color: #fff;
-		color: #2c3e50;
-		font-size: 28rpx;
-		font-weight: 500;
-		border-radius: 16rpx;
-	}
-	
-	.pending-tasks-section {
-		.section-title {
-			font-size: 32rpx;
-			font-weight: bold;
-			color: #2c3e50;
-			margin-bottom: 25rpx;
-		}
-	}
-	
-	.pending-tasks-grid {
-		display: grid;
-		grid-template-columns: repeat(2, 1fr);
-		gap: 20rpx;
-	}
-	
-	.pending-task-card {
+	.stats-card {
 		background-color: #fff;
 		border-radius: 20rpx;
 		padding: 30rpx;
-		box-shadow: 0 4rpx 15rpx rgba(0, 0, 0, 0.08);
-	}
-	
-	.task-route {
 		margin-bottom: 25rpx;
+		box-shadow: 0 4rpx 15rpx rgba(0, 0, 0, 0.05);
+		
+		.card-header {
+			margin-bottom: 25rpx;
+			
+			.card-title {
+				font-size: 30rpx;
+				font-weight: bold;
+				color: #2c3e50;
+			}
+		}
 	}
 	
-	.route-point {
+	.stats-grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 20rpx;
+		
+		.stat-item {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			padding: 20rpx 0;
+			
+			.stat-value {
+				font-size: 36rpx;
+				font-weight: bold;
+				color: #2c3e50;
+				margin-bottom: 10rpx;
+				
+				&.warning {
+					color: #e74c3c;
+				}
+				
+				&.highlight {
+					color: #27ae60;
+				}
+			}
+			
+			.stat-label {
+				font-size: 22rpx;
+				color: #7f8c8d;
+			}
+		}
+	}
+	
+	.attendance-rate {
 		display: flex;
 		flex-direction: row;
-		align-items: flex-start;
-		margin-bottom: 20rpx;
+		align-items: center;
+		gap: 20rpx;
+		margin-top: 20rpx;
+		padding-top: 20rpx;
+		border-top: 1rpx solid #f0f0f0;
 		
-		&:last-child {
-			margin-bottom: 0;
+		.rate-label {
+			font-size: 24rpx;
+			color: #666;
+			white-space: nowrap;
 		}
 		
-		.point-dot {
-			width: 20rpx;
-			height: 20rpx;
-			border-radius: 50%;
-			margin-right: 15rpx;
-			margin-top: 6rpx;
-			
-			&.green {
-				background-color: #2ecc71;
-			}
-			
-			&.red {
-				background-color: #e74c3c;
-			}
-		}
-		
-		.point-label {
-			font-size: 22rpx;
-			color: #95a5a6;
-			margin-bottom: 6rpx;
-			display: block;
-		}
-		
-		.point-location {
+		.rate-bar {
 			flex: 1;
-			font-size: 24rpx;
-			font-weight: 500;
-			color: #2c3e50;
-		}
-	}
-	
-	.task-info-row {
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		align-items: center;
-	}
-	
-	.info-tag {
-		display: flex;
-		flex-direction: row;
-		align-items: center;
-		gap: 10rpx;
-		
-		.tag-icon {
-			font-size: 24rpx;
+			height: 16rpx;
+			background-color: #ecf0f1;
+			border-radius: 8rpx;
+			overflow: hidden;
+			
+			.rate-fill {
+				height: 100%;
+				background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);
+				border-radius: 8rpx;
+				transition: width 0.3s ease;
+			}
 		}
 		
-		.tag-text {
-			font-size: 24rpx;
-			color: #7f8c8d;
+		.rate-value {
+			font-size: 26rpx;
+			font-weight: bold;
+			color: #27ae60;
+			min-width: 80rpx;
+			text-align: right;
 		}
 	}
 	
-	.task-weight {
-		font-size: 26rpx;
-		font-weight: 500;
-		color: #2c3e50;
+	.warning-grid {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 15rpx;
+		
+		.warning-item {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			padding: 20rpx 10rpx;
+			background-color: #fef9f3;
+			border-radius: 12rpx;
+			
+			.warning-icon {
+				font-size: 32rpx;
+				margin-bottom: 10rpx;
+			}
+			
+			.warning-count {
+				font-size: 32rpx;
+				font-weight: bold;
+				color: #e74c3c;
+				margin-bottom: 6rpx;
+			}
+			
+			.warning-label {
+				font-size: 20rpx;
+				color: #7f8c8d;
+			}
+		}
+	}
+	
+	.quick-actions {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 20rpx;
+		margin-top: 10rpx;
+		
+		.action-item {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 15rpx;
+			
+			.action-icon {
+				width: 90rpx;
+				height: 90rpx;
+				border-radius: 20rpx;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 36rpx;
+				
+				&.green {
+					background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+				}
+				
+				&.blue {
+					background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+				}
+				
+				&.orange {
+					background: linear-gradient(135deg, #d35400 0%, #e67e22 100%);
+				}
+				
+				&.purple {
+					background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+				}
+			}
+			
+			.action-text {
+				font-size: 24rpx;
+				color: #2c3e50;
+			}
+		}
 	}
 </style>
