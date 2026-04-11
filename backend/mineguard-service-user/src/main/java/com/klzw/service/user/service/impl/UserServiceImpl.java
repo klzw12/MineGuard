@@ -18,6 +18,8 @@ import com.klzw.common.core.enums.ResultCodeEnum;
 import com.klzw.service.user.mapper.RoleMapper;
 import com.klzw.service.user.mapper.UserMapper;
 import com.klzw.service.user.mapper.UserAttendanceMapper;
+import com.klzw.service.user.mapper.DriverMapper;
+import com.klzw.service.user.entity.Driver;
 import com.klzw.service.user.service.UserService;
 import com.klzw.service.user.vo.UserVO;
 import com.klzw.service.user.vo.IdCardVO;
@@ -45,6 +47,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
+    private final DriverMapper driverMapper;
     private final UserAttendanceMapper userAttendanceMapper;
     private final PasswordUtils passwordUtils;
     private final RedisCacheService redisCacheService;
@@ -521,6 +524,14 @@ public class UserServiceImpl implements UserService {
             if (role != null) {
                 vo.setRoleCode(role.getRoleCode());
                 vo.setRoleName(role.getRoleName());
+                
+                // 如果是司机角色， 查询班组信息
+                if (RoleEnum.DRIVER.getValue().equals(role.getRoleCode())) {
+                    Driver driver = driverMapper.selectByUserId(String.valueOf(user.getId()));
+                    if (driver != null) {
+                        vo.setBelongingTeam(driver.getBelongingTeam());
+                    }
+                }
             }
         }
         return vo;

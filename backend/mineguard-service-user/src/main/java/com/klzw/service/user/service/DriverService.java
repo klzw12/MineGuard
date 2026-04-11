@@ -43,4 +43,8 @@ public interface DriverService {
     void incrementVehicleUseCount(Long driverId, Long vehicleId);
 
     List<Long> getDriverIds();
+
+    void updateBelongingTeam(Long driverId, String belongingTeam);
+
+    void updateBelongingTeamByUserId(Long userId, String belongingTeam);
 }

@@ -46,3 +46,7 @@ export function setDefaultVehicle(userId: string, vehicleId: string): Promise<vo
 export function getCommonVehicles(userId: string): Promise<DriverVehicleVO[]> {
   return http.get<DriverVehicleVO[]>(`/user/driver/user/${userId}/common-vehicles`)
 }
+
+export function updateBelongingTeamByUserId(userId: string, belongingTeam: string): Promise<void> {
+  return http.put<void>(`/user/driver/user/${userId}/team`, { belongingTeam })
+}

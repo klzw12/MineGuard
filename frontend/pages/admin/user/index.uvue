@@ -62,6 +62,7 @@
 							<text class="user-role" v-if="user.roleName">角色：{{ user.roleName }}</text>
 							<text class="user-phone" v-if="user.phone">手机：{{ user.phone }}</text>
 							<text class="user-email" v-if="user.email">邮箱：{{ user.email }}</text>
+							<text class="user-team" v-if="user.belongingTeam">班组：{{ user.belongingTeam }}</text>
 						</view>
 						<view class="user-actions">
 							<view 
@@ -72,14 +73,21 @@
 								<text class="status-text">{{ user.status === 1 ? '启用' : '禁用' }}</text>
 							</view>
 							<view class="action-btns">
-					<view 
-						class="action-btn" 
-						:class="user.status === 1 ? 'danger' : 'success'"
-						@click="toggleUserStatus(user)"
-					>
-						<text>{{ user.status === 1 ? '禁用' : '启用' }}</text>
-					</view>
-				</view>
+								<view 
+									v-if="user.roleCode === 'DRIVER'"
+									class="action-btn team-btn"
+									@click="showTeamModal(user)"
+								>
+									<text>分配班组</text>
+								</view>
+								<view 
+									class="action-btn" 
+									:class="user.status === 1 ? 'danger' : 'success'"
+									@click="toggleUserStatus(user)"
+								>
+									<text>{{ user.status === 1 ? '禁用' : '启用' }}</text>
+								</view>
+							</view>
 						</view>
 					</view>
 				</view>
@@ -105,7 +113,28 @@
 			</view>
 		</view>
 		
-		
+		<!-- 班组分配弹窗 -->
+		<view class="modal-overlay" v-if="teamModalVisible" @click="closeTeamModal">
+			<view class="modal-content" @click.stop>
+				<text class="modal-title">分配班组</text>
+				<text class="modal-subtitle">用户：{{ currentUser?.realName || currentUser?.username }}</text>
+				<input 
+					class="team-input"
+					type="text" 
+					v-model="teamInput" 
+					placeholder="请输入班组名称"
+					placeholder-style="color: #999"
+				/>
+				<view class="modal-btns">
+					<view class="modal-btn cancel" @click="closeTeamModal">
+						<text>取消</text>
+					</view>
+					<view class="modal-btn confirm" @click="confirmTeam">
+						<text>确认</text>
+					</view>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -113,6 +142,7 @@
 	import { ref, computed, onMounted } from 'vue'
 	import AdminSidebar from '../../../components/AdminSidebar.uvue'
 	import { pageUsers, disableUser, enableUser } from '@/api/user.uts'
+	import { updateBelongingTeamByUserId } from '@/api/driver.uts'
 	import type { UserVO, PageResult } from '@/types/user.uts'
 	
 	const loading = ref(false)
@@ -122,6 +152,11 @@
 	const pageSize = ref(10)
 	const total = ref(0)
 	const userList = ref<UserVO[]>([])
+	
+	// 班组分配相关
+	const teamModalVisible = ref(false)
+	const currentUser = ref<UserVO | null>(null)
+	const teamInput = ref('')
 	
 	const totalPages = computed(() => {
 		return Math.ceil(total.value / pageSize.value) || 1
@@ -195,6 +230,39 @@
 					position: 'bottom'
 				})
 			}
+			loadUsers()
+		} catch (e: any) {
+			uni.showToast({
+				title: e.message || '操作失败',
+				icon: 'none',
+				position: 'bottom'
+			})
+		}
+	}
+	
+	function showTeamModal(user: UserVO) {
+		currentUser.value = user
+		teamInput.value = user.belongingTeam || ''
+		teamModalVisible.value = true
+	}
+	
+	function closeTeamModal() {
+		teamModalVisible.value = false
+		currentUser.value = null
+		teamInput.value = ''
+	}
+	
+	async function confirmTeam() {
+		if (!currentUser.value) return
+		
+		try {
+			await updateBelongingTeamByUserId(currentUser.value.id, teamInput.value)
+			uni.showToast({
+				title: '班组分配成功',
+				icon: 'success',
+				position: 'bottom'
+			})
+			closeTeamModal()
 			loadUsers()
 		} catch (e: any) {
 			uni.showToast({
@@ -414,6 +482,85 @@
 	
 	.action-btn.success {
 		background-color: #34C759;
+	}
+	
+	.action-btn.team-btn {
+		background-color: #FF9500;
+	}
+	
+	.user-team {
+		font-size: 22rpx;
+		color: #FF9500;
+		margin-bottom: 4rpx;
+		display: block;
+	}
+	
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 999;
+	}
+	
+	.modal-content {
+		width: 600rpx;
+		background-color: #fff;
+		border-radius: 20rpx;
+		padding: 40rpx;
+	}
+	
+	.modal-title {
+		font-size: 32rpx;
+		font-weight: bold;
+		color: #333;
+		text-align: center;
+		margin-bottom: 20rpx;
+	}
+	
+	.modal-subtitle {
+		font-size: 24rpx;
+		color: #666;
+		text-align: center;
+		margin-bottom: 30rpx;
+	}
+	
+	.team-input {
+		width: 100%;
+		padding: 20rpx;
+		border: 1rpx solid #ddd;
+		border-radius: 10rpx;
+		font-size: 28rpx;
+		margin-bottom: 30rpx;
+	}
+	
+	.modal-btns {
+		display: flex;
+		flex-direction: row;
+		gap: 20rpx;
+	}
+	
+	.modal-btn {
+		flex: 1;
+		padding: 20rpx;
+		border-radius: 10rpx;
+		text-align: center;
+		font-size: 28rpx;
+	}
+	
+	.modal-btn.cancel {
+		background-color: #f5f5f5;
+		color: #666;
+	}
+	
+	.modal-btn.confirm {
+		background-color: #007AFF;
+		color: #fff;
 	}
 	
 	.pagination {

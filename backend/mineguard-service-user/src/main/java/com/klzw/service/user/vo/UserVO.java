@@ -36,4 +36,6 @@ public class UserVO {
     private String refreshToken;
 
     private Long expiresIn;
+
+    private String belongingTeam;
 }

@@ -128,4 +128,22 @@ public class DriverController {
     public Result<List<Long>> getDriverIds() {
         return Result.success(driverService.getDriverIds());
     }
+
+    @PutMapping("/{driverId}/team")
+    public Result<Void> updateBelongingTeam(
+            @PathVariable Long driverId,
+            @RequestBody Map<String, String> body) {
+        String belongingTeam = body.get("belongingTeam");
+        driverService.updateBelongingTeam(driverId, belongingTeam);
+        return Result.success();
+    }
+
+    @PutMapping("/user/{userId}/team")
+    public Result<Void> updateBelongingTeamByUserId(
+            @PathVariable Long userId,
+            @RequestBody Map<String, String> body) {
+        String belongingTeam = body.get("belongingTeam");
+        driverService.updateBelongingTeamByUserId(userId, belongingTeam);
+        return Result.success();
+    }
 }

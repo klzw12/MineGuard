@@ -9,7 +9,6 @@
 						<text class="stat-value">{{ onlineVehicles }}</text>
 						<text class="stat-unit">辆</text>
 					</view>
-					<text class="stat-trend positive">+12% vs 昨日</text>
 				</view>
 				<view class="stat-icon blue">
 					<text>🚚</text>
@@ -23,7 +22,6 @@
 						<text class="stat-value">{{ todayTasks }}</text>
 						<text class="stat-unit">个</text>
 					</view>
-					<text class="stat-trend positive">+8% vs 昨日</text>
 				</view>
 				<view class="stat-icon green">
 					<text>📋</text>
@@ -37,24 +35,9 @@
 						<text class="stat-value">{{ pendingAppeals }}</text>
 						<text class="stat-unit">条</text>
 					</view>
-					<text class="stat-trend negative">-5% vs 昨日</text>
 				</view>
 				<view class="stat-icon orange">
 					<text>⚠️</text>
-				</view>
-			</view>
-			
-			<view class="stat-card">
-				<view class="stat-left">
-					<text class="stat-label">消息触达率</text>
-					<view class="stat-value-row">
-						<text class="stat-value">{{ messageReachRate }}</text>
-						<text class="stat-unit">%</text>
-					</view>
-					<text class="stat-trend positive">+2.3% vs 昨日</text>
-				</view>
-				<view class="stat-icon purple">
-					<text>📈</text>
 				</view>
 			</view>
 		</view>
@@ -178,14 +161,12 @@
 import { vehicleApi, VehicleVO } from '@/api/vehicle.uts'
 import * as tripApi from '@/api/trip.uts'
 import * as appealApi from '@/api/appeal.uts'
-import * as messageApi from '@/api/message.uts'
 	import { ref, onMounted } from 'vue'
 	
 	// 统计数据
 	const onlineVehicles = ref(0)
 	const todayTasks = ref(0)
 	const pendingAppeals = ref(0)
-	const messageReachRate = ref(94.2)
 	
 	// 车辆状态分布
 	const vehicleStatusDistribution = ref({
@@ -274,7 +255,7 @@ import * as messageApi from '@/api/message.uts'
 	
 	.stats-grid {
 		display: grid;
-		grid-template-columns: repeat(4, 1fr);
+		grid-template-columns: repeat(3, 1fr);
 		gap: 30rpx;
 		margin-bottom: 30rpx;
 		
@@ -303,7 +284,6 @@ import * as messageApi from '@/api/message.uts'
 					flex-direction: row;
 					align-items: baseline;
 					gap: 8rpx;
-					margin-bottom: 12rpx;
 					
 					.stat-value {
 						font-size: 56rpx;
@@ -314,18 +294,6 @@ import * as messageApi from '@/api/message.uts'
 					.stat-unit {
 						font-size: 24rpx;
 						color: rgba(255, 255, 255, 0.6);
-					}
-				}
-				
-				.stat-trend {
-					font-size: 22rpx;
-					
-					&.positive {
-						color: #34C759;
-					}
-					
-					&.negative {
-						color: #FF9500;
 					}
 				}
 			}
@@ -349,10 +317,6 @@ import * as messageApi from '@/api/message.uts'
 				
 				&.orange {
 					background: linear-gradient(135deg, #FF9500 0%, #cc7700 100%);
-				}
-				
-				&.purple {
-					background: linear-gradient(135deg, #AF52DE 0%, #8c40b0 100%);
 				}
 			}
 		}

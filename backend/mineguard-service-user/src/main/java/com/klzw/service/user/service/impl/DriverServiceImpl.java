@@ -318,6 +318,29 @@ public class DriverServiceImpl implements DriverService {
         ).stream().map(Driver::getId).collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional
+    public void updateBelongingTeam(Long driverId, String belongingTeam) {
+        Driver driver = driverMapper.selectById(driverId);
+        if (driver == null) {
+            throw new RuntimeException("司机信息不存在");
+        }
+        driver.setBelongingTeam(belongingTeam);
+        driver.setUpdateTime(LocalDateTime.now());
+        driverMapper.updateById(driver);
+        log.info("更新司机班组：司机ID={}, 班组={}", driverId, belongingTeam);
+    }
+
+    @Override
+    @Transactional
+    public void updateBelongingTeamByUserId(Long userId, String belongingTeam) {
+        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
+        if (driver == null) {
+            throw new RuntimeException("司机信息不存在");
+        }
+        updateBelongingTeam(driver.getId(), belongingTeam);
+    }
+
     private DriverVO convertToVO(Driver entity) {
         DriverVO vo = new DriverVO();
         BeanUtils.copyProperties(entity, vo);
