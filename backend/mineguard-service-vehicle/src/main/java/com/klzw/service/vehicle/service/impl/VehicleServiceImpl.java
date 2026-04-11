@@ -57,11 +57,13 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     public Vehicle createVehicle(Vehicle vehicle) {
         log.info("创建车辆: {}", vehicle);
         vehicle.setStatus(VehicleStatusEnum.IDLE.getCode());
+        vehicle.setDeleted(0);
         save(vehicle);
         
         VehicleStatus vehicleStatus = new VehicleStatus();
         vehicleStatus.setVehicleId(vehicle.getId());
         vehicleStatus.setStatus(VehicleStatusEnum.IDLE.getCode());
+        vehicleStatus.setDeleted(0);
         vehicleStatusService.save(vehicleStatus);
         
         return vehicle;
@@ -495,8 +497,8 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
         }
         
-        vehicle.setDeleted(1);
-        updateById(vehicle);
+        // 使用removeById方法删除车辆，这样会设置deleted=1
+        boolean result = removeById(id);
         
         VehicleStatus vehicleStatus = vehicleStatusService.getByVehicleId(id);
         if (vehicleStatus != null) {
@@ -504,7 +506,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             vehicleStatusService.updateById(vehicleStatus);
         }
         
-        return true;
+        return result;
     }
     
     @Override

@@ -818,6 +818,7 @@ CREATE TABLE IF NOT EXISTS `trip` (
     `fuel_consumption` DOUBLE COMMENT '燃油消耗',
     `average_speed` DOUBLE COMMENT '平均速度',
     `cargo_weight` DECIMAL(10,2) COMMENT '货物重量(吨)',
+    `estimated_commission_amount` DECIMAL(10,2) COMMENT '预计提成金额（调度时设定）',
     `cancellation_reason` VARCHAR(255) COMMENT '取消原因',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',

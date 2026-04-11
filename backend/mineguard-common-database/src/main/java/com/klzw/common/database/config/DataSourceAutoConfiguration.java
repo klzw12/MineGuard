@@ -5,6 +5,7 @@ import com.klzw.common.database.properties.DatabaseProperties;
 import com.klzw.common.database.util.DruidConfigUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,6 +17,7 @@ import javax.sql.DataSource;
 
 @Slf4j
 @AutoConfiguration
+@AutoConfigureBefore(name = "com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration")
 @ConditionalOnClass(name = "com.alibaba.druid.pool.DruidDataSource")
 @ConditionalOnProperty(prefix = "mineguard.database", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(DatabaseProperties.class)

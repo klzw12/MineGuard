@@ -1,0 +1,104 @@
+spring:
+  application:
+    name: trip-service-test
+  cloud:
+    nacos:
+      config:
+        enabled: false
+      discovery:
+        enabled: false
+
+  data:
+    redis:
+      host: "${REDIS_HOST:192.168.110.128}"
+      port: ${REDIS_PORT:6380}
+      password: "${REDIS_PASSWORD:testpass}"
+      database: 0
+      timeout: 60000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  rabbitmq:
+    host: "${RABBITMQ_HOST:192.168.110.128}"
+    port: ${RABBITMQ_PORT:5673}
+    username: "${RABBITMQ_USERNAME:admin}"
+    password: "${RABBITMQ_PASSWORD:rabbitmqadmin}"
+    virtual-host: "/"
+  datasource:
+    url: "jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT_MASTER:3306}/mineguard_test?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+    username: "${MYSQL_USERNAME:root}"
+    password: "${MYSQL_PASSWORD:pass}"
+    driver-class-name: "com.mysql.cj.jdbc.Driver"
+
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+server:
+  port: 8084
+
+mybatis-plus:
+  configuration:
+    log-impl: "org.apache.ibatis.logging.stdout.StdOutImpl"
+    map-underscore-to-camel-case: true
+  mapper-locations: "classpath*:mapper/**/*.xml"
+  type-aliases-package: "com.klzw.**.domain"
+  global-config:
+    db-config:
+      id-type: "assign_id"
+      logic-delete-field: "deleted"
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# Nacos配置 - 禁用云端依赖
+nacos:
+  config:
+    enabled: false
+  discovery:
+    enabled: false
+mineguard:
+  database:
+    enabled: false
+
+  redis:
+    enabled: true
+    key-prefix: "mineguard:test:"
+    default-expire: 3600
+
+  web:
+    enabled: true
+    cors:
+      allowed-origins: "*"
+      allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
+      allowed-headers: "*"
+      allow-credentials: true
+      max-age: 3600
+
+  mongodb:
+    enabled: true
+    host: "192.168.110.128"
+    port: 27018
+    database: "mineguard_test"
+    username: "admin"
+    password: "mongodbadmin"
+    authentication-database: "admin"
+
+  mq:
+    rabbit:
+      enabled: true
+      host: "192.168.110.128"
+      port: 5673
+      username: "admin"
+      password: "rabbitmqadmin"
+      virtual-host: "/"
+
+logging:
+  level:
+    com.klzw: debug
+    org.springframework: info
+  charset:
+    console: UTF-8
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"

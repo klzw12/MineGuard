@@ -35,7 +35,7 @@ public class DefaultExceptionHandlerStrategyTest {
 
         assertNotNull(result);
         assertEquals(ResultCodeEnum.INTERNAL_ERROR.getCode(), result.getCode());
-        assertTrue(result.getMessage().contains(errorMessage));
+        assertEquals(ResultCodeEnum.INTERNAL_ERROR.getMessage(), result.getMessage());
     }
 
     @Test
@@ -47,7 +47,7 @@ public class DefaultExceptionHandlerStrategyTest {
 
         assertNotNull(result);
         assertEquals(ResultCodeEnum.INTERNAL_ERROR.getCode(), result.getCode());
-        assertTrue(result.getMessage().contains("空指针异常"));
+        assertEquals(ResultCodeEnum.INTERNAL_ERROR.getMessage(), result.getMessage());
     }
 
     @Test
@@ -59,6 +59,6 @@ public class DefaultExceptionHandlerStrategyTest {
 
         assertNotNull(result);
         assertEquals(ResultCodeEnum.INTERNAL_ERROR.getCode(), result.getCode());
-        assertTrue(result.getMessage().contains("运行时异常"));
+        assertEquals(ResultCodeEnum.INTERNAL_ERROR.getMessage(), result.getMessage());
     }
 }

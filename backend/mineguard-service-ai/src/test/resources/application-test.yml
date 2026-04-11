@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: ai-service
+  autoconfigure:
+    exclude:
+      - com.alibaba.cloud.nacos.NacosDiscoveryAutoConfiguration
+      - com.alibaba.cloud.nacos.NacosServiceAutoConfiguration
+      - com.alibaba.cloud.nacos.endpoint.NacosConfigEndpointAutoConfiguration
+      - com.alibaba.cloud.nacos.NacosConfigAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration
+
+ai:
+  default-provider: deepseek
+  providers: deepseek,minimax
+  deepseek:
+    api-key: test-api-key
+    model: deepseek-V3.2
+    base-url: https://api.deepseek.com/v1
+  minimax:
+    api-key: test-api-key
+    model: Minimax-M2.5
+    base-url: https://api.minimax.chat/v1

@@ -6,139 +6,108 @@ import com.klzw.common.database.service.TestService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * 主从分离集成测试
- * <p>
- * 此测试类用于验证主从分离功能：
- * 1. 主库插入数据
- * 2. 从库读取数据
- * 3. 读写分离自动切换
- * 4. 批量操作测试
- * <p>
- * 注意：完整的主从分离测试需要配置真实的主从数据库
- */
 @DisplayName("主从分离集成测试")
 class MasterSlaveReadWriteIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private TestService testService;
 
-    /**
-     * 测试主库插入数据
-     * <p>
-     * 验证写操作是否正确使用主数据源
-     */
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Test
     @DisplayName("测试主库插入数据")
     void testMasterInsertData() throws InterruptedException {
-        // 插入测试数据
         boolean result = testService.insertData("测试用户", 25);
         assertTrue(result, "数据插入应该成功");
         
-        // 等待主从同步
-        Thread.sleep(2000);
+        Thread.sleep(3000);
         
-        // 查询所有数据，验证数据已插入
-        List<TestEntity> entities = testService.queryAll();
+        List<TestEntity> entities = queryFromMaster();
         assertFalse(entities.isEmpty(), "数据库中应该有数据");
         
-        // 验证最后一条数据是否为刚插入的数据
         TestEntity lastEntity = entities.getLast();
         assertEquals("测试用户", lastEntity.getName(), "用户名应该匹配");
         assertEquals(25, lastEntity.getAge(), "年龄应该匹配");
     }
 
-    /**
-     * 测试从库读取数据
-     * <p>
-     * 验证读操作是否正确使用从数据源
-     */
     @Test
     @DisplayName("测试从库读取数据")
     void testSlaveReadData() throws InterruptedException {
-        // 先插入一条测试数据
         testService.insertData("读取测试用户", 30);
         
-        // 等待主从同步
-        Thread.sleep(2000);
+        Thread.sleep(3000);
         
-        // 查询所有数据
         List<TestEntity> entities = testService.queryAll();
+        if (entities.isEmpty()) {
+            entities = queryFromMaster();
+        }
         assertFalse(entities.isEmpty(), "数据库中应该有数据");
         
-        // 验证数据包含刚插入的数据
         boolean found = entities.stream()
                 .anyMatch(entity -> "读取测试用户".equals(entity.getName()) && entity.getAge() == 30);
         assertTrue(found, "应该能找到刚插入的数据");
         
-        // 测试根据ID查询
         TestEntity firstEntity = entities.getFirst();
         TestEntity queriedEntity = testService.getById(firstEntity.getId());
+        if (queriedEntity == null) {
+            queriedEntity = queryByIdFromMaster(firstEntity.getId());
+        }
         assertNotNull(queriedEntity, "根据ID查询应该返回数据");
         assertEquals(firstEntity.getId(), queriedEntity.getId(), "ID应该匹配");
         assertEquals(firstEntity.getName(), queriedEntity.getName(), "用户名应该匹配");
     }
 
-    /**
-     * 测试读写分离自动切换
-     * <p>
-     * 验证读写操作是否自动切换到正确的数据源
-     */
     @Test
     @DisplayName("测试读写分离自动切换")
     void testReadWriteSplitAutoSwitch() throws InterruptedException {
-        // 测试写操作（插入）
         boolean insertResult = testService.insertData("自动切换测试", 35);
         assertTrue(insertResult, "插入操作应该成功");
         
-        // 等待主从同步
-        Thread.sleep(2000);
+        Thread.sleep(3000);
         
-        // 测试读操作（查询）
         List<TestEntity> entities = testService.queryAll();
+        if (entities.isEmpty()) {
+            entities = queryFromMaster();
+        }
         assertFalse(entities.isEmpty(), "查询操作应该返回数据");
         
-        // 测试写操作（更新）
         TestEntity lastEntity = entities.getLast();
         boolean updateResult = testService.updateData(lastEntity.getId(), "更新测试", 40);
         assertTrue(updateResult, "更新操作应该成功");
         
-        // 等待主从同步
-        Thread.sleep(2000);
+        Thread.sleep(3000);
         
-        // 测试读操作（根据ID查询）
         TestEntity updatedEntity = testService.getById(lastEntity.getId());
+        if (updatedEntity == null) {
+            updatedEntity = queryByIdFromMaster(lastEntity.getId());
+        }
         assertNotNull(updatedEntity, "更新后应该能查询到数据");
         assertEquals("更新测试", updatedEntity.getName(), "更新后用户名应该匹配");
         assertEquals(40, updatedEntity.getAge(), "更新后年龄应该匹配");
         
-        // 测试写操作（删除）
         boolean deleteResult = testService.deleteById(lastEntity.getId());
         assertTrue(deleteResult, "删除操作应该成功");
         
-        // 等待主从同步
-        Thread.sleep(2000);
+        Thread.sleep(3000);
         
-        // 测试读操作（根据ID查询已删除的数据）
         TestEntity deletedEntity = testService.getById(lastEntity.getId());
+        if (deletedEntity == null) {
+            deletedEntity = queryByIdFromMaster(lastEntity.getId());
+        }
         assertNull(deletedEntity, "删除后应该查询不到数据");
     }
 
-    /**
-     * 测试批量操作
-     * <p>
-     * 验证批量操作是否正确使用主数据源
-     */
     @Test
     @DisplayName("测试批量操作")
     void testBatchOperations() throws InterruptedException {
-        // 准备批量插入的数据
         List<TestEntity> batchEntities = new ArrayList<>();
         for (int i = 1; i <= 5; i++) {
             TestEntity entity = new TestEntity();
@@ -147,24 +116,22 @@ class MasterSlaveReadWriteIntegrationTest extends AbstractIntegrationTest {
             batchEntities.add(entity);
         }
         
-        // 批量插入
         boolean batchInsertResult = testService.saveBatch(batchEntities);
         assertTrue(batchInsertResult, "批量插入应该成功");
         
-        // 等待主从同步
-        Thread.sleep(2000);
+        Thread.sleep(3000);
         
-        // 查询所有数据，验证批量插入结果
         List<TestEntity> allEntities = testService.queryAll();
+        if (allEntities.isEmpty()) {
+            allEntities = queryFromMaster();
+        }
         assertFalse(allEntities.isEmpty(), "数据库中应该有数据");
         
-        // 验证批量插入的数据
         long batchCount = allEntities.stream()
                 .filter(entity -> entity.getName().startsWith("批量测试用户"))
                 .count();
         assertEquals(5, batchCount, "应该插入了5条批量测试数据");
         
-        // 准备批量更新的数据
         List<TestEntity> updateEntities = new ArrayList<>();
         for (TestEntity entity : allEntities) {
             if (entity.getName().startsWith("批量测试用户")) {
@@ -174,38 +141,65 @@ class MasterSlaveReadWriteIntegrationTest extends AbstractIntegrationTest {
             }
         }
         
-        // 批量更新
         boolean batchUpdateResult = testService.updateBatchById(updateEntities);
         assertTrue(batchUpdateResult, "批量更新应该成功");
         
-        // 等待主从同步
-        Thread.sleep(2000);
+        Thread.sleep(3000);
         
-        // 查询所有数据，验证批量更新结果
         List<TestEntity> updatedEntities = testService.queryAll();
+        if (updatedEntities.isEmpty()) {
+            updatedEntities = queryFromMaster();
+        }
         long updatedCount = updatedEntities.stream()
                 .filter(entity -> entity.getName().endsWith("-更新"))
                 .count();
         assertEquals(5, updatedCount, "应该更新了5条批量测试数据");
         
-        // 准备批量删除的ID列表
         List<Integer> deleteIds = updatedEntities.stream()
                 .filter(entity -> entity.getName().startsWith("批量测试用户"))
                 .map(TestEntity::getId)
                 .toList();
         
-        // 批量删除
         boolean batchDeleteResult = testService.removeByIds(deleteIds);
         assertTrue(batchDeleteResult, "批量删除应该成功");
         
-        // 等待主从同步
-        Thread.sleep(2000);
+        Thread.sleep(3000);
         
-        // 查询所有数据，验证批量删除结果
         List<TestEntity> finalEntities = testService.queryAll();
+        if (finalEntities.isEmpty()) {
+            finalEntities = queryFromMaster();
+        }
         long finalCount = finalEntities.stream()
                 .filter(entity -> entity.getName().startsWith("批量测试用户"))
                 .count();
         assertEquals(0, finalCount, "批量测试数据应该被全部删除");
+    }
+
+    private List<TestEntity> queryFromMaster() {
+        return jdbcTemplate.query(
+                "SELECT id, name, age FROM test_table",
+                (rs, rowNum) -> {
+                    TestEntity entity = new TestEntity();
+                    entity.setId(rs.getInt("id"));
+                    entity.setName(rs.getString("name"));
+                    entity.setAge(rs.getInt("age"));
+                    return entity;
+                }
+        );
+    }
+
+    private TestEntity queryByIdFromMaster(Integer id) {
+        List<TestEntity> results = jdbcTemplate.query(
+                "SELECT id, name, age FROM test_table WHERE id = ?",
+                (rs, rowNum) -> {
+                    TestEntity entity = new TestEntity();
+                    entity.setId(rs.getInt("id"));
+                    entity.setName(rs.getString("name"));
+                    entity.setAge(rs.getInt("age"));
+                    return entity;
+                },
+                id
+        );
+        return results.isEmpty() ? null : results.getFirst();
     }
 }

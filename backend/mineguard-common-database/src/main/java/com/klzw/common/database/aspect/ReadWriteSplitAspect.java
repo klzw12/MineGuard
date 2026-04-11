@@ -2,15 +2,19 @@ package com.klzw.common.database.aspect;
 
 import com.klzw.common.database.annotation.DataSource;
 import com.klzw.common.database.datasource.DynamicDataSource;
+import com.klzw.common.database.properties.DatabaseProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import javax.annotation.Resource;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -44,7 +48,11 @@ import java.util.List;
 @Aspect
 @Component
 @Order(-2)
+@ConditionalOnProperty(prefix = "mineguard.database", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class ReadWriteSplitAspect {
+
+    @Resource
+    private DatabaseProperties databaseProperties;
 
     /**
      * 写操作前缀列表
@@ -66,6 +74,18 @@ public class ReadWriteSplitAspect {
 
     @Around("servicePointcut()")
     public Object around(ProceedingJoinPoint point) throws Throwable {
+        // 检查数据库模块是否启用，如果未启用，直接执行原方法
+        if (!databaseProperties.isEnabled()) {
+            log.debug("数据库模块未启用，直接执行原方法: {}", point.getSignature().getName());
+            return point.proceed();
+        }
+        
+        // 检查动态数据源是否启用，如果未启用，直接执行原方法
+        if (!databaseProperties.getDynamic().isEnabled()) {
+            log.debug("动态数据源未启用，直接执行原方法: {}", point.getSignature().getName());
+            return point.proceed();
+        }
+        
         MethodSignature signature = (MethodSignature) point.getSignature();
         Method method = signature.getMethod();
         String methodName = method.getName();
@@ -95,19 +115,9 @@ public class ReadWriteSplitAspect {
         String operationType = determineOperationType(methodName);
 
         try {
-            if ("WRITE".equals(operationType)) {
-                // 写操作：强制使用主数据源
-                log.debug("检测到写操作: {}, 强制使用主数据源", methodName);
-                DynamicDataSource.setMasterDataSource();
-            } else if ("READ".equals(operationType)) {
-                // 读操作：使用从数据源
-                log.debug("检测到读操作: {}, 使用从数据源", methodName);
-                DynamicDataSource.setSlaveDataSource();
-            } else {
-                // 无法判断：默认使用主数据源（安全起见）
-                log.debug("无法判断操作类型: {}, 使用默认主数据源", methodName);
-                DynamicDataSource.setMasterDataSource();
-            }
+            // 所有操作都使用主数据源，避免从数据源同步延迟导致的问题
+            log.debug("所有操作都使用主数据源: {}", methodName);
+            DynamicDataSource.setMasterDataSource();
 
             return point.proceed();
         } finally {

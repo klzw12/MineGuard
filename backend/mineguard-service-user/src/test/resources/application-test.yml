@@ -1,6 +1,18 @@
 spring:
   application:
     name: user-service-test
+  cloud:
+    nacos:
+      config:
+        enabled: false
+      discovery:
+        enabled: false
+
+  datasource:
+    url: "jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT_MASTER:3306}/mineguard_test?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+    username: "${MYSQL_USERNAME:root}"
+    password: "${MYSQL_PASSWORD:}"
+    driver-class-name: "com.mysql.cj.jdbc.Driver"
 
   data:
     redis:
@@ -53,25 +65,10 @@ mybatis-plus:
 
 mineguard:
   database:
-    enabled: true
-    dynamic:
-      enabled: true
-      primary: "master"
-      slaves: ["slave"]
-    datasource:
-      master:
-        url: "jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT_MASTER:3306}/mineguard_test?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
-        username: "${MYSQL_USERNAME:root}"
-        password: "${MYSQL_PASSWORD:pass}"
-        driverClassName: "com.mysql.cj.jdbc.Driver"
-      slave:
-        url: "jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT_SLAVE:3307}/mineguard_test?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
-        username: "${MYSQL_USERNAME:root}"
-        password: "${MYSQL_PASSWORD:pass}"
-        driverClassName: "com.mysql.cj.jdbc.Driver"
+    enabled: false
 
   user:
-    initadmin: true
+    initadmin: false
     admin-username: admin
     admin-password: adminpass
     admin-real-name: 王敏

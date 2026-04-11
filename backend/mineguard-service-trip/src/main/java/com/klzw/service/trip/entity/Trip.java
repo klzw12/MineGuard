@@ -59,7 +59,7 @@ public class Trip extends BaseEntity {
 
     private BigDecimal cargoWeight;
     
-    private BigDecimal estimatedCommissionAmount;  // 预计提成金额（调度时设定）
+    // private BigDecimal estimatedCommissionAmount;  // 预计提成金额（调度时设定）
     
     private String cancellationReason;
 

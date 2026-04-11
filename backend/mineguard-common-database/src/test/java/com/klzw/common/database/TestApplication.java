@@ -1,5 +1,6 @@
 package com.klzw.common.database;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -19,6 +20,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
         "org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration"
     }
 )
+@MapperScan("com.klzw.common.database.mapper")
 public class TestApplication {
 
     public static void main(String[] args) {

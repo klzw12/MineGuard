@@ -1,0 +1,114 @@
+spring:
+  application:
+    name: dispatch-service-test
+  cloud:
+    nacos:
+      config:
+        enabled: false
+      discovery:
+        enabled: false
+
+  datasource:
+    url: "jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT_MASTER:3306}/mineguard_test?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+    username: "${MYSQL_USERNAME:root}"
+    password: "${MYSQL_PASSWORD:}"
+    driver-class-name: "com.mysql.cj.jdbc.Driver"
+
+  data:
+    redis:
+      host: "${REDIS_HOST:192.168.110.128}"
+      port: ${REDIS_PORT:6380}
+      password: "${REDIS_PASSWORD:testpass}"
+      database: 0
+      timeout: 60000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  rabbitmq:
+    host: "${RABBITMQ_HOST:192.168.110.128}"
+    port: ${RABBITMQ_PORT:5673}
+    username: "${RABBITMQ_USERNAME:admin}"
+    password: "${RABBITMQ_PASSWORD:rabbitmqadmin}"
+    virtual-host: "/"
+
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+server:
+  port: 8085
+
+mybatis-plus:
+  configuration:
+    log-impl: "org.apache.ibatis.logging.stdout.StdOutImpl"
+    map-underscore-to-camel-case: true
+  mapper-locations: "classpath*:mapper/**/*.xml"
+  type-aliases-package: "com.klzw.**.domain"
+  global-config:
+    db-config:
+      id-type: "assign_id"
+      logic-delete-field: "deleted"
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+mineguard:
+  database:
+    enabled: false
+
+  auth:
+    enabled: true
+    jwt:
+      secret: ${JWT_SECRET:testjwtformineguardmineguard1bcdefghijklmnopqrstuvwxyz1234567890}
+      expiration: 3600000
+      enable-blacklist: true
+      blacklist-prefix: "jwt:blacklist:"
+      blacklist-expire: 86400
+
+  redis:
+    enabled: true
+    key-prefix: "mineguard:test:"
+    default-expire: 3600
+
+  web:
+    enabled: true
+    cors:
+      allowed-origins: "*"
+      allowed-methods: "GET,POST,PUT,DELETE,OPTIONS"
+      allowed-headers: "*"
+      allow-credentials: true
+      max-age: 3600
+
+  mq:
+    rabbit:
+      enabled: true
+      host: "192.168.110.128"
+      port: 5673
+      username: "admin"
+      password: "rabbitmqadmin"
+      virtual-host: "/"
+
+  map:
+    gaode:
+      enabled: true
+      api-key: ${GAODE_API_KEY:1df6e350f3e74cba1f7c0b065f62ee2e}
+      api-url: "https://restapi.amap.com/v3"
+      connect-timeout: 5000
+      read-timeout: 10000
+      cache-expire: 3600
+
+logging:
+  level:
+    com.klzw: debug
+    org.springframework: info
+  charset:
+    console: UTF-8
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"

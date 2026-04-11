@@ -809,6 +809,9 @@ public class DispatchServiceImpl implements DispatchService {
     public TransportTask createDispatchTask(TransportTask task) {
         task.setTaskNo(generateTaskNo());
         task.setStatus(0);
+        task.setDeleted(0);
+        task.setExecutorId(0L);
+        task.setVehicleId(0L);
         task.setCreateTime(LocalDateTime.now());
         task.setUpdateTime(LocalDateTime.now());
         
@@ -834,10 +837,9 @@ public class DispatchServiceImpl implements DispatchService {
             log.error("调度任务不存在：ID={}", taskId);
             return false;
         }
-        task.setDeleted(1);
-        task.setUpdateTime(LocalDateTime.now());
-        transportTaskMapper.updateById(task);
-        return true;
+        // 使用removeById方法删除任务，这样会设置deleted=1
+        boolean result = transportTaskMapper.deleteById(taskId) > 0;
+        return result;
     }
 
     @Override
@@ -1002,7 +1004,8 @@ public class DispatchServiceImpl implements DispatchService {
 
     @Override
     public TransportTask getDispatchTask(Long taskId) {
-        return transportTaskMapper.selectById(taskId);
+        TransportTask task = transportTaskMapper.selectById(taskId);
+        return task != null && (task.getDeleted() == null || task.getDeleted() == 0) ? task : null;
     }
 
     @Override
@@ -1267,7 +1270,7 @@ public class DispatchServiceImpl implements DispatchService {
     }
 
     private String generateTaskNo() {
-        return "TRANS" + LocalDateTime.now().format(FORMATTER);
+        return "TRANS" + LocalDateTime.now().format(FORMATTER) + (int)(Math.random() * 1000);
     }
 
     @Override

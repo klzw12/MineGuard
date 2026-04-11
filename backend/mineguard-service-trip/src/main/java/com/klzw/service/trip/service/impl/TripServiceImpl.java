@@ -38,6 +38,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -87,6 +88,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         int oldStatus = -1; // 初始状态
         int newStatus = TripStatusEnum.PENDING.getCode(); // 待开始
         trip.setStatus(newStatus);
+        trip.setDeleted(0);
         
         // 计算预计里程和时长
         try {
@@ -123,6 +125,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
             int oldStatus = -1;
             int newStatus = TripStatusEnum.PENDING.getCode();
             trip.setStatus(newStatus);
+            trip.setDeleted(0);
             
             // 计算预计里程和时长
             try {
@@ -446,12 +449,17 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
     private TripVO convertToVO(Trip trip) {
         TripVO vo = new TripVO();
         BeanUtils.copyProperties(trip, vo);
+        vo.setId(trip.getId() != null ? trip.getId().toString() : null);
+        vo.setVehicleId(trip.getVehicleId() != null ? trip.getVehicleId().toString() : null);
+        vo.setDriverId(trip.getDriverId() != null ? trip.getDriverId().toString() : null);
+        vo.setEstimatedMileage(trip.getEstimatedMileage() != null ? trip.getEstimatedMileage().doubleValue() : null);
+        vo.setActualMileage(trip.getActualMileage() != null ? trip.getActualMileage().doubleValue() : null);
         
         try {
             var vehicleInfoResult = vehicleClient.getById(trip.getVehicleId());
             if (vehicleInfoResult != null && vehicleInfoResult.getCode() == 200 && vehicleInfoResult.getData() != null) {
                 var vehicleInfo = vehicleInfoResult.getData();
-                vo.setVehicleNo(vehicleInfo.getLicensePlate());
+                vo.setVehicleNo(vehicleInfo.getVehicleNo());
             }
         } catch (Exception e) {
             log.warn("获取车辆信息失败，vehicleId={}", trip.getVehicleId(), e);

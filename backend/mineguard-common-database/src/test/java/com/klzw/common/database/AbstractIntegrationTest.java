@@ -43,22 +43,38 @@ public abstract class AbstractIntegrationTest {
     /**
      * 测试前清理数据，确保测试环境干净
      */
+    private static boolean tablesInitialized = false;
+
     @BeforeEach
     void setUp() {
+        if (!tablesInitialized) {
+            initTables();
+            tablesInitialized = true;
+        }
         System.out.println("=== 开始清理测试数据 ===");
         try {
-            // 清理测试相关表数据
             jdbcTemplate.execute("TRUNCATE TABLE test_table");
             System.out.println("清理 test_table 表数据");
-            jdbcTemplate.execute("TRUNCATE TABLE user");
-            jdbcTemplate.execute("TRUNCATE TABLE role");
-            jdbcTemplate.execute("TRUNCATE TABLE permission");
-            jdbcTemplate.execute("TRUNCATE TABLE user_role");
-            jdbcTemplate.execute("TRUNCATE TABLE role_permission");
-            System.out.println("=== 测试数据清理完成 ===");
         } catch (Exception e) {
             System.out.println("清理数据时发生异常: " + e.getMessage());
-            // 忽略清理失败，可能是表不存在
+        }
+    }
+
+    private void initTables() {
+        System.out.println("=== 初始化测试表 ===");
+        try {
+            jdbcTemplate.execute("""
+                CREATE TABLE IF NOT EXISTS test_table (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    age INT,
+                    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """);
+            System.out.println("test_table 表创建成功");
+        } catch (Exception e) {
+            System.out.println("创建表时发生异常: " + e.getMessage());
         }
     }
     
@@ -69,18 +85,10 @@ public abstract class AbstractIntegrationTest {
     void tearDown() {
         System.out.println("=== 开始清理测试数据 ===");
         try {
-            // 清理测试相关表数据
             jdbcTemplate.execute("TRUNCATE TABLE test_table");
             System.out.println("清理 test_table 表数据");
-            jdbcTemplate.execute("TRUNCATE TABLE user");
-            jdbcTemplate.execute("TRUNCATE TABLE role");
-            jdbcTemplate.execute("TRUNCATE TABLE permission");
-            jdbcTemplate.execute("TRUNCATE TABLE user_role");
-            jdbcTemplate.execute("TRUNCATE TABLE role_permission");
-            System.out.println("=== 测试数据清理完成 ===");
         } catch (Exception e) {
             System.out.println("清理数据时发生异常: " + e.getMessage());
-            // 忽略清理失败，可能是表不存在
         }
     }
 }

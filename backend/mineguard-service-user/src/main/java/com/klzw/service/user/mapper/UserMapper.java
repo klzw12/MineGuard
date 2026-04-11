@@ -19,4 +19,7 @@ public interface UserMapper extends BaseMapper<User> {
     @Update("DELETE FROM user WHERE username = #{username}")
     int physicallyDeleteByUsername(@Param("username") String username);
 
+    @Update("TRUNCATE TABLE user")
+    void truncateTable();
+
 }

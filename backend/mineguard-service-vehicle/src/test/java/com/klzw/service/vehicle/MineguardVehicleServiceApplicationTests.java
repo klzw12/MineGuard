@@ -1,5 +1,6 @@
 package com.klzw.service.vehicle;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -7,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  * 车辆服务应用测试类
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@Tag("integration")
 public class MineguardVehicleServiceApplicationTests {
     
     @Test

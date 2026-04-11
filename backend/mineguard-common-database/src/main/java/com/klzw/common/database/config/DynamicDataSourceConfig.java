@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +25,7 @@ import java.util.Map;
 @Slf4j
 @AutoConfiguration
 @AutoConfigureAfter(DataSourceAutoConfiguration.class)
+@AutoConfigureBefore(name = "com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration")
 @ConditionalOnBean(name = {"masterDataSource", "slaveDataSource"})
 @EnableConfigurationProperties(DatabaseProperties.class)
 public class DynamicDataSourceConfig {
@@ -44,7 +46,7 @@ public class DynamicDataSourceConfig {
      * @return 动态数据源
      */
     @Primary
-    @Bean(name = "dynamicDataSource")
+    @Bean(name = "dataSource")
     public DataSource dynamicDataSource() {
         log.info("开始配置动态数据源");
 

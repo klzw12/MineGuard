@@ -1007,7 +1007,7 @@ public class CostServiceImpl implements CostService {
             dto.setUserId(driverId);
             dto.setTripId(tripId);
             dto.setCostDate(LocalDate.now());
-            dto.setRemark(String.format("Python 评分=%d, 提成比例=%.0f%%", pythonScore, pythonScore));
+            dto.setRemark(String.format("Python 评分=%d, 提成比例=%d%%", pythonScore, pythonScore));
             
             CostDetailVO vo = addCostDetail(dto);
             log.info("Trip 提成记录成功：tripId={}, costId={}, commission={}元", tripId, vo.getId(), commission);

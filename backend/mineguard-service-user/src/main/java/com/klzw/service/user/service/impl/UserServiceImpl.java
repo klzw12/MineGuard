@@ -117,6 +117,7 @@ public class UserServiceImpl implements UserService {
         user.setPhone(dto.getPhone());
         user.setEmail(dto.getEmail());
         user.setStatus(UserStatusEnum.DISABLED.getValue());
+        user.setDeleted(0);
 
         userMapper.insert(user);
 

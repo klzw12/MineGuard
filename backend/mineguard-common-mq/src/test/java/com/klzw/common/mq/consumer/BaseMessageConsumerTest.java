@@ -75,7 +75,7 @@ class BaseMessageConsumerTest {
             () -> consumer.consume(message)
         );
 
-        assertEquals(1121, exception.getCode());
+        assertEquals(1221, exception.getCode());
         assertEquals("消息重试次数超过限制", exception.getMessage());
         verify(rabbitTemplate, times(1)).send(
             eq(MqConstants.DEAD_LETTER_EXCHANGE),

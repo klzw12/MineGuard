@@ -142,17 +142,16 @@ public class StatisticsServiceImpl implements StatisticsService {
         entity.setStatisticsDate(statisticsDate);
         
         try {
-            com.klzw.common.core.result.Result<java.util.Map<String, Object>> costResult = costClient.getCostStatistics(date, date);
-            java.util.Map<String, Object> costStats = costResult != null && costResult.getCode() == 200 ? costResult.getData() : null;
+            com.klzw.common.core.domain.dto.CostStatisticsResponseDTO costStats = costClient.getCostStatistics(date, date);
             
             if (costStats != null) {
-                entity.setFuelCost(getBigDecimalValue(costStats, "fuelCost"));
-                entity.setMaintenanceCost(getBigDecimalValue(costStats, "maintenanceCost"));
-                entity.setLaborCost(getBigDecimalValue(costStats, "laborCost"));
-                entity.setInsuranceCost(getBigDecimalValue(costStats, "insuranceCost"));
-                entity.setDepreciationCost(getBigDecimalValue(costStats, "depreciationCost"));
-                entity.setManagementCost(getBigDecimalValue(costStats, "managementCost"));
-                entity.setOtherCost(getBigDecimalValue(costStats, "otherCost"));
+                entity.setFuelCost(costStats.getFuelCost() != null ? costStats.getFuelCost() : BigDecimal.ZERO);
+                entity.setMaintenanceCost(costStats.getMaintenanceCost() != null ? costStats.getMaintenanceCost() : BigDecimal.ZERO);
+                entity.setLaborCost(costStats.getLaborCost() != null ? costStats.getLaborCost() : BigDecimal.ZERO);
+                entity.setInsuranceCost(costStats.getInsuranceCost() != null ? costStats.getInsuranceCost() : BigDecimal.ZERO);
+                entity.setDepreciationCost(costStats.getDepreciationCost() != null ? costStats.getDepreciationCost() : BigDecimal.ZERO);
+                entity.setManagementCost(costStats.getManagementCost() != null ? costStats.getManagementCost() : BigDecimal.ZERO);
+                entity.setOtherCost(costStats.getOtherCost() != null ? costStats.getOtherCost() : BigDecimal.ZERO);
                 
                 BigDecimal totalCost = entity.getFuelCost()
                     .add(entity.getMaintenanceCost())
@@ -647,7 +646,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         entity.setStatisticsDate(statisticsDate);
         
         try {
-            com.klzw.common.core.result.Result<java.util.Map<String, Object>> faultResult = vehicleClient.getFaultStatistics(date, date);
+            com.klzw.common.core.result.Result<java.util.Map<String, Object>> faultResult = vehicleClient.getFaultStatistics(vehicleId, date);
             java.util.Map<String, Object> faultStats = faultResult != null && faultResult.getCode() == 200 ? faultResult.getData() : null;
             
             if (faultStats != null) {
