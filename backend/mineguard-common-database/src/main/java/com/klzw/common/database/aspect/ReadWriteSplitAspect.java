@@ -115,9 +115,19 @@ public class ReadWriteSplitAspect {
         String operationType = determineOperationType(methodName);
 
         try {
-            // 所有操作都使用主数据源，避免从数据源同步延迟导致的问题
-            log.debug("所有操作都使用主数据源: {}", methodName);
-            DynamicDataSource.setMasterDataSource();
+            if ("WRITE".equals(operationType)) {
+                // 写操作使用主数据源
+                log.debug("写操作使用主数据源: {}", methodName);
+                DynamicDataSource.setMasterDataSource();
+            } else if ("READ".equals(operationType)) {
+                // 读操作使用从数据源
+                log.debug("读操作使用从数据源: {}", methodName);
+                DynamicDataSource.setSlaveDataSource();
+            } else {
+                // 未知操作类型，使用主数据源（安全起见）
+                log.debug("未知操作类型，使用主数据源: {}", methodName);
+                DynamicDataSource.setMasterDataSource();
+            }
 
             return point.proceed();
         } finally {
