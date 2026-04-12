@@ -188,4 +188,11 @@ public interface VehicleService extends IService<Vehicle> {
      */
     List<VehicleVO> getSafetyOfficerVehicles();
 
+    /**
+     * 根据用户类型获取可绑定的车辆列表
+     * @param userId 用户ID
+     * @return 可绑定的车辆列表
+     */
+    List<VehicleVO> getBindableVehicles(Long userId);
+
 } 

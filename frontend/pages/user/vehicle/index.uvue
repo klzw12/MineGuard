@@ -134,7 +134,8 @@
 			5: '装载机',
 			6: '挖掘机',
 			7: '救援专用车',
-			8: '其他'
+			8: '其他',
+			9: '维修专用车'
 		}
 		return typeMap[typeNum] || '未知类型'
 	}
@@ -198,12 +199,19 @@
 		modalLoading.value = true
 		selectedVehicleId.value = null
 		
+		const userId = userStore.userInfo.value?.id
+		if (!userId) {
+			toast.error('请先登录')
+			modalLoading.value = false
+			return
+		}
+		
 		try {
-			const data = await vehicleApi.getAvailableVehicles()
+			const data = await vehicleApi.getBindableVehicles(userId)
 			const existingIds = commonVehicles.value.map(v => v.vehicleId)
 			availableVehicles.value = (data || []).filter(v => !existingIds.includes(v.id))
 		} catch (e) {
-			console.error('加载可用车辆失败', e)
+			console.error('加载可绑定车辆失败', e)
 			availableVehicles.value = []
 		} finally {
 			modalLoading.value = false

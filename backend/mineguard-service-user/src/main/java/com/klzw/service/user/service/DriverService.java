@@ -24,13 +24,13 @@ public interface DriverService {
 
     DriverVO selectBestDriver(Long vehicleId, String scheduledTime);
 
-    void addCommonVehicle(Long driverId, Long vehicleId);
+    void addCommonVehicle(Long userId, Long vehicleId);
 
-    void removeCommonVehicle(Long driverId, Long vehicleId);
+    void removeCommonVehicle(Long userId, Long vehicleId);
 
-    void setDefaultVehicle(Long driverId, Long vehicleId);
+    void setDefaultVehicle(Long userId, Long vehicleId);
 
-    List<DriverVehicleVO> getCommonVehicles(Long driverId);
+    List<DriverVehicleVO> getCommonVehicles(Long userId);
 
     void addCommonVehicleByUserId(Long userId, Long vehicleId);
 

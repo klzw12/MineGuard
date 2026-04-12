@@ -72,7 +72,7 @@ public class DispatchServiceImpl implements DispatchService {
             throw new DispatchException(DispatchResultCode.NO_AVAILABLE_DRIVER, "暂无可用司机，请稍后重试");
         }
         
-        Long bestVehicleId = selectVehicleByDriverCommonVehicles(bestDriver.getId(), task);
+        Long bestVehicleId = selectVehicleByDriverCommonVehicles(bestDriver.getUserId(), task);
         if (bestVehicleId == null) {
             bestVehicleId = selectBestVehicle(task);
             if (bestVehicleId == null) {
@@ -169,12 +169,13 @@ public class DispatchServiceImpl implements DispatchService {
                 .collect(Collectors.toList());
             
             if (filteredDrivers.isEmpty()) {
-                log.info("排除已分配待接单和请假司机后无可用司机，放宽条件从所有在职司机中选择");
-                filteredDrivers = drivers.stream()
+            log.info("排除已分配待接单和请假司机后无可用司机，放宽条件从所有在职司机中选择");
+            filteredDrivers = drivers.stream()
+                    .filter(d -> !assignedDriverIds.contains(d.getId()))
                     .filter(d -> excludeDriverId == null || !d.getId().equals(excludeDriverId))
                     .filter(d -> !leaveUserIds.contains(d.getUserId()))
                     .toList();
-            }
+        }
             
             if (filteredDrivers.isEmpty()) {
                 log.warn("无可用司机");
@@ -202,7 +203,7 @@ public class DispatchServiceImpl implements DispatchService {
             // 6. 优先选择有常用车辆的司机
             if (task.getVehicleId() != null) {
                 for (DriverInfo driver : candidateDrivers) {
-                    if (hasCommonVehicle(driver.getId(), task.getVehicleId())) {
+                    if (hasCommonVehicle(driver.getUserId(), task.getVehicleId())) {
                         log.info("选择常用车辆匹配的司机：司机ID={}, 用户ID={}, 分数={}, 优先级={}", 
                             driver.getId(), driver.getUserId(), driver.getScore(), priority);
                         return driver;
@@ -512,7 +513,7 @@ public class DispatchServiceImpl implements DispatchService {
                 if (newDriver != null) {
                     task.setExecutorId(newDriver.getUserId());
                     
-                    Long newVehicleId = selectVehicleByDriverCommonVehicles(newDriver.getId(), task);
+                    Long newVehicleId = selectVehicleByDriverCommonVehicles(newDriver.getUserId(), task);
                     if (newVehicleId == null) {
                         newVehicleId = selectBestVehicle(task, newDriver.getId());
                     }
@@ -1341,9 +1342,9 @@ public class DispatchServiceImpl implements DispatchService {
             log.error("无可用司机：任务 ID={}", task.getId());
             throw new DispatchException(DispatchResultCode.NO_AVAILABLE_DRIVER, "暂无可用司机，请稍后重试");
         }
-        task.setExecutorId(newDriver.getId());
+        task.setExecutorId(newDriver.getUserId());
         
-        Long newVehicleId = selectVehicleByDriverCommonVehicles(newDriver.getId(), task);
+        Long newVehicleId = selectVehicleByDriverCommonVehicles(newDriver.getUserId(), task);
         if (newVehicleId == null) {
             newVehicleId = selectBestVehicle(task, newDriver.getId());
         }

@@ -2,7 +2,9 @@ package com.klzw.service.vehicle.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.klzw.common.core.client.DriverClient;
+import com.klzw.common.core.client.UserClient;
 import com.klzw.common.core.domain.dto.DriverVehicleInfo;
+import com.klzw.common.core.result.Result;
 import com.klzw.common.database.annotation.DataSource;
 import com.klzw.common.file.service.OcrService;
 import com.klzw.common.file.service.StorageService;
@@ -48,6 +50,8 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     private final com.klzw.service.vehicle.service.VehicleStatusService vehicleStatusService;
 
     private final DriverClient driverClient;
+    
+    private final UserClient userClient;
     
     @Override
     public Vehicle createVehicle(Vehicle vehicle) {
@@ -742,6 +746,53 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         wrapper.orderByDesc(Vehicle::getFuelLevel);
         
         List<Vehicle> vehicles = list(wrapper);
+        return vehicles.stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<VehicleVO> getBindableVehicles(Long userId) {
+        log.info("根据用户类型获取可绑定车辆列表: userId={}", userId);
+        
+        String roleCode = null;
+        try {
+            Result<String> result = userClient.getUserRole(userId);
+            if (result != null && result.getData() != null) {
+                roleCode = result.getData();
+            }
+        } catch (Exception e) {
+            log.warn("获取用户角色失败: userId={}, error={}", userId, e.getMessage());
+        }
+        
+        if (roleCode == null) {
+            log.warn("用户角色为空，返回空列表: userId={}", userId);
+            return List.of();
+        }
+        
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(Vehicle::getStatus, VehicleStatusEnum.IDLE.getCode());
+        
+        switch (roleCode) {
+            case "DRIVER":
+                wrapper.notIn(Vehicle::getVehicleType, java.util.Arrays.asList(7, 9));
+                break;
+            case "REPAIRMAN":
+                wrapper.eq(Vehicle::getVehicleType, 9);
+                break;
+            case "SAFETY_OFFICER":
+                wrapper.eq(Vehicle::getVehicleType, 7);
+                break;
+            default:
+                log.warn("不支持的用户类型绑定车辆: userId={}, roleCode={}", userId, roleCode);
+                return List.of();
+        }
+        
+        wrapper.orderByDesc(Vehicle::getFuelLevel);
+        
+        List<Vehicle> vehicles = list(wrapper);
+        log.info("获取可绑定车辆列表: userId={}, roleCode={}, count={}", userId, roleCode, vehicles.size());
         return vehicles.stream()
                 .map(this::convertToVO)
                 .collect(Collectors.toList());

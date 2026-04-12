@@ -11,9 +11,11 @@ import com.klzw.service.user.enums.DriverStatusEnum;
 import com.klzw.service.user.mapper.DriverMapper;
 import com.klzw.service.user.mapper.DriverVehicleMapper;
 import com.klzw.service.user.mapper.RepairmanMapper;
+import com.klzw.service.user.mapper.RoleMapper;
 import com.klzw.service.user.mapper.SafetyOfficerMapper;
 import com.klzw.service.user.mapper.UserAttendanceMapper;
 import com.klzw.service.user.mapper.UserMapper;
+import com.klzw.service.user.entity.Role;
 import com.klzw.service.user.entity.User;
 import com.klzw.service.user.service.DriverService;
 import com.klzw.service.user.vo.DriverVehicleVO;
@@ -41,6 +43,7 @@ public class DriverServiceImpl implements DriverService {
     private final SafetyOfficerMapper safetyOfficerMapper;
     private final UserAttendanceMapper userAttendanceMapper;
     private final UserMapper userMapper;
+    private final RoleMapper roleMapper;
 
     @Override
     public DriverVO getById(Long id) {
@@ -49,7 +52,7 @@ public class DriverServiceImpl implements DriverService {
             return null;
         }
         DriverVO vo = convertToVO(driver);
-        vo.setCommonVehicles(getCommonVehicles(id));
+        vo.setCommonVehicles(getCommonVehicles(driver.getUserId()));
         return vo;
     }
 
@@ -79,7 +82,7 @@ public class DriverServiceImpl implements DriverService {
         Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
         if (driver != null) {
             vo.setId(driver.getId());
-            vo.setCommonVehicles(getCommonVehicles(driver.getId()));
+            vo.setCommonVehicles(getCommonVehicles(userId));
         }
         
         return vo;
@@ -209,7 +212,7 @@ public class DriverServiceImpl implements DriverService {
         
         if (vehicleId != null) {
             for (DriverVO driver : availableDrivers) {
-                List<DriverVehicleVO> commonVehicles = getCommonVehicles(driver.getId());
+                List<DriverVehicleVO> commonVehicles = getCommonVehicles(driver.getUserId());
                 for (DriverVehicleVO dv : commonVehicles) {
                     if (vehicleId.equals(dv.getVehicleId())) {
                         driver.setScore((int) calculateScore(driver));
@@ -228,11 +231,18 @@ public class DriverServiceImpl implements DriverService {
 
     @Override
     @Transactional
-    public void addCommonVehicle(Long driverId, Long vehicleId) {
-        Driver driver = driverMapper.selectById(driverId);
-        if (driver == null) {
-            throw new RuntimeException("司机信息不存在");
+    public void addCommonVehicle(Long userId, Long vehicleId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
         }
+        
+        Role role = roleMapper.selectById(user.getRoleId());
+        if (role == null) {
+            throw new RuntimeException("用户角色不存在");
+        }
+        
+        String roleCode = role.getRoleCode();
         
         var vehicleResult = vehicleClient.getById(vehicleId);
         if (vehicleResult == null || vehicleResult.getData() == null) {
@@ -241,21 +251,34 @@ public class DriverServiceImpl implements DriverService {
         
         var vehicleInfo = vehicleResult.getData();
         Integer vehicleType = vehicleInfo.getVehicleType();
-        if (vehicleType != null && (vehicleType == 7 || vehicleType == 9)) {
-            String typeName = vehicleType == 7 ? "救援专用车" : "维修专用车";
-            throw new RuntimeException(typeName + "不能添加为司机常用车辆");
+        
+        if ("DRIVER".equals(roleCode)) {
+            if (vehicleType != null && (vehicleType == 7 || vehicleType == 9)) {
+                String typeName = vehicleType == 7 ? "救援专用车" : "维修专用车";
+                throw new RuntimeException(typeName + "不能添加为司机常用车辆");
+            }
+        } else if ("REPAIRMAN".equals(roleCode)) {
+            if (vehicleType == null || vehicleType != 9) {
+                throw new RuntimeException("维修员只能绑定维修专用车辆");
+            }
+        } else if ("SAFETY_OFFICER".equals(roleCode)) {
+            if (vehicleType == null || vehicleType != 7) {
+                throw new RuntimeException("安全员只能绑定救援专用车辆");
+            }
+        } else {
+            throw new RuntimeException("该用户类型不支持绑定常用车辆");
         }
         
-        DriverVehicle existing = driverVehicleMapper.selectByDriverAndVehicle(driverId, vehicleId);
+        DriverVehicle existing = driverVehicleMapper.selectByDriverAndVehicle(userId, vehicleId);
         if (existing != null) {
-            log.info("车辆已是司机的常用车辆：司机ID={}, 车辆ID={}", driverId, vehicleId);
+            log.info("车辆已是用户的常用车辆：用户ID={}, 车辆ID={}", userId, vehicleId);
             return;
         }
         
-        List<DriverVehicle> existingList = driverVehicleMapper.selectByDriverId(driverId);
+        List<DriverVehicle> existingList = driverVehicleMapper.selectByDriverId(userId);
         
         DriverVehicle dv = new DriverVehicle();
-        dv.setDriverId(driverId);
+        dv.setDriverId(userId);
         dv.setVehicleId(vehicleId);
         dv.setUseCount(0);
         dv.setIsDefault(existingList.isEmpty() ? 1 : 0);
@@ -264,13 +287,13 @@ public class DriverServiceImpl implements DriverService {
         dv.setDeleted(0);
         
         driverVehicleMapper.insert(dv);
-        log.info("添加常用车辆：司机ID={}, 车辆ID={}", driverId, vehicleId);
+        log.info("添加常用车辆：用户ID={}, 车辆ID={}, 角色类型={}", userId, vehicleId, roleCode);
     }
 
     @Override
     @Transactional
-    public void removeCommonVehicle(Long driverId, Long vehicleId) {
-        DriverVehicle dv = driverVehicleMapper.selectByDriverAndVehicle(driverId, vehicleId);
+    public void removeCommonVehicle(Long userId, Long vehicleId) {
+        DriverVehicle dv = driverVehicleMapper.selectByDriverAndVehicle(userId, vehicleId);
         if (dv == null) {
             throw new RuntimeException("常用车辆关系不存在");
         }
@@ -282,39 +305,39 @@ public class DriverServiceImpl implements DriverService {
         driverVehicleMapper.updateById(dv);
         
         if (wasDefault) {
-            List<DriverVehicle> remaining = driverVehicleMapper.selectByDriverId(driverId);
+            List<DriverVehicle> remaining = driverVehicleMapper.selectByDriverId(userId);
             if (!remaining.isEmpty()) {
                 DriverVehicle newDefault = remaining.getFirst();
                 newDefault.setIsDefault(1);
                 newDefault.setUpdateTime(LocalDateTime.now());
                 driverVehicleMapper.updateById(newDefault);
-                log.info("自动设置新的默认车辆：司机ID={}, 车辆ID={}", driverId, newDefault.getVehicleId());
+                log.info("自动设置新的默认车辆：用户ID={}, 车辆ID={}", userId, newDefault.getVehicleId());
             }
         }
         
-        log.info("移除常用车辆：司机ID={}, 车辆ID={}", driverId, vehicleId);
+        log.info("移除常用车辆：用户ID={}, 车辆ID={}", userId, vehicleId);
     }
 
     @Override
     @Transactional
-    public void setDefaultVehicle(Long driverId, Long vehicleId) {
-        DriverVehicle dv = driverVehicleMapper.selectByDriverAndVehicle(driverId, vehicleId);
+    public void setDefaultVehicle(Long userId, Long vehicleId) {
+        DriverVehicle dv = driverVehicleMapper.selectByDriverAndVehicle(userId, vehicleId);
         if (dv == null) {
             throw new RuntimeException("常用车辆关系不存在");
         }
         
-        driverVehicleMapper.clearDefaultByDriverId(driverId);
+        driverVehicleMapper.clearDefaultByDriverId(userId);
         
         dv.setIsDefault(1);
         dv.setUpdateTime(LocalDateTime.now());
         driverVehicleMapper.updateById(dv);
         
-        log.info("设置默认车辆：司机ID={}, 车辆ID={}", driverId, vehicleId);
+        log.info("设置默认车辆：用户ID={}, 车辆ID={}", userId, vehicleId);
     }
 
     @Override
-    public List<DriverVehicleVO> getCommonVehicles(Long driverId) {
-        List<DriverVehicle> list = driverVehicleMapper.selectByDriverId(driverId);
+    public List<DriverVehicleVO> getCommonVehicles(Long userId) {
+        List<DriverVehicle> list = driverVehicleMapper.selectByDriverId(userId);
         
         return list.stream().map(dv -> {
             DriverVehicleVO vo = new DriverVehicleVO();
@@ -450,38 +473,22 @@ public class DriverServiceImpl implements DriverService {
 
     @Override
     public void addCommonVehicleByUserId(Long userId, Long vehicleId) {
-        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
-        if (driver == null) {
-            throw new RuntimeException("司机信息不存在");
-        }
-        addCommonVehicle(driver.getId(), vehicleId);
+        addCommonVehicle(userId, vehicleId);
     }
 
     @Override
     public void removeCommonVehicleByUserId(Long userId, Long vehicleId) {
-        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
-        if (driver == null) {
-            throw new RuntimeException("司机信息不存在");
-        }
-        removeCommonVehicle(driver.getId(), vehicleId);
+        removeCommonVehicle(userId, vehicleId);
     }
 
     @Override
     public void setDefaultVehicleByUserId(Long userId, Long vehicleId) {
-        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
-        if (driver == null) {
-            throw new RuntimeException("司机信息不存在");
-        }
-        setDefaultVehicle(driver.getId(), vehicleId);
+        setDefaultVehicle(userId, vehicleId);
     }
 
     @Override
     public List<DriverVehicleVO> getCommonVehiclesByUserId(Long userId) {
-        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
-        if (driver == null) {
-            throw new RuntimeException("司机信息不存在");
-        }
-        return getCommonVehicles(driver.getId());
+        return getCommonVehicles(userId);
     }
 
     private String getStatusName(Integer status) {

@@ -69,6 +69,10 @@ export const vehicleApi = {
     return http.get<VehicleInfo[]>('/vehicle/available')
   },
 
+  getBindableVehicles: (userId: string): Promise<VehicleInfo[] | null> => {
+    return http.get<VehicleInfo[]>(`/vehicle/bindable/${userId}`)
+  },
+
   // 管理端专用接口
   uploadVehiclePhoto: (id: number, file: any): Promise<string | null> => {
     const formData = new FormData()

@@ -231,7 +231,7 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
             
             for (int i = 0; i < taskCount && i < availableDrivers.size(); i++) {
                 DriverInfo driver = availableDrivers.get(i);
-                Long commonVehicleId = getAvailableCommonVehicle(driver.getId(), availableVehicles, assignedVehicleIds);
+                Long commonVehicleId = getAvailableCommonVehicle(driver.getUserId(), availableVehicles, assignedVehicleIds);
                 if (commonVehicleId != null) {
                     driverVehicleAssignments[i] = commonVehicleId;
                     assignedVehicleIds.add(commonVehicleId);

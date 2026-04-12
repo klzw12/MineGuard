@@ -82,17 +82,17 @@ public class TripStatusProcessor {
         
         switch (newStatus) {
             case 0:
-                return "行程 " + tripNo + " 已创建，等待司机接单";
+                return "行程" + tripNo + " 已创建，等待司机接单";
             case 1:
-                return "行程 " + tripNo + " 已被司机接单";
+                return "行程" + tripNo + " 已开始";
             case 2:
-                return "行程 " + tripNo + " 已开始";
+                return "行程" + tripNo + " 已完成";
             case 3:
-                return "行程 " + tripNo + " 已完成";
+                return "行程" + tripNo + " 已取消";
             case 4:
-                return "行程 " + tripNo + " 已取消";
+                return "行程" + tripNo + " 已暂停";
             case 5:
-                return "行程 " + tripNo + " 已暂停";
+                return "行程" + tripNo + " 已结束";
             default:
                 return null;
         }

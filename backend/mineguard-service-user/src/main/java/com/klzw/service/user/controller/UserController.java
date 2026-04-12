@@ -126,4 +126,11 @@ public class UserController {
     public Result<List<Long>> getLeaveUserIds() {
         return Result.success(userService.getLeaveUserIds());
     }
+
+    @Operation(summary = "根据用户ID获取角色编码")
+    @GetMapping("/{userId}/role")
+    public Result<String> getUserRoleByUserId(@PathVariable Long userId) {
+        String roleCode = userService.getRoleCodeByUserId(userId);
+        return Result.success(roleCode);
+    }
 }

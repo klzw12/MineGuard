@@ -231,50 +231,6 @@ public class VehicleController {
         return Result.success(result);
     }
     
-    @Operation(summary = "获取故障车辆列表")
-    @GetMapping("/fault")
-    public Result<List<VehicleInfo>> getFaultVehicles() {
-        List<VehicleVO> vehicles = vehicleService.getFaultVehicles();
-        List<VehicleInfo> result = vehicles.stream().map(v -> {
-            VehicleInfo info = new VehicleInfo();
-            try {
-                info.setId(v.getId() != null ? Long.parseLong(v.getId()) : null);
-            } catch (Exception ignored) {}
-            info.setVehicleNo(v.getVehicleNo());
-            info.setVehicleType(v.getVehicleType());
-            info.setBrand(v.getBrand());
-            info.setModel(v.getModel());
-            info.setRatedLoad(v.getRatedLoad());
-            info.setFuelLevel(v.getFuelLevel());
-            info.setStatus(v.getStatus());
-            info.setPhotoUrl(v.getPhotoUrl());
-            return info;
-        }).collect(java.util.stream.Collectors.toList());
-        return Result.success(result);
-    }
-    
-    @Operation(summary = "获取维护中车辆列表")
-    @GetMapping("/maintenance")
-    public Result<List<VehicleInfo>> getMaintenanceVehicles() {
-        List<VehicleVO> vehicles = vehicleService.getMaintenanceVehicles();
-        List<VehicleInfo> result = vehicles.stream().map(v -> {
-            VehicleInfo info = new VehicleInfo();
-            try {
-                info.setId(v.getId() != null ? Long.parseLong(v.getId()) : null);
-            } catch (Exception ignored) {}
-            info.setVehicleNo(v.getVehicleNo());
-            info.setVehicleType(v.getVehicleType());
-            info.setBrand(v.getBrand());
-            info.setModel(v.getModel());
-            info.setRatedLoad(v.getRatedLoad());
-            info.setFuelLevel(v.getFuelLevel());
-            info.setStatus(v.getStatus());
-            info.setPhotoUrl(v.getPhotoUrl());
-            return info;
-        }).collect(java.util.stream.Collectors.toList());
-        return Result.success(result);
-    }
-    
     @Operation(summary = "获取维修专用车列表", description = "获取所有空闲状态的维修专用车")
     @GetMapping("/repairman")
     public Result<List<VehicleInfo>> getRepairmanVehicles() {
@@ -301,6 +257,28 @@ public class VehicleController {
     @GetMapping("/safety-officer")
     public Result<List<VehicleInfo>> getSafetyOfficerVehicles() {
         List<VehicleVO> vehicles = vehicleService.getSafetyOfficerVehicles();
+        List<VehicleInfo> result = vehicles.stream().map(v -> {
+            VehicleInfo info = new VehicleInfo();
+            try {
+                info.setId(v.getId() != null ? Long.parseLong(v.getId()) : null);
+            } catch (Exception ignored) {}
+            info.setVehicleNo(v.getVehicleNo());
+            info.setVehicleType(v.getVehicleType());
+            info.setBrand(v.getBrand());
+            info.setModel(v.getModel());
+            info.setRatedLoad(v.getRatedLoad());
+            info.setFuelLevel(v.getFuelLevel());
+            info.setStatus(v.getStatus());
+            info.setPhotoUrl(v.getPhotoUrl());
+            return info;
+        }).collect(java.util.stream.Collectors.toList());
+        return Result.success(result);
+    }
+    
+    @Operation(summary = "根据用户类型获取可绑定车辆列表", description = "根据用户角色返回对应的可绑定车辆：司机返回普通车辆，维修员返回维修专用车，安全员返回救援专用车")
+    @GetMapping("/bindable/{userId}")
+    public Result<List<VehicleInfo>> getBindableVehicles(@PathVariable Long userId) {
+        List<VehicleVO> vehicles = vehicleService.getBindableVehicles(userId);
         List<VehicleInfo> result = vehicles.stream().map(v -> {
             VehicleInfo info = new VehicleInfo();
             try {

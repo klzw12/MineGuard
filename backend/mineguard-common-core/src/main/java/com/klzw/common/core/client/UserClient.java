@@ -29,4 +29,7 @@ public interface UserClient {
             @RequestParam("startDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam("endDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     );
+
+    @GetExchange("/user/{userId}/role")
+    Result<String> getUserRole(@PathVariable("userId") Long userId);
 }
