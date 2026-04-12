@@ -258,7 +258,6 @@ public class DispatchTaskServiceImpl implements DispatchTaskService {
     private DispatchTaskVO convertToVO(TransportTask entity) {
         DispatchTaskVO vo = new DispatchTaskVO();
         BeanUtils.copyProperties(entity, vo);
-        vo.setDriverId(entity.getExecutorId());
         
         if (entity.getStatus() != null) {
             vo.setStatusName(getStatusName(entity.getStatus()));
@@ -277,7 +276,6 @@ public class DispatchTaskServiceImpl implements DispatchTaskService {
                 Result<com.klzw.common.core.domain.dto.DriverInfo> driverResult = driverClient.getById(entity.getExecutorId());
                 if (driverResult != null && driverResult.getCode() == 200 && driverResult.getData() != null) {
                     com.klzw.common.core.domain.dto.DriverInfo driverInfo = driverResult.getData();
-                    vo.setDriverName(driverInfo.getDriverName());
                     vo.setExecutorName(driverInfo.getDriverName());
                 }
             } catch (Exception e) {

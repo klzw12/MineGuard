@@ -29,4 +29,6 @@ public class AttendanceStatisticsVO {
     private Integer leaveDays;
 
     private Double attendanceRate;
+
+    private Double attendanceHours;
 }

@@ -56,13 +56,6 @@
 			}
 		},
 		{
-			"path": "pages/user/home/index",
-			"style": {
-				"navigationBarTitleText": "司机中心",
-				"navigationStyle": "custom"
-			}
-		},
-		{
 			"path": "pages/user/vehicle/index",
 			"style": {
 				"navigationBarTitleText": "车辆状态"
@@ -109,12 +102,6 @@
 			"path": "pages/admin/vehicle/detail",
 			"style": {
 				"navigationBarTitleText": "车辆详情"
-			}
-		},
-		{
-			"path": "pages/admin/driver/index",
-			"style": {
-				"navigationBarTitleText": "司机管理"
 			}
 		},
 		{

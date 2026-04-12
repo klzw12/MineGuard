@@ -238,7 +238,7 @@ import { useUserStore } from '@/stores/user.uts'
 	import { uploadAvatar, getAvatarSignedUrl, getIdCardSignedUrls, updateUser } from '@/api/user.uts'
 	import { toast } from '@/utils/toast.uts'
 	import { statisticsApi, DriverStatisticsVO } from '@/api/statistics.uts'
-	import { getAttendanceStatistics, AttendanceStatisticsVO } from '@/api/attendance.uts'
+	import { getAttendanceStatisticsByRange, AttendanceStatisticsVO } from '@/api/attendance.uts'
 	
 	const userStore = useUserStore()
 	
@@ -257,7 +257,7 @@ import { useUserStore } from '@/stores/user.uts'
 		userId: '',
 		userName: '',
 		month: '',
-		totalAttendanceDays: 0,
+		shouldAttendanceDays: 0,
 		actualAttendanceDays: 0,
 		normalDays: 0,
 		lateTimes: 0,
@@ -265,10 +265,7 @@ import { useUserStore } from '@/stores/user.uts'
 		absentDays: 0,
 		leaveDays: 0,
 		attendanceRate: 0,
-		attendanceDays: 0,
-		attendanceHours: 0,
-		lateCount: 0,
-		earlyLeaveCount: 0
+		attendanceHours: 0
 	})
 	
 	const tripStats = ref<DriverStatisticsVO>({
@@ -401,7 +398,8 @@ onShow(() => {
 			return { startDate: today, endDate: today }
 		} else if (timeRange.value === 'week') {
 			const weekStart = new Date(now)
-			weekStart.setDate(now.getDate() - now.getDay() + 1)
+			const dayOfWeek = now.getDay()
+			weekStart.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1))
 			const ws = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`
 			return { startDate: ws, endDate: today }
 		} else {
@@ -418,8 +416,7 @@ onShow(() => {
 		
 		// 加载出勤统计
 		try {
-			const yearMonth = dateRange.startDate.substring(0, 7)
-			const attendanceResult = await getAttendanceStatistics(yearMonth)
+			const attendanceResult = await getAttendanceStatisticsByRange(dateRange.startDate, dateRange.endDate)
 			if (attendanceResult) {
 				attendanceStats.value = attendanceResult
 			}
@@ -430,7 +427,7 @@ onShow(() => {
 		// 加载行程统计
 		try {
 			const driverResult = await statisticsApi.getDriverStatistics({
-				userId: uid,
+				userId: parseInt(uid),
 				startDate: dateRange.startDate,
 				endDate: dateRange.endDate
 			})

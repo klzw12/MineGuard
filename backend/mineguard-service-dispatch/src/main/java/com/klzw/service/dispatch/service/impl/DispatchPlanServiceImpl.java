@@ -213,15 +213,7 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
         List<Long> executorIds = new ArrayList<>();
         List<Long> vehicleIds = new ArrayList<>();
         
-        Long predefinedExecutorId = plan.getDriverId();
-        Long predefinedVehicleId = plan.getVehicleId();
-        
-        if (predefinedExecutorId != null && predefinedVehicleId != null) {
-            for (int i = 0; i < taskCount; i++) {
-                executorIds.add(predefinedExecutorId);
-                vehicleIds.add(predefinedVehicleId);
-            }
-        } else if (planType == 1) {
+        if (planType == 1) {
             List<DriverInfo> availableDrivers = getAvailableDriversList();
             List<VehicleInfo> availableVehicles = getAvailableVehiclesList();
             
@@ -294,7 +286,8 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
                     createTransportTask(plan, sequence, taskNo, executorId, vehicleId, priority);
                     break;
                 case 2:
-                    createMaintenanceTask(plan, sequence, taskNo, executorId, vehicleId, priority);
+                    Long repairmanVehicleId = assignRepairmanVehicle();
+                    createMaintenanceTask(plan, sequence, taskNo, executorId, vehicleId, repairmanVehicleId, priority);
                     break;
                 case 3:
                     createInspectionTask(plan, sequence, taskNo, executorId, vehicleId, priority);
@@ -542,18 +535,121 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
             return assignVehicle(plan);
         }
         
+        if (planType == 2) {
+            Long faultVehicleId = assignFaultVehicle();
+            if (faultVehicleId != null) {
+                log.info("维修任务分配故障车辆成功, vehicleId: {}", faultVehicleId);
+                return faultVehicleId;
+            }
+            
+            Long maintenanceVehicleId = assignMaintenanceVehicle();
+            if (maintenanceVehicleId != null) {
+                log.info("维修任务分配维护中车辆成功, vehicleId: {}", maintenanceVehicleId);
+                return maintenanceVehicleId;
+            }
+            
+            Long availableVehicleId = assignRandomAvailableVehicle();
+            if (availableVehicleId != null) {
+                log.info("无故障/维护车辆，维修任务分配空闲车辆作为检修任务, vehicleId: {}", availableVehicleId);
+                return availableVehicleId;
+            }
+            
+            log.warn("维修任务无法分配任何车辆");
+            return null;
+        }
+        
+        if (planType == 3) {
+            Long safetyOfficerVehicleId = assignSafetyOfficerVehicle();
+            if (safetyOfficerVehicleId != null) {
+                log.info("巡检任务分配救援专用车成功, vehicleId: {}", safetyOfficerVehicleId);
+                return safetyOfficerVehicleId;
+            }
+            return null;
+        }
+        
+        return assignRandomAvailableVehicle();
+    }
+    
+    private Long assignFaultVehicle() {
         try {
-            var result = vehicleClient.getAvailableVehicles();
+            var result = vehicleClient.getFaultVehicles();
             List<VehicleInfo> vehicles = result != null ? result.getData() : null;
             if (vehicles != null && !vehicles.isEmpty()) {
                 int randomIndex = (int) (Math.random() * vehicles.size());
                 VehicleInfo vehicle = vehicles.get(randomIndex);
-                Long vehicleId = vehicle.getId();
-                log.info("随机分配车辆成功, vehicleId: {}, planType: {}", vehicleId, planType);
-                return vehicleId;
+                return vehicle.getId();
+            }
+        } catch (Exception e) {
+            log.error("获取故障车辆失败", e);
+        }
+        return null;
+    }
+    
+    private Long assignMaintenanceVehicle() {
+        try {
+            var result = vehicleClient.getMaintenanceVehicles();
+            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            if (vehicles != null && !vehicles.isEmpty()) {
+                int randomIndex = (int) (Math.random() * vehicles.size());
+                VehicleInfo vehicle = vehicles.get(randomIndex);
+                return vehicle.getId();
+            }
+        } catch (Exception e) {
+            log.error("获取维护中车辆失败", e);
+        }
+        return null;
+    }
+    
+    private Long assignRandomAvailableVehicle() {
+        try {
+            var result = vehicleClient.getAvailableVehicles();
+            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            if (vehicles != null && !vehicles.isEmpty()) {
+                List<VehicleInfo> filteredVehicles = vehicles.stream()
+                        .filter(v -> v.getVehicleType() == null || v.getVehicleType() != 9)
+                        .collect(java.util.stream.Collectors.toList());
+                if (!filteredVehicles.isEmpty()) {
+                    int randomIndex = (int) (Math.random() * filteredVehicles.size());
+                    VehicleInfo vehicle = filteredVehicles.get(randomIndex);
+                    return vehicle.getId();
+                }
             }
         } catch (Exception e) {
             log.error("随机分配车辆失败", e);
+        }
+        return null;
+    }
+    
+    private Long assignRepairmanVehicle() {
+        try {
+            var result = vehicleClient.getRepairmanVehicles();
+            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            if (vehicles != null && !vehicles.isEmpty()) {
+                int randomIndex = (int) (Math.random() * vehicles.size());
+                VehicleInfo vehicle = vehicles.get(randomIndex);
+                log.info("分配维修专用车成功, vehicleId: {}, vehicleNo: {}", vehicle.getId(), vehicle.getVehicleNo());
+                return vehicle.getId();
+            }
+            log.warn("没有可用的维修专用车，尝试分配普通车辆");
+            return assignRandomAvailableVehicle();
+        } catch (Exception e) {
+            log.error("获取维修专用车失败", e);
+            return assignRandomAvailableVehicle();
+        }
+    }
+    
+    private Long assignSafetyOfficerVehicle() {
+        try {
+            var result = vehicleClient.getSafetyOfficerVehicles();
+            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            if (vehicles != null && !vehicles.isEmpty()) {
+                int randomIndex = (int) (Math.random() * vehicles.size());
+                VehicleInfo vehicle = vehicles.get(randomIndex);
+                log.info("分配救援专用车成功, vehicleId: {}, vehicleNo: {}", vehicle.getId(), vehicle.getVehicleNo());
+                return vehicle.getId();
+            }
+        } catch (Exception e) {
+            log.error("获取救援专用车失败", e);
         }
         return null;
     }
@@ -585,11 +681,12 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
         sendTaskNotification(task, executorId);
     }
     
-    private void createMaintenanceTask(DispatchPlan plan, int sequence, String taskNo, Long executorId, Long vehicleId, String priority) {
+    private void createMaintenanceTask(DispatchPlan plan, int sequence, String taskNo, Long executorId, Long vehicleId, Long repairmanVehicleId, String priority) {
         MaintenanceTask task = new MaintenanceTask();
         task.setTaskNo(taskNo);
         task.setPlanId(plan.getId());
         task.setVehicleId(vehicleId);
+        task.setRepairmanVehicleId(repairmanVehicleId);
         task.setExecutorId(executorId);
         task.setStatus(0);
         task.setPriority(priority != null ? priority : "normal");
@@ -599,7 +696,7 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
         task.setScheduledEndTime(scheduledStart.plusHours(4));
         
         maintenanceTaskMapper.insert(task);
-        log.info("创建维修任务成功，任务编号：{}，执行人：{}，车辆：{}", taskNo, executorId, vehicleId);
+        log.info("创建维修任务成功，任务编号：{}，执行人：{}，待维修车辆：{}，维修员车辆：{}", taskNo, executorId, vehicleId, repairmanVehicleId);
         
         sendTaskNotification(task, executorId);
     }
@@ -766,37 +863,12 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
         BeanUtils.copyProperties(plan, vo);
         
         vo.setId(String.valueOf(plan.getId()));
-        vo.setVehicleId(String.valueOf(plan.getVehicleId()));
-        vo.setDriverId(String.valueOf(plan.getDriverId()));
         if (plan.getRouteId() != null) {
             vo.setRouteId(String.valueOf(plan.getRouteId()));
         }
         
         if (plan.getCompletedTrips() == null) {
             vo.setCompletedTrips(0);
-        }
-        
-        if (plan.getVehicleId() != null) {
-            try {
-                var result = vehicleClient.getById(plan.getVehicleId());
-                if (result != null && result.getData() != null && result.getData().getVehicleNo() != null) {
-                    vo.setVehicleNo(result.getData().getVehicleNo());
-                }
-            } catch (Exception e) {
-                log.warn("获取车辆信息失败，vehicleId: {}", plan.getVehicleId());
-            }
-        }
-        
-        if (plan.getDriverId() != null) {
-            try {
-                Result<com.klzw.common.core.domain.dto.DriverInfo> driverResult = driverClient.getById(plan.getDriverId());
-                if (driverResult != null && driverResult.getCode() == 200 && driverResult.getData() != null) {
-                    com.klzw.common.core.domain.dto.DriverInfo driverInfo = driverResult.getData();
-                    vo.setDriverName(driverInfo.getDriverName());
-                }
-            } catch (Exception e) {
-                log.warn("获取司机信息失败，driverId: {}", plan.getDriverId());
-            }
         }
         
         if (plan.getRouteId() != null) {

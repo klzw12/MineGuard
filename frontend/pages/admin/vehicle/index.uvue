@@ -1,157 +1,158 @@
 <template>
 	<AdminLayout>
-		<view class="page-header">
-			<text class="page-title">车辆管理</text>
-			<view class="header-actions">
-				<button class="primary-btn" @click="showAddModal = true">添加车辆</button>
+		<view class="vehicle-container">
+			<view class="page-header">
+				<text class="page-title">车辆管理</text>
+				<view class="header-actions">
+					<button class="primary-btn" @click="showAddModal = true">添加车辆</button>
+				</view>
 			</view>
-		</view>
-		
-		<view class="filter-section">
-			<view class="search-box">
-				<text class="search-icon">🔍</text>
-				<input type="text" v-model="searchKeyword" placeholder="搜索车牌号" placeholder-style="color: rgba(255,255,255,0.4)" @confirm="handleSearch" />
+			
+			<view class="filter-section">
+				<view class="search-box">
+					<text class="search-icon">🔍</text>
+					<input type="text" v-model="searchKeyword" placeholder="搜索车牌号" placeholder-style="color: rgba(255,255,255,0.4)" @confirm="handleSearch" />
+				</view>
+				<view class="filter-buttons">
+					<button class="filter-btn" :class="{'active': currentStatus === null}" @click="filterByStatus(null)">全部</button>
+					<button class="filter-btn" :class="{'active': currentStatus === 0}" @click="filterByStatus(0)">空闲</button>
+					<button class="filter-btn" :class="{'active': currentStatus === 1}" @click="filterByStatus(1)">运行中</button>
+					<button class="filter-btn" :class="{'active': currentStatus === 2}" @click="filterByStatus(2)">维护中</button>
+					<button class="filter-btn" :class="{'active': currentStatus === 3}" @click="filterByStatus(3)">故障</button>
+				</view>
 			</view>
-			<view class="filter-buttons">
-				<button class="filter-btn" :class="{'active': currentStatus === null}" @click="filterByStatus(null)">全部</button>
-				<button class="filter-btn" :class="{'active': currentStatus === 0}" @click="filterByStatus(0)">空闲</button>
-				<button class="filter-btn" :class="{'active': currentStatus === 1}" @click="filterByStatus(1)">运行中</button>
-				<button class="filter-btn" :class="{'active': currentStatus === 2}" @click="filterByStatus(2)">维护中</button>
-				<button class="filter-btn" :class="{'active': currentStatus === 3}" @click="filterByStatus(3)">故障</button>
-			</view>
-		</view>
-		
-		<view class="vehicle-card">
-			<view class="vehicle-list">
-				<view class="vehicle-item" v-for="(vehicle, index) in vehicleList" :key="vehicle.id">
-					<view class="vehicle-left">
-						<view class="vehicle-header">
-							<text class="vehicle-plate">🚚 {{ vehicle.vehicleNo }}</text>
-							<view class="vehicle-status" :class="getStatusClass(vehicle.status)">
-								<text class="status-dot"></text>
-								<text class="status-text">{{ getStatusText(vehicle.status) }}</text>
+			
+			<view class="vehicle-card">
+				<view class="vehicle-list">
+					<view class="vehicle-item" v-for="(vehicle, index) in vehicleList" :key="vehicle.id">
+						<view class="vehicle-left">
+							<view class="vehicle-header">
+								<text class="vehicle-plate">🚚 {{ vehicle.vehicleNo }}</text>
+								<view class="vehicle-status" :class="getStatusClass(vehicle.status)">
+									<text class="status-dot"></text>
+									<text class="status-text">{{ getStatusText(vehicle.status) }}</text>
+								</view>
+							</view>
+							<text class="vehicle-type">{{ vehicle.brand }} {{ vehicle.model }}</text>
+							<view class="vehicle-info">
+								<text class="info-item">发动机号：{{ vehicle.engineNumber || '-' }}</text>
+								<text class="info-item">车架号：{{ vehicle.vin || '-' }}</text>
 							</view>
 						</view>
-						<text class="vehicle-type">{{ vehicle.brand }} {{ vehicle.model }}</text>
-						<view class="vehicle-info">
-							<text class="info-item">发动机号：{{ vehicle.engineNumber || '-' }}</text>
-							<text class="info-item">车架号：{{ vehicle.vin || '-' }}</text>
-						</view>
-					</view>
-					<view class="vehicle-right">
-						<view class="action-buttons">
-							<button class="action-btn" @click="viewDetail(vehicle)">详情</button>
-							<button class="action-btn secondary" @click="editVehicle(vehicle)">编辑</button>
-						</view>
-					</view>
-				</view>
-				
-				<view class="empty-state" v-if="vehicleList.length === 0">
-					<text class="empty-text">暂无车辆数据</text>
-				</view>
-			</view>
-		</view>
-		
-		<view class="pagination" v-if="total > pageSize">
-			<button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">上一页</button>
-			<text class="page-info">{{ currentPage }} / {{ totalPages }}</text>
-			<button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">下一页</button>
-		</view>
-		
-		<view class="modal-overlay" v-if="showAddModal" @click="showAddModal = false">
-			<view class="modal-content" @click.stop>
-				<view class="modal-header">
-					<text class="modal-title">添加车辆</text>
-					<text class="modal-close" @click="closeModal">×</text>
-				</view>
-				<view class="modal-body">
-					<view class="form-item">
-						<text class="form-label">车牌号 *</text>
-						<input type="text" v-model="formData.vehicleNo" class="form-input" placeholder="请输入车牌号" />
-					</view>
-					<view class="form-item">
-						<text class="form-label">车辆类型 *</text>
-						<view class="type-selector">
-							<view 
-								v-for="option in vehicleTypeOptions" 
-								:key="option.value" 
-								class="type-option"
-								:class="{ active: formData.vehicleType === option.value }"
-								@click="formData.vehicleType = option.value"
-							>
-								<text class="type-text">{{ option.label }}</text>
+						<view class="vehicle-right">
+							<view class="action-buttons">
+								<button class="action-btn" @click="viewDetail(vehicle)">详情</button>
+								<button class="action-btn secondary" @click="editVehicle(vehicle)">编辑</button>
 							</view>
 						</view>
 					</view>
-					<view class="form-item">
-						<text class="form-label">上传车辆照片</text>
-						<view class="upload-area" @click="uploadVehiclePhoto">
-							<text class="upload-text" v-if="!vehiclePhotoPreview">点击上传车辆照片</text>
-							<image v-else :src="vehiclePhotoPreview" class="preview-image" mode="aspectFit" />
-						</view>
+					
+					<view class="empty-state" v-if="vehicleList.length === 0">
+						<text class="empty-text">暂无车辆数据</text>
 					</view>
-				</view>
-				<view class="modal-footer">
-					<button class="cancel-btn" @click="closeModal">取消</button>
-					<button class="confirm-btn" @click="submitAddForm">确定</button>
 				</view>
 			</view>
-		</view>
-		
-		<view class="modal-overlay" v-if="showEditModal" @click="showEditModal = false">
-			<view class="modal-content" @click.stop>
-				<view class="modal-header">
-					<text class="modal-title">编辑车辆 - 行驶证上传</text>
-					<text class="modal-close" @click="closeEditModal">×</text>
-				</view>
-				<view class="modal-body">
-					<view class="form-item">
-						<text class="form-label">车牌号</text>
-						<input type="text" v-model="editFormData.vehicleNo" class="form-input" disabled="true" style="background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6);" />
+			
+			<view class="pagination" v-if="total > pageSize">
+				<button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">上一页</button>
+				<text class="page-info">{{ currentPage }} / {{ totalPages }}</text>
+				<button class="page-btn" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">下一页</button>
+			</view>
+			
+			<view class="modal-overlay" v-if="showAddModal" @click="showAddModal = false">
+				<view class="modal-content" @click.stop>
+					<view class="modal-header">
+						<text class="modal-title">添加车辆</text>
+						<text class="modal-close" @click="closeModal">×</text>
 					</view>
-					<view class="form-item">
-						<text class="form-label">车辆类型</text>
-						<view class="type-selector">
-							<view 
-								v-for="option in vehicleTypeOptions" 
-								:key="option.value" 
-								class="type-option"
-								:class="{ active: editFormData.vehicleType === option.value }"
-								@click="editFormData.vehicleType = option.value"
-							>
-								<text class="type-text">{{ option.label }}</text>
+					<view class="modal-body">
+						<view class="form-item">
+							<text class="form-label">车牌号 *</text>
+							<input type="text" v-model="formData.vehicleNo" class="form-input" placeholder="请输入车牌号" />
+						</view>
+						<view class="form-item">
+							<text class="form-label">车辆类型 *</text>
+							<view class="type-selector">
+								<view 
+									v-for="option in vehicleTypeOptions" 
+									:key="option.value" 
+									class="type-option"
+									:class="{ active: formData.vehicleType === option.value }"
+									@click="formData.vehicleType = option.value"
+								>
+									<text class="type-text">{{ option.label }}</text>
+								</view>
+							</view>
+						</view>
+						<view class="form-item">
+							<text class="form-label">上传车辆照片</text>
+							<view class="upload-area" @click="uploadVehiclePhoto">
+								<text class="upload-text" v-if="!vehiclePhotoPreview">点击上传车辆照片</text>
+								<image v-else :src="vehiclePhotoPreview" class="preview-image" mode="aspectFit" />
 							</view>
 						</view>
 					</view>
-					<view class="form-item">
-						<text class="form-label">上传行驶证正面（自动识别）</text>
-						<view class="upload-area" @click="uploadLicenseFront">
-							<text class="upload-text" v-if="!licenseFrontPreview">点击上传行驶证正面</text>
-							<image v-else :src="licenseFrontPreview" class="preview-image" mode="aspectFit" />
-						</view>
+					<view class="modal-footer">
+						<button class="cancel-btn" @click="closeModal">取消</button>
+						<button class="confirm-btn" @click="submitAddForm">确定</button>
 					</view>
-					<view class="form-item">
-						<text class="form-label">上传行驶证反面</text>
-						<view class="upload-area" @click="uploadLicenseBack">
-							<text class="upload-text" v-if="!licenseBackPreview">点击上传行驶证反面</text>
-							<image v-else :src="licenseBackPreview" class="preview-image" mode="aspectFit" />
-						</view>
-					</view>
-				</view>
-				<view class="modal-footer">
-					<button class="cancel-btn" @click="closeEditModal">取消</button>
-					<button class="confirm-btn" @click="submitEditForm">保存</button>
 				</view>
 			</view>
-		</view>
-		
-		<view class="modal-overlay" v-if="showDetailModal" @click="showDetailModal = false">
-			<view class="modal-content detail-modal" @click.stop>
-				<view class="modal-header">
-					<text class="modal-title">车辆详情</text>
-					<text class="modal-close" @click="closeDetailModal">×</text>
+			
+			<view class="modal-overlay" v-if="showEditModal" @click="showEditModal = false">
+				<view class="modal-content" @click.stop>
+					<view class="modal-header">
+						<text class="modal-title">编辑车辆 - 行驶证上传</text>
+						<text class="modal-close" @click="closeEditModal">×</text>
+					</view>
+					<view class="modal-body">
+						<view class="form-item">
+							<text class="form-label">车牌号</text>
+							<input type="text" v-model="editFormData.vehicleNo" class="form-input" disabled="true" style="background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6);" />
+						</view>
+						<view class="form-item">
+							<text class="form-label">车辆类型</text>
+							<view class="type-selector">
+								<view 
+									v-for="option in vehicleTypeOptions" 
+									:key="option.value" 
+									class="type-option"
+									:class="{ active: editFormData.vehicleType === option.value }"
+									@click="editFormData.vehicleType = option.value"
+								>
+									<text class="type-text">{{ option.label }}</text>
+								</view>
+							</view>
+						</view>
+						<view class="form-item">
+							<text class="form-label">上传行驶证正面（自动识别）</text>
+							<view class="upload-area" @click="uploadLicenseFront">
+								<text class="upload-text" v-if="!licenseFrontPreview">点击上传行驶证正面</text>
+								<image v-else :src="licenseFrontPreview" class="preview-image" mode="aspectFit" />
+							</view>
+						</view>
+						<view class="form-item">
+							<text class="form-label">上传行驶证反面</text>
+							<view class="upload-area" @click="uploadLicenseBack">
+								<text class="upload-text" v-if="!licenseBackPreview">点击上传行驶证反面</text>
+								<image v-else :src="licenseBackPreview" class="preview-image" mode="aspectFit" />
+							</view>
+						</view>
+					</view>
+					<view class="modal-footer">
+						<button class="cancel-btn" @click="closeEditModal">取消</button>
+						<button class="confirm-btn" @click="submitEditForm">保存</button>
+					</view>
 				</view>
-				<scroll-view scroll-y class="modal-body detail-body">
+			</view>
+			
+			<view class="modal-overlay" v-if="showDetailModal" @click="showDetailModal = false">
+				<view class="modal-content detail-modal" @click.stop>
+					<view class="modal-header">
+						<text class="modal-title">车辆详情</text>
+						<text class="modal-close" @click="closeDetailModal">×</text>
+					</view>
+					<scroll-view scroll-y class="modal-body detail-body">
 					<view class="detail-section">
 						<text class="section-title">基本信息</text>
 						<view class="detail-grid">
@@ -257,8 +258,9 @@
 						</view>
 					</view>
 				</scroll-view>
-				<view class="modal-footer">
-					<button class="confirm-btn" @click="closeDetailModal">关闭</button>
+					<view class="modal-footer">
+						<button class="confirm-btn" @click="closeDetailModal">关闭</button>
+					</view>
 				</view>
 			</view>
 		</view>
@@ -266,7 +268,7 @@
 </template>
 
 <script setup lang="uts">
-    import AdminLayout from '../../../components/AdminSidebar.uvue'
+    import AdminLayout from '../../../components/AdminLayout.uvue'
     import { UPLOAD_URL } from '@/utils/config.uts'
 	import { ref, computed, onMounted } from 'vue'
 	import { http } from '@/utils/request.uts'
@@ -330,6 +332,7 @@
 		{ value: 5, label: '装载机' },
 		{ value: 6, label: '挖掘机' },
 		{ value: 7, label: '救援专用车' },
+		{ value: 9, label: '维修专用车' },
 		{ value: 8, label: '其他' }
 	]
 	
@@ -686,6 +689,12 @@
 </script>
 
 <style>
+	.vehicle-container {
+		padding: 30rpx;
+		height: calc(100vh - 200rpx);
+		overflow-y: auto;
+	}
+
 	.page-header {
 		display: flex;
 		flex-direction: row;

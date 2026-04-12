@@ -6,6 +6,7 @@ import com.klzw.common.websocket.domain.MessageHistory;
 import com.klzw.common.websocket.enums.MessageTypeEnum;
 import com.klzw.common.websocket.enums.MessagePriority;
 import com.klzw.common.websocket.manager.MessageManager;
+import com.klzw.common.websocket.manager.OnlineUserManager;
 import com.klzw.common.websocket.service.MessageHistoryService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,13 +21,16 @@ public class MessageRetryTask {
     private final MessageHistoryService messageHistoryService;
     private final MessageManager messageManager;
     private final WebSocketProperties webSocketProperties;
+    private final OnlineUserManager onlineUserManager;
 
     public MessageRetryTask(MessageHistoryService messageHistoryService,
                            MessageManager messageManager,
-                           WebSocketProperties webSocketProperties) {
+                           WebSocketProperties webSocketProperties,
+                           OnlineUserManager onlineUserManager) {
         this.messageHistoryService = messageHistoryService;
         this.messageManager = messageManager;
         this.webSocketProperties = webSocketProperties;
+        this.onlineUserManager = onlineUserManager;
     }
 
     @Scheduled(fixedRate = 30000)
@@ -38,6 +42,12 @@ public class MessageRetryTask {
             log.info("开始重试待发送消息，数量: {}", pendingMessages.size());
             
             for (MessageHistory history : pendingMessages) {
+                if (!onlineUserManager.isOnline(history.getReceiver())) {
+                    log.debug("用户不在线，跳过重试: messageId={}, receiver={}", 
+                            history.getMessageId(), history.getReceiver());
+                    continue;
+                }
+                
                 try {
                     messageManager.sendMessageToUser(history.getReceiver(), convertToMessage(history));
                     messageHistoryService.markAsDelivered(history.getMessageId());

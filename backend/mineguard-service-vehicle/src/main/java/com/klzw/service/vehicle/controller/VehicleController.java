@@ -180,6 +180,50 @@ public class VehicleController {
         return Result.success(result);
     }
     
+    @Operation(summary = "获取故障车辆列表", description = "获取所有故障状态的车辆列表，用于维修任务分配")
+    @GetMapping("/fault")
+    public Result<List<VehicleInfo>> getFaultVehicles() {
+        List<VehicleVO> vehicles = vehicleService.getFaultVehicles();
+        List<VehicleInfo> result = vehicles.stream().map(v -> {
+            VehicleInfo info = new VehicleInfo();
+            try {
+                info.setId(v.getId() != null ? Long.parseLong(v.getId()) : null);
+            } catch (Exception ignored) {}
+            info.setVehicleNo(v.getVehicleNo());
+            info.setVehicleType(v.getVehicleType());
+            info.setBrand(v.getBrand());
+            info.setModel(v.getModel());
+            info.setRatedLoad(v.getRatedLoad());
+            info.setFuelLevel(v.getFuelLevel());
+            info.setStatus(v.getStatus());
+            info.setPhotoUrl(v.getPhotoUrl());
+            return info;
+        }).collect(java.util.stream.Collectors.toList());
+        return Result.success(result);
+    }
+    
+    @Operation(summary = "获取维护中车辆列表", description = "获取所有维护中状态的车辆列表")
+    @GetMapping("/maintenance")
+    public Result<List<VehicleInfo>> getMaintenanceVehicles() {
+        List<VehicleVO> vehicles = vehicleService.getMaintenanceVehicles();
+        List<VehicleInfo> result = vehicles.stream().map(v -> {
+            VehicleInfo info = new VehicleInfo();
+            try {
+                info.setId(v.getId() != null ? Long.parseLong(v.getId()) : null);
+            } catch (Exception ignored) {}
+            info.setVehicleNo(v.getVehicleNo());
+            info.setVehicleType(v.getVehicleType());
+            info.setBrand(v.getBrand());
+            info.setModel(v.getModel());
+            info.setRatedLoad(v.getRatedLoad());
+            info.setFuelLevel(v.getFuelLevel());
+            info.setStatus(v.getStatus());
+            info.setPhotoUrl(v.getPhotoUrl());
+            return info;
+        }).collect(java.util.stream.Collectors.toList());
+        return Result.success(result);
+    }
+    
     @Operation(summary = "报废车辆", description = "将车辆标记为报废状态（软删除）")
     @PutMapping("/{id}/scrap")
     public Result<Boolean> scrapVehicle(@PathVariable Long id) {
@@ -187,11 +231,92 @@ public class VehicleController {
         return Result.success(result);
     }
     
-    @Operation(summary = "检查车辆是否存在")
-    @GetMapping("/{id}/exists")
-    public Result<Boolean> existsById(@PathVariable Long id) {
-        boolean exists = vehicleService.existsById(id);
-        return Result.success(exists);
+    @Operation(summary = "获取故障车辆列表")
+    @GetMapping("/fault")
+    public Result<List<VehicleInfo>> getFaultVehicles() {
+        List<VehicleVO> vehicles = vehicleService.getFaultVehicles();
+        List<VehicleInfo> result = vehicles.stream().map(v -> {
+            VehicleInfo info = new VehicleInfo();
+            try {
+                info.setId(v.getId() != null ? Long.parseLong(v.getId()) : null);
+            } catch (Exception ignored) {}
+            info.setVehicleNo(v.getVehicleNo());
+            info.setVehicleType(v.getVehicleType());
+            info.setBrand(v.getBrand());
+            info.setModel(v.getModel());
+            info.setRatedLoad(v.getRatedLoad());
+            info.setFuelLevel(v.getFuelLevel());
+            info.setStatus(v.getStatus());
+            info.setPhotoUrl(v.getPhotoUrl());
+            return info;
+        }).collect(java.util.stream.Collectors.toList());
+        return Result.success(result);
+    }
+    
+    @Operation(summary = "获取维护中车辆列表")
+    @GetMapping("/maintenance")
+    public Result<List<VehicleInfo>> getMaintenanceVehicles() {
+        List<VehicleVO> vehicles = vehicleService.getMaintenanceVehicles();
+        List<VehicleInfo> result = vehicles.stream().map(v -> {
+            VehicleInfo info = new VehicleInfo();
+            try {
+                info.setId(v.getId() != null ? Long.parseLong(v.getId()) : null);
+            } catch (Exception ignored) {}
+            info.setVehicleNo(v.getVehicleNo());
+            info.setVehicleType(v.getVehicleType());
+            info.setBrand(v.getBrand());
+            info.setModel(v.getModel());
+            info.setRatedLoad(v.getRatedLoad());
+            info.setFuelLevel(v.getFuelLevel());
+            info.setStatus(v.getStatus());
+            info.setPhotoUrl(v.getPhotoUrl());
+            return info;
+        }).collect(java.util.stream.Collectors.toList());
+        return Result.success(result);
+    }
+    
+    @Operation(summary = "获取维修专用车列表", description = "获取所有空闲状态的维修专用车")
+    @GetMapping("/repairman")
+    public Result<List<VehicleInfo>> getRepairmanVehicles() {
+        List<VehicleVO> vehicles = vehicleService.getRepairmanVehicles();
+        List<VehicleInfo> result = vehicles.stream().map(v -> {
+            VehicleInfo info = new VehicleInfo();
+            try {
+                info.setId(v.getId() != null ? Long.parseLong(v.getId()) : null);
+            } catch (Exception ignored) {}
+            info.setVehicleNo(v.getVehicleNo());
+            info.setVehicleType(v.getVehicleType());
+            info.setBrand(v.getBrand());
+            info.setModel(v.getModel());
+            info.setRatedLoad(v.getRatedLoad());
+            info.setFuelLevel(v.getFuelLevel());
+            info.setStatus(v.getStatus());
+            info.setPhotoUrl(v.getPhotoUrl());
+            return info;
+        }).collect(java.util.stream.Collectors.toList());
+        return Result.success(result);
+    }
+    
+    @Operation(summary = "获取救援专用车列表", description = "获取所有空闲状态的救援专用车(安全员用)")
+    @GetMapping("/safety-officer")
+    public Result<List<VehicleInfo>> getSafetyOfficerVehicles() {
+        List<VehicleVO> vehicles = vehicleService.getSafetyOfficerVehicles();
+        List<VehicleInfo> result = vehicles.stream().map(v -> {
+            VehicleInfo info = new VehicleInfo();
+            try {
+                info.setId(v.getId() != null ? Long.parseLong(v.getId()) : null);
+            } catch (Exception ignored) {}
+            info.setVehicleNo(v.getVehicleNo());
+            info.setVehicleType(v.getVehicleType());
+            info.setBrand(v.getBrand());
+            info.setModel(v.getModel());
+            info.setRatedLoad(v.getRatedLoad());
+            info.setFuelLevel(v.getFuelLevel());
+            info.setStatus(v.getStatus());
+            info.setPhotoUrl(v.getPhotoUrl());
+            return info;
+        }).collect(java.util.stream.Collectors.toList());
+        return Result.success(result);
     }
     
 }

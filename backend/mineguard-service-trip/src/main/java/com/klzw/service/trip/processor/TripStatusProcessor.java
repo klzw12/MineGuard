@@ -20,24 +20,21 @@ public class TripStatusProcessor {
         log.info("行程状态变化：行程ID={}, 旧状态={}, 新状态={}", 
                 trip.getId(), oldStatus, newStatus);
 
-        // 更新车辆状态
         updateVehicleStatus(trip, newStatus);
-
+        
+        if (trip.getEndLongitude() != null && trip.getEndLatitude() != null) {
+            vehicleClient.updateStatusWithLocation(trip.getVehicleId(), newStatus, trip.getEndLatitude(), trip.getEndLongitude());
+        } else {
+            log.warn("行程结束经纬度为空，无法更新车辆状态表的经纬度");
+        }
+        
         String notificationContent = generateNotificationContent(trip, oldStatus, newStatus);
         if (notificationContent != null) {
             messageClient.sendMessage(
                 trip.getDriverId(),
                 "行程状态变更",
                 notificationContent,
-                "TRIP",
-                trip.getId().toString()
-            );
-
-            messageClient.sendMessage(
-                1L,
-                "行程状态变更",
-                notificationContent,
-                "TRIP",
+                "TRIP_STATUS_CHANGE",
                 trip.getId().toString()
             );
         }
@@ -51,21 +48,20 @@ public class TripStatusProcessor {
                 return;
             }
 
-            // 根据行程状态更新车辆状态
             int vehicleStatus;
             switch (newStatus) {
-                case 0: // 待开始
-                case 1: // 已接单
+                case 0:
+                case 1:
                     vehicleStatus = VehicleStatusEnum.IDLE.getCode();
                     break;
-                case 2: // 进行中
+                case 2:
                     vehicleStatus = VehicleStatusEnum.RUNNING.getCode();
                     break;
-                case 3: // 已完成
-                case 4: // 已取消
+                case 3:
+                case 4:
                     vehicleStatus = VehicleStatusEnum.IDLE.getCode();
                     break;
-                case 5: // 暂停中（预警触发），车辆仍为运行中
+                case 5:
                     vehicleStatus = VehicleStatusEnum.RUNNING.getCode();
                     break;
                 default:
@@ -73,7 +69,6 @@ public class TripStatusProcessor {
             }
 
             log.info("更新车辆状态：vehicleId={}, status={}", vehicleId, vehicleStatus);
-            // 调用车辆服务更新状态
             com.klzw.common.core.domain.dto.VehicleStatus status = new com.klzw.common.core.domain.dto.VehicleStatus();
             status.setStatus(vehicleStatus);
             vehicleClient.updateStatus(vehicleId, status);

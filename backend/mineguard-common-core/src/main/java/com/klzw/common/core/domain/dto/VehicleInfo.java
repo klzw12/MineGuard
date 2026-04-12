@@ -14,6 +14,8 @@ public class VehicleInfo {
     private String ratedLoad;
     private Integer fuelLevel;
     private Integer status;
+
+    private Integer vehicleType;
     private Long currentDriverId;
     private Integer score;
     private String reason;

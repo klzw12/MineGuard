@@ -57,7 +57,7 @@ public class MessageHistoryServiceImpl implements MessageHistoryService {
 
     @Override
     public MessageHistory updateMessageStatus(String messageId, String status) {
-        Optional<MessageHistory> optional = messageHistoryRepository.findByMessageId(messageId);
+        Optional<MessageHistory> optional = messageHistoryRepository.findTopByMessageIdOrderByCreateTimeDesc(messageId);
         if (optional.isPresent()) {
             MessageHistory history = optional.get();
             history.setStatus(status);
@@ -68,7 +68,7 @@ public class MessageHistoryServiceImpl implements MessageHistoryService {
 
     @Override
     public MessageHistory markAsDelivered(String messageId) {
-        Optional<MessageHistory> optional = messageHistoryRepository.findByMessageId(messageId);
+        Optional<MessageHistory> optional = messageHistoryRepository.findTopByMessageIdOrderByCreateTimeDesc(messageId);
         if (optional.isPresent()) {
             MessageHistory history = optional.get();
             history.setStatus(MessageStatusEnum.DELIVERED.getCode());
@@ -80,7 +80,7 @@ public class MessageHistoryServiceImpl implements MessageHistoryService {
 
     @Override
     public MessageHistory markAsRead(String messageId) {
-        Optional<MessageHistory> optional = messageHistoryRepository.findByMessageId(messageId);
+        Optional<MessageHistory> optional = messageHistoryRepository.findTopByMessageIdOrderByCreateTimeDesc(messageId);
         if (optional.isPresent()) {
             MessageHistory history = optional.get();
             history.setStatus(MessageStatusEnum.READ.getCode());
@@ -125,7 +125,7 @@ public class MessageHistoryServiceImpl implements MessageHistoryService {
 
     @Override
     public void incrementRetryCount(String messageId) {
-        Optional<MessageHistory> optional = messageHistoryRepository.findByMessageId(messageId);
+        Optional<MessageHistory> optional = messageHistoryRepository.findTopByMessageIdOrderByCreateTimeDesc(messageId);
         if (optional.isPresent()) {
             MessageHistory history = optional.get();
             history.setRetryCount(history.getRetryCount() + 1);
@@ -178,7 +178,7 @@ public class MessageHistoryServiceImpl implements MessageHistoryService {
 
     @Override
     public void markOfflineMessageAsSent(String messageId) {
-        Optional<MessageHistory> optional = messageHistoryRepository.findByMessageId(messageId);
+        Optional<MessageHistory> optional = messageHistoryRepository.findTopByMessageIdOrderByCreateTimeDesc(messageId);
         if (optional.isPresent()) {
             MessageHistory history = optional.get();
             history.setStatus(MessageStatusEnum.DELIVERED.getCode());

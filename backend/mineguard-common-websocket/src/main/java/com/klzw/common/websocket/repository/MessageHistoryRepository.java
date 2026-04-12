@@ -14,7 +14,7 @@ import java.util.Optional;
 @Repository
 public interface MessageHistoryRepository extends MongoRepository<MessageHistory, String> {
     
-    Optional<MessageHistory> findByMessageId(String messageId);
+    Optional<MessageHistory> findTopByMessageIdOrderByCreateTimeDesc(String messageId);
     
     List<MessageHistory> findByReceiverAndStatus(String receiver, String status);
     

@@ -157,4 +157,35 @@ public interface VehicleService extends IService<Vehicle> {
      */
     boolean existsById(Long id);
 
+    /**
+     * 获取故障车辆列表
+     * @return 故障车辆列表
+     */
+    List<VehicleVO> getFaultVehicles();
+
+    /**
+     * 获取维护中车辆列表
+     * @return 维护中车辆列表
+     */
+    List<VehicleVO> getMaintenanceVehicles();
+
+    /**
+     * 获取指定类型的可用车辆
+     * @param vehicleType 车辆类型
+     * @return 可用车辆列表
+     */
+    List<VehicleVO> getAvailableVehiclesByType(Integer vehicleType);
+
+    /**
+     * 获取维修专用车列表
+     * @return 维修专用车列表
+     */
+    List<VehicleVO> getRepairmanVehicles();
+
+    /**
+     * 获取救援专用车列表(安全员用)
+     * @return 救援专用车列表
+     */
+    List<VehicleVO> getSafetyOfficerVehicles();
+
 } 

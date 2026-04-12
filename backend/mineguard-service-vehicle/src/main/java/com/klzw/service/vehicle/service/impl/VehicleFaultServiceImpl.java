@@ -78,6 +78,32 @@ public class VehicleFaultServiceImpl extends ServiceImpl<VehicleFaultMapper, Veh
             log.warn("创建故障预警失败：vehicleId={}, error={}", faultDTO.getVehicleId(), e.getMessage());
         }
         
+        try {
+            Map<String, Object> faultInfo = new HashMap<>();
+            faultInfo.put("faultId", fault.getId());
+            faultInfo.put("vehicleId", faultDTO.getVehicleId());
+            faultInfo.put("faultType", faultDTO.getFaultType());
+            faultInfo.put("faultDescription", faultDTO.getFaultDescription());
+            faultInfo.put("severity", faultDTO.getSeverity() != null ? faultDTO.getSeverity() : 1);
+            if (faultDTO.getLatitude() != null) {
+                faultInfo.put("latitude", faultDTO.getLatitude());
+            }
+            if (faultDTO.getLongitude() != null) {
+                faultInfo.put("longitude", faultDTO.getLongitude());
+            }
+            if (faultDTO.getLocationAddress() != null) {
+                faultInfo.put("locationAddress", faultDTO.getLocationAddress());
+            }
+            Long taskId = dispatchClient.createMaintenanceTaskFromFault(faultInfo);
+            if (taskId != null) {
+                log.info("已自动创建维修任务：faultId={}, taskId={}", fault.getId(), taskId);
+            } else {
+                log.warn("创建维修任务失败：没有可用的维修员");
+            }
+        } catch (Exception e) {
+            log.warn("创建维修任务失败：vehicleId={}, error={}", faultDTO.getVehicleId(), e.getMessage());
+        }
+        
         return fault;
     }
     

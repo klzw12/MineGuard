@@ -58,6 +58,16 @@ public interface AttendanceService {
     AttendanceStatisticsVO getAttendanceStatistics(Long userId, String yearMonth);
 
     /**
+     * 获取用户某日期范围的出勤统计
+     *
+     * @param userId 用户ID
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 出勤统计
+     */
+    AttendanceStatisticsVO getAttendanceStatisticsByDateRange(Long userId, LocalDate startDate, LocalDate endDate);
+
+    /**
      * 补卡（管理员功能）
      *
      * @param attendanceId 出勤记录ID

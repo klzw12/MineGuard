@@ -149,6 +149,7 @@ CREATE TABLE IF NOT EXISTS `driver_vehicle` (
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `create_by` BIGINT COMMENT '创建人ID',
+    `update_by` BIGINT COMMENT '更新人ID',
     `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
     `remark` VARCHAR(500) COMMENT '备注',
     UNIQUE KEY `uk_driver_vehicle` (`driver_id`, `vehicle_id`),

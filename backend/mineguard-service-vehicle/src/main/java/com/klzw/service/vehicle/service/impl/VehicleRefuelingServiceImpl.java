@@ -3,19 +3,27 @@ package com.klzw.service.vehicle.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.klzw.service.vehicle.dto.VehicleRefuelingDTO;
 import com.klzw.service.vehicle.entity.VehicleRefueling;
+import com.klzw.service.vehicle.entity.VehicleStatus;
 import com.klzw.service.vehicle.mapper.VehicleRefuelingMapper;
 import com.klzw.service.vehicle.service.VehicleRefuelingService;
+import com.klzw.service.vehicle.service.VehicleStatusService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class VehicleRefuelingServiceImpl extends ServiceImpl<VehicleRefuelingMapper, VehicleRefueling> implements VehicleRefuelingService {
     
+    private final VehicleStatusService vehicleStatusService;
+    
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public VehicleRefueling addRefuelingRecord(VehicleRefuelingDTO refuelingDTO) {
         log.info("添加车辆加油记录: vehicleId={}, refuelingDate={}", refuelingDTO.getVehicleId(), refuelingDTO.getRefuelingDate());
         VehicleRefueling refueling = new VehicleRefueling();
@@ -31,7 +39,29 @@ public class VehicleRefuelingServiceImpl extends ServiceImpl<VehicleRefuelingMap
         refueling.setTotalCost(refuelingDTO.getTotalCost());
         refueling.setCurrentMileage(refuelingDTO.getCurrentMileage());
         save(refueling);
+        
+        updateVehicleFuelLevel(refuelingDTO.getVehicleId(), refuelingDTO.getRefuelingAmount());
+        
         return refueling;
+    }
+    
+    private void updateVehicleFuelLevel(Long vehicleId, java.math.BigDecimal refuelingAmount) {
+        try {
+            VehicleStatus vehicleStatus = vehicleStatusService.getByVehicleId(vehicleId);
+            if (vehicleStatus != null) {
+                Integer currentFuelLevel = vehicleStatus.getFuelLevel();
+                int addedFuelLevel = refuelingAmount != null ? refuelingAmount.intValue() : 0;
+                int newFuelLevel = Math.min(100, (currentFuelLevel != null ? currentFuelLevel : 0) + addedFuelLevel);
+                vehicleStatus.setFuelLevel(newFuelLevel);
+                vehicleStatusService.updateById(vehicleStatus);
+                log.info("更新车辆油量: vehicleId={}, 原油量={}, 加油量={}, 新油量={}", 
+                    vehicleId, currentFuelLevel, addedFuelLevel, newFuelLevel);
+            } else {
+                log.warn("未找到车辆状态记录，无法更新油量: vehicleId={}", vehicleId);
+            }
+        } catch (Exception e) {
+            log.error("更新车辆油量失败: vehicleId={}", vehicleId, e);
+        }
     }
     
     @Override

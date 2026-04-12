@@ -73,7 +73,6 @@ class DispatchControllerTest {
         testTaskVO.setTaskNo("TRANS20260409001");
         testTaskVO.setPlanId(1L);
         testTaskVO.setVehicleId(1L);
-        testTaskVO.setDriverId(1L);
         testTaskVO.setExecutorId(1L);
         testTaskVO.setStatus(0);
         testTaskVO.setStatusName("待接单");

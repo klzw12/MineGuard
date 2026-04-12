@@ -74,6 +74,12 @@
 							</view>
 							<view class="action-btns">
 								<view 
+									class="action-btn info"
+									@click="showDetailModal(user)"
+								>
+									<text>详情</text>
+								</view>
+								<view 
 									v-if="user.roleCode === 'DRIVER'"
 									class="action-btn team-btn"
 									@click="showTeamModal(user)"
@@ -135,6 +141,78 @@
 				</view>
 			</view>
 		</view>
+		
+		<!-- 用户详情弹窗 -->
+		<view class="modal-overlay" v-if="detailModalVisible" @click="closeDetailModal">
+			<view class="modal-content detail-modal" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">用户详情</text>
+					<text class="modal-close" @click="closeDetailModal">×</text>
+				</view>
+				<scroll-view scroll-y class="modal-body">
+					<view class="detail-section">
+						<text class="section-title">基本信息</text>
+						<view class="detail-grid">
+							<view class="detail-item">
+								<text class="detail-label">用户ID</text>
+								<text class="detail-value">{{ detailUser?.id || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">用户名</text>
+								<text class="detail-value">{{ detailUser?.username || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">姓名</text>
+								<text class="detail-value">{{ detailUser?.realName || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">手机号</text>
+								<text class="detail-value">{{ detailUser?.phone || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">邮箱</text>
+								<text class="detail-value">{{ detailUser?.email || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">角色</text>
+								<text class="detail-value">{{ detailUser?.roleName || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">角色代码</text>
+								<text class="detail-value">{{ detailUser?.roleCode || '-' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">班组</text>
+								<text class="detail-value">{{ detailUser?.belongingTeam || '-' }}</text>
+							</view>
+						</view>
+					</view>
+					
+					<view class="detail-section">
+						<text class="section-title">状态信息</text>
+						<view class="detail-grid">
+							<view class="detail-item">
+								<text class="detail-label">账号状态</text>
+								<text class="detail-value" :class="detailUser?.status === 1 ? 'status-enabled' : 'status-disabled'">{{ detailUser?.status === 1 ? '启用' : '禁用' }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">创建时间</text>
+								<text class="detail-value">{{ formatTime(detailUser?.createTime) }}</text>
+							</view>
+							<view class="detail-item">
+								<text class="detail-label">更新时间</text>
+								<text class="detail-value">{{ formatTime(detailUser?.updateTime) }}</text>
+							</view>
+						</view>
+					</view>
+				</scroll-view>
+				<view class="modal-footer">
+					<view class="modal-btn confirm" @click="closeDetailModal">
+						<text>关闭</text>
+					</view>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -158,9 +236,18 @@
 	const currentUser = ref<UserVO | null>(null)
 	const teamInput = ref('')
 	
+	// 用户详情相关
+	const detailModalVisible = ref(false)
+	const detailUser = ref<UserVO | null>(null)
+	
 	const totalPages = computed(() => {
 		return Math.ceil(total.value / pageSize.value) || 1
 	})
+	
+	function formatTime(time: string | null): string {
+		if (!time) return '-'
+		return time.replace('T', ' ').substring(0, 19)
+	}
 	
 	async function loadUsers() {
 		loading.value = true
@@ -271,6 +358,16 @@
 				position: 'bottom'
 			})
 		}
+	}
+	
+	function showDetailModal(user: UserVO) {
+		detailUser.value = user
+		detailModalVisible.value = true
+	}
+	
+	function closeDetailModal() {
+		detailModalVisible.value = false
+		detailUser.value = null
 	}
 	
 	onMounted(() => {
@@ -480,12 +577,76 @@
 		background-color: #FF3B30;
 	}
 	
-	.action-btn.success {
-		background-color: #34C759;
+	.action-btn.info {
+		background-color: #5856D6;
 	}
 	
 	.action-btn.team-btn {
 		background-color: #FF9500;
+	}
+	
+	.detail-modal {
+		width: 700rpx;
+		max-height: 80vh;
+	}
+	
+	.modal-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 30rpx;
+		border-bottom: 1rpx solid #f0f0f0;
+	}
+	
+	.modal-close {
+		font-size: 40rpx;
+		color: #999;
+	}
+	
+	.modal-body {
+		padding: 30rpx;
+		max-height: 60vh;
+	}
+	
+	.detail-section {
+		margin-bottom: 30rpx;
+	}
+	
+	.detail-grid {
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+	}
+	
+	.detail-item {
+		width: 50%;
+		padding: 15rpx 0;
+	}
+	
+	.detail-label {
+		font-size: 22rpx;
+		color: #999;
+		margin-bottom: 8rpx;
+		display: block;
+	}
+	
+	.detail-value {
+		font-size: 26rpx;
+		color: #333;
+	}
+	
+	.status-enabled {
+		color: #34C759;
+	}
+	
+	.status-disabled {
+		color: #FF3B30;
+	}
+	
+	.modal-footer {
+		padding: 20rpx 30rpx;
+		border-top: 1rpx solid #f0f0f0;
 	}
 	
 	.user-team {

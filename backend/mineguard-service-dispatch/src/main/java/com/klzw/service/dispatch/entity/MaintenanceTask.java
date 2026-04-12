@@ -19,6 +19,8 @@ public class MaintenanceTask extends BaseEntity {
 
     private Long vehicleId;
 
+    private Long repairmanVehicleId;
+
     private Long executorId;
 
     private Integer faultType;

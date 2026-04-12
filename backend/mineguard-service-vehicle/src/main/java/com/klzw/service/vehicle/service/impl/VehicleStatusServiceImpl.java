@@ -3,7 +3,6 @@ package com.klzw.service.vehicle.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.klzw.common.redis.service.RedisCacheService;
 import com.klzw.common.core.client.TripClient;
-import com.klzw.common.core.domain.dto.TripResponse;
 import com.klzw.service.vehicle.dto.VehicleStatusReportDTO;
 import com.klzw.service.vehicle.entity.Vehicle;
 import com.klzw.service.vehicle.entity.VehicleStatus;
@@ -13,18 +12,13 @@ import com.klzw.service.vehicle.mapper.VehicleMapper;
 import com.klzw.service.vehicle.mapper.VehicleStatusMapper;
 import com.klzw.service.vehicle.service.VehicleStatusService;
 import com.klzw.service.vehicle.service.VehicleStatusPushService;
-
 import com.klzw.service.vehicle.vo.VehicleStatusVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -33,21 +27,15 @@ import java.util.concurrent.TimeUnit;
 public class VehicleStatusServiceImpl extends ServiceImpl<VehicleStatusMapper, VehicleStatus> implements VehicleStatusService {
     
     private final VehicleMapper vehicleMapper;
-    private final VehicleStatusMapper vehicleStatusMapper;
     private final VehicleStatusPushService vehicleStatusPushService;
     private final RedisCacheService redisCacheService;
     private final TripClient tripClient;
     private final com.klzw.service.vehicle.service.VehicleMaintenanceService vehicleMaintenanceService;
 
-    private static final int HEARTBEAT_INTERVAL_SECONDS = 30;
-    private static final int FATIGUE_THRESHOLD_MINUTES = 240;
-    private static final int FATIGUE_REST_MINUTES = 30;
-
     @Override
     public VehicleStatusVO getRealTimeStatus(Long vehicleId) {
         log.info("获取车辆实时状态：vehicleId={}", vehicleId);
         
-        // 1. 检查维修状态
         com.klzw.service.vehicle.entity.VehicleMaintenance latestMaintenance = vehicleMaintenanceService.getNextMaintenance(vehicleId);
         if (latestMaintenance != null && latestMaintenance.getNextMaintenanceDate() != null) {
             java.time.LocalDate today = java.time.LocalDate.now();
@@ -60,42 +48,34 @@ public class VehicleStatusServiceImpl extends ServiceImpl<VehicleStatusMapper, V
             }
         }
         
-        // 2. 从 Redis 查询车辆是否有 tripId（实时状态判断）
         String tripKey = "trip:track:vehicle:" + vehicleId;
         Long currentTripId = redisCacheService.get(tripKey);
         
         if (currentTripId != null) {
-            // 有 tripId = 运行中
             log.info("车辆运行中：vehicleId={}, tripId={}", vehicleId, currentTripId);
             
-            // 从 Redis 获取实时位置信息
             String statusKey = "vehicle:status:" + vehicleId;
             VehicleStatusVO statusVO = redisCacheService.get(statusKey);
             if (statusVO == null) {
                 statusVO = new VehicleStatusVO();
                 statusVO.setVehicleId(vehicleId.toString());
             }
-            statusVO.setStatus(VehicleStatusEnum.RUNNING.getCode()); // 行驶中
+            statusVO.setStatus(VehicleStatusEnum.RUNNING.getCode());
             return statusVO;
         }
         
-        
-        // 3. 无 tripId = 空闲/离线
         log.info("车辆空闲/离线：vehicleId={}", vehicleId);
         VehicleStatusVO statusVO = new VehicleStatusVO();
         statusVO.setVehicleId(vehicleId.toString());
-        statusVO.setStatus(VehicleStatusEnum.IDLE.getCode()); // 空闲
+        statusVO.setStatus(VehicleStatusEnum.IDLE.getCode());
         return statusVO;
     }
 
     @Override
     public VehicleStatus updateStatus(Long vehicleId, VehicleStatus status) {
-        VehicleStatusVO oldStatusVO = getRealTimeStatus(vehicleId);
-        Integer oldStatus = oldStatusVO != null ? oldStatusVO.getStatus() : null;
         Integer newStatus = status.getStatus();
         
-        log.info("车辆状态变更：vehicleId={}, oldStatus={}, newStatus={}, remark={}", 
-            vehicleId, oldStatus, newStatus, status.getRemark());
+        log.info("车辆状态变更：vehicleId={}, newStatus={}", vehicleId, newStatus);
         
         status.setVehicleId(vehicleId);
         save(status);
@@ -138,14 +118,12 @@ public class VehicleStatusServiceImpl extends ServiceImpl<VehicleStatusMapper, V
         vo.setVehicleId(status.getVehicleId().toString());
         vo.setLongitude(status.getLongitude());
         vo.setLatitude(status.getLatitude());
-        vo.setSpeed(status.getSpeed() != null ? status.getSpeed().doubleValue() : null);
-        vo.setDirection(status.getDirection() != null ? status.getDirection().doubleValue() : null);
         vo.setMileage(status.getMileage() != null ? status.getMileage().doubleValue() : null);
         vo.setFuelLevel(status.getFuelLevel());
         vo.setStatus(status.getStatus());
         vo.setCreateTime(status.getCreateTime());
+        vo.setReportTime(status.getReportTime());
         
-        // 设置车辆信息
         Vehicle vehicle = vehicleMapper.selectById(status.getVehicleId());
         if (vehicle != null) {
             vo.setVehicleNo(vehicle.getVehicleNo());
@@ -171,14 +149,12 @@ public class VehicleStatusServiceImpl extends ServiceImpl<VehicleStatusMapper, V
         statusVO.setVehicleId(vehicleId.toString());
         statusVO.setLongitude(reportDTO.getLongitude());
         statusVO.setLatitude(reportDTO.getLatitude());
-        statusVO.setSpeed(reportDTO.getSpeed());
-        statusVO.setDirection(reportDTO.getDirection());
         statusVO.setMileage(reportDTO.getMileage());
         statusVO.setFuelLevel(reportDTO.getFuelLevel());
         statusVO.setReportTime(reportDTO.getReportTime());
         
         if (reportDTO.getSpecialStatus() != null && reportDTO.getSpecialStatus() != VehicleSpecialStatusEnum.NORMAL.getCode()) {
-            statusVO.setStatus(3);
+            statusVO.setStatus(VehicleStatusEnum.FAULT.getCode());
             log.warn("车辆特殊状态：vehicleId={}, status={}", vehicleId, 
                     VehicleSpecialStatusEnum.getByCode(reportDTO.getSpecialStatus()).getDesc());
             
@@ -191,13 +167,7 @@ public class VehicleStatusServiceImpl extends ServiceImpl<VehicleStatusMapper, V
                 }
             }
         } else {
-            statusVO.setStatus(2);
-            
-            if (reportDTO.getSpeed() != null && reportDTO.getSpeed() > 0) {
-                checkFatigueDriving(vehicleId, reportDTO.getTripId());
-            } else {
-                resetFatigueDrivingTime(vehicleId);
-            }
+            statusVO.setStatus(VehicleStatusEnum.RUNNING.getCode());
         }
         
         redisCacheService.set(redisKey, statusVO, 30, TimeUnit.MINUTES);
@@ -208,8 +178,6 @@ public class VehicleStatusServiceImpl extends ServiceImpl<VehicleStatusMapper, V
         vehicleStatus.setTripId(reportDTO.getTripId());
         vehicleStatus.setLongitude(reportDTO.getLongitude());
         vehicleStatus.setLatitude(reportDTO.getLatitude());
-        vehicleStatus.setSpeed(reportDTO.getSpeed());
-        vehicleStatus.setDirection(reportDTO.getDirection());
         vehicleStatus.setMileage(reportDTO.getMileage());
         vehicleStatus.setFuelLevel(reportDTO.getFuelLevel());
         vehicleStatus.setStatus(statusVO.getStatus());
@@ -218,30 +186,6 @@ public class VehicleStatusServiceImpl extends ServiceImpl<VehicleStatusMapper, V
         log.debug("车辆状态已存入数据库：vehicleId={}", vehicleId);
         
         vehicleStatusPushService.pushStatusChange(vehicleId, statusVO);
-    }
-    
-    private void checkFatigueDriving(Long vehicleId, Long tripId) {
-        // 疲劳驾驶检测已迁移到预警服务，此处仅记录驾驶时间
-        String fatigueKey = "vehicle:fatigue:" + vehicleId;
-        Integer currentMinutes = redisCacheService.get(fatigueKey);
-        if (currentMinutes == null) {
-            currentMinutes = 0;
-        }
-        
-        currentMinutes += 1;
-        redisCacheService.set(fatigueKey, currentMinutes, 8, TimeUnit.HOURS);
-        
-        log.debug("驾驶时间累计：vehicleId={}, minutes={}", vehicleId, currentMinutes);
-    }
-    
-    private void resetFatigueDrivingTime(Long vehicleId) {
-        String fatigueKey = "vehicle:fatigue:" + vehicleId;
-        String fatigueRestKey = "vehicle:fatigue:rest:" + vehicleId;
-        
-        redisCacheService.delete(fatigueKey);
-        redisCacheService.delete(fatigueRestKey);
-        
-        log.debug("疲劳驾驶时间重置：vehicleId={}", vehicleId);
     }
     
     @Override

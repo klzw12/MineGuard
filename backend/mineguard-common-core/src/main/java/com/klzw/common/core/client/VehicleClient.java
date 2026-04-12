@@ -32,6 +32,12 @@ public interface VehicleClient {
     @GetExchange("/vehicle/available")
     Result<List<VehicleInfo>> getAvailableVehicles();
 
+    @GetExchange("/vehicle/fault")
+    Result<List<VehicleInfo>> getFaultVehicles();
+
+    @GetExchange("/vehicle/maintenance")
+    Result<List<VehicleInfo>> getMaintenanceVehicles();
+
     @PostExchange("/vehicle/best")
     Result<List<VehicleInfo>> selectBestVehicle(
         @RequestParam(required = false) Long driverId,
@@ -51,4 +57,19 @@ public interface VehicleClient {
         @RequestParam("vehicleId") Long vehicleId,
         @RequestParam("date") String date
     );
+
+    @PostExchange("/vehicle/{id}/status/location")
+    Result<Void> updateStatusWithLocation(@PathVariable("id") Long id, 
+                                               @RequestParam("status") Integer status,
+                                               @RequestParam("latitude") Double latitude,
+                                               @RequestParam("longitude") Double longitude);
+
+    @GetExchange("/vehicle/available/type/{vehicleType}")
+    Result<List<VehicleInfo>> getAvailableVehiclesByType(@PathVariable("vehicleType") Integer vehicleType);
+
+    @GetExchange("/vehicle/repairman")
+    Result<List<VehicleInfo>> getRepairmanVehicles();
+
+    @GetExchange("/vehicle/safety-officer")
+    Result<List<VehicleInfo>> getSafetyOfficerVehicles();
 }

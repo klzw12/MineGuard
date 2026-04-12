@@ -78,13 +78,6 @@
           >
             <text class="subitem-text">车辆列表</text>
           </view>
-          <view 
-            class="sidebar-subitem" 
-            :class="{ active: currentPath === '/pages/admin/driver/index' }"
-            @click="handleNavigate('/pages/admin/driver/index')"
-          >
-            <text class="subitem-text">司机管理</text>
-          </view>
         </view>
       </view>
       
@@ -245,34 +238,11 @@ const userRole = computed(() => userStore.userRole.value || 'user')
 // 定义菜单组与路径的映射
 const groupPathMap: Map<string, string[]> = new Map([
   ['user', ['/pages/admin/user/index', '/pages/admin/role/index', '/pages/admin/role-change/index']],
-  ['vehicle', ['/pages/admin/vehicle/index', '/pages/admin/driver/index']],
+  ['vehicle', ['/pages/admin/vehicle/index']],
   ['dispatch', ['/pages/admin/dispatch/index', '/pages/admin/monitor/index']],
   ['message', ['/pages/admin/message/broadcast', '/pages/admin/message/private']],
   ['report', ['/pages/admin/report/index', '/pages/admin/report/vehicle', '/pages/admin/report/driver']]
 ])
-
-onMounted(() => {
-  // 加载用户信息
-  userStore.loadFromStorage()
-  updateCurrentPath()
-  // 根据当前路径展开对应的菜单组
-  expandCurrentGroup()
-})
-
-onShow(() => {
-  // 重新加载用户信息
-  userStore.loadFromStorage()
-  updateCurrentPath()
-  expandCurrentGroup()
-})
-
-// 监听用户信息变化
-watch(() => userStore.userInfo.value, (newUserInfo) => {
-  console.log('User info changed:', newUserInfo)
-  userStore.loadFromStorage()
-  updateCurrentPath()
-  expandCurrentGroup()
-}, { deep: true })
 
 const updateCurrentPath = () => {
   const pages = getCurrentPages()
@@ -282,7 +252,6 @@ const updateCurrentPath = () => {
 }
 
 const expandCurrentGroup = () => {
-  // 根据当前路径自动展开对应的菜单组
   groupPathMap.forEach((paths, group) => {
     if (paths.includes(currentPath.value)) {
       if (!expandedGroups.value.includes(group)) {
@@ -291,6 +260,25 @@ const expandCurrentGroup = () => {
     }
   })
 }
+
+onMounted(() => {
+  userStore.loadFromStorage()
+  updateCurrentPath()
+  expandCurrentGroup()
+})
+
+onShow(() => {
+  userStore.loadFromStorage()
+  updateCurrentPath()
+  expandCurrentGroup()
+})
+
+watch(() => userStore.userInfo.value, (newUserInfo) => {
+  console.log('User info changed:', newUserInfo)
+  userStore.loadFromStorage()
+  updateCurrentPath()
+  expandCurrentGroup()
+}, { deep: true })
 
 const isGroupActive = (group: string): boolean => {
   const paths = groupPathMap.get(group)

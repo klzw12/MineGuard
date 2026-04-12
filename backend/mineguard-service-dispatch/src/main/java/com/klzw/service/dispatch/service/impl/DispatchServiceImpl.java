@@ -81,7 +81,7 @@ public class DispatchServiceImpl implements DispatchService {
             }
         }
         
-        task.setExecutorId(bestDriver.getId());
+        task.setExecutorId(bestDriver.getUserId());
         task.setVehicleId(bestVehicleId);
         task.setStatus(2);
         task.setActualStartTime(LocalDateTime.now());
@@ -373,7 +373,7 @@ public class DispatchServiceImpl implements DispatchService {
             try {
                 DriverInfo newDriver = selectBestDriverByPriority(task, driverId);
                 if (newDriver != null) {
-                    task.setExecutorId(newDriver.getId());
+                    task.setExecutorId(newDriver.getUserId());
                     task.setUpdateTime(LocalDateTime.now());
                     transportTaskMapper.updateById(task);
                     log.info("任务重新分配司机：任务 ID={}, 新司机 ID={}, 新用户 ID={}", task.getId(), newDriver.getId(), newDriver.getUserId());
@@ -510,7 +510,7 @@ public class DispatchServiceImpl implements DispatchService {
                 
                 DriverInfo newDriver = selectBestDriverByPriority(task, driverId);
                 if (newDriver != null) {
-                    task.setExecutorId(newDriver.getId());
+                    task.setExecutorId(newDriver.getUserId());
                     
                     Long newVehicleId = selectVehicleByDriverCommonVehicles(newDriver.getId(), task);
                     if (newVehicleId == null) {
@@ -989,17 +989,35 @@ public class DispatchServiceImpl implements DispatchService {
     public boolean cancelDispatchTask(Long taskId) {
         log.info("取消调度任务：ID={}", taskId);
         
-        TransportTask task = transportTaskMapper.selectById(taskId);
-        if (task == null) {
-            log.error("调度任务不存在：ID={}", taskId);
-            return false;
+        TransportTask transportTask = transportTaskMapper.selectById(taskId);
+        if (transportTask != null) {
+            transportTask.setStatus(4);
+            transportTask.setUpdateTime(LocalDateTime.now());
+            transportTaskMapper.updateById(transportTask);
+            log.info("运输任务已取消：ID={}", taskId);
+            return true;
         }
         
-        task.setStatus(4);
-        task.setUpdateTime(LocalDateTime.now());
-        transportTaskMapper.updateById(task);
+        MaintenanceTask maintenanceTask = maintenanceTaskMapper.selectById(taskId);
+        if (maintenanceTask != null) {
+            maintenanceTask.setStatus(4);
+            maintenanceTask.setUpdateTime(LocalDateTime.now());
+            maintenanceTaskMapper.updateById(maintenanceTask);
+            log.info("维修任务已取消：ID={}", taskId);
+            return true;
+        }
         
-        return true;
+        InspectionTask inspectionTask = inspectionTaskMapper.selectById(taskId);
+        if (inspectionTask != null) {
+            inspectionTask.setStatus(4);
+            inspectionTask.setUpdateTime(LocalDateTime.now());
+            inspectionTaskMapper.updateById(inspectionTask);
+            log.info("巡检任务已取消：ID={}", taskId);
+            return true;
+        }
+        
+        log.error("调度任务不存在：ID={}", taskId);
+        return false;
     }
 
     @Override
@@ -1116,9 +1134,7 @@ public class DispatchServiceImpl implements DispatchService {
         vo.setTaskSequence(task.getTaskSequence());
         vo.setVehicleId(task.getVehicleId());
         vo.setExecutorId(task.getExecutorId());
-        vo.setDriverId(task.getExecutorId());
         vo.setExecutorName(getExecutorName(task.getExecutorId()));
-        vo.setDriverName(getExecutorName(task.getExecutorId()));
         vo.setTripId(task.getTripId());
         vo.setStartLocation(task.getStartLocation());
         vo.setStartLongitude(task.getStartLongitude());
@@ -1279,59 +1295,162 @@ public class DispatchServiceImpl implements DispatchService {
         log.info("重新调度已取消的任务：任务ID={}", taskId);
         
         try {
-            // 查找已取消的运输任务
-            TransportTask task = transportTaskMapper.selectById(taskId);
-            if (task == null) {
-                log.error("任务不存在：ID={}", taskId);
-                throw new DispatchException(DispatchResultCode.TASK_NOT_FOUND);
+            TransportTask transportTask = transportTaskMapper.selectById(taskId);
+            if (transportTask != null) {
+                return rescheduleTransportTask(transportTask);
             }
             
-            if (task.getStatus() != 4) {
-                log.error("任务状态不是已取消，无法重新调度：任务ID={}, 状态={}", taskId, task.getStatus());
-                throw new DispatchException(DispatchResultCode.TASK_STATUS_ERROR, "任务状态不是已取消，无法重新调度");
+            MaintenanceTask maintenanceTask = maintenanceTaskMapper.selectById(taskId);
+            if (maintenanceTask != null) {
+                return rescheduleMaintenanceTask(maintenanceTask);
             }
             
-            // 重置任务状态和分配信息
-            task.setStatus(0);
-            task.setExecutorId(null);
-            task.setVehicleId(null);
-            task.setAcceptTime(null);
-            task.setActualStartTime(null);
-            task.setActualEndTime(null);
-            task.setUpdateTime(LocalDateTime.now());
-            
-            // 重新分配司机
-            DriverInfo newDriver = selectBestDriverByPriority(task, null);
-            if (newDriver == null) {
-                log.error("无可用司机：任务 ID={}", taskId);
-                throw new DispatchException(DispatchResultCode.NO_AVAILABLE_DRIVER, "暂无可用司机，请稍后重试");
-            }
-            task.setExecutorId(newDriver.getId());
-            
-            // 重新分配车辆
-            Long newVehicleId = selectVehicleByDriverCommonVehicles(newDriver.getId(), task);
-            if (newVehicleId == null) {
-                newVehicleId = selectBestVehicle(task, newDriver.getId());
-            }
-            if (newVehicleId != null) {
-                task.setVehicleId(newVehicleId);
+            InspectionTask inspectionTask = inspectionTaskMapper.selectById(taskId);
+            if (inspectionTask != null) {
+                return rescheduleInspectionTask(inspectionTask);
             }
             
-            // 更新任务
-            transportTaskMapper.updateById(task);
-            log.info("任务重新调度完成：任务ID={}, 新司机ID={}, 新用户ID={}, 新车辆ID={}", 
-                taskId, newDriver.getId(), newDriver.getUserId(), newVehicleId);
-            
-            // 发送通知给新司机（使用用户ID）
-            sendTaskNotification(newDriver.getUserId(), taskId, task.getTaskNo(), "任务重新调度");
-            
-            return true;
+            log.error("任务不存在：ID={}", taskId);
+            throw new DispatchException(DispatchResultCode.TASK_NOT_FOUND);
         } catch (DispatchException e) {
             throw e;
         } catch (Exception e) {
             log.error("重新调度任务失败：任务ID={}, 错误={}", taskId, e.getMessage());
             throw new DispatchException(DispatchResultCode.TASK_OPERATION_FAILED, "重新调度任务失败", e);
         }
+    }
+    
+    private boolean rescheduleTransportTask(TransportTask task) {
+        log.info("重新调度运输任务：任务ID={}", task.getId());
+        
+        if (task.getStatus() != 4) {
+            log.error("任务状态不是已取消，无法重新调度：任务ID={}, 状态={}", task.getId(), task.getStatus());
+            throw new DispatchException(DispatchResultCode.TASK_STATUS_ERROR, "任务状态不是已取消，无法重新调度");
+        }
+        
+        task.setStatus(0);
+        task.setExecutorId(null);
+        task.setVehicleId(null);
+        task.setAcceptTime(null);
+        task.setActualStartTime(null);
+        task.setActualEndTime(null);
+        task.setUpdateTime(LocalDateTime.now());
+        
+        DriverInfo newDriver = selectBestDriverByPriority(task, null);
+        if (newDriver == null) {
+            log.error("无可用司机：任务 ID={}", task.getId());
+            throw new DispatchException(DispatchResultCode.NO_AVAILABLE_DRIVER, "暂无可用司机，请稍后重试");
+        }
+        task.setExecutorId(newDriver.getId());
+        
+        Long newVehicleId = selectVehicleByDriverCommonVehicles(newDriver.getId(), task);
+        if (newVehicleId == null) {
+            newVehicleId = selectBestVehicle(task, newDriver.getId());
+        }
+        if (newVehicleId != null) {
+            task.setVehicleId(newVehicleId);
+        }
+        
+        transportTaskMapper.updateById(task);
+        log.info("运输任务重新调度完成：任务ID={}, 新司机ID={}, 新用户ID={}, 新车辆ID={}", 
+            task.getId(), newDriver.getId(), newDriver.getUserId(), newVehicleId);
+        
+        sendTaskNotification(newDriver.getUserId(), task.getId(), task.getTaskNo(), "任务重新调度");
+        
+        return true;
+    }
+    
+    private boolean rescheduleMaintenanceTask(MaintenanceTask task) {
+        log.info("重新调度维修任务：任务ID={}", task.getId());
+        
+        if (task.getStatus() != 4) {
+            log.error("任务状态不是已取消，无法重新调度：任务ID={}, 状态={}", task.getId(), task.getStatus());
+            throw new DispatchException(DispatchResultCode.TASK_STATUS_ERROR, "任务状态不是已取消，无法重新调度");
+        }
+        
+        task.setStatus(0);
+        task.setExecutorId(null);
+        task.setUpdateTime(LocalDateTime.now());
+        
+        Long newRepairmanId = selectAvailableRepairman(task);
+        if (newRepairmanId == null) {
+            log.error("无可用维修员：任务 ID={}", task.getId());
+            throw new DispatchException(DispatchResultCode.NO_AVAILABLE_REPAIRMAN, "暂无可用维修员，请稍后重试");
+        }
+        task.setExecutorId(newRepairmanId);
+        
+        if (task.getVehicleId() == null) {
+            Long faultVehicleId = selectFaultVehicle();
+            if (faultVehicleId != null) {
+                task.setVehicleId(faultVehicleId);
+            }
+        }
+        
+        maintenanceTaskMapper.updateById(task);
+        log.info("维修任务重新调度完成：任务ID={}, 新维修员ID={}", task.getId(), newRepairmanId);
+        
+        sendMaintenanceTaskNotification(newRepairmanId, task.getId(), task.getTaskNo(), "任务重新调度");
+        
+        return true;
+    }
+    
+    private boolean rescheduleInspectionTask(InspectionTask task) {
+        log.info("重新调度巡检任务：任务ID={}", task.getId());
+        
+        if (task.getStatus() != 4) {
+            log.error("任务状态不是已取消，无法重新调度：任务ID={}, 状态={}", task.getId(), task.getStatus());
+            throw new DispatchException(DispatchResultCode.TASK_STATUS_ERROR, "任务状态不是已取消，无法重新调度");
+        }
+        
+        task.setStatus(0);
+        task.setExecutorId(null);
+        task.setVehicleId(null);
+        task.setUpdateTime(LocalDateTime.now());
+        
+        Long newSafetyOfficerId = selectAvailableSafetyOfficer(task);
+        if (newSafetyOfficerId == null) {
+            log.error("无可用安全员：任务 ID={}", task.getId());
+            throw new DispatchException(DispatchResultCode.NO_AVAILABLE_SAFETY_OFFICER, "暂无可用安全员，请稍后重试");
+        }
+        task.setExecutorId(newSafetyOfficerId);
+        
+        Long newVehicleId = selectAvailableVehicle();
+        if (newVehicleId != null) {
+            task.setVehicleId(newVehicleId);
+        }
+        
+        inspectionTaskMapper.updateById(task);
+        log.info("巡检任务重新调度完成：任务ID={}, 新安全员ID={}, 新车辆ID={}", task.getId(), newSafetyOfficerId, newVehicleId);
+        
+        sendInspectionTaskNotification(newSafetyOfficerId, task.getId(), task.getTaskNo(), "任务重新调度");
+        
+        return true;
+    }
+    
+    private Long selectFaultVehicle() {
+        try {
+            var result = vehicleClient.getFaultVehicles();
+            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            if (vehicles != null && !vehicles.isEmpty()) {
+                return vehicles.get(0).getId();
+            }
+        } catch (Exception e) {
+            log.error("获取故障车辆失败", e);
+        }
+        return null;
+    }
+    
+    private Long selectAvailableVehicle() {
+        try {
+            var result = vehicleClient.getAvailableVehicles();
+            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            if (vehicles != null && !vehicles.isEmpty()) {
+                return vehicles.get(0).getId();
+            }
+        } catch (Exception e) {
+            log.error("获取可用车辆失败", e);
+        }
+        return null;
     }
 
     @Override

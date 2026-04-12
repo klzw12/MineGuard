@@ -6,8 +6,9 @@ export type DispatchTaskVO = {
   taskSequence: number | null
   vehicleId: string | null
   vehicleNo: string | null
-  driverId: string | null
-  driverName: string | null
+  executorName: string | null
+  repairmanVehicleId: string | null
+  repairmanVehicleNo: string | null
   tripId: string | null
   startLocation: string
   startLongitude: number | null
@@ -84,10 +85,6 @@ export type DispatchPlanVO = {
   planName: string | null
   planDate: string
   planType: number
-  vehicleId: string | null
-  vehicleNo: string | null
-  driverId: string | null
-  driverName: string | null
   routeId: string | null
   routeName: string | null
   startLocation: string | null

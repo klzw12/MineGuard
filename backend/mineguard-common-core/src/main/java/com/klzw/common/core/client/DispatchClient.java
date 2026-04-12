@@ -24,7 +24,7 @@ public interface DispatchClient {
         @RequestParam("userId") Long userId,
         @RequestParam("roleCode") String roleCode);
 
-    @PostExchange("/dispatch/maintenance-task/from-fault")
+    @PostExchange("/dispatch/main/maintenance-task/from-fault")
     Long createMaintenanceTaskFromFault(@RequestBody Map<String, Object> faultInfo);
 
     @PutExchange("/dispatch/main/task/{taskId}/start")

@@ -1,5 +1,6 @@
 import { http } from '@/utils/request.uts'
-import type { AttendanceVO, AttendanceStatisticsVO, LeaveApplyDTO } from '@/types/user'
+import type { AttendanceVO, LeaveApplyDTO } from '@/types/user'
+export type { AttendanceStatisticsVO } from '@/types/user'
 
 export type CheckInDTO = {
   latitude: number
@@ -33,6 +34,10 @@ export function getAttendanceListByMonth(yearMonth: string): Promise<AttendanceV
 
 export function getAttendanceStatistics(yearMonth: string): Promise<AttendanceStatisticsVO | null> {
   return http.get<AttendanceStatisticsVO>('/attendance/statistics', { yearMonth })
+}
+
+export function getAttendanceStatisticsByRange(startDate: string, endDate: string): Promise<AttendanceStatisticsVO | null> {
+  return http.get<AttendanceStatisticsVO>('/attendance/statistics/range', { startDate, endDate })
 }
 
 export function supplementAttendance(attendanceId: string, data: {

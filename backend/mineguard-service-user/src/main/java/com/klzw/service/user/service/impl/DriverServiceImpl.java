@@ -13,6 +13,8 @@ import com.klzw.service.user.mapper.DriverVehicleMapper;
 import com.klzw.service.user.mapper.RepairmanMapper;
 import com.klzw.service.user.mapper.SafetyOfficerMapper;
 import com.klzw.service.user.mapper.UserAttendanceMapper;
+import com.klzw.service.user.mapper.UserMapper;
+import com.klzw.service.user.entity.User;
 import com.klzw.service.user.service.DriverService;
 import com.klzw.service.user.vo.DriverVehicleVO;
 import com.klzw.service.user.vo.DriverVO;
@@ -38,6 +40,7 @@ public class DriverServiceImpl implements DriverService {
     private final RepairmanMapper repairmanMapper;
     private final SafetyOfficerMapper safetyOfficerMapper;
     private final UserAttendanceMapper userAttendanceMapper;
+    private final UserMapper userMapper;
 
     @Override
     public DriverVO getById(Long id) {
@@ -52,12 +55,33 @@ public class DriverServiceImpl implements DriverService {
 
     @Override
     public DriverVO getByUserId(Long userId) {
-        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
-        if (driver == null) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
             return null;
         }
-        DriverVO vo = convertToVO(driver);
-        vo.setCommonVehicles(getCommonVehicles(driver.getId()));
+        
+        DriverVO vo = new DriverVO();
+        vo.setUserId(userId);
+        vo.setDriverName(user.getRealName());
+        vo.setGender(user.getGender());
+        vo.setGenderName(getGenderName(user.getGender()));
+        vo.setStatus(1);
+        vo.setStatusName("在职");
+        vo.setIdCardFrontUrl(user.getIdCardFrontUrl());
+        vo.setIdCardBackUrl(user.getIdCardBackUrl());
+        
+        if (user.getIdCard() != null && user.getIdCard().length() >= 15) {
+            String masked = user.getIdCard().substring(0, 6) + "****" + 
+                           user.getIdCard().substring(user.getIdCard().length() - 4);
+            vo.setIdCardMasked(masked);
+        }
+        
+        Driver driver = driverMapper.selectByUserId(String.valueOf(userId));
+        if (driver != null) {
+            vo.setId(driver.getId());
+            vo.setCommonVehicles(getCommonVehicles(driver.getId()));
+        }
+        
         return vo;
     }
 
@@ -208,6 +232,18 @@ public class DriverServiceImpl implements DriverService {
         Driver driver = driverMapper.selectById(driverId);
         if (driver == null) {
             throw new RuntimeException("司机信息不存在");
+        }
+        
+        var vehicleResult = vehicleClient.getById(vehicleId);
+        if (vehicleResult == null || vehicleResult.getData() == null) {
+            throw new RuntimeException("车辆不存在");
+        }
+        
+        var vehicleInfo = vehicleResult.getData();
+        Integer vehicleType = vehicleInfo.getVehicleType();
+        if (vehicleType != null && (vehicleType == 7 || vehicleType == 9)) {
+            String typeName = vehicleType == 7 ? "救援专用车" : "维修专用车";
+            throw new RuntimeException(typeName + "不能添加为司机常用车辆");
         }
         
         DriverVehicle existing = driverVehicleMapper.selectByDriverAndVehicle(driverId, vehicleId);

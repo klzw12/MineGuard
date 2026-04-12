@@ -50,6 +50,7 @@ function setUserInfo(user: UserVO | null) {
     uni.removeStorageSync('userRole')
     uni.removeStorageSync('isDispatcher')
     uni.removeStorageSync('isRepairman')
+    uni.removeStorageSync('avatarCache')
   }
 }
 

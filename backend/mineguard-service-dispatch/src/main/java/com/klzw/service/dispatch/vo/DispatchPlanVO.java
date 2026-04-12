@@ -26,18 +26,6 @@ public class DispatchPlanVO {
     @Schema(description = "计划类型：0-日常调度，1-临时调度，2-紧急调度")
     private Integer planType;
 
-    @Schema(description = "车辆ID")
-    private String vehicleId;
-
-    @Schema(description = "车辆编号")
-    private String vehicleNo;
-
-    @Schema(description = "司机ID")
-    private String driverId;
-
-    @Schema(description = "司机姓名")
-    private String driverName;
-
     @Schema(description = "路线ID")
     private String routeId;
 

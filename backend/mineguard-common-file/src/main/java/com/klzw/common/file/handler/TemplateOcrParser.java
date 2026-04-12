@@ -72,8 +72,32 @@ public class TemplateOcrParser implements OcrParser {
         Map<String, String> result = new HashMap<>();
         List<Map<String, Object>> wordsResult = safeParseJson(ocrResult);
         
-        for (Map<String, Object> wordItem : wordsResult) {
-            safeProcessWordItem(wordItem, keywordMap, result);
+        for (int i = 0; i < wordsResult.size(); i++) {
+            Map<String, Object> wordItem = wordsResult.get(i);
+            String words = (String) wordItem.get("words");
+            if (words == null) {
+                continue;
+            }
+            
+            for (Map.Entry<String, String> entry : keywordMap.entrySet()) {
+                String keyword = entry.getKey();
+                String key = entry.getValue();
+                
+                String value = extractValue(words, keyword);
+                if (value != null) {
+                    if (value.isEmpty() && i + 1 < wordsResult.size()) {
+                        Map<String, Object> nextItem = wordsResult.get(i + 1);
+                        String nextWords = (String) nextItem.get("words");
+                        if (nextWords != null && !isKeywordLine(nextWords, keywordMap)) {
+                            value = nextWords.trim();
+                        }
+                    }
+                    if (!value.isEmpty()) {
+                        result.put(key, value);
+                    }
+                    break;
+                }
+            }
         }
         
         for (Map.Entry<String, String> entry : result.entrySet()) {
@@ -84,6 +108,15 @@ public class TemplateOcrParser implements OcrParser {
             }
         }
         return result;
+    }
+    
+    private boolean isKeywordLine(String words, Map<String, String> keywordMap) {
+        for (String keyword : keywordMap.keySet()) {
+            if (words.contains(keyword)) {
+                return true;
+            }
+        }
+        return false;
     }
     
     private boolean isDateField(String key) {
@@ -295,6 +328,7 @@ public class TemplateOcrParser implements OcrParser {
     public Map<String, String> parseVehicleLicenseBack(String ocrResult) {
         Map<String, String> keywordMap = new HashMap<>();
         keywordMap.put("核定载人数：", "seatingCapacity");
+        keywordMap.put("核定载客：", "seatingCapacity");
         keywordMap.put("总质量：", "totalMass");
         keywordMap.put("整备质量：", "curbWeight");
         keywordMap.put("核定载质量：", "ratedLoad");

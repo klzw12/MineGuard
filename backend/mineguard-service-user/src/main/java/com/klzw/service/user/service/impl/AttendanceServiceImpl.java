@@ -231,6 +231,11 @@ public class AttendanceServiceImpl implements AttendanceService {
                 ? (double) actualAttendanceDays / shouldAttendanceDays * 100 
                 : 0;
 
+        Double attendanceHours = attendanceMapper.sumAttendanceHours(userId, startDate, endDate);
+        if (attendanceHours == null) {
+            attendanceHours = 0.0;
+        }
+
         User user = userMapper.selectById(userId);
 
         AttendanceStatisticsVO statistics = new AttendanceStatisticsVO();
@@ -245,6 +250,70 @@ public class AttendanceServiceImpl implements AttendanceService {
         statistics.setAbsentDays(absentDays);
         statistics.setLeaveDays(leaveDays);
         statistics.setAttendanceRate(Math.round(attendanceRate * 100.0) / 100.0);
+        statistics.setAttendanceHours(Math.round(attendanceHours * 100.0) / 100.0);
+
+        return statistics;
+    }
+
+    @Override
+    public AttendanceStatisticsVO getAttendanceStatisticsByDateRange(Long userId, LocalDate startDate, LocalDate endDate) {
+        int shouldAttendanceDays = calculateWorkDays(startDate, endDate);
+
+        Integer normalDays = attendanceMapper.countNormalDays(userId, startDate, endDate);
+        if (normalDays == null) {
+            normalDays = 0;
+        }
+
+        Integer lateTimes = attendanceMapper.countLateTimes(userId, startDate, endDate);
+        if (lateTimes == null) {
+            lateTimes = 0;
+        }
+
+        Integer earlyLeaveTimes = attendanceMapper.countEarlyLeaveTimes(userId, startDate, endDate);
+        if (earlyLeaveTimes == null) {
+            earlyLeaveTimes = 0;
+        }
+
+        Integer lateAndEarlyLeaveTimes = attendanceMapper.countLateAndEarlyLeaveDays(userId, startDate, endDate);
+        if (lateAndEarlyLeaveTimes == null) {
+            lateAndEarlyLeaveTimes = 0;
+        }
+
+        Integer leaveDays = attendanceMapper.countLeaveDays(userId, startDate, endDate);
+        if (leaveDays == null) {
+            leaveDays = 0;
+        }
+
+        int actualAttendanceDays = normalDays + lateTimes + earlyLeaveTimes + lateAndEarlyLeaveTimes;
+        int absentDays = shouldAttendanceDays - actualAttendanceDays - leaveDays;
+        if (absentDays < 0) {
+            absentDays = 0;
+        }
+
+        double attendanceRate = shouldAttendanceDays > 0 
+                ? (double) actualAttendanceDays / shouldAttendanceDays * 100 
+                : 0;
+
+        Double attendanceHours = attendanceMapper.sumAttendanceHours(userId, startDate, endDate);
+        if (attendanceHours == null) {
+            attendanceHours = 0.0;
+        }
+
+        User user = userMapper.selectById(userId);
+
+        AttendanceStatisticsVO statistics = new AttendanceStatisticsVO();
+        statistics.setUserId(userId != null ? userId.toString() : null);
+        statistics.setUserName(user != null ? user.getRealName() : null);
+        statistics.setMonth(startDate.format(DateTimeFormatter.ofPattern("yyyy-MM")));
+        statistics.setShouldAttendanceDays(shouldAttendanceDays);
+        statistics.setActualAttendanceDays(actualAttendanceDays);
+        statistics.setNormalDays(normalDays);
+        statistics.setLateTimes(lateTimes + lateAndEarlyLeaveTimes);
+        statistics.setEarlyLeaveTimes(earlyLeaveTimes + lateAndEarlyLeaveTimes);
+        statistics.setAbsentDays(absentDays);
+        statistics.setLeaveDays(leaveDays);
+        statistics.setAttendanceRate(Math.round(attendanceRate * 100.0) / 100.0);
+        statistics.setAttendanceHours(Math.round(attendanceHours * 100.0) / 100.0);
 
         return statistics;
     }

@@ -166,6 +166,7 @@ CREATE TABLE IF NOT EXISTS `driver_vehicle` (
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `create_by` BIGINT COMMENT '创建人ID',
+    `update_by` BIGINT COMMENT '更新人ID',
     `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
     `remark` VARCHAR(500) COMMENT '备注',
     UNIQUE KEY `uk_driver_vehicle` (`driver_id`, `vehicle_id`),
@@ -323,35 +324,7 @@ CREATE TABLE IF NOT EXISTS `user_appeal` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户申诉表';
 
 -- =====================================================
--- 11. 用户通知表
--- 说明：存储用户的系统通知消息
--- =====================================================
-CREATE TABLE IF NOT EXISTS `user_notification` (
-    `id` BIGINT PRIMARY KEY COMMENT '主键ID',
-    `user_id` BIGINT NOT NULL COMMENT '用户ID',
-    `title` VARCHAR(100) NOT NULL COMMENT '通知标题',
-    `content` TEXT COMMENT '通知内容',
-    `type` INT COMMENT '通知类型：1-系统通知，2-预警通知，3-调度通知，4-审批通知',
-    `business_id` BIGINT COMMENT '业务ID（如行程ID、车辆ID等）',
-    `business_type` VARCHAR(50) COMMENT '业务类型：TRIP-行程，VEHICLE-车辆，DRIVER-司机，DISPATCH-调度',
-    `is_read` TINYINT DEFAULT 0 COMMENT '是否已读：0-未读，1-已读',
-    `read_time` DATETIME COMMENT '阅读时间',
-    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `create_by` BIGINT COMMENT '创建人ID',
-    `update_by` BIGINT COMMENT '更新人ID',
-    `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
-    `remark` VARCHAR(500) COMMENT '备注',
-    INDEX `idx_user_id` (`user_id`),
-    INDEX `idx_type` (`type`),
-    INDEX `idx_business` (`business_id`, `business_type`),
-    INDEX `idx_is_read` (`is_read`),
-    INDEX `idx_create_time` (`create_time`),
-    INDEX `idx_deleted` (`deleted`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户通知表';
-
--- =====================================================
--- 12. 站内消息表（MongoDB）
+-- 11. 站内消息表（MongoDB）
 -- =====================================================
 -- 消息存储在MongoDB中，集合名称：messages
 -- 字段说明：
@@ -441,6 +414,10 @@ CREATE TABLE IF NOT EXISTS `vehicle_fault` (
     `repair_date` DATETIME COMMENT '维修日期',
     `repair_cost` DECIMAL(10,2) COMMENT '维修费用',
     `repair_content` VARCHAR(500) COMMENT '维修内容',
+    `latitude` DECIMAL(10,6) COMMENT '故障发生纬度',
+    `longitude` DECIMAL(10,6) COMMENT '故障发生经度',
+    `location_address` VARCHAR(255) COMMENT '故障发生地址',
+    `reporter_id` BIGINT COMMENT '报告人ID',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `create_by` BIGINT COMMENT '创建人ID',
@@ -451,6 +428,7 @@ CREATE TABLE IF NOT EXISTS `vehicle_fault` (
     INDEX `idx_status` (`status`),
     INDEX `idx_severity` (`severity`),
     INDEX `idx_repairman_id` (`repairman_id`),
+    INDEX `idx_reporter_id` (`reporter_id`),
     INDEX `idx_deleted` (`deleted`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='车辆故障表';
 
@@ -544,9 +522,6 @@ CREATE TABLE IF NOT EXISTS `vehicle_status` (
     `status_time` DATETIME COMMENT '状态时间',
     `longitude` DOUBLE COMMENT '经度',
     `latitude` DOUBLE COMMENT '纬度',
-    `speed` DOUBLE COMMENT '速度(km/h)',
-    `direction` DOUBLE COMMENT '方向(度)',
-    `altitude` DOUBLE COMMENT '海拔',
     `mileage` DOUBLE COMMENT '里程(km)',
     `fuel_level` INTEGER COMMENT '油量百分比(0-100)',
     `report_time` DATETIME COMMENT '上报时间',
@@ -605,8 +580,6 @@ CREATE TABLE IF NOT EXISTS `dispatch_plan` (
     `plan_name` VARCHAR(100) COMMENT '计划名称',
     `plan_date` DATE NOT NULL COMMENT '计划日期',
     `plan_type` INT DEFAULT 1 COMMENT '计划类型：1-运输计划，2-维修计划，3-巡检计划',
-    `vehicle_id` BIGINT COMMENT '分配车辆ID',
-    `driver_id` BIGINT COMMENT '分配司机ID',
     `route_id` BIGINT COMMENT '路线模板ID',
     `start_location` VARCHAR(255) COMMENT '起始位置名称',
     `start_longitude` DOUBLE COMMENT '起始经度',
@@ -629,8 +602,6 @@ CREATE TABLE IF NOT EXISTS `dispatch_plan` (
     UNIQUE KEY `uk_plan_no` (`plan_no`),
     INDEX `idx_plan_date` (`plan_date`),
     INDEX `idx_plan_type` (`plan_type`),
-    INDEX `idx_vehicle_id` (`vehicle_id`),
-    INDEX `idx_driver_id` (`driver_id`),
     INDEX `idx_route_id` (`route_id`),
     INDEX `idx_status` (`status`),
     INDEX `idx_deleted` (`deleted`)
@@ -693,6 +664,7 @@ CREATE TABLE IF NOT EXISTS `dispatch_task_maintenance` (
     `task_no` VARCHAR(50) NOT NULL COMMENT '任务编号',
     `plan_id` BIGINT COMMENT '调度计划ID',
     `vehicle_id` BIGINT NOT NULL COMMENT '待维修车辆ID',
+    `repairman_vehicle_id` BIGINT COMMENT '维修员专用车辆ID',
     `executor_id` BIGINT NOT NULL COMMENT '执行维修员ID',
     `fault_type` INT COMMENT '故障类型：1-发动机故障，2-制动系统，3-轮胎问题，4-电气系统，5-液压系统，6-其他',
     `fault_level` INT DEFAULT 1 COMMENT '故障级别：1-轻微，2-一般，3-严重，4-紧急',
@@ -723,6 +695,7 @@ CREATE TABLE IF NOT EXISTS `dispatch_task_maintenance` (
     UNIQUE KEY `uk_task_no` (`task_no`),
     INDEX `idx_plan_id` (`plan_id`),
     INDEX `idx_vehicle_id` (`vehicle_id`),
+    INDEX `idx_repairman_vehicle_id` (`repairman_vehicle_id`),
     INDEX `idx_executor_id` (`executor_id`),
     INDEX `idx_fault_type` (`fault_type`),
     INDEX `idx_fault_level` (`fault_level`),

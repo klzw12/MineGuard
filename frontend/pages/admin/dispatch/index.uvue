@@ -66,14 +66,6 @@
 						</view>
 						<view class="plan-body">
 							<view class="plan-row">
-								<text class="plan-label">车辆：</text>
-								<text class="plan-value">{{ plan.vehicleNo || '-' }}</text>
-							</view>
-							<view class="plan-row">
-								<text class="plan-label">司机：</text>
-								<text class="plan-value">{{ plan.driverName || '-' }}</text>
-							</view>
-							<view class="plan-row">
 								<text class="plan-label">路线：</text>
 								<text class="plan-value">{{ plan.routeName || '-' }}</text>
 							</view>
@@ -143,7 +135,7 @@
 					<view class="table-row" v-for="(task, index) in filteredTasks" :key="index">
 						<text class="table-cell col-taskNo">{{ task.taskNo }}</text>
 						<text class="table-cell col-route">{{ task.startLocation }} → {{ task.endLocation }}</text>
-						<text class="table-cell col-driver">{{ task.driverName || '-' }}</text>
+						<text class="table-cell col-driver">{{ task.executorName || '-' }}</text>
 						<text class="table-cell col-vehicle">{{ task.vehicleNo || '-' }}</text>
 						<text class="table-cell col-time">{{ formatDateTime(task.scheduledStartTime) }}</text>
 						<view class="table-cell col-status">
@@ -782,7 +774,7 @@
 	function viewTask(task: DispatchTaskVO) {
 		uni.showModal({
 			title: `任务详情 - ${task.taskNo}`,
-			content: `路线：${task.startLocation} → ${task.endLocation}\n司机：${task.driverName || '未分配'}\n车辆：${task.vehicleNo || '未分配'}\n状态：${getStatusText(task.status)}`,
+			content: `路线：${task.startLocation} → ${task.endLocation}\n司机：${task.executorName || '未分配'}\n车辆：${task.vehicleNo || '未分配'}\n状态：${getStatusText(task.status)}`,
 			showCancel: false
 		})
 	}

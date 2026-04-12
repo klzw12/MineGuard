@@ -71,6 +71,16 @@ public class AttendanceController {
         return Result.success(statistics);
     }
 
+    @Operation(summary = "获取日期范围考勤统计")
+    @GetMapping("/statistics/range")
+    public Result<AttendanceStatisticsVO> getAttendanceStatisticsByRange(
+            @Parameter(description = "开始日期") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @Parameter(description = "结束日期") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        Long userId = UserContext.getUserId();
+        AttendanceStatisticsVO statistics = attendanceService.getAttendanceStatisticsByDateRange(userId, startDate, endDate);
+        return Result.success(statistics);
+    }
+
     @Operation(summary = "补卡（管理员功能）")
     @PutMapping("/{attendanceId}/supplement")
     public Result<AttendanceVO> supplementAttendance(
@@ -110,5 +120,15 @@ public class AttendanceController {
     @GetMapping("/available-drivers")
     public Result<List<Long>> getAvailableDriverIds() {
         return Result.success(attendanceService.getAvailableDriverIds());
+    }
+
+    @Operation(summary = "内部接口：获取用户出勤统计")
+    @GetMapping("/statistics/internal")
+    public Result<AttendanceStatisticsVO> getAttendanceStatisticsInternal(
+            @Parameter(description = "用户ID") @RequestParam Long userId,
+            @Parameter(description = "开始日期") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @Parameter(description = "结束日期") @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        AttendanceStatisticsVO statistics = attendanceService.getAttendanceStatisticsByDateRange(userId, startDate, endDate);
+        return Result.success(statistics);
     }
 }

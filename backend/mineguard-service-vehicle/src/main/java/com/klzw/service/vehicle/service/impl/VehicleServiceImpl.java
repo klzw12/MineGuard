@@ -3,6 +3,7 @@ package com.klzw.service.vehicle.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.klzw.common.core.client.DriverClient;
 import com.klzw.common.core.domain.dto.DriverVehicleInfo;
+import com.klzw.common.database.annotation.DataSource;
 import com.klzw.common.file.service.OcrService;
 import com.klzw.common.file.service.StorageService;
 import com.klzw.service.vehicle.dto.BestVehicleQueryDTO;
@@ -28,7 +29,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -116,8 +116,10 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     }
     
     @Override
+    @DataSource("master")
     public String uploadVehiclePhoto(Long id, MultipartFile file) {
         log.info("上传车辆照片: vehicleId={}, fileName={}", id, file.getOriginalFilename());
+        
         Vehicle vehicle = getById(id);
         if (vehicle == null) {
             throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + id);
@@ -125,8 +127,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         
         try {
             String fileName = "vehicle-photo/" + id + "/" + System.currentTimeMillis() + "_" + file.getOriginalFilename();
-            String photoUrl = storageService.upload(file.getInputStream(), fileName, file.getContentType());
-            
+            String photoUrl = storageService.upload(new ByteArrayInputStream(file.getBytes()), fileName, file.getContentType());
             vehicle.setPhotoUrl(photoUrl);
             updateById(vehicle);
             
@@ -244,7 +245,11 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             
             if (parseResult.containsKey("seatingCapacity")) {
                 try {
-                    vehicle.setSeatingCapacity(Integer.parseInt(parseResult.get("seatingCapacity")));
+                    String seatingCapacityStr = parseResult.get("seatingCapacity");
+                    String numStr = seatingCapacityStr.replaceAll("[^0-9]", "");
+                    if (!numStr.isEmpty()) {
+                        vehicle.setSeatingCapacity(Integer.parseInt(numStr));
+                    }
                 } catch (Exception e) {
                     log.warn("解析核定载人数失败: {}", parseResult.get("seatingCapacity"));
                 }
@@ -419,7 +424,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     
     @Override
     public List<VehicleVO> getAvailableVehicles() {
-        log.info("获取所有可用车辆");
+        log.info("获取所有可用车辆(司机用，排除维修专用车和救援专用车)");
         
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper = 
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
@@ -428,6 +433,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         
         List<Vehicle> vehicles = list(wrapper);
         return vehicles.stream()
+                .filter(v -> v.getVehicleType() != null && v.getVehicleType() != 7 && v.getVehicleType() != 9)
                 .map(this::convertToVO)
                 .collect(Collectors.toList());
     }
@@ -465,6 +471,12 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         vehicle.setStatus(VehicleStatusEnum.IDLE.getCode());
         
         save(vehicle);
+        
+        VehicleStatus vehicleStatus = new VehicleStatus();
+        vehicleStatus.setVehicleId(vehicle.getId());
+        vehicleStatus.setStatus(VehicleStatusEnum.IDLE.getCode());
+        vehicleStatus.setDeleted(0);
+        vehicleStatusService.save(vehicleStatus);
         
         if (vehiclePhoto != null && !vehiclePhoto.isEmpty()) {
             try {
@@ -510,15 +522,26 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         log.info("更新车辆状态: vehicleId={}, status={}", vehicleId, status);
         
         Vehicle vehicle = getById(vehicleId);
-        if (vehicle != null) {
-            vehicle.setStatus(status);
-            updateById(vehicle);
+        if (vehicle == null) {
+            throw new VehicleException(VehicleResultCode.VEHICLE_NOT_FOUND, "车辆不存在：" + vehicleId);
         }
         
+        vehicle.setStatus(status);
+        updateById(vehicle);
+        log.info("Vehicle表状态已更新: vehicleId={}, status={}", vehicleId, status);
+        
         VehicleStatus vehicleStatus = vehicleStatusService.getByVehicleId(vehicleId);
-        if (vehicleStatus != null) {
+        if (vehicleStatus == null) {
+            vehicleStatus = new VehicleStatus();
+            vehicleStatus.setVehicleId(vehicleId);
+            vehicleStatus.setStatus(status);
+            vehicleStatus.setDeleted(0);
+            vehicleStatusService.save(vehicleStatus);
+            log.info("VehicleStatus记录已创建: vehicleId={}, status={}", vehicleId, status);
+        } else {
             vehicleStatus.setStatus(status);
             vehicleStatusService.updateById(vehicleStatus);
+            log.info("VehicleStatus表状态已更新: vehicleId={}, status={}", vehicleId, status);
         }
     }
     
@@ -644,6 +667,84 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
             log.warn("获取预签名URL失败: {}", fileUrl);
             return fileUrl;
         }
+    }
+    
+    @Override
+    public List<VehicleVO> getFaultVehicles() {
+        log.info("获取故障车辆列表");
+        
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(Vehicle::getStatus, VehicleStatusEnum.FAULT.getCode());
+        wrapper.orderByDesc(Vehicle::getUpdateTime);
+        
+        List<Vehicle> vehicles = list(wrapper);
+        return vehicles.stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<VehicleVO> getMaintenanceVehicles() {
+        log.info("获取维护中车辆列表");
+        
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(Vehicle::getStatus, VehicleStatusEnum.MAINTENANCE.getCode());
+        wrapper.orderByDesc(Vehicle::getUpdateTime);
+        
+        List<Vehicle> vehicles = list(wrapper);
+        return vehicles.stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<VehicleVO> getAvailableVehiclesByType(Integer vehicleType) {
+        log.info("获取指定类型的可用车辆: vehicleType={}", vehicleType);
+        
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(Vehicle::getStatus, VehicleStatusEnum.IDLE.getCode());
+        wrapper.eq(Vehicle::getVehicleType, vehicleType);
+        wrapper.orderByDesc(Vehicle::getFuelLevel);
+        
+        List<Vehicle> vehicles = list(wrapper);
+        return vehicles.stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<VehicleVO> getRepairmanVehicles() {
+        log.info("获取维修专用车列表(维修员开去维修地点用)");
+        
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(Vehicle::getStatus, VehicleStatusEnum.IDLE.getCode());
+        wrapper.eq(Vehicle::getVehicleType, 9);
+        wrapper.orderByDesc(Vehicle::getFuelLevel);
+        
+        List<Vehicle> vehicles = list(wrapper);
+        return vehicles.stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<VehicleVO> getSafetyOfficerVehicles() {
+        log.info("获取救援专用车列表(安全员用)");
+        
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(Vehicle::getStatus, VehicleStatusEnum.IDLE.getCode());
+        wrapper.eq(Vehicle::getVehicleType, 7);
+        wrapper.orderByDesc(Vehicle::getFuelLevel);
+        
+        List<Vehicle> vehicles = list(wrapper);
+        return vehicles.stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
     }
     
 }

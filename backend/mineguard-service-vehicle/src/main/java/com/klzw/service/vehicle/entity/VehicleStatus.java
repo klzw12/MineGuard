@@ -7,6 +7,10 @@ import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
 
+/**
+ * 车辆状态实体
+ * 注意：实时状态（速度、方向等）从Redis获取，此表只存储持久化状态
+ */
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName("vehicle_status")
@@ -23,12 +27,6 @@ public class VehicleStatus extends BaseEntity {
     private Double longitude;
     
     private Double latitude;
-    
-    private Double speed;
-    
-    private Double direction;
-    
-    private Double altitude;
     
     private Double mileage;
     

@@ -31,7 +31,9 @@ public enum DispatchResultCode {
      */
     NO_AVAILABLE_DRIVER(1002, "无可用司机"),
     NO_AVAILABLE_VEHICLE(1003, "无可用车辆"),
-    DISPATCH_ALGORITHM_ERROR(1004, "调度算法执行失败"),
+    NO_AVAILABLE_REPAIRMAN(1004, "无可用维修员"),
+    NO_AVAILABLE_SAFETY_OFFICER(1005, "无可用安全员"),
+    DISPATCH_ALGORITHM_ERROR(1006, "调度算法执行失败"),
 
     /**
      * 任务相关错误

@@ -35,14 +35,14 @@ public class DispatchTaskVO {
     private String vehicleNo;
 
     @JsonSerialize(using = ToStringSerializer.class)
+    private Long repairmanVehicleId;
+
+    private String repairmanVehicleNo;
+
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long executorId;
 
     private String executorName;
-
-    @JsonSerialize(using = ToStringSerializer.class)
-    private Long driverId;
-
-    private String driverName;
 
     @JsonSerialize(using = ToStringSerializer.class)
     private Long tripId;

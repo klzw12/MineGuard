@@ -21,10 +21,6 @@ public class DispatchPlan extends BaseEntity {
 
     private Integer planType;
 
-    private Long vehicleId;
-
-    private Long driverId;
-
     private Long routeId;
 
     private String startLocation;
