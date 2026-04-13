@@ -85,4 +85,13 @@ public interface CostService {
      * @return 成本记录 ID
      */
     Long calculateAndRecordTripCommission(Long tripId, Long driverId, double estimatedAmount);
+    
+    /**
+     * 手动触发薪酬计算
+     * 
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 计算结果
+     */
+    Map<String, Object> calculateSalaries(LocalDate startDate, LocalDate endDate);
 }

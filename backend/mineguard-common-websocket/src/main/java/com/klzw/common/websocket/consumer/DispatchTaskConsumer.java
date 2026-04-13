@@ -31,6 +31,8 @@ public class DispatchTaskConsumer {
     private final OnlineUserManager onlineUserManager;
     private final MessageHistoryService messageHistoryService;
 
+    private static final int MAX_RETRY_COUNT = 3;
+
     public DispatchTaskConsumer(MessagePushService messagePushService,
                                 OnlineUserManager onlineUserManager,
                                 MessageHistoryService messageHistoryService) {
@@ -50,24 +52,25 @@ public class DispatchTaskConsumer {
     public void handleDispatchTask(Object message, Channel channel) throws IOException {
         long deliveryTag = 0;
         String messageBody = null;
+        int retryCount = 0;
         
         if (message instanceof org.springframework.amqp.core.Message) {
             org.springframework.amqp.core.Message amqpMessage = (org.springframework.amqp.core.Message) message;
             deliveryTag = amqpMessage.getMessageProperties().getDeliveryTag();
             messageBody = new String(amqpMessage.getBody());
+            Integer count = (Integer) amqpMessage.getMessageProperties().getHeaders().get("retryCount");
+            retryCount = count != null ? count : 0;
         } else if (message instanceof Map) {
-            // 如果是 Map 类型，直接使用（可能是 Java 序列化的消息）
             Map<?, ?> messageMap = (Map<?, ?>) message;
-            deliveryTag = 1; // 模拟 deliveryTag
+            deliveryTag = 1;
             messageBody = JsonUtils.toJson(messageMap);
         } else {
-            // 其他类型，转换为字符串
-            deliveryTag = 1; // 模拟 deliveryTag
+            deliveryTag = 1;
             messageBody = message.toString();
         }
 
         try {
-            log.info("收到调度任务消息: {}", messageBody);
+            log.info("收到调度任务消息: {}, retryCount={}", messageBody, retryCount);
             
             @SuppressWarnings("unchecked")
             Map<String, Object> taskData = JsonUtils.fromJson(messageBody, Map.class);
@@ -124,8 +127,15 @@ public class DispatchTaskConsumer {
             channel.basicAck(deliveryTag, false);
 
         } catch (Exception e) {
-            log.error("处理调度任务消息失败: error={}", e.getMessage(), e);
-            channel.basicNack(deliveryTag, false, true);
+            log.error("处理调度任务消息失败: error={}, retryCount={}", e.getMessage(), retryCount, e);
+            
+            if (retryCount >= MAX_RETRY_COUNT) {
+                log.error("消息重试次数超过限制，发送到死信队列: retryCount={}", retryCount);
+                channel.basicNack(deliveryTag, false, false);
+            } else {
+                log.warn("消息处理失败，重新入队: retryCount={}", retryCount + 1);
+                channel.basicNack(deliveryTag, false, true);
+            }
         }
     }
     

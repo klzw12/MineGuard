@@ -860,13 +860,46 @@ public class DispatchServiceImpl implements DispatchService {
 
     @Override
     public List<DispatchTaskVO> getPendingTasksByDriver(Long userId) {
-        log.info("获取司机待处理任务：userId={}", userId);
+        log.info("获取用户待处理任务：userId={}", userId);
         
-        // 直接使用 userId 作为 executor_id 查询，因为 executor_id 存储的是用户ID
-        List<TransportTask> tasks = transportTaskMapper.findPendingByExecutorId(userId);
-        return tasks.stream()
-            .map(this::convertTransportTaskToVO)
-            .collect(java.util.stream.Collectors.toList());
+        String roleCode = null;
+        try {
+            Result<String> roleResult = userClient.getUserRole(userId);
+            if (roleResult != null && roleResult.getData() != null) {
+                roleCode = roleResult.getData();
+            }
+        } catch (Exception e) {
+            log.warn("获取用户角色失败: userId={}, error={}", userId, e.getMessage());
+        }
+        
+        if (roleCode == null) {
+            log.warn("用户角色为空，默认查询运输任务: userId={}", userId);
+            List<TransportTask> tasks = transportTaskMapper.findPendingByExecutorId(userId);
+            return tasks.stream()
+                .map(this::convertTransportTaskToVO)
+                .collect(java.util.stream.Collectors.toList());
+        }
+        
+        switch (roleCode) {
+            case "DRIVER":
+                List<TransportTask> transportTasks = transportTaskMapper.findPendingByExecutorId(userId);
+                return transportTasks.stream()
+                    .map(this::convertTransportTaskToVO)
+                    .collect(java.util.stream.Collectors.toList());
+            case "REPAIRMAN":
+                List<MaintenanceTask> maintenanceTasks = maintenanceTaskMapper.findPendingByExecutorId(userId);
+                return maintenanceTasks.stream()
+                    .map(this::convertMaintenanceTaskToVO)
+                    .collect(java.util.stream.Collectors.toList());
+            case "SAFETY_OFFICER":
+                List<InspectionTask> inspectionTasks = inspectionTaskMapper.findPendingByExecutorId(userId);
+                return inspectionTasks.stream()
+                    .map(this::convertInspectionTaskToVO)
+                    .collect(java.util.stream.Collectors.toList());
+            default:
+                log.warn("未知用户类型: userId={}, roleCode={}", userId, roleCode);
+                return List.of();
+        }
     }
 
     @Override
@@ -1182,6 +1215,13 @@ public class DispatchServiceImpl implements DispatchService {
         vo.setVehicleId(task.getVehicleId());
         vo.setExecutorId(task.getExecutorId());
         vo.setExecutorName(getExecutorName(task.getExecutorId()));
+        vo.setRepairmanVehicleId(task.getRepairmanVehicleId());
+        vo.setStartLocation(task.getFaultLocation() != null ? task.getFaultLocation() : "故障位置");
+        vo.setStartLongitude(task.getFaultLongitude());
+        vo.setStartLatitude(task.getFaultLatitude());
+        vo.setEndLocation(task.getRepairLocation() != null ? task.getRepairLocation() : "维修位置");
+        vo.setEndLongitude(task.getRepairLongitude());
+        vo.setEndLatitude(task.getRepairLatitude());
         vo.setScheduledStartTime(task.getScheduledStartTime());
         vo.setScheduledEndTime(task.getScheduledEndTime());
         vo.setActualStartTime(task.getActualStartTime());
@@ -1206,6 +1246,17 @@ public class DispatchServiceImpl implements DispatchService {
             }
         }
         
+        if (task.getRepairmanVehicleId() != null) {
+            try {
+                var result = vehicleClient.getById(task.getRepairmanVehicleId());
+                if (result != null && result.getData() != null) {
+                    vo.setRepairmanVehicleNo(result.getData().getVehicleNo());
+                }
+            } catch (Exception e) {
+                log.warn("获取维修员车辆信息失败：vehicleId={}", task.getRepairmanVehicleId());
+            }
+        }
+        
         return vo;
     }
 
@@ -1219,6 +1270,12 @@ public class DispatchServiceImpl implements DispatchService {
         vo.setVehicleId(task.getVehicleId());
         vo.setExecutorId(task.getExecutorId());
         vo.setExecutorName(getExecutorName(task.getExecutorId()));
+        vo.setStartLocation(task.getStartLocation() != null ? task.getStartLocation() : "巡检起点");
+        vo.setStartLongitude(task.getStartLongitude());
+        vo.setStartLatitude(task.getStartLatitude());
+        vo.setEndLocation(task.getEndLocation() != null ? task.getEndLocation() : "巡检终点");
+        vo.setEndLongitude(task.getEndLongitude());
+        vo.setEndLatitude(task.getEndLatitude());
         vo.setScheduledStartTime(task.getScheduledStartTime());
         vo.setScheduledEndTime(task.getScheduledEndTime());
         vo.setActualStartTime(task.getActualStartTime());
@@ -1479,10 +1536,13 @@ public class DispatchServiceImpl implements DispatchService {
             return null;
         }
         
+        Long repairmanVehicleId = assignRepairmanVehicle();
+        
         MaintenanceTask task = new MaintenanceTask();
         task.setTaskNo(generateMaintenanceTaskNo());
         task.setVehicleId(vehicleId);
         task.setExecutorId(repairmanId);
+        task.setRepairmanVehicleId(repairmanVehicleId);
         task.setFaultType(parseFaultType(faultType));
         task.setFaultLevel(severity);
         task.setFaultDescription(faultDescription);
@@ -1501,10 +1561,26 @@ public class DispatchServiceImpl implements DispatchService {
         task.setScheduledEndTime(scheduledStart.plusHours(4));
         
         maintenanceTaskMapper.insert(task);
-        log.info("创建维修任务成功： taskId={}, taskNo={}, executorId={}", 
-            task.getId(), task.getTaskNo(), repairmanId);
+        log.info("创建维修任务成功： taskId={}, taskNo={}, executorId={}, repairmanVehicleId={}", 
+            task.getId(), task.getTaskNo(), repairmanId, repairmanVehicleId);
         
         return task.getId();
+    }
+    
+    private Long assignRepairmanVehicle() {
+        try {
+            Result<List<VehicleInfo>> result = vehicleClient.getRepairmanVehicles();
+            List<VehicleInfo> vehicles = result != null && result.getData() != null ? result.getData() : Collections.emptyList();
+            if (!vehicles.isEmpty()) {
+                VehicleInfo vehicle = vehicles.get(0);
+                log.info("分配维修专用车成功, vehicleId: {}, vehicleNo: {}", vehicle.getId(), vehicle.getVehicleNo());
+                return vehicle.getId();
+            }
+            log.warn("没有可用的维修专用车");
+        } catch (Exception e) {
+            log.error("获取维修专用车失败", e);
+        }
+        return null;
     }
     
     private Long selectAvailableRepairman() {

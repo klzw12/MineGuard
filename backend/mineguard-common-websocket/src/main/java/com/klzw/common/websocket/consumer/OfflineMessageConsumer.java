@@ -22,6 +22,8 @@ public class OfflineMessageConsumer {
     private final MessagePushService messagePushService;
     private final OnlineUserManager onlineUserManager;
 
+    private static final int MAX_RETRY_COUNT = 3;
+
     public OfflineMessageConsumer(MessagePushService messagePushService,
                                   OnlineUserManager onlineUserManager) {
         this.messagePushService = messagePushService;
@@ -32,7 +34,10 @@ public class OfflineMessageConsumer {
     public void handleOfflineMessage(@Payload Message message,
                                      Channel channel,
                                      @Header(AmqpHeaders.RECEIVED_ROUTING_KEY) String routingKey,
-                                     @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
+                                     @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag,
+                                     @Header(value = "retryCount", required = false) Integer retryCountHeader) throws IOException {
+        int retryCount = retryCountHeader != null ? retryCountHeader : 0;
+        
         try {
             String userId = extractUserIdFromRoutingKey(routingKey);
 
@@ -42,7 +47,7 @@ public class OfflineMessageConsumer {
                 return;
             }
 
-            log.info("收到离线消息: userId={}, messageId={}", userId, message.getMessageId());
+            log.info("收到离线消息: userId={}, messageId={}, retryCount={}", userId, message.getMessageId(), retryCount);
 
             if (onlineUserManager.isOnline(userId)) {
                 messagePushService.pushToUser(userId, message);
@@ -55,8 +60,15 @@ public class OfflineMessageConsumer {
             channel.basicAck(deliveryTag, false);
 
         } catch (Exception e) {
-            log.error("处理离线消息失败: error={}", e.getMessage(), e);
-            channel.basicNack(deliveryTag, false, true);
+            log.error("处理离线消息失败: error={}, retryCount={}", e.getMessage(), retryCount, e);
+            
+            if (retryCount >= MAX_RETRY_COUNT) {
+                log.error("离线消息重试次数超过限制，发送到死信队列: retryCount={}", retryCount);
+                channel.basicNack(deliveryTag, false, false);
+            } else {
+                log.warn("离线消息处理失败，重新入队: retryCount={}", retryCount + 1);
+                channel.basicNack(deliveryTag, false, true);
+            }
         }
     }
 

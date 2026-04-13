@@ -125,7 +125,7 @@
 		{
 			"path": "pages/admin/report/index",
 			"style": {
-				"navigationBarTitleText": "统计报表"
+				"navigationBarTitleText": "数据统计"
 			}
 		},
 		{
@@ -181,6 +181,12 @@
 			"path": "pages/admin/message/private",
 			"style": {
 				"navigationBarTitleText": "私聊消息"
+			}
+		},
+		{
+			"path": "pages/admin/message/dead-letter",
+			"style": {
+				"navigationBarTitleText": "死信处理"
 			}
 		},
 		{

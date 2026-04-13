@@ -177,5 +177,9 @@ export const statisticsApi = {
 
   getTransportStatistics: (params: any): Promise<TransportStatisticsVO[] | null> => {
     return http.get<TransportStatisticsVO[]>('/statistics/transport', params)
+  },
+
+  calculateAllStatistics: (): Promise<any | null> => {
+    return http.post<any>('/statistics/calculate-all', {})
   }
 }

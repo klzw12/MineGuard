@@ -22,7 +22,7 @@
 			</view>
 		</view>
 		
-		<view class="filter-section">
+		<view class="filter-section" v-if="currentTab !== 'salary'">
 			<view class="date-picker">
 				<text class="date-label">日期范围：</text>
 				<picker mode="date" :value="startDate" @change="onStartDateChange">
@@ -42,6 +42,9 @@
 		</view>
 		
 		<view v-if="currentTab === 'detail'" class="cost-card">
+			<view class="card-header">
+				<text class="card-title">成本明细</text>
+			</view>
 			<view class="statistics-summary">
 				<view class="summary-item">
 					<text class="summary-label">总成本</text>
@@ -82,6 +85,9 @@
 		</view>
 		
 		<view v-if="currentTab === 'budget'" class="budget-card">
+			<view class="card-header">
+				<text class="card-title">成本预算</text>
+			</view>
 			<view class="budget-list">
 				<view class="budget-item" v-for="(item, index) in budgetList" :key="item.id">
 					<view class="budget-header">
@@ -109,6 +115,9 @@
 		</view>
 		
 		<view v-if="currentTab === 'salary'" class="salary-card">
+			<view class="card-header">
+				<text class="card-title">薪资配置</text>
+			</view>
 			<view class="salary-list">
 				<view class="salary-item" v-for="(item, index) in salaryList" :key="item.id">
 					<view class="salary-header">
@@ -148,6 +157,9 @@
 		</view>
 		
 		<view v-if="currentTab === 'analysis'" class="analysis-card">
+			<view class="card-header">
+				<text class="card-title">成本分析</text>
+			</view>
 			<view class="analysis-section">
 				<text class="section-title">📊 能耗分析</text>
 				<view class="analysis-grid">

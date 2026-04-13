@@ -79,8 +79,11 @@ public class MessageHistoryServiceImpl implements MessageHistoryService {
     }
 
     @Override
-    public MessageHistory markAsRead(String messageId) {
-        Optional<MessageHistory> optional = messageHistoryRepository.findTopByMessageIdOrderByCreateTimeDesc(messageId);
+    public MessageHistory markAsRead(String id) {
+        Optional<MessageHistory> optional = messageHistoryRepository.findById(id);
+        if (optional.isEmpty()) {
+            optional = messageHistoryRepository.findTopByMessageIdOrderByCreateTimeDesc(id);
+        }
         if (optional.isPresent()) {
             MessageHistory history = optional.get();
             history.setStatus(MessageStatusEnum.READ.getCode());
@@ -208,5 +211,25 @@ public class MessageHistoryServiceImpl implements MessageHistoryService {
         log.info("标记所有通知消息已读: userId={}, count={}", userId, unreadMessages.stream()
             .filter(m -> !MessageTypeEnum.CHAT_MESSAGE.getCode().equals(m.getMessageType()))
             .count());
+    }
+
+    @Override
+    public MessageHistory save(MessageHistory messageHistory) {
+        return messageHistoryRepository.save(messageHistory);
+    }
+
+    @Override
+    public Page<MessageHistory> getDeadLetterMessages(Pageable pageable) {
+        return messageHistoryRepository.findByMessageTypeOrderByCreateTimeDesc("DEAD_LETTER", pageable);
+    }
+
+    @Override
+    public MessageHistory getById(String id) {
+        return messageHistoryRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public void deleteById(String id) {
+        messageHistoryRepository.deleteById(id);
     }
 }

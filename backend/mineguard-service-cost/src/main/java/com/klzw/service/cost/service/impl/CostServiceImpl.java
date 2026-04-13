@@ -1019,4 +1019,117 @@ public class CostServiceImpl implements CostService {
             return null;
         }
     }
+
+    @Override
+    public Map<String, Object> calculateSalaries(LocalDate startDate, LocalDate endDate) {
+        log.info("手动触发薪酬计算：{} 至 {}", startDate, endDate);
+        
+        Map<String, Object> result = new HashMap<>();
+        List<Map<String, Object>> salaryResults = new ArrayList<>();
+        int successCount = 0;
+        int failCount = 0;
+        
+        try {
+            List<SalaryConfig> salaryConfigs = salaryConfigMapper.selectList(
+                new LambdaQueryWrapper<SalaryConfig>()
+                    .eq(SalaryConfig::getStatus, 1)
+                    .eq(SalaryConfig::getDeleted, 0)
+            );
+            
+            Map<String, SalaryConfig> configMap = salaryConfigs.stream()
+                .collect(Collectors.toMap(SalaryConfig::getRoleCode, c -> c, (a, b) -> a));
+            
+            List<CostDetail> laborCosts = costDetailMapper.selectList(
+                new LambdaQueryWrapper<CostDetail>()
+                    .eq(CostDetail::getCostType, CostTypeEnum.LABOR.getCode())
+                    .ge(CostDetail::getCostDate, startDate)
+                    .le(CostDetail::getCostDate, endDate)
+                    .eq(CostDetail::getDeleted, 0)
+            );
+            
+            Map<Long, BigDecimal> userCommissionMap = new HashMap<>();
+            for (CostDetail cost : laborCosts) {
+                if (cost.getUserId() != null) {
+                    BigDecimal current = userCommissionMap.getOrDefault(cost.getUserId(), BigDecimal.ZERO);
+                    userCommissionMap.put(cost.getUserId(), current.add(cost.getAmount() != null ? cost.getAmount() : BigDecimal.ZERO));
+                }
+            }
+            
+            String period = startDate.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+            
+            for (Map.Entry<Long, BigDecimal> entry : userCommissionMap.entrySet()) {
+                Long userId = entry.getKey();
+                BigDecimal commission = entry.getValue();
+                
+                try {
+                    SalaryRecord existingRecord = salaryRecordMapper.selectOne(
+                        new LambdaQueryWrapper<SalaryRecord>()
+                            .eq(SalaryRecord::getDriverId, userId)
+                            .eq(SalaryRecord::getPeriod, period)
+                            .eq(SalaryRecord::getStatus, 1)
+                            .eq(SalaryRecord::getDeleted, 0)
+                    );
+                    
+                    if (existingRecord != null) {
+                        log.info("用户 {} 在周期 {} 已有薪酬记录，跳过", userId, period);
+                        continue;
+                    }
+                    
+                    SalaryConfig config = configMap.get("DRIVER");
+                    BigDecimal baseSalary = config != null && config.getBaseSalary() != null 
+                        ? config.getBaseSalary() 
+                        : BigDecimal.valueOf(3000);
+                    
+                    SalaryRecord record = new SalaryRecord();
+                    record.setDriverId(userId);
+                    record.setDriverName("用户" + userId);
+                    record.setPeriod(period);
+                    record.setBaseSalary(baseSalary);
+                    record.setBonus(commission);
+                    record.setDeduction(BigDecimal.ZERO);
+                    record.setTotalSalary(baseSalary.add(commission));
+                    record.setStatus(1);
+                    record.setCreateTime(LocalDateTime.now());
+                    record.setUpdateTime(LocalDateTime.now());
+                    record.setDeleted(0);
+                    record.setRemark("系统自动计算");
+                    
+                    salaryRecordMapper.insert(record);
+                    
+                    Map<String, Object> salaryResult = new HashMap<>();
+                    salaryResult.put("userId", userId);
+                    salaryResult.put("period", period);
+                    salaryResult.put("baseSalary", baseSalary);
+                    salaryResult.put("bonus", commission);
+                    salaryResult.put("totalSalary", record.getTotalSalary());
+                    salaryResults.add(salaryResult);
+                    
+                    successCount++;
+                    log.info("薪酬计算成功：userId={}, period={}, totalSalary={}", userId, period, record.getTotalSalary());
+                    
+                } catch (Exception e) {
+                    log.error("计算用户 {} 薪酬失败", userId, e);
+                    failCount++;
+                }
+            }
+            
+            result.put("success", true);
+            result.put("startDate", startDate);
+            result.put("endDate", endDate);
+            result.put("period", period);
+            result.put("successCount", successCount);
+            result.put("failCount", failCount);
+            result.put("totalProcessed", userCommissionMap.size());
+            result.put("salaryResults", salaryResults);
+            
+            log.info("薪酬计算完成：成功={}, 失败={}", successCount, failCount);
+            
+        } catch (Exception e) {
+            log.error("薪酬计算失败", e);
+            result.put("success", false);
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
 }

@@ -37,4 +37,6 @@ public interface MessageHistoryRepository extends MongoRepository<MessageHistory
     
     @Query("{'$or': [{'sender': ?0, 'receiver': ?1}, {'sender': ?1, 'receiver': ?0}]}")
     Page<MessageHistory> findPrivateMessages(String userId, String contactId, Pageable pageable);
+    
+    Page<MessageHistory> findByMessageTypeOrderByCreateTimeDesc(String messageType, Pageable pageable);
 }

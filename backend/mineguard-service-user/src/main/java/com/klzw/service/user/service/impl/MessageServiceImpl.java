@@ -274,4 +274,24 @@ public class MessageServiceImpl implements MessageService {
             })
             .count();
     }
+
+    @Override
+    public Page<MessageVO> getDeadLetterMessages(PageRequest pageRequest) {
+        Page<MessageHistory> page = messageHistoryService.getDeadLetterMessages(pageRequest);
+        return page.map(this::convertToVO);
+    }
+
+    @Override
+    public MessageVO getDeadLetterDetail(String id) {
+        MessageHistory history = messageHistoryService.getById(id);
+        if (history == null) {
+            return null;
+        }
+        return convertToVO(history);
+    }
+
+    @Override
+    public void deleteDeadLetterMessage(String id) {
+        messageHistoryService.deleteById(id);
+    }
 }

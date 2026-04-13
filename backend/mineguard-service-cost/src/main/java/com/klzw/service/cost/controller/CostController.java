@@ -274,4 +274,13 @@ public class CostController {
         log.debug("获取总体成本分析：{} 至 {}", startDate, endDate);
         return Result.success(costService.getOverallCostAnalysis(startDate, endDate));
     }
+    
+    @PostMapping("/calculate-salaries")
+    public Result<Map<String, Object>> calculateSalaries(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        log.info("手动触发薪酬计算：{} 至 {}", startDate, endDate);
+        Map<String, Object> result = costService.calculateSalaries(startDate, endDate);
+        return Result.success(result);
+    }
 }

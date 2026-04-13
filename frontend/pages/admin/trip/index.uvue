@@ -138,7 +138,7 @@
 	import AdminLayout from '../../../components/AdminLayout.uvue'
 	import { ref, computed, onMounted } from 'vue'
 	import { getTripList, startTrip as startTripApi, endTrip as endTripApi, acceptTrip as acceptTripApi, createTrip, type Trip, type PageResult } from '@/api/trip.uts'
-	import { getVehiclePage } from '@/api/vehicle.uts'
+	import { vehicleApi } from '@/api/vehicle.uts'
 	import { getDriverList } from '@/api/driver.uts'
 	import { getRouteTemplateList } from '@/api/dispatch.uts'
 
@@ -215,10 +215,10 @@
 	const fetchOptions = async () => {
 		try {
 			const [vehicleRes, driverRes, routeRes] = await Promise.all([
-				getVehiclePage({ page: 1, size: 100 }),
-				getDriverList({}),
-				getRouteTemplateList()
-			])
+			vehicleApi.getVehiclePage({ page: 1, size: 100 }),
+			getDriverList({}),
+			getRouteTemplateList()
+		])
 			if (vehicleRes) {
 				vehicleOptions.value = (vehicleRes.records || []).map((v: any) => ({ id: String(v.id), vehicleNo: v.vehicleNo }))
 			}

@@ -9,7 +9,7 @@
 				<view class="tab-btn" :class="{'active': currentTab === 'fault'}" @click="currentTab = 'fault'">
 					<text class="tab-text">故障申报</text>
 				</view>
-				<view class="tab-btn" v-if="isRepairman" :class="{'active': currentTab === 'refueling'}" @click="currentTab = 'refueling'">
+				<view class="tab-btn" :class="{'active': currentTab === 'refueling'}" @click="currentTab = 'refueling'">
 					<text class="tab-text">加油登记</text>
 				</view>
 				<view class="tab-btn" v-if="isRepairman" :class="{'active': currentTab === 'maintenance'}" @click="currentTab = 'maintenance'">
@@ -51,7 +51,7 @@
 			</view>
 		</view>
 		
-		<view class="content-section" v-if="currentTab === 'refueling' && isRepairman">
+		<view class="content-section" v-if="currentTab === 'refueling'">
 			<view class="action-bar">
 				<button class="primary-btn" @click="openRefuelingModal">添加加油记录</button>
 			</view>
@@ -188,7 +188,11 @@
 				<scroll-view scroll-y class="modal-body">
 					<view class="form-item">
 						<text class="form-label">选择车辆 *</text>
-						<view class="picker-wrapper" @click="openPicker('refuel_vehicle')">
+						<view v-if="!isRepairman" class="picker-wrapper readonly-picker">
+							<text class="picker-text">{{ refuelingForm.vehicleId ? getVehicleNo(refuelingForm.vehicleId) : '当前驾驶车辆' }}</text>
+							<text class="picker-hint">当前行程车辆</text>
+						</view>
+						<view v-else class="picker-wrapper" @click="openPicker('refuel_vehicle')">
 							<text class="picker-text" :class="{'placeholder': refuelingForm.vehicleId === 0}">{{ refuelingForm.vehicleId ? getVehicleNo(refuelingForm.vehicleId) : '请选择车辆' }}</text>
 							<text class="picker-arrow">▼</text>
 						</view>
@@ -639,7 +643,6 @@
 	}
 
 	const fetchRefuelingList = async () => {
-		if (!isRepairman.value) return
 		try {
 			const res = await http.get<RefuelingRecord[]>('/vehicle/refueling/list')
 			if (res) { refuelingList.value = res }
@@ -668,10 +671,31 @@
 		getCurrentLocation()
 	}
 
-	const openRefuelingModal = () => {
+		const openRefuelingModal = async () => {
 		refuelingForm.value = { vehicleId: 0, refuelingDate: '', refuelingStation: '', fuelType: '92#', refuelingAmount: '', unitPrice: '', totalCost: '' }
+		if (!isRepairman.value) {
+			await fetchCurrentTripVehicle()
+		}
 		showRefuelingModal.value = true
 	}
+	
+	const fetchCurrentTripVehicle = async () => {
+		try {
+				const userId = userStore.userInfo.value?.id
+				if (!userId) return
+				const res = await http.get<any>(`/trip/current?userId=${userId}`)
+				if (res && (res as any).vehicleId) {
+					const vehicleId = (res as any).vehicleId as number
+					refuelingForm.value.vehicleId = vehicleId
+					const vehicle = vehicleOptions.value.find(v => v.id === vehicleId)
+					if (vehicle) {
+						console.log('自动填充当前驾驶车辆:', vehicle.vehicleNo)
+					}
+				}
+			} catch (e) {
+				console.error('获取当前行程车辆失败', e)
+			}
+		}
 
 	const openMaintenanceModal = () => {
 		maintenanceForm.value = { vehicleId: 0, maintenanceType: 1, maintenanceDate: '', maintenanceShop: '', maintenanceContent: '', maintenanceCost: '' }
@@ -790,8 +814,8 @@
 	onMounted(() => {
 		fetchVehicles()
 		fetchFaultList()
+		fetchRefuelingList()
 		if (isRepairman.value) {
-			fetchRefuelingList()
 			fetchMaintenanceList()
 			fetchInsuranceList()
 		}
@@ -854,6 +878,7 @@
 					.picker-wrapper { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 20rpx; background-color: #2a3347; border-radius: 10rpx;
 						.picker-text { font-size: 26rpx; color: #fff; &.placeholder { color: rgba(255, 255, 255, 0.5); } }
 						.picker-arrow { font-size: 20rpx; color: rgba(255, 255, 255, 0.5); }
+						&.readonly-picker { background-color: #1e2536; .picker-hint { font-size: 20rpx; color: rgba(255, 255, 255, 0.4); } }
 					}
 					.readonly-value { padding: 20rpx; background-color: #2a3347; border-radius: 10rpx; .value-text { font-size: 28rpx; color: #34C759; font-weight: bold; } }
 					.location-wrapper { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 20rpx; background-color: #2a3347; border-radius: 10rpx;

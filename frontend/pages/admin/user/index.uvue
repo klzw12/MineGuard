@@ -142,6 +142,74 @@
 			</view>
 		</view>
 		
+		<!-- 设置起薪弹窗 -->
+		<view class="modal-overlay" v-if="salaryModalVisible" @click="closeSalaryModal">
+			<view class="modal-content salary-modal" @click.stop>
+				<text class="modal-title">设置起薪</text>
+				<text class="modal-subtitle">用户：{{ currentUser?.realName || currentUser?.username }}</text>
+				<view class="salary-form">
+					<view class="form-item">
+						<text class="form-label">基础工资(元/月)</text>
+						<input 
+							class="form-input"
+							type="digit" 
+							v-model="salaryForm.baseSalary" 
+							placeholder="请输入基础工资"
+							placeholder-style="color: #999"
+						/>
+					</view>
+					<view class="form-item">
+						<text class="form-label">日薪(元/天)</text>
+						<input 
+							class="form-input"
+							type="digit" 
+							v-model="salaryForm.dailySalary" 
+							placeholder="请输入日薪"
+							placeholder-style="color: #999"
+						/>
+					</view>
+					<view class="form-item">
+						<text class="form-label">时薪(元/小时)</text>
+						<input 
+							class="form-input"
+							type="digit" 
+							v-model="salaryForm.hourlySalary" 
+							placeholder="请输入时薪"
+							placeholder-style="color: #999"
+						/>
+					</view>
+					<view class="form-item">
+						<text class="form-label">加班倍率</text>
+						<input 
+							class="form-input"
+							type="digit" 
+							v-model="salaryForm.overtimeRate" 
+							placeholder="例如：1.5"
+							placeholder-style="color: #999"
+						/>
+					</view>
+					<view class="form-item">
+						<text class="form-label">绩效奖金(元/月)</text>
+						<input 
+							class="form-input"
+							type="digit" 
+							v-model="salaryForm.performanceBonus" 
+							placeholder="请输入绩效奖金"
+							placeholder-style="color: #999"
+						/>
+					</view>
+				</view>
+				<view class="modal-btns">
+					<view class="modal-btn cancel" @click="closeSalaryModal">
+						<text>取消</text>
+					</view>
+					<view class="modal-btn confirm" @click="confirmSalary">
+						<text>确认</text>
+					</view>
+				</view>
+			</view>
+		</view>
+		
 		<!-- 用户详情弹窗 -->
 		<view class="modal-overlay" v-if="detailModalVisible" @click="closeDetailModal">
 			<view class="modal-content detail-modal" @click.stop>
@@ -221,6 +289,7 @@
 	import AdminSidebar from '../../../components/AdminSidebar.uvue'
 	import { pageUsers, disableUser, enableUser } from '@/api/user.uts'
 	import { updateBelongingTeamByUserId } from '@/api/driver.uts'
+	import * as costApi from '@/api/cost.uts'
 	import type { UserVO, PageResult } from '@/types/user.uts'
 	
 	const loading = ref(false)
@@ -239,6 +308,17 @@
 	// 用户详情相关
 	const detailModalVisible = ref(false)
 	const detailUser = ref<UserVO | null>(null)
+	
+	// 设置起薪相关
+	const salaryModalVisible = ref(false)
+	const salaryForm = ref({
+		baseSalary: '',
+		dailySalary: '',
+		hourlySalary: '',
+		overtimeRate: '1.5',
+		performanceBonus: ''
+	})
+	const existingSalaryConfig = ref<costApi.SalaryConfigVO | null>(null)
 	
 	const totalPages = computed(() => {
 		return Math.ceil(total.value / pageSize.value) || 1
@@ -370,6 +450,108 @@
 		detailUser.value = null
 	}
 	
+	function showSalaryModal(user: UserVO) {
+		currentUser.value = user
+		salaryForm.value = {
+			baseSalary: '',
+			dailySalary: '',
+			hourlySalary: '',
+			overtimeRate: '1.5',
+			performanceBonus: ''
+		}
+		existingSalaryConfig.value = null
+		loadSalaryConfig()
+		salaryModalVisible.value = true
+	}
+	
+	function closeSalaryModal() {
+		salaryModalVisible.value = false
+		currentUser.value = null
+		salaryForm.value = {
+			baseSalary: '',
+			dailySalary: '',
+			hourlySalary: '',
+			overtimeRate: '1.5',
+			performanceBonus: ''
+		}
+		existingSalaryConfig.value = null
+	}
+	
+	async function loadSalaryConfig() {
+		if (!currentUser.value) return
+		try {
+			const configs = await costApi.getSalaryConfigList()
+			if (configs) {
+				const userConfig = configs.find((c: costApi.SalaryConfigVO) => c.roleCode === currentUser.value?.roleCode)
+				if (userConfig) {
+					existingSalaryConfig.value = userConfig
+					salaryForm.value = {
+						baseSalary: String(userConfig.baseSalary || ''),
+						dailySalary: String(userConfig.dailySalary || ''),
+						hourlySalary: String(userConfig.hourlySalary || ''),
+						overtimeRate: String(userConfig.overtimeRate || '1.5'),
+						performanceBonus: String(userConfig.performanceBonus || '')
+					}
+				}
+			}
+		} catch (e) {
+			console.error('加载薪酬配置失败', e)
+		}
+	}
+
+	async function confirmSalary() {
+		if (!salaryForm.value.baseSalary) {
+			uni.showToast({
+				title: '请输入基础工资',
+				icon: 'none',
+				position: 'bottom'
+			})
+			return
+		}
+
+		if (!currentUser.value) return
+
+		try {
+			const data: costApi.SalaryConfigDTO = {
+				roleCode: currentUser.value.roleCode,
+				roleName: currentUser.value.roleName || '',
+				baseSalary: parseFloat(salaryForm.value.baseSalary) || 0,
+				dailySalary: parseFloat(salaryForm.value.dailySalary) || 0,
+				hourlySalary: parseFloat(salaryForm.value.hourlySalary) || 0,
+				overtimeRate: parseFloat(salaryForm.value.overtimeRate) || 1.5,
+				performanceBonus: parseFloat(salaryForm.value.performanceBonus) || 0,
+				status: 1,
+				effectiveDate: new Date().toISOString().split('T')[0],
+				expiryDate: '2099-12-31'
+			}
+			
+			if (existingSalaryConfig.value?.id) {
+				data.id = existingSalaryConfig.value.id
+				await costApi.updateSalaryConfig(data)
+				uni.showToast({
+					title: '薪酬配置更新成功',
+					icon: 'success',
+					position: 'bottom'
+				})
+			} else {
+				await costApi.addSalaryConfig(data)
+				uni.showToast({
+					title: '薪酬配置添加成功',
+					icon: 'success',
+					position: 'bottom'
+				})
+			}
+			
+			closeSalaryModal()
+		} catch (e: any) {
+			uni.showToast({
+				title: e.message || '操作失败',
+				icon: 'none',
+				position: 'bottom'
+			})
+		}
+	}
+
 	onMounted(() => {
 		loadUsers()
 	})
@@ -585,12 +767,41 @@
 		background-color: #FF9500;
 	}
 	
-	.detail-modal {
-		width: 700rpx;
-		max-height: 80vh;
+	.action-btn.salary-btn {
+		background-color: #34C759;
 	}
 	
-	.modal-header {
+	.detail-modal {
+	 width: 700rpx;
+        max-height: 80vh;
+    }
+    
+    .salary-modal {
+        width: 650rpx;
+    }
+    
+    .salary-form {
+        .form-item {
+            margin-bottom: 24rpx;
+            
+            .form-label {
+                display: block;
+                font-size: 24rpx;
+                color: #666;
+                margin-bottom: 12rpx;
+            }
+            
+            .form-input {
+                width: 100%;
+                padding: 20rpx;
+                border: 1rpx solid #ddd;
+                border-radius: 10rpx;
+                font-size: 28rpx;
+            }
+        }
+    }
+    
+    .modal-header {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;

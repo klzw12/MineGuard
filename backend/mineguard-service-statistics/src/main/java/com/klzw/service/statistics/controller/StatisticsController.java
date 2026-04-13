@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -122,5 +123,41 @@ public class StatisticsController {
         log.debug("计算运输统计数据：日期={}", date);
         TransportStatisticsVO vo = statisticsService.calculateTransportStatistics(date);
         return Result.success(vo);
+    }
+    
+    @PostMapping("/calculate-all")
+    public Result<Map<String, Object>> calculateAllStatistics(@RequestParam("date") String date) {
+        log.info("手动触发全部统计计算：日期={}", date);
+        Map<String, Object> result = new java.util.HashMap<>();
+        
+        try {
+            TripStatisticsVO tripVO = statisticsService.calculateTripStatistics(date);
+            result.put("trip", tripVO);
+        } catch (Exception e) {
+            log.error("计算行程统计失败", e);
+            result.put("tripError", e.getMessage());
+        }
+        
+        try {
+            CostStatisticsVO costVO = statisticsService.calculateCostStatistics(date);
+            result.put("cost", costVO);
+        } catch (Exception e) {
+            log.error("计算成本统计失败", e);
+            result.put("costError", e.getMessage());
+        }
+        
+        try {
+            TransportStatisticsVO transportVO = statisticsService.calculateTransportStatistics(date);
+            result.put("transport", transportVO);
+        } catch (Exception e) {
+            log.error("计算运输统计失败", e);
+            result.put("transportError", e.getMessage());
+        }
+        
+        result.put("date", date);
+        result.put("calculatedAt", java.time.LocalDateTime.now().toString());
+        
+        log.info("全部统计计算完成：{}", result.keySet());
+        return Result.success(result);
     }
 }

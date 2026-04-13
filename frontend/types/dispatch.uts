@@ -1,11 +1,14 @@
 export type DispatchTaskVO = {
   id: string
   taskNo: string
+  taskType: number | null
+  taskTypeName: string | null
   planId: string | null
   planName: string | null
   taskSequence: number | null
   vehicleId: string | null
   vehicleNo: string | null
+  executorId: string | null
   executorName: string | null
   repairmanVehicleId: string | null
   repairmanVehicleNo: string | null

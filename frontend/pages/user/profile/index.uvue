@@ -239,6 +239,7 @@ import { useUserStore } from '@/stores/user.uts'
 	import { toast } from '@/utils/toast.uts'
 	import { statisticsApi, DriverStatisticsVO } from '@/api/statistics.uts'
 	import { getAttendanceStatisticsByRange, AttendanceStatisticsVO } from '@/api/attendance.uts'
+	import { getAvatarUrl } from '@/utils/image.uts'
 	
 	const userStore = useUserStore()
 	
@@ -317,7 +318,7 @@ async function onAvatarError() {
 			avatarRetryCount++
 			await loadAvatarUrl()
 		} else {
-			avatarUrl.value = DEFAULT_AVATAR
+			avatarUrl.value = getAvatarUrl(null, userStore.userInfo.value?.id)
 			avatarRetryCount = 0
 		}
 	}
@@ -340,12 +341,11 @@ async function onIdCardError(type: string) {
 
 async function loadAvatarUrl() {
 	try {
-		// 先尝试从本地缓存获取，检查是否过期
 		const cachedData = uni.getStorageSync('avatarCache')
 		if (cachedData) {
 			const now = Date.now()
 			const cacheTime = cachedData.timestamp
-			const expireTime = 7 * 24 * 60 * 60 * 1000 // 7天过期
+			const expireTime = 7 * 24 * 60 * 60 * 1000
 			
 			if (now - cacheTime < expireTime) {
 				avatarUrl.value = cachedData.url
@@ -356,18 +356,15 @@ async function loadAvatarUrl() {
 		const url = await getAvatarSignedUrl()
 		if (url) {
 			avatarUrl.value = url
-			// 缓存到本地，添加时间戳
 			uni.setStorageSync('avatarCache', {
 				url: url,
 				timestamp: Date.now()
 			})
 		} else {
-			// 使用默认头像
-			avatarUrl.value = DEFAULT_AVATAR
+			avatarUrl.value = getAvatarUrl(null, userStore.userInfo.value?.id)
 		}
 	} catch (e) {
-		// 发生错误时使用默认头像
-		avatarUrl.value = DEFAULT_AVATAR
+		avatarUrl.value = getAvatarUrl(null, userStore.userInfo.value?.id)
 	}
 }
 	

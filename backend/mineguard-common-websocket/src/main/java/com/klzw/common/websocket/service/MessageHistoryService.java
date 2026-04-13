@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 public interface MessageHistoryService {
+    MessageHistory save(MessageHistory messageHistory);
+    
     MessageHistory saveMessage(Message message);
     
     MessageHistory updateMessageStatus(String messageId, String status);
@@ -43,4 +45,10 @@ public interface MessageHistoryService {
     Page<MessageHistory> getPrivateMessages(String userId, String contactId, Pageable pageable);
     
     void markAllMessagesAsRead(String userId);
+    
+    Page<MessageHistory> getDeadLetterMessages(Pageable pageable);
+    
+    MessageHistory getById(String id);
+    
+    void deleteById(String id);
 }

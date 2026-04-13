@@ -66,3 +66,23 @@ export function sendPrivateMessage(receiverId: string, content: string): Promise
     content: content
   })
 }
+
+export type PageResult<T> = {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  size: number
+  number: number
+}
+
+export function getDeadLetterMessages(page: number = 0, size: number = 20): Promise<PageResult<MessageVO> | null> {
+  return http.get<PageResult<MessageVO>>(`/message/dead-letter/list?page=${page}&size=${size}`)
+}
+
+export function getDeadLetterDetail(id: string): Promise<MessageVO | null> {
+  return http.get<MessageVO>(`/message/dead-letter/${id}`)
+}
+
+export function deleteDeadLetterMessage(id: string): Promise<void | null> {
+  return http.delete<void>(`/message/dead-letter/${id}`)
+}

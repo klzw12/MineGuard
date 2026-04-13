@@ -55,6 +55,9 @@ public class VehicleFaultServiceImpl extends ServiceImpl<VehicleFaultMapper, Veh
         fault.setLatitude(faultDTO.getLatitude());
         fault.setLongitude(faultDTO.getLongitude());
         fault.setLocationAddress(faultDTO.getLocationAddress());
+        if (faultDTO.getReporterId() != null) {
+            fault.setReporterId(faultDTO.getReporterId());
+        }
         save(fault);
         
         vehicleService.updateVehicleStatus(faultDTO.getVehicleId(), VehicleStatusEnum.FAULT.getCode());

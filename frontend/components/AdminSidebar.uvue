@@ -13,18 +13,18 @@
     </view>
     
     <view class="sidebar-menu" v-if="userRole === 'admin' || userRole === 'operator' || true">
-      <!-- 仪表盘 - 所有管理员可见 -->
+      <!-- 统计分析 - 所有管理员可见（作为仪表盘） -->
       <view 
         class="sidebar-item" 
-        :class="{ active: currentPath === '/pages/admin/home/index' }" 
-        @click="handleNavigate('/pages/admin/home/index')"
+        :class="{ active: currentPath === '/pages/admin/statistics/index' }" 
+        @click="handleNavigate('/pages/admin/statistics/index')"
       >
         <text class="sidebar-icon">📊</text>
-        <text class="sidebar-text">仪表盘</text>
+        <text class="sidebar-text">统计分析</text>
       </view>
       
-      <!-- 消息管理 - 所有管理员可见 -->
-      <view class="sidebar-group">
+      <!-- 用户管理 - 仅超级管理员可见 -->
+      <view class="sidebar-group" v-if="userRole === 'admin'">
         <view 
           class="sidebar-item sidebar-parent" 
           :class="{ active: isGroupActive('user') }"
@@ -56,11 +56,27 @@
           >
             <text class="subitem-text">角色变更</text>
           </view>
+          <view 
+            class="sidebar-subitem" 
+            :class="{ active: currentPath === '/pages/admin/salary/index' }"
+            @click="handleNavigate('/pages/admin/salary/index')"
+            v-if="userRole === 'admin'"
+          >
+            <text class="subitem-text">薪酬管理</text>
+          </view>
+          <view 
+            class="sidebar-subitem" 
+            :class="{ active: currentPath === '/pages/admin/report/driver' }"
+            @click="handleNavigate('/pages/admin/report/driver')"
+            v-if="userRole === 'admin'"
+          >
+            <text class="subitem-text">人员统计</text>
+          </view>
         </view>
       </view>
       
-      <!-- 车辆管理 - 所有管理员可见 -->
-      <view class="sidebar-group">
+      <!-- 车辆管理 - 仅超级管理员可见 -->
+      <view class="sidebar-group" v-if="userRole === 'admin'">
         <view 
           class="sidebar-item sidebar-parent" 
           :class="{ active: isGroupActive('vehicle') }"
@@ -77,6 +93,35 @@
             @click="handleNavigate('/pages/admin/vehicle/index')"
           >
             <text class="subitem-text">车辆列表</text>
+          </view>
+          <view 
+            class="sidebar-subitem" 
+            :class="{ active: currentPath === '/pages/admin/report/vehicle' }"
+            @click="handleNavigate('/pages/admin/report/vehicle')"
+          >
+            <text class="subitem-text">车辆报表</text>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 行程管理 - 所有管理员可见 -->
+      <view class="sidebar-group">
+        <view 
+          class="sidebar-item sidebar-parent" 
+          :class="{ active: isGroupActive('trip') }"
+          @click="toggleGroup('trip')"
+        >
+          <text class="sidebar-icon">🗺️</text>
+          <text class="sidebar-text">行程管理</text>
+          <text class="sidebar-arrow" :class="{ expanded: expandedGroups.includes('trip') }">›</text>
+        </view>
+        <view class="sidebar-submenu" :class="{ expanded: expandedGroups.includes('trip') }">
+          <view 
+            class="sidebar-subitem" 
+            :class="{ active: currentPath === '/pages/admin/trip/index' }"
+            @click="handleNavigate('/pages/admin/trip/index')"
+          >
+            <text class="subitem-text">行程列表</text>
           </view>
         </view>
       </view>
@@ -110,19 +155,8 @@
         </view>
       </view>
       
-      <!-- 申诉管理 - 仅超级管理员可见 -->
-      <view 
-        class="sidebar-item" 
-        :class="{ active: currentPath === '/pages/admin/appeal/index' }" 
-        @click="handleNavigate('/pages/admin/appeal/index')"
-        v-if="!isDispatcher"
-      >
-        <text class="sidebar-icon">📄</text>
-        <text class="sidebar-text">申诉管理</text>
-      </view>
-      
-      <!-- 消息发放 - 所有管理员可见 -->
-      <view class="sidebar-group">
+      <!-- 消息发放 - 仅超级管理员可见 -->
+      <view class="sidebar-group" v-if="userRole === 'admin'">
         <view 
           class="sidebar-item sidebar-parent" 
           :class="{ active: isGroupActive('message') }"
@@ -147,54 +181,32 @@
           >
             <text class="subitem-text">私聊消息</text>
           </view>
-        </view>
-      </view>
-      
-      <!-- 数据报表 - 仅超级管理员可见 -->
-      <view class="sidebar-group" v-if="!isDispatcher">
-        <view 
-          class="sidebar-item sidebar-parent" 
-          :class="{ active: isGroupActive('report') }"
-          @click="toggleGroup('report')"
-        >
-          <text class="sidebar-icon">📈</text>
-          <text class="sidebar-text">数据报表</text>
-          <text class="sidebar-arrow" :class="{ expanded: expandedGroups.includes('report') }">›</text>
-        </view>
-        <view class="sidebar-submenu" :class="{ expanded: expandedGroups.includes('report') }">
           <view 
             class="sidebar-subitem" 
-            :class="{ active: currentPath === '/pages/admin/report/index' }"
-            @click="handleNavigate('/pages/admin/report/index')"
+            :class="{ active: currentPath === '/pages/admin/message/dead-letter' }"
+            @click="handleNavigate('/pages/admin/message/dead-letter')"
           >
-            <text class="subitem-text">运营报表</text>
+            <text class="subitem-text">死信处理</text>
           </view>
           <view 
             class="sidebar-subitem" 
-            :class="{ active: currentPath === '/pages/admin/report/vehicle' }"
-            @click="handleNavigate('/pages/admin/report/vehicle')"
+            :class="{ active: currentPath === '/pages/admin/appeal/index' }"
+            @click="handleNavigate('/pages/admin/appeal/index')"
           >
-            <text class="subitem-text">车辆报表</text>
-          </view>
-          <view 
-            class="sidebar-subitem" 
-            :class="{ active: currentPath === '/pages/admin/report/driver' }"
-            @click="handleNavigate('/pages/admin/report/driver')"
-          >
-            <text class="subitem-text">司机报表</text>
+            <text class="subitem-text">申诉管理</text>
           </view>
         </view>
       </view>
       
-      <!-- 薪酬管理 - 仅超级管理员可见 -->
+      <!-- 成本管理 - 仅超级管理员可见 -->
       <view 
         class="sidebar-item" 
-        :class="{ active: currentPath === '/pages/admin/salary/index' }" 
-        @click="handleNavigate('/pages/admin/salary/index')"
-        v-if="!isDispatcher"
+        :class="{ active: currentPath === '/pages/admin/cost/index' }" 
+        @click="handleNavigate('/pages/admin/cost/index')"
+        v-if="userRole === 'admin'"
       >
         <text class="sidebar-icon">💰</text>
-        <text class="sidebar-text">薪酬管理</text>
+        <text class="sidebar-text">成本管理</text>
       </view>
       
       <!-- 预警管理 - 所有管理员可见 -->
@@ -237,11 +249,12 @@ const userRole = computed(() => userStore.userRole.value || 'user')
 
 // 定义菜单组与路径的映射
 const groupPathMap: Map<string, string[]> = new Map([
-  ['user', ['/pages/admin/user/index', '/pages/admin/role/index', '/pages/admin/role-change/index']],
-  ['vehicle', ['/pages/admin/vehicle/index']],
+  ['user', ['/pages/admin/user/index', '/pages/admin/role/index', '/pages/admin/role-change/index', '/pages/admin/salary/index', '/pages/admin/report/driver']],
+  ['vehicle', ['/pages/admin/vehicle/index', '/pages/admin/report/vehicle']],
+  ['trip', ['/pages/admin/trip/index']],
   ['dispatch', ['/pages/admin/dispatch/index', '/pages/admin/monitor/index']],
-  ['message', ['/pages/admin/message/broadcast', '/pages/admin/message/private']],
-  ['report', ['/pages/admin/report/index', '/pages/admin/report/vehicle', '/pages/admin/report/driver']]
+  ['message', ['/pages/admin/message/broadcast', '/pages/admin/message/private', '/pages/admin/message/dead-letter', '/pages/admin/appeal/index']],
+  ['report', ['/pages/admin/report/index', '/pages/admin/cost/index', '/pages/admin/statistics/index']]
 ])
 
 const updateCurrentPath = () => {

@@ -79,7 +79,7 @@
 			<view v-else-if="currentTasks.length > 0" v-for="task in currentTasks" :key="task.id" class="task-card">
 				<view class="task-header">
 					<view class="task-info">
-						<text class="task-title">{{ task.startLocation }} → {{ task.endLocation }}</text>
+						<text class="task-title">{{ getTaskTitle(task) }}</text>
 						<text class="task-time">计划时间: {{ formatDateTime(task.scheduledStartTime) }}</text>
 					</view>
 					<view :class="['status-badge', getTaskStatusClass(task.status)]">
@@ -89,12 +89,27 @@
 				
 				<view class="task-desc">
 					<text>任务编号: {{ task.taskNo }}</text>
-					<text v-if="task.cargoWeight"> | 货物重量: {{ task.cargoWeight }}吨</text>
+					<text> | 类型: {{ task.taskTypeName || getTaskTypeName(task.taskType) }}</text>
 				</view>
 				
 				<view class="task-meta" v-if="task.priority">
 					<text class="meta-label">优先级:</text>
 					<text :class="['priority-tag', getPriorityClass(task.priority)]">{{ task.priority }}</text>
+				</view>
+				
+				<view class="task-vehicle-info">
+					<view class="vehicle-row" v-if="task.taskType === 2">
+						<text class="vehicle-label">故障车辆:</text>
+						<text class="vehicle-value">{{ task.vehicleNo || '未分配' }}</text>
+					</view>
+					<view class="vehicle-row" v-if="task.taskType === 2 && task.repairmanVehicleNo">
+						<text class="vehicle-label">维修车辆:</text>
+						<text class="vehicle-value">{{ task.repairmanVehicleNo }}</text>
+					</view>
+					<view class="vehicle-row" v-if="task.taskType !== 2">
+						<text class="vehicle-label">车辆:</text>
+						<text class="vehicle-value">{{ task.vehicleNo || '未分配' }}</text>
+					</view>
 				</view>
 				
 				<view class="task-footer">
@@ -249,12 +264,11 @@ import type { DispatchTaskVO } from '@/types/dispatch.uts'
 			return
 		}
 		
-		// 检查用户是否有司机角色
 		const roleCode = user.roleCode?.toUpperCase() || ''
-		const isDriver = roleCode === 'ROLE_DRIVER' || roleCode === 'DRIVER'
+		const validRoles = ['ROLE_DRIVER', 'DRIVER', 'ROLE_REPAIRMAN', 'REPAIRMAN', 'ROLE_SAFETY_OFFICER', 'SAFETY_OFFICER']
+		const isValidRole = validRoles.some(r => roleCode === r)
 		
-		if (!isDriver) {
-			// 非司机角色，显示提示
+		if (!isValidRole) {
 			tasks.value = []
 			return
 		}
@@ -262,7 +276,6 @@ import type { DispatchTaskVO } from '@/types/dispatch.uts'
 		loading.value = true
 		
 		try {
-			// 使用字符串类型的 ID，避免精度丢失
 			const data = await getPendingTasksByDriver(user.id)
 			tasks.value = data || []
 		} catch (e) {
@@ -322,6 +335,23 @@ import type { DispatchTaskVO } from '@/types/dispatch.uts'
 		if (priority === 'high' || priority === '紧急') return 'high'
 		if (priority === 'medium' || priority === '普通') return 'medium'
 		return 'low'
+	}
+	
+	function getTaskTypeName(taskType: number | null | undefined): string {
+		if (taskType === 1) return '运输任务'
+		if (taskType === 2) return '维修任务'
+		if (taskType === 3) return '巡检任务'
+		return '未知任务'
+	}
+	
+	function getTaskTitle(task: DispatchTaskVO): string {
+		if (task.taskType === 2) {
+			return `维修任务 - ${task.vehicleNo || '待分配车辆'}`
+		} else if (task.taskType === 3) {
+			return `巡检任务 - ${task.startLocation || '起点'} → ${task.endLocation || '终点'}`
+		} else {
+			return `${task.startLocation || '起点'} → ${task.endLocation || '终点'}`
+		}
 	}
 	
 	async function checkIn() {
@@ -893,6 +923,36 @@ import type { DispatchTaskVO } from '@/types/dispatch.uts'
 	.priority-tag.low {
 		background-color: #F0FFF4;
 		color: #34C759;
+	}
+	
+	.task-vehicle-info {
+		margin-bottom: 16rpx;
+		padding: 16rpx;
+		background-color: #F7F8FA;
+		border-radius: 12rpx;
+	}
+	
+	.vehicle-row {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 12rpx;
+		margin-bottom: 8rpx;
+	}
+	
+	.vehicle-row:last-child {
+		margin-bottom: 0;
+	}
+	
+	.vehicle-label {
+		font-size: 24rpx;
+		color: #8F959E;
+	}
+	
+	.vehicle-value {
+		font-size: 24rpx;
+		color: #2c3e50;
+		font-weight: 500;
 	}
 	
 	.task-footer {

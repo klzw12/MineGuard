@@ -1,0 +1,670 @@
+<template>
+	<view class="admin-layout-container">
+		<AdminSidebar />
+		<view class="admin-content">
+			<view class="page-header">
+				<text class="page-title">死信处理</text>
+				<text class="page-subtitle">查看和处理消息队列中的死信消息</text>
+			</view>
+			
+			<view class="content-card">
+				<view class="card-header">
+					<text class="card-title">死信消息列表</text>
+					<text class="card-count">共 {{ totalElements }} 条</text>
+				</view>
+				
+				<view class="message-list" v-if="messages.length > 0">
+					<view class="message-item" v-for="(item, index) in messages" :key="index" @click="viewDetail(item)">
+						<view class="message-header">
+							<view class="message-info">
+								<text class="message-id">{{ item.messageId || '无ID' }}</text>
+								<text class="message-type">{{ item.type || 'DEAD_LETTER' }}</text>
+							</view>
+							<text class="message-time">{{ formatTime(item.createTime) }}</text>
+						</view>
+						
+						<view class="message-body">
+							<view class="info-row">
+								<text class="info-label">接收者:</text>
+								<text class="info-value">{{ item.receiver || '未知' }}</text>
+							</view>
+							<view class="info-row" v-if="item.title">
+								<text class="info-label">标题:</text>
+								<text class="info-value">{{ item.title }}</text>
+							</view>
+							<view class="info-row">
+								<text class="info-label">内容:</text>
+								<text class="info-value content-preview">{{ getContentPreview(item) }}</text>
+							</view>
+						</view>
+						
+						<view class="message-actions">
+							<view class="action-btn delete" @click.stop="confirmDelete(item)">
+								<text class="btn-text">删除</text>
+							</view>
+						</view>
+					</view>
+				</view>
+				
+				<view class="empty-state" v-else-if="!loading">
+					<text class="empty-icon">📭</text>
+					<text class="empty-text">暂无死信消息</text>
+					<text class="empty-hint">所有消息都已正常处理</text>
+				</view>
+				
+				<view class="loading-state" v-if="loading">
+					<text class="loading-text">加载中...</text>
+				</view>
+				
+				<view class="pagination" v-if="totalPages > 1">
+					<view class="page-btn" :class="{ disabled: currentPage <= 0 }" @click="prevPage">
+						<text class="btn-text">上一页</text>
+					</view>
+					<text class="page-info">{{ currentPage + 1 }} / {{ totalPages }}</text>
+					<view class="page-btn" :class="{ disabled: currentPage >= totalPages - 1 }" @click="nextPage">
+						<text class="btn-text">下一页</text>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<view class="detail-modal" v-if="showDetail" @click="closeDetail">
+			<view class="detail-content" @click.stop>
+				<view class="detail-header">
+					<text class="detail-title">死信消息详情</text>
+					<view class="close-btn" @click="closeDetail">
+						<text class="close-text">×</text>
+					</view>
+				</view>
+				
+				<scroll-view class="detail-body" scroll-y>
+					<view class="detail-section">
+						<text class="section-title">基本信息</text>
+						<view class="detail-row">
+							<text class="detail-label">消息ID:</text>
+							<text class="detail-value">{{ selectedMessage?.messageId || '无' }}</text>
+						</view>
+						<view class="detail-row">
+							<text class="detail-label">消息类型:</text>
+							<text class="detail-value">{{ selectedMessage?.type || 'DEAD_LETTER' }}</text>
+						</view>
+						<view class="detail-row">
+							<text class="detail-label">发送者:</text>
+							<text class="detail-value">{{ selectedMessage?.sender || 'SYSTEM' }}</text>
+						</view>
+						<view class="detail-row">
+							<text class="detail-label">接收者:</text>
+							<text class="detail-value">{{ selectedMessage?.receiver || '未知' }}</text>
+						</view>
+						<view class="detail-row">
+							<text class="detail-label">创建时间:</text>
+							<text class="detail-value">{{ formatTime(selectedMessage?.createTime) }}</text>
+						</view>
+						<view class="detail-row">
+							<text class="detail-label">状态:</text>
+							<text class="detail-value status-failed">{{ selectedMessage?.status || 'FAILED' }}</text>
+						</view>
+					</view>
+					
+					<view class="detail-section" v-if="selectedMessage?.title">
+						<text class="section-title">消息标题</text>
+						<text class="section-content">{{ selectedMessage?.title }}</text>
+					</view>
+					
+					<view class="detail-section">
+					<text class="section-title">消息内容</text>
+					<view v-if="typeof selectedMessage?.content === 'object' && selectedMessage.content !== null" class="content-object">
+						<view class="object-row" v-if="selectedMessage.content.originalContent">
+							<text class="object-label">原始内容:</text>
+							<text class="object-value">{{ JSON.stringify(selectedMessage.content.originalContent, null, 2) }}</text>
+						</view>
+						<view class="object-row" v-if="selectedMessage.content.rawBody">
+							<text class="object-label">原始Body:</text>
+							<text class="object-value">{{ selectedMessage.content.rawBody }}</text>
+						</view>
+						<view class="object-row" v-if="selectedMessage.content.base64Body">
+							<text class="object-label">Base64编码:</text>
+							<text class="object-value base64">{{ selectedMessage.content.base64Body }}</text>
+						</view>
+						<view class="object-row" v-if="selectedMessage.content.contentType">
+							<text class="object-label">内容类型:</text>
+							<text class="object-value">{{ selectedMessage.content.contentType }}</text>
+						</view>
+						<view class="object-row" v-if="selectedMessage.content.originalExchange">
+							<text class="object-label">原始交换机:</text>
+							<text class="object-value">{{ selectedMessage.content.originalExchange }}</text>
+						</view>
+						<view class="object-row" v-if="selectedMessage.content.originalRoutingKey">
+							<text class="object-label">原始路由键:</text>
+							<text class="object-value">{{ selectedMessage.content.originalRoutingKey }}</text>
+						</view>
+						<view class="object-row" v-if="selectedMessage.content.retryCount">
+							<text class="object-label">重试次数:</text>
+							<text class="object-value">{{ selectedMessage.content.retryCount }}</text>
+						</view>
+						<view class="object-row" v-if="selectedMessage.content.failedAt">
+							<text class="object-label">失败时间:</text>
+							<text class="object-value">{{ selectedMessage.content.failedAt }}</text>
+						</view>
+					</view>
+					<text v-else class="section-content">{{ selectedMessage?.content || '无内容' }}</text>
+				</view>
+				</scroll-view>
+				
+				<view class="detail-footer">
+					<view class="footer-btn delete" @click="confirmDelete(selectedMessage)">
+						<text class="footer-btn-text">删除此消息</text>
+					</view>
+					<view class="footer-btn close" @click="closeDetail">
+						<text class="footer-btn-text">关闭</text>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref, onMounted } from 'vue'
+	import AdminSidebar from '@/components/AdminSidebar.uvue'
+	import { getDeadLetterMessages, getDeadLetterDetail, deleteDeadLetterMessage, type PageResult } from '@/api/message.uts'
+	import type { MessageVO } from '@/types/user.uts'
+	
+	const messages = ref<MessageVO[]>([])
+	const loading = ref(false)
+	const currentPage = ref(0)
+	const totalPages = ref(0)
+	const totalElements = ref(0)
+	const pageSize = 20
+	
+	const showDetail = ref(false)
+	const selectedMessage = ref<MessageVO | null>(null)
+	
+	onMounted(() => {
+		loadMessages()
+	})
+	
+	async function loadMessages() {
+		if (loading.value) return
+		loading.value = true
+		
+		try {
+			const result = await getDeadLetterMessages(currentPage.value, pageSize)
+			if (result) {
+				messages.value = result.content || []
+				totalElements.value = result.totalElements || 0
+				totalPages.value = result.totalPages || 0
+			}
+		} catch (e) {
+			console.error('加载死信消息失败:', e)
+			uni.showToast({ title: '加载失败', icon: 'none' })
+		} finally {
+			loading.value = false
+		}
+	}
+	
+	function formatTime(timeStr: string | undefined): string {
+		if (!timeStr) return '未知时间'
+		
+		try {
+			let date: Date
+			if (/^\d+$/.test(timeStr)) {
+				date = new Date(parseInt(timeStr))
+			} else {
+				date = new Date(timeStr)
+			}
+			
+			if (isNaN(date.getTime())) return '未知时间'
+			
+			const year = date.getFullYear()
+			const month = (date.getMonth() + 1).toString().padStart(2, '0')
+			const day = date.getDate().toString().padStart(2, '0')
+			const hours = date.getHours().toString().padStart(2, '0')
+			const minutes = date.getMinutes().toString().padStart(2, '0')
+			const seconds = date.getSeconds().toString().padStart(2, '0')
+			
+			return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+		} catch (e) {
+			return '未知时间'
+		}
+	}
+	
+	function getContentPreview(item: MessageVO | null): string {
+		if (!item) return ''
+		const content = item.content || ''
+		if (typeof content === 'string') {
+			if (content.length > 50) {
+				return content.substring(0, 50) + '...'
+			}
+			return content
+		} else if (typeof content === 'object' && content !== null) {
+			if (content.originalContent) {
+				return '包含原始消息内容...'
+			} else if (content.rawBody) {
+				const rawBody = content.rawBody as string
+				if (rawBody.length > 50) {
+					return rawBody.substring(0, 50) + '...'
+				}
+				return rawBody
+			}
+			return '复杂对象内容...'
+		}
+		return ''
+	}
+	
+	async function viewDetail(item: MessageVO) {
+		try {
+			if (item.id) {
+				const detail = await getDeadLetterDetail(item.id)
+				if (detail) {
+					selectedMessage.value = detail
+				} else {
+					selectedMessage.value = item
+				}
+			} else {
+				selectedMessage.value = item
+			}
+			showDetail.value = true
+		} catch (e) {
+			console.error('获取详情失败:', e)
+			selectedMessage.value = item
+			showDetail.value = true
+		}
+	}
+	
+	function closeDetail() {
+		showDetail.value = false
+		selectedMessage.value = null
+	}
+	
+	function confirmDelete(item: MessageVO | null) {
+		if (!item || !item.id) return
+		
+		uni.showModal({
+			title: '确认删除',
+			content: '确定要删除这条死信消息吗？此操作不可恢复。',
+			success: async (res) => {
+				if (res.confirm) {
+					await doDelete(item.id!)
+				}
+			}
+		})
+	}
+	
+	async function doDelete(id: string) {
+		try {
+			await deleteDeadLetterMessage(id)
+			uni.showToast({ title: '删除成功', icon: 'success' })
+			
+			if (showDetail.value) {
+				closeDetail()
+			}
+			
+			loadMessages()
+		} catch (e) {
+			console.error('删除失败:', e)
+			uni.showToast({ title: '删除失败', icon: 'none' })
+		}
+	}
+	
+	function prevPage() {
+		if (currentPage.value <= 0) return
+		currentPage.value--
+		loadMessages()
+	}
+	
+	function nextPage() {
+		if (currentPage.value >= totalPages.value - 1) return
+		currentPage.value++
+		loadMessages()
+	}
+</script>
+
+<style lang="scss">
+	@import '@/styles/admin.scss';
+	
+	.page-subtitle {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.5);
+		margin-top: 10rpx;
+	}
+	
+	.card-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 30rpx;
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+	}
+	
+	.card-title {
+		font-size: 28rpx;
+		font-weight: bold;
+		color: #fff;
+	}
+	
+	.card-count {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.5);
+	}
+	
+	.message-list {
+		padding: 20rpx 30rpx;
+	}
+	
+	.message-item {
+		padding: 25rpx;
+		background-color: rgba(255, 255, 255, 0.03);
+		border-radius: 12rpx;
+		margin-bottom: 20rpx;
+		border-left: 4rpx solid #ff6b6b;
+	}
+	
+	.message-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: flex-start;
+		margin-bottom: 15rpx;
+	}
+	
+	.message-info {
+		display: flex;
+		flex-direction: column;
+		gap: 8rpx;
+	}
+	
+	.message-id {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.6);
+		font-family: monospace;
+	}
+	
+	.message-type {
+		font-size: 20rpx;
+		color: #ff6b6b;
+		background-color: rgba(255, 107, 107, 0.1);
+		padding: 4rpx 12rpx;
+		border-radius: 6rpx;
+		align-self: flex-start;
+	}
+	
+	.message-time {
+		font-size: 22rpx;
+		color: rgba(255, 255, 255, 0.4);
+	}
+	
+	.message-body {
+		margin-bottom: 15rpx;
+	}
+	
+	.info-row {
+		display: flex;
+		flex-direction: row;
+		margin-bottom: 8rpx;
+	}
+	
+	.info-label {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.5);
+		width: 120rpx;
+		flex-shrink: 0;
+	}
+	
+	.info-value {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.8);
+		flex: 1;
+	}
+	
+	.content-preview {
+		color: rgba(255, 255, 255, 0.6);
+		word-break: break-all;
+	}
+	
+	.message-actions {
+		display: flex;
+		flex-direction: row;
+		justify-content: flex-end;
+		gap: 15rpx;
+		padding-top: 15rpx;
+		border-top: 1rpx solid rgba(255, 255, 255, 0.05);
+	}
+	
+	.action-btn {
+		padding: 12rpx 24rpx;
+		border-radius: 8rpx;
+		
+		&.delete {
+			background-color: rgba(255, 107, 107, 0.1);
+			border: 1rpx solid rgba(255, 107, 107, 0.3);
+		}
+	}
+	
+	.btn-text {
+		font-size: 24rpx;
+		color: #ff6b6b;
+	}
+	
+	.empty-state {
+		padding: 80rpx 30rpx;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 20rpx;
+	}
+	
+	.empty-icon {
+		font-size: 80rpx;
+	}
+	
+	.empty-text {
+		font-size: 28rpx;
+		color: rgba(255, 255, 255, 0.6);
+	}
+	
+	.empty-hint {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.4);
+	}
+	
+	.loading-state {
+		padding: 60rpx 30rpx;
+		display: flex;
+		justify-content: center;
+	}
+	
+	.loading-text {
+		font-size: 26rpx;
+		color: rgba(255, 255, 255, 0.5);
+	}
+	
+	.pagination {
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		gap: 30rpx;
+		padding: 30rpx;
+		border-top: 1rpx solid rgba(255, 255, 255, 0.08);
+	}
+	
+	.page-btn {
+		padding: 15rpx 30rpx;
+		background-color: rgba(255, 255, 255, 0.05);
+		border-radius: 8rpx;
+		
+		&.disabled {
+			opacity: 0.3;
+		}
+	}
+	
+	.page-info {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.6);
+	}
+	
+	.detail-modal {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.7);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+	}
+	
+	.detail-content {
+		width: 90%;
+		max-height: 80%;
+		background-color: #1a1a2e;
+		border-radius: 16rpx;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+	
+	.detail-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 30rpx;
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+	}
+	
+	.detail-title {
+		font-size: 30rpx;
+		font-weight: bold;
+		color: #fff;
+	}
+	
+	.close-btn {
+		width: 50rpx;
+		height: 50rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	
+	.close-text {
+		font-size: 40rpx;
+		color: rgba(255, 255, 255, 0.6);
+	}
+	
+	.detail-body {
+		flex: 1;
+		padding: 30rpx;
+		max-height: 600rpx;
+	}
+	
+	.detail-section {
+		margin-bottom: 30rpx;
+	}
+	
+	.section-title {
+		font-size: 26rpx;
+		color: rgba(255, 255, 255, 0.5);
+		margin-bottom: 15rpx;
+		display: block;
+	}
+	
+	.section-content {
+		font-size: 26rpx;
+		color: rgba(255, 255, 255, 0.8);
+		line-height: 1.6;
+		word-break: break-all;
+	}
+	
+	.detail-row {
+		display: flex;
+		flex-direction: row;
+		margin-bottom: 12rpx;
+	}
+	
+	.detail-label {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.5);
+		width: 150rpx;
+		flex-shrink: 0;
+	}
+	
+	.detail-value {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.8);
+		flex: 1;
+		word-break: break-all;
+	}
+	
+	.status-failed {
+				color: #ff6b6b;
+			}
+			
+			.content-object {
+				background-color: rgba(255, 255, 255, 0.03);
+				border-radius: 8rpx;
+				padding: 20rpx;
+			}
+			
+			.object-row {
+				margin-bottom: 15rpx;
+			}
+			
+			.object-label {
+				display: block;
+				font-size: 24rpx;
+				color: rgba(255, 255, 255, 0.5);
+				margin-bottom: 8rpx;
+			}
+			
+			.object-value {
+				font-size: 24rpx;
+				color: rgba(255, 255, 255, 0.8);
+				line-height: 1.5;
+				word-break: break-all;
+				font-family: monospace;
+			}
+			
+			.object-value.base64 {
+				font-size: 20rpx;
+				color: rgba(255, 255, 255, 0.6);
+				max-height: 200rpx;
+				overflow: auto;
+			}
+			
+			.detail-footer {
+		display: flex;
+		flex-direction: row;
+		gap: 20rpx;
+		padding: 30rpx;
+		border-top: 1rpx solid rgba(255, 255, 255, 0.08);
+	}
+	
+	.footer-btn {
+		flex: 1;
+		padding: 20rpx;
+		border-radius: 10rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		
+		&.delete {
+			background-color: rgba(255, 107, 107, 0.1);
+			border: 1rpx solid rgba(255, 107, 107, 0.3);
+		}
+		
+		&.close {
+			background-color: rgba(255, 255, 255, 0.05);
+			border: 1rpx solid rgba(255, 255, 255, 0.1);
+		}
+	}
+	
+	.footer-btn-text {
+		font-size: 26rpx;
+		color: #fff;
+	}
+</style>

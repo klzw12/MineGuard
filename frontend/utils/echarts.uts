@@ -1,0 +1,38 @@
+// Echarts 工具函数
+import * as echarts from 'echarts'
+
+export function init(canvasId: string) {
+  const canvas = uni.createSelectorQuery().select(`#${canvasId}`).context((res) => {
+    if (res && res.context) {
+      return echarts.init(res.context)
+    }
+    return null
+  })
+  canvas.exec()
+  return null
+}
+
+export function getInstance(canvasId: string) {
+  return new Promise<echarts.ECharts | null>((resolve) => {
+    uni.createSelectorQuery().select(`#${canvasId}`).context((res) => {
+      if (res && res.context) {
+        const chart = echarts.init(res.context)
+        resolve(chart)
+      } else {
+        resolve(null)
+      }
+    }).exec()
+  })
+}
+
+export function setOption(chart: echarts.ECharts, option: any) {
+  if (chart) {
+    chart.setOption(option)
+  }
+}
+
+export function resize(chart: echarts.ECharts) {
+  if (chart) {
+    chart.resize()
+  }
+}

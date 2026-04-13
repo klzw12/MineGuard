@@ -155,118 +155,122 @@ export interface CostBudgetDTO {
 
 export const costApi = {
   getCostDetailList: (params: any): Promise<CostDetailVO[] | null> => {
-    return http.get<CostDetailVO[]>('/api/cost/detail/list', params)
+    return http.get<CostDetailVO[]>('/cost/detail/list', params)
   },
 
   getCostDetail: (id: number): Promise<CostDetailVO | null> => {
-    return http.get<CostDetailVO>(`/api/cost/detail/${id}`)
+    return http.get<CostDetailVO>(`/cost/detail/${id}`)
   },
 
   addCostDetail: (data: CostDetailDTO): Promise<CostDetailVO | null> => {
-    return http.post<CostDetailVO>('/api/cost/detail', data)
+    return http.post<CostDetailVO>('/cost/detail', data)
   },
 
   updateCostDetail: (data: CostDetailDTO): Promise<CostDetailVO | null> => {
-    return http.put<CostDetailVO>('/api/cost/detail', data)
+    return http.put<CostDetailVO>('/cost/detail', data)
   },
 
   deleteCostDetail: (id: number): Promise<void | null> => {
-    return http.delete<void>(`/api/cost/detail/${id}`)
+    return http.delete<void>(`/cost/detail/${id}`)
   },
 
   getCostStatistics: (params: any): Promise<CostStatisticsVO | null> => {
-    return http.get<CostStatisticsVO>('/api/cost/statistics', params)
+    return http.get<CostStatisticsVO>('/cost/statistics', params)
   },
 
   getSalaryConfigList: (): Promise<SalaryConfigVO[] | null> => {
-    return http.get<SalaryConfigVO[]>('/api/cost/salary-config/list')
+    return http.get<SalaryConfigVO[]>('/cost/salary-config/list')
   },
 
   getSalaryConfig: (id: number): Promise<SalaryConfigVO | null> => {
-    return http.get<SalaryConfigVO>(`/api/cost/salary-config/${id}`)
+    return http.get<SalaryConfigVO>(`/cost/salary-config/${id}`)
   },
 
   addSalaryConfig: (data: SalaryConfigDTO): Promise<SalaryConfigVO | null> => {
-    return http.post<SalaryConfigVO>('/api/cost/salary-config', data)
+    return http.post<SalaryConfigVO>('/cost/salary-config', data)
   },
 
   updateSalaryConfig: (data: SalaryConfigDTO): Promise<SalaryConfigVO | null> => {
-    return http.put<SalaryConfigVO>('/api/cost/salary-config', data)
+    return http.put<SalaryConfigVO>('/cost/salary-config', data)
   },
 
   deleteSalaryConfig: (id: number): Promise<void | null> => {
-    return http.delete<void>(`/api/cost/salary-config/${id}`)
+    return http.delete<void>(`/cost/salary-config/${id}`)
   },
 
   getSalaryRecordList: (params: { keyword?: string, period?: string, page?: number, pageSize?: number }): Promise<SalaryRecordVO[] | null> => {
-    return http.get<SalaryRecordVO[]>('/api/cost/salary-record/list', params)
+    return http.get<SalaryRecordVO[]>('/cost/salary-record/list', params)
   },
 
   getSalaryRecord: (id: number): Promise<SalaryRecordVO | null> => {
-    return http.get<SalaryRecordVO>(`/api/cost/salary-record/${id}`)
+    return http.get<SalaryRecordVO>(`/cost/salary-record/${id}`)
   },
 
   addSalaryRecord: (data: SalaryRecordDTO): Promise<SalaryRecordVO | null> => {
-    return http.post<SalaryRecordVO>('/api/cost/salary-record', data)
+    return http.post<SalaryRecordVO>('/cost/salary-record', data)
   },
 
   updateSalaryRecord: (data: SalaryRecordDTO): Promise<SalaryRecordVO | null> => {
-    return http.put<SalaryRecordVO>('/api/cost/salary-record', data)
+    return http.put<SalaryRecordVO>('/cost/salary-record', data)
   },
 
   deleteSalaryRecord: (id: number): Promise<void | null> => {
-    return http.delete<void>(`/api/cost/salary-record/${id}`)
+    return http.delete<void>(`/cost/salary-record/${id}`)
   },
 
   getBudgetList: (params: any): Promise<CostBudgetVO[] | null> => {
-    return http.get<CostBudgetVO[]>('/api/cost/budget/list', params)
+    return http.get<CostBudgetVO[]>('/cost/budget/list', params)
   },
 
   getBudget: (id: number): Promise<CostBudgetVO | null> => {
-    return http.get<CostBudgetVO>(`/api/cost/budget/${id}`)
+    return http.get<CostBudgetVO>(`/cost/budget/${id}`)
   },
 
   addBudget: (data: CostBudgetDTO): Promise<CostBudgetVO | null> => {
-    return http.post<CostBudgetVO>('/api/cost/budget', data)
+    return http.post<CostBudgetVO>('/cost/budget', data)
   },
 
   updateBudget: (data: CostBudgetDTO): Promise<CostBudgetVO | null> => {
-    return http.put<CostBudgetVO>('/api/cost/budget', data)
+    return http.put<CostBudgetVO>('/cost/budget', data)
   },
 
   deleteBudget: (id: number): Promise<void | null> => {
-    return http.delete<void>(`/api/cost/budget/${id}`)
+    return http.delete<void>(`/cost/budget/${id}`)
   },
 
   checkBudgetUsage: (id: number): Promise<any | null> => {
-    return http.get<any>(`/api/cost/budget/${id}/usage`)
+    return http.get<any>(`/cost/budget/${id}/usage`)
   },
 
   getBudgetAlerts: (): Promise<any[] | null> => {
-    return http.get<any[]>('/api/cost/budget/alerts')
+    return http.get<any[]>('/cost/budget/alerts')
   },
 
   getCostReport: (startDate: string, endDate: string): Promise<any | null> => {
-    return http.get<any>('/api/cost/report', { startDate, endDate })
+    return http.get<any>('/cost/report', { startDate, endDate })
   },
 
   getCostTrend: (startDate: string, endDate: string, granularity: string): Promise<any | null> => {
-    return http.get<any>('/api/cost/trend', { startDate, endDate, granularity })
+    return http.get<any>('/cost/trend', { startDate, endDate, granularity })
   },
 
   getEnergyAnalysis: (startDate: string, endDate: string): Promise<any | null> => {
-    return http.get<any>('/api/cost/analysis/energy', { startDate, endDate })
+    return http.get<any>('/cost/analysis/energy', { startDate, endDate })
   },
 
   getUtilizationAnalysis: (startDate: string, endDate: string): Promise<any | null> => {
-    return http.get<any>('/api/cost/analysis/utilization', { startDate, endDate })
+    return http.get<any>('/cost/analysis/utilization', { startDate, endDate })
   },
 
   getIdleRateAnalysis: (startDate: string, endDate: string): Promise<any | null> => {
-    return http.get<any>('/api/cost/analysis/idle-rate', { startDate, endDate })
+    return http.get<any>('/cost/analysis/idle-rate', { startDate, endDate })
   },
 
   getOverallCostAnalysis: (startDate: string, endDate: string): Promise<any | null> => {
-    return http.get<any>('/api/cost/analysis/overall', { startDate, endDate })
+    return http.get<any>('/cost/analysis/overall', { startDate, endDate })
+  },
+
+  calculateSalaries: (): Promise<any | null> => {
+    return http.post<any>('/cost/calculate-salaries', {})
   }
 }

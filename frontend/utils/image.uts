@@ -269,3 +269,43 @@ export function isValidBase64Image(base64Data: string): boolean {
 		return false
 	}
 }
+
+const DEFAULT_AVATARS: string[] = [
+	'/static/avatar/coal.png',
+	'/static/avatar/gold.png',
+	'/static/avatar/GreenStone.png',
+	'/static/avatar/Mine.png',
+	'/static/avatar/Minecraft.png',
+	'/static/avatar/Safe.png'
+]
+
+let avatarCache: Map<string, string> = new Map()
+
+export function getAvatarUrl(signatureUrl: string | null | undefined, userId?: string): string {
+	if (signatureUrl && signatureUrl.trim() !== '') {
+		return signatureUrl
+	}
+	
+	if (userId) {
+		let cachedAvatar = avatarCache.get(userId)
+		if (cachedAvatar) {
+			return cachedAvatar
+		}
+		
+		const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+		const index = hash % DEFAULT_AVATARS.length
+		cachedAvatar = DEFAULT_AVATARS[index]
+		avatarCache.set(userId, cachedAvatar)
+		return cachedAvatar
+	}
+	
+	const randomIndex = Math.floor(Math.random() * DEFAULT_AVATARS.length)
+	return DEFAULT_AVATARS[randomIndex]
+}
+
+export function getVehiclePhotoUrl(photoUrl: string | null | undefined): string {
+	if (photoUrl && photoUrl.trim() !== '') {
+		return photoUrl
+	}
+	return '/static/images/default-vehicle.png'
+}

@@ -2,6 +2,8 @@ package com.klzw.service.user.service;
 
 import com.klzw.service.user.dto.ContactVO;
 import com.klzw.service.user.dto.MessageVO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
 
@@ -26,4 +28,10 @@ public interface MessageService {
     List<ContactVO> getContactList(Long userId);
     
     void sendPrivateMessage(Long senderId, Long receiverId, String content);
+    
+    Page<MessageVO> getDeadLetterMessages(PageRequest pageRequest);
+    
+    MessageVO getDeadLetterDetail(String id);
+    
+    void deleteDeadLetterMessage(String id);
 }

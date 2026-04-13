@@ -7,6 +7,8 @@ import com.klzw.service.user.dto.MessageVO;
 import com.klzw.service.user.service.MessageService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,14 +20,22 @@ public class MessageController {
 
     private final MessageService messageService;
 
-    @PostMapping("/send")
-    public Result<Void> sendMessage(
-            @RequestParam("userId") Long userId,
-            @RequestParam("title") String title,
-            @RequestParam("content") String content,
-            @RequestParam("type") Integer type,
-            @RequestParam("businessId") String businessId) {
-        messageService.sendMessage(userId, title, content, type);
+    @GetMapping("/dead-letter/list")
+    public Result<Page<MessageVO>> getDeadLetterMessages(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        PageRequest pageRequest = PageRequest.of(page, size);
+        return Result.success(messageService.getDeadLetterMessages(pageRequest));
+    }
+    
+    @GetMapping("/dead-letter/{id}")
+    public Result<MessageVO> getDeadLetterDetail(@PathVariable String id) {
+        return Result.success(messageService.getDeadLetterDetail(id));
+    }
+    
+    @DeleteMapping("/dead-letter/{id}")
+    public Result<Void> deleteDeadLetterMessage(@PathVariable String id) {
+        messageService.deleteDeadLetterMessage(id);
         return Result.success();
     }
 
@@ -95,6 +105,7 @@ public class MessageController {
         private Integer type;
     }
 
+    
     @Data
     static class RoleMessageRequestDTO {
         private String roleCode;

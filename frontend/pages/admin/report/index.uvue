@@ -7,7 +7,7 @@
 		<view class="admin-content">
 			<!-- 头部区域 -->
 			<view class="header-section">
-				<text class="page-title">统计报表</text>
+				<text class="page-title">数据统计</text>
 			</view>
 			
 			<!-- 时间筛选 -->
@@ -22,10 +22,25 @@
 			<view class="overview-section">
 				<text class="section-title">数据概览</text>
 				<view class="overview-cards">
-					<view class="overview-card" v-for="i in 4" :key="i">
-						<text class="card-value">{{1000 + i * 200}}</text>
+					<view class="overview-card">
+						<text class="card-value">1200</text>
 						<text class="card-label">总运量(吨)</text>
 						<text class="card-trend">+12% 上周</text>
+					</view>
+					<view class="overview-card">
+						<text class="card-value">85</text>
+						<text class="card-label">总车次</text>
+						<text class="card-trend">+8% 上周</text>
+					</view>
+					<view class="overview-card">
+						<text class="card-value">45</text>
+						<text class="card-label">总时长(小时)</text>
+						<text class="card-trend">+5% 上周</text>
+					</view>
+					<view class="overview-card">
+						<text class="card-value">¥28,500</text>
+						<text class="card-label">总收入</text>
+						<text class="card-trend">+15% 上周</text>
 					</view>
 				</view>
 			</view>
@@ -110,20 +125,20 @@
 	.overview-section {
 		margin-bottom: 50rpx;
 	}
-	
+
 	.section-title {
 		font-size: 28rpx;
 		font-weight: bold;
 		color: #0056b3;
 		margin-bottom: 20rpx;
 	}
-	
+
 	.overview-cards {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
 		gap: 20rpx;
 	}
-	
+
 	.overview-card {
 		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
 		color: #fff;
@@ -131,24 +146,24 @@
 		padding: 30rpx;
 		box-shadow: 0 4rpx 20rpx rgba(0, 122, 255, 0.3);
 	}
-	
+
 	.card-value {
 		font-size: 40rpx;
 		font-weight: bold;
 		margin-bottom: 8rpx;
 	}
-	
+
 	.card-label {
 		font-size: 22rpx;
 		opacity: 0.9;
 		margin-bottom: 8rpx;
 	}
-	
+
 	.card-trend {
 		font-size: 18rpx;
 		opacity: 0.8;
 	}
-	
+
 	/* 图表区域 */
 	.charts-section {
 		margin-bottom: 50rpx;
@@ -199,7 +214,7 @@
 			grid-template-columns: repeat(2, 1fr);
 		}
 	}
-	
+
 	@media (min-width: 1024px) {
 		.admin-content {
 			padding: 50rpx;

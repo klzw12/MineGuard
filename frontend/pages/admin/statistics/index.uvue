@@ -21,63 +21,10 @@
 			</view>
 		</view>
 		
-		<view class="overview-cards">
-			<view class="overview-item">
-				<view class="overview-icon trips">
-					<text class="icon-text">🚗</text>
-				</view>
-				<view class="overview-content">
-					<text class="overview-value">{{ overall.totalTripCount || 0 }}</text>
-					<text class="overview-label">总行程数</text>
-				</view>
-			</view>
-			<view class="overview-item">
-				<view class="overview-icon distance">
-					<text class="icon-text">📍</text>
-				</view>
-				<view class="overview-content">
-					<text class="overview-value">{{ (overall.totalDistance || 0).toFixed(1) }}</text>
-					<text class="overview-label">总里程(km)</text>
-				</view>
-			</view>
-			<view class="overview-item">
-				<view class="overview-icon cargo">
-					<text class="icon-text">📦</text>
-				</view>
-				<view class="overview-content">
-					<text class="overview-value">{{ (overall.totalCargoWeight || 0).toFixed(1) }}</text>
-					<text class="overview-label">货运量(吨)</text>
-				</view>
-			</view>
-			<view class="overview-item">
-				<view class="overview-icon cost">
-					<text class="icon-text">💰</text>
-				</view>
-				<view class="overview-content">
-					<text class="overview-value">¥{{ ((overall.totalCost || 0) / 10000).toFixed(2) }}万</text>
-					<text class="overview-label">总成本</text>
-				</view>
-			</view>
-		</view>
-		
-		<view class="charts-section">
-			<view class="chart-card">
-				<text class="chart-title">成本分布</text>
-				<ECharts :option="costPieOption" :height="400" :showLegend="true" />
-			</view>
-			
-			<view class="chart-card">
-				<text class="chart-title">行程趋势</text>
-				<ECharts :option="tripTrendOption" :height="400" :showLegend="true" />
-			</view>
-			
-			<view class="chart-card">
-				<text class="chart-title">成本趋势</text>
-				<ECharts :option="costTrendOption" :height="400" :showLegend="true" />
-			</view>
-		</view>
-		
 		<view class="tabs">
+			<view class="tab-item" :class="{'active': currentTab === 'overview'}" @click="switchTab('overview')">
+				<text class="tab-text">概览</text>
+			</view>
 			<view class="tab-item" :class="{'active': currentTab === 'trip'}" @click="switchTab('trip')">
 				<text class="tab-text">行程统计</text>
 			</view>
@@ -92,6 +39,67 @@
 			</view>
 			<view class="tab-item" :class="{'active': currentTab === 'fault'}" @click="switchTab('fault')">
 				<text class="tab-text">故障统计</text>
+			</view>
+		</view>
+		
+		<view v-if="currentTab === 'overview'" class="statistics-card">
+			<view class="card-header">
+				<text class="card-title">数据概览</text>
+			</view>
+			<view class="overview-cards">
+				<view class="overview-item">
+					<view class="overview-icon trips">
+						<text class="icon-text">🚗</text>
+					</view>
+					<view class="overview-content">
+						<text class="overview-value">{{ overall.totalTripCount || 0 }}</text>
+						<text class="overview-label">总行程数</text>
+					</view>
+				</view>
+				<view class="overview-item">
+					<view class="overview-icon distance">
+						<text class="icon-text">📍</text>
+					</view>
+					<view class="overview-content">
+						<text class="overview-value">{{ (overall.totalDistance || 0).toFixed(1) }}</text>
+						<text class="overview-label">总里程(km)</text>
+					</view>
+				</view>
+				<view class="overview-item">
+					<view class="overview-icon cargo">
+						<text class="icon-text">📦</text>
+					</view>
+					<view class="overview-content">
+						<text class="overview-value">{{ (overall.totalCargoWeight || 0).toFixed(1) }}</text>
+						<text class="overview-label">货运量(吨)</text>
+					</view>
+				</view>
+				<view class="overview-item">
+					<view class="overview-icon cost">
+						<text class="icon-text">💰</text>
+					</view>
+					<view class="overview-content">
+						<text class="overview-value">¥{{ ((overall.totalCost || 0) / 10000).toFixed(2) }}万</text>
+						<text class="overview-label">总成本</text>
+					</view>
+				</view>
+			</view>
+			
+			<view class="charts-section">
+				<view class="chart-card">
+					<text class="chart-title">成本分布</text>
+					<ECharts :option="costPieOption" :height="400" :showLegend="true" />
+				</view>
+				
+				<view class="chart-card">
+					<text class="chart-title">行程趋势</text>
+					<ECharts :option="tripTrendOption" :height="400" :showLegend="true" />
+				</view>
+				
+				<view class="chart-card">
+					<text class="chart-title">成本趋势</text>
+					<ECharts :option="costTrendOption" :height="400" :showLegend="true" />
+				</view>
 			</view>
 		</view>
 		
@@ -396,7 +404,7 @@
 		totalDrivers: number
 	}
 
-	const currentTab = ref('trip')
+	const currentTab = ref('overview')
 	const startDate = ref('')
 	const endDate = ref('')
 	const tripStatistics = ref<TripStatisticsVO[]>([])
@@ -470,6 +478,7 @@
 	})
 
 	const isEmpty = computed(() => {
+		if (currentTab.value === 'overview') return false
 		if (currentTab.value === 'trip') return tripStatistics.value.length === 0
 		if (currentTab.value === 'cost') return costStatistics.value.length === 0
 		if (currentTab.value === 'vehicle') return vehicleStatistics.value.length === 0
@@ -480,7 +489,9 @@
 
 	const switchTab = (tab: string) => {
 		currentTab.value = tab
-		fetchData()
+		if (tab !== 'overview') {
+			fetchData()
+		}
 	}
 
 	const onStartDateChange = (e: any) => {
