@@ -18,7 +18,7 @@ public class SpringAiConfig {
     @Value("${ai.deepseek.model:deepseek-V3.2}")
     private String deepSeekModel;
 
-    @Value("${ai.deepseek.base-url:https://api.deepseek.com/v1}")
+    @Value("${ai.deepseek.base-url:https://api.deepseek.com}")
     private String deepSeekBaseUrl;
 
     @Value("${ai.minimax.api-key}")

@@ -1,0 +1,588 @@
+<template>
+	<AdminLayout>
+		<view class="page-header">
+			<text class="page-title">行程详情</text>
+			<view class="header-actions">
+				<button class="secondary-btn" @click="goToPlayback">轨迹回放</button>
+				<button class="secondary-btn" @click="goBack">返回列表</button>
+			</view>
+		</view>
+		
+		<view class="detail-content" v-if="tripDetail">
+			<view class="info-card">
+				<view class="card-header">
+					<text class="card-title">基本信息</text>
+					<view class="trip-status" :class="getStatusClass(tripDetail.status)">
+						<text class="status-text">{{ getStatusText(tripDetail.status) }}</text>
+					</view>
+				</view>
+				<view class="card-body">
+					<view class="info-row">
+						<view class="info-item">
+							<text class="info-label">行程编号</text>
+							<text class="info-value">{{ tripDetail.tripNo }}</text>
+						</view>
+						<view class="info-item">
+							<text class="info-label">车牌号</text>
+							<text class="info-value">{{ tripDetail.vehicleNo || '-' }}</text>
+						</view>
+						<view class="info-item">
+							<text class="info-label">司机</text>
+							<text class="info-value">{{ tripDetail.driverName || '-' }}</text>
+						</view>
+					</view>
+					<view class="route-section">
+						<view class="route-item">
+							<view class="route-dot start"></view>
+							<view class="route-info">
+								<text class="route-label">起点</text>
+								<text class="route-text">{{ tripDetail.startLocation || '-' }}</text>
+							</view>
+						</view>
+						<view class="route-line"></view>
+						<view class="route-item">
+							<view class="route-dot end"></view>
+							<view class="route-info">
+								<text class="route-label">终点</text>
+								<text class="route-text">{{ tripDetail.endLocation || '-' }}</text>
+							</view>
+						</view>
+					</view>
+					<view class="info-row">
+						<view class="info-item">
+							<text class="info-label">预计开始</text>
+							<text class="info-value">{{ formatTime(tripDetail.estimatedStartTime) }}</text>
+						</view>
+						<view class="info-item">
+							<text class="info-label">实际开始</text>
+							<text class="info-value">{{ formatTime(tripDetail.actualStartTime) || '-' }}</text>
+						</view>
+						<view class="info-item">
+							<text class="info-label">实际结束</text>
+							<text class="info-value">{{ formatTime(tripDetail.actualEndTime) || '-' }}</text>
+						</view>
+					</view>
+					<view class="info-row">
+						<view class="info-item">
+							<text class="info-label">预计里程</text>
+							<text class="info-value">{{ tripDetail.estimatedMileage || 0 }} km</text>
+						</view>
+						<view class="info-item">
+							<text class="info-label">实际里程</text>
+							<text class="info-value">{{ tripDetail.actualMileage || 0 }} km</text>
+						</view>
+						<view class="info-item">
+							<text class="info-label">平均速度</text>
+							<text class="info-value">{{ tripDetail.averageSpeed || 0 }} km/h</text>
+						</view>
+					</view>
+					<view class="info-row">
+						<view class="info-item">
+							<text class="info-label">预计时长</text>
+							<text class="info-value">{{ formatDuration(tripDetail.estimatedDuration) }}</text>
+						</view>
+						<view class="info-item">
+							<text class="info-label">实际时长</text>
+							<text class="info-value">{{ formatDuration(tripDetail.actualDuration) }}</text>
+						</view>
+						<view class="info-item">
+							<text class="info-label">预计提成</text>
+							<text class="info-value">{{ tripDetail.estimatedCommissionAmount || 0 }} 元</text>
+						</view>
+					</view>
+				</view>
+			</view>
+			
+			<view class="info-card" v-if="aiAnalysis">
+				<view class="card-header">
+					<text class="card-title">AI分析报告</text>
+				</view>
+				<view class="card-body">
+					<view class="ai-score-section" v-if="aiAnalysis.analysis">
+						<view class="score-circle">
+							<text class="score-value">{{ aiAnalysis.analysis.driving_score || 85 }}</text>
+							<text class="score-label">驾驶评分</text>
+						</view>
+					</view>
+					<view class="ai-analysis-content" v-if="aiAnalysis.analysis">
+						<view class="analysis-item" v-if="aiAnalysis.analysis.overall_evaluation">
+							<text class="analysis-title">综合评价</text>
+							<text class="analysis-text">{{ aiAnalysis.analysis.overall_evaluation }}</text>
+						</view>
+						<view class="analysis-item" v-if="aiAnalysis.analysis.speeding_analysis">
+							<text class="analysis-title">超速分析</text>
+							<text class="analysis-text">{{ aiAnalysis.analysis.speeding_analysis }}</text>
+						</view>
+						<view class="analysis-item" v-if="aiAnalysis.analysis.acceleration_analysis">
+							<text class="analysis-title">加减速分析</text>
+							<text class="analysis-text">{{ aiAnalysis.analysis.acceleration_analysis }}</text>
+						</view>
+						<view class="recommendations-section" v-if="aiAnalysis.analysis.recommendations && aiAnalysis.analysis.recommendations.length > 0">
+							<text class="analysis-title">改进建议</text>
+							<view class="recommendation-list">
+								<view class="recommendation-item" v-for="(rec, index) in aiAnalysis.analysis.recommendations" :key="index">
+									<text class="recommendation-bullet">•</text>
+									<text class="recommendation-text">{{ rec }}</text>
+								</view>
+							</view>
+						</view>
+					</view>
+				</view>
+			</view>
+			
+			<view class="info-card">
+				<view class="card-header">
+					<text class="card-title">成本明细</text>
+					<text class="total-amount">合计：¥{{ totalCostAmount }}</text>
+				</view>
+				<view class="card-body">
+					<view class="cost-list" v-if="costDetails.length > 0">
+						<view class="cost-item" v-for="item in costDetails" :key="item.id">
+							<view class="cost-left">
+								<view class="cost-type" :class="'type-' + item.costType">
+									<text class="type-text">{{ item.costTypeName }}</text>
+								</view>
+								<view class="cost-info">
+									<text class="cost-name">{{ item.costName }}</text>
+									<text class="cost-desc" v-if="item.description">{{ item.description }}</text>
+								</view>
+							</view>
+							<view class="cost-right">
+								<text class="cost-amount">¥{{ item.amount }}</text>
+								<text class="cost-time">{{ formatTime(item.createTime) }}</text>
+							</view>
+						</view>
+					</view>
+					<view class="empty-state" v-else>
+						<text class="empty-text">暂无成本明细</text>
+					</view>
+				</view>
+			</view>
+		</view>
+		
+		<view class="loading-state" v-else>
+			<text class="loading-text">加载中...</text>
+		</view>
+	</AdminLayout>
+</template>
+
+<script setup lang="uts">
+	import AdminLayout from '../../../components/AdminLayout.uvue'
+	import { ref, computed, onMounted } from 'vue'
+	import { getTripDetail, getTripCostDetails, type TripDetailVO, type CostDetailItem, type AiAnalysisResult } from '@/api/trip.uts'
+
+	const tripId = ref<string>('')
+	const tripDetail = ref<TripDetailVO | null>(null)
+	const costDetails = ref<CostDetailItem[]>([])
+	const aiAnalysis = ref<AiAnalysisResult | null>(null)
+
+	const totalCostAmount = computed(() => {
+		return costDetails.value.reduce((sum, item) => sum + (item.amount || 0), 0).toFixed(2)
+	})
+
+	const getStatusClass = (status: number): string => {
+		const map: Record<number, string> = {
+			0: 'pending', 1: 'accepted', 2: 'in-progress', 3: 'completed', 4: 'cancelled'
+		}
+		return map[status] || 'pending'
+	}
+
+	const getStatusText = (status: number): string => {
+		const map: Record<number, string> = {
+			0: '待开始', 1: '已接单', 2: '进行中', 3: '已完成', 4: '已取消'
+		}
+		return map[status] || '未知'
+	}
+
+	const formatTime = (time: string | null): string => {
+		if (!time) return ''
+		return time.replace('T', ' ').substring(0, 19)
+	}
+
+	const formatDuration = (minutes: number | null): string => {
+		if (!minutes) return '-'
+		const hours = Math.floor(minutes / 60)
+		const mins = minutes % 60
+		if (hours > 0) {
+			return `${hours}小时${mins}分钟`
+		}
+		return `${mins}分钟`
+	}
+
+	const fetchTripDetail = async () => {
+		if (!tripId.value) return
+		
+		try {
+			uni.showLoading({ title: '加载中...' })
+			
+			const detail = await getTripDetail(tripId.value)
+			if (detail) {
+				tripDetail.value = detail
+				
+				if (detail.aiAnalysis) {
+					try {
+						aiAnalysis.value = JSON.parse(detail.aiAnalysis) as AiAnalysisResult
+					} catch (e) {
+						console.error('解析AI分析结果失败', e)
+					}
+				}
+			}
+			
+			const costs = await getTripCostDetails(tripId.value)
+			if (costs) {
+				costDetails.value = costs
+			}
+		} catch (e) {
+			console.error('获取行程详情失败', e)
+			uni.showToast({ title: '加载失败', icon: 'none' })
+		} finally {
+			uni.hideLoading()
+		}
+	}
+
+	const goToPlayback = () => {
+		uni.navigateTo({ url: `/pages/admin/track/playback?tripId=${tripId.value}` })
+	}
+
+	const goBack = () => {
+		uni.navigateBack()
+	}
+
+	onMounted(() => {
+		const pages = getCurrentPages()
+		const currentPage = pages[pages.length - 1]
+		const options = (currentPage as any).options || (currentPage as any).$page?.options
+		if (options && options.id) {
+			tripId.value = options.id as string
+			fetchTripDetail()
+		}
+	})
+</script>
+
+<style lang="scss">
+	.page-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 30rpx;
+		
+		.page-title {
+			font-size: 36rpx;
+			font-weight: bold;
+			color: #fff;
+		}
+		
+		.header-actions {
+			display: flex;
+			flex-direction: row;
+			gap: 15rpx;
+			
+			.secondary-btn {
+				padding: 15rpx 25rpx;
+				background-color: #2a3347;
+				color: #fff;
+				font-size: 24rpx;
+				border-radius: 10rpx;
+			}
+		}
+	}
+	
+	.detail-content {
+		.info-card {
+			background-color: #2a3347;
+			border-radius: 20rpx;
+			margin-bottom: 25rpx;
+			overflow: hidden;
+			
+			.card-header {
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+				align-items: center;
+				padding: 25rpx 30rpx;
+				border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+				
+				.card-title {
+					font-size: 30rpx;
+					font-weight: bold;
+					color: #fff;
+				}
+				
+				.total-amount {
+					font-size: 26rpx;
+					color: #FF9500;
+					font-weight: bold;
+				}
+				
+				.trip-status {
+					padding: 8rpx 20rpx;
+					border-radius: 20rpx;
+					
+					&.pending { background-color: rgba(255, 149, 0, 0.2); color: #FF9500; }
+					&.accepted { background-color: rgba(0, 122, 255, 0.2); color: #007AFF; }
+					&.in-progress { background-color: rgba(52, 199, 89, 0.2); color: #34C759; }
+					&.completed { background-color: rgba(142, 142, 147, 0.2); color: #8E8E93; }
+					&.cancelled { background-color: rgba(255, 59, 48, 0.2); color: #FF3B30; }
+					
+					.status-text { font-size: 22rpx; }
+				}
+			}
+			
+			.card-body {
+				padding: 25rpx 30rpx;
+				
+				.info-row {
+					display: flex;
+					flex-direction: row;
+					justify-content: space-between;
+					margin-bottom: 20rpx;
+					
+					.info-item {
+						flex: 1;
+						
+						.info-label {
+							display: block;
+							font-size: 22rpx;
+							color: rgba(255, 255, 255, 0.5);
+							margin-bottom: 8rpx;
+						}
+						
+						.info-value {
+							display: block;
+							font-size: 26rpx;
+							color: #fff;
+						}
+					}
+				}
+				
+				.route-section {
+					background-color: rgba(255, 255, 255, 0.05);
+					border-radius: 15rpx;
+					padding: 25rpx;
+					margin-bottom: 20rpx;
+					
+					.route-item {
+						display: flex;
+						flex-direction: row;
+						align-items: flex-start;
+						
+						.route-dot {
+							width: 20rpx;
+							height: 20rpx;
+							border-radius: 50%;
+							margin-right: 20rpx;
+							margin-top: 5rpx;
+							
+							&.start { background-color: #34C759; }
+							&.end { background-color: #FF3B30; }
+						}
+						
+						.route-info {
+							flex: 1;
+							
+							.route-label {
+								display: block;
+								font-size: 22rpx;
+								color: rgba(255, 255, 255, 0.5);
+								margin-bottom: 5rpx;
+							}
+							
+							.route-text {
+								display: block;
+								font-size: 26rpx;
+								color: #fff;
+							}
+						}
+					}
+					
+					.route-line {
+						width: 2rpx;
+						height: 30rpx;
+						background-color: rgba(255, 255, 255, 0.2);
+						margin-left: 9rpx;
+						margin-bottom: 10rpx;
+						margin-top: 10rpx;
+					}
+				}
+				
+				.ai-score-section {
+					display: flex;
+					justify-content: center;
+					margin-bottom: 30rpx;
+					
+					.score-circle {
+						width: 150rpx;
+						height: 150rpx;
+						border-radius: 50%;
+						background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+						display: flex;
+						flex-direction: column;
+						justify-content: center;
+						align-items: center;
+						
+						.score-value {
+							font-size: 48rpx;
+							font-weight: bold;
+							color: #fff;
+						}
+						
+						.score-label {
+							font-size: 22rpx;
+							color: rgba(255, 255, 255, 0.8);
+						}
+					}
+				}
+				
+				.ai-analysis-content {
+					.analysis-item {
+						margin-bottom: 25rpx;
+						
+						.analysis-title {
+							display: block;
+							font-size: 26rpx;
+							font-weight: bold;
+							color: #fff;
+							margin-bottom: 10rpx;
+						}
+						
+						.analysis-text {
+							display: block;
+							font-size: 24rpx;
+							color: rgba(255, 255, 255, 0.7);
+							line-height: 1.6;
+						}
+					}
+					
+					.recommendations-section {
+						.analysis-title {
+							display: block;
+							font-size: 26rpx;
+							font-weight: bold;
+							color: #fff;
+							margin-bottom: 15rpx;
+						}
+						
+						.recommendation-list {
+							.recommendation-item {
+								display: flex;
+								flex-direction: row;
+								margin-bottom: 12rpx;
+								
+								.recommendation-bullet {
+									color: #007AFF;
+									font-size: 24rpx;
+									margin-right: 10rpx;
+								}
+								
+								.recommendation-text {
+									flex: 1;
+									font-size: 24rpx;
+									color: rgba(255, 255, 255, 0.7);
+									line-height: 1.5;
+								}
+							}
+						}
+					}
+				}
+				
+				.cost-list {
+					.cost-item {
+						display: flex;
+						flex-direction: row;
+						justify-content: space-between;
+						align-items: center;
+						padding: 20rpx;
+						background-color: rgba(255, 255, 255, 0.05);
+						border-radius: 12rpx;
+						margin-bottom: 15rpx;
+						
+						&:last-child { margin-bottom: 0; }
+						
+						.cost-left {
+							display: flex;
+							flex-direction: row;
+							align-items: center;
+							flex: 1;
+							
+							.cost-type {
+								padding: 8rpx 15rpx;
+								border-radius: 8rpx;
+								margin-right: 15rpx;
+								
+								&.type-1 { background-color: rgba(255, 149, 0, 0.2); }
+								&.type-2 { background-color: rgba(0, 122, 255, 0.2); }
+								&.type-3 { background-color: rgba(52, 199, 89, 0.2); }
+								&.type-4 { background-color: rgba(175, 82, 222, 0.2); }
+								&.type-5 { background-color: rgba(255, 59, 48, 0.2); }
+								&.type-6 { background-color: rgba(90, 200, 250, 0.2); }
+								&.type-7 { background-color: rgba(142, 142, 147, 0.2); }
+								&.type-8 { background-color: rgba(255, 204, 0, 0.2); }
+								
+								.type-text {
+									font-size: 20rpx;
+									color: #fff;
+								}
+							}
+							
+							.cost-info {
+								flex: 1;
+								
+								.cost-name {
+									display: block;
+									font-size: 26rpx;
+									color: #fff;
+									margin-bottom: 5rpx;
+								}
+								
+								.cost-desc {
+									display: block;
+									font-size: 22rpx;
+									color: rgba(255, 255, 255, 0.5);
+								}
+							}
+						}
+						
+						.cost-right {
+							text-align: right;
+							
+							.cost-amount {
+								display: block;
+								font-size: 28rpx;
+								font-weight: bold;
+								color: #FF9500;
+								margin-bottom: 5rpx;
+							}
+							
+							.cost-time {
+								display: block;
+								font-size: 20rpx;
+								color: rgba(255, 255, 255, 0.4);
+							}
+						}
+					}
+				}
+				
+				.empty-state {
+					padding: 50rpx;
+					text-align: center;
+					
+					.empty-text {
+						font-size: 26rpx;
+						color: rgba(255, 255, 255, 0.5);
+					}
+				}
+			}
+		}
+	}
+	
+	.loading-state {
+		padding: 100rpx;
+		text-align: center;
+		
+		.loading-text {
+			font-size: 28rpx;
+			color: rgba(255, 255, 255, 0.5);
+		}
+	}
+</style>

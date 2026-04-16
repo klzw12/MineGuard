@@ -49,8 +49,13 @@ public class PythonServiceImpl implements PythonService {
     public int analyzeDrivingBehavior(Long tripId) {
         String url = pythonServiceProperties.getUrl() + "/api/analysis/driving-behavior/" + tripId;
         log.info("调用Python服务分析驾驶行为(按行程ID): {}", url);
-        Integer result = restTemplate.postForObject(url, null, Integer.class);
-        return result != null ? result : 0;
+        try {
+            Integer score = restTemplate.getForObject(url, Integer.class);
+            return score != null ? score : 0;
+        } catch (Exception e) {
+            log.error("调用Python服务分析驾驶行为失败: {}", e.getMessage());
+        }
+        return 0;
     }
 
     @Override

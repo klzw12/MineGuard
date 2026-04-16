@@ -1,6 +1,11 @@
 package com.klzw.common.redis.config;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 /**
  * 缓存统一配置类
@@ -8,12 +13,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class CacheConfig {
 
-
     private final RedisProperties redisProperties;
 
     public CacheConfig(RedisProperties redisProperties) {
         this.redisProperties = redisProperties;
     }
+
+
 
     /**
      * 获取缓存键前缀

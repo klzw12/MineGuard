@@ -16,6 +16,10 @@
 					<text class="stat-label">运营中</text>
 				</view>
 				<view class="stat-card">
+					<text class="stat-value">{{ stats.idle }}</text>
+					<text class="stat-label">空闲</text>
+				</view>
+				<view class="stat-card">
 					<text class="stat-value">{{ stats.maintenance }}</text>
 					<text class="stat-label">维修中</text>
 				</view>
@@ -82,6 +86,7 @@
 	const stats = ref({
 		total: 0,
 		operating: 0,
+		idle: 0,
 		maintenance: 0,
 		stopped: 0
 	})
@@ -114,12 +119,22 @@
 	async function loadVehicleData() {
 		try {
 			const result = await vehicleApi.getVehiclePage({ pageNum: 1, pageSize: 100 })
-			if (result && result.records) {
-				const vehicles = result.records
-				
+			let vehicles = []
+			
+			// 处理不同的响应格式
+			if (result && result.list) {
+				// PageResult 格式
+				vehicles = result.list
+			} else if (Array.isArray(result)) {
+				// 直接数组格式
+				vehicles = result
+			}
+			
+			if (vehicles.length > 0) {
 				// 统计数据
 				stats.value.total = vehicles.length
 				stats.value.operating = vehicles.filter(v => v.status === 1).length
+				stats.value.idle = vehicles.filter(v => v.status === 0).length
 				stats.value.maintenance = vehicles.filter(v => v.status === 2).length
 				stats.value.stopped = vehicles.filter(v => v.status === 3 || v.status === 4).length
 				
@@ -164,6 +179,7 @@
 	
 	// 获取状态样式
 	function getStatusClass(status: number): string {
+		if (status === 0) return 'idle'
 		if (status === 1) return 'active'
 		if (status === 2) return 'maintenance'
 		return 'stopped'
@@ -268,6 +284,11 @@
 		padding: 6rpx 16rpx;
 		border-radius: 8rpx;
 		font-size: 22rpx;
+		
+		&.idle {
+			background-color: rgba(0, 122, 255, 0.2);
+			color: #007AFF;
+		}
 		
 		&.active {
 			background-color: rgba(52, 199, 89, 0.2);

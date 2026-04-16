@@ -209,6 +209,16 @@
         <text class="sidebar-text">成本管理</text>
       </view>
       
+      <!-- AI服务 - 所有管理员可见 -->
+      <view 
+        class="sidebar-item" 
+        :class="{ active: currentPath === '/pages/admin/ai/index' }" 
+        @click="handleNavigate('/pages/admin/ai/index')"
+      >
+        <text class="sidebar-icon">🤖</text>
+        <text class="sidebar-text">AI服务</text>
+      </view>
+      
       <!-- 预警管理 - 所有管理员可见 -->
       <view 
         class="sidebar-item" 

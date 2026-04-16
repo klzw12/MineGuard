@@ -69,10 +69,22 @@ public class DeepSeekAdapter implements AiAdapter {
     @Override
     public Map<String, Object> parseResponse(Map<String, Object> response) {
         try {
+            log.debug("原始响应，{}",response.toString());
             log.debug("解析DeepSeek API响应");
             
             Map<String, Object> result = new HashMap<>();
-            result.put("content", response.get("content"));
+            Object content = response.get("content");
+            
+            Map<String, Object> contentMap = new HashMap<>();
+            if (content != null) {
+                contentMap.put("response", content.toString());
+                contentMap.put("text", content.toString());
+            } else {
+                contentMap.put("response", "抱歉，未能获取到有效响应。");
+                contentMap.put("text", "抱歉，未能获取到有效响应。");
+            }
+            
+            result.put("content", contentMap);
             result.put("status", "success");
             return result;
         } catch (Exception e) {

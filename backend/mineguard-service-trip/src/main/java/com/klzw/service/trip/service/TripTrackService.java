@@ -1,6 +1,6 @@
 package com.klzw.service.trip.service;
 
-import com.klzw.service.trip.dto.TripTrackDTO;
+import com.klzw.common.core.domain.dto.TripTrackDTO;
 import com.klzw.service.trip.vo.TripTrackVO;
 
 import java.util.List;
@@ -23,4 +23,10 @@ public interface TripTrackService {
     
     // 删除Redis中的轨迹数据
     void deleteTracksFromRedis(Long tripId);
+    
+    // 删除Redis中车辆与行程的关联关系
+    void deleteVehicleTripRelation(Long vehicleId);
+    
+    // 计算轨迹总里程（公里）
+    double calculateTotalDistance(Long tripId);
 }

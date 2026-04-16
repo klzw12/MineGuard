@@ -627,8 +627,8 @@
 	const fetchVehicles = async () => {
 		try {
 			const res = await http.get<any>('/vehicle/page', { pageNum: 1, pageSize: 100 })
-			if (res && (res as any).records) {
-				vehicleOptions.value = (res as any).records.map((v: any) => ({ id: v.id as number, vehicleNo: v.vehicleNo }))
+			if (res && (res as any).list) {
+				vehicleOptions.value = (res as any).list.map((v: any) => ({ id: v.id as number, vehicleNo: v.vehicleNo }))
 			} else if (res && Array.isArray(res)) {
 				vehicleOptions.value = res.map((v: any) => ({ id: v.id as number, vehicleNo: v.vehicleNo }))
 			}

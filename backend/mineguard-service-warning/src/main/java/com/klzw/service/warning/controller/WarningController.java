@@ -8,6 +8,7 @@ import com.klzw.service.warning.dto.WarningRecordDTO;
 import com.klzw.service.warning.dto.WarningRuleDTO;
 import com.klzw.service.warning.dto.WarningTrackDTO;
 import com.klzw.service.warning.entity.WarningRecord;
+import com.klzw.service.warning.manager.TripWarningManager;
 import com.klzw.service.warning.service.WarningRecordService;
 import com.klzw.service.warning.service.WarningRuleService;
 import com.klzw.service.warning.vo.WarningRecordVO;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @RestController
@@ -33,6 +35,7 @@ public class WarningController {
     private final WarningRecordService warningRecordService;
     private final WarningRuleService warningRuleService;
     private final WarningTriggerProcessor warningTriggerProcessor;
+    private final TripWarningManager tripWarningManager;
 
     @GetMapping("/record/page")
     @Operation(summary = "分页查询预警记录")
@@ -218,6 +221,42 @@ public class WarningController {
     public Result<Void> disableRule(@PathVariable Long id) {
         warningRuleService.disable(id);
         return Result.success();
+    }
+
+    @PostMapping("/trip/start-warning")
+    @Operation(summary = "启动行程预警检查")
+    public Result<Void> startTripWarning(@RequestParam Long tripId, @RequestParam Long vehicleId) {
+        tripWarningManager.startTripWarningCheck(tripId, vehicleId);
+        return Result.success();
+    }
+
+    @PostMapping("/trip/stop-warning")
+    @Operation(summary = "停止行程预警检查")
+    public Result<Void> stopTripWarning(@RequestParam Long tripId) {
+        tripWarningManager.stopTripWarningCheck(tripId);
+        return Result.success();
+    }
+
+    @PutMapping("/record/vehicle/{vehicleId}/handle")
+    @Operation(summary = "根据车辆ID处理预警记录")
+    public Result<Void> handleWarningsByVehicleId(
+            @PathVariable Long vehicleId,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String handleResult) {
+        warningRecordService.handleWarningsByVehicleId(vehicleId, status, handleResult);
+        return Result.success();
+    }
+
+    @GetMapping("/trip/active")
+    @Operation(summary = "获取活跃行程列表")
+    public Result<Set<Long>> getActiveTrips() {
+        return Result.success(tripWarningManager.getActiveTrips());
+    }
+
+    @GetMapping("/trip/{tripId}/active")
+    @Operation(summary = "检查行程是否活跃")
+    public Result<Boolean> isTripActive(@PathVariable Long tripId) {
+        return Result.success(tripWarningManager.isTripActive(tripId));
     }
 
     public static class EventTriggerRequest {

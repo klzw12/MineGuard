@@ -89,8 +89,8 @@ export function completeTask(taskId: string): Promise<void | null> {
   return http.put<void>(`/dispatch/main/task/${taskId}/complete`)
 }
 
-export function acceptTask(taskId: string): Promise<{ tripId?: string } | null> {
-  return http.post<{ tripId?: string }>(`/dispatch/main/task/${taskId}/accept`)
+export function acceptTask(taskId: string, taskType: string): Promise<{ tripId?: string } | null> {
+  return http.post<{ tripId?: string }>(`/dispatch/main/task/${taskId}/accept?taskType=${taskType}`)
 }
 
 export function rescheduleTask(taskId: string): Promise<boolean | null> {

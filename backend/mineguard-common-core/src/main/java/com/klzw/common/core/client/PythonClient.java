@@ -1,5 +1,7 @@
 package com.klzw.common.core.client;
 
+import com.klzw.common.core.result.Result;
+import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 
@@ -52,10 +54,10 @@ public interface PythonClient {
      * 通过行程ID分析驾驶行为
      * 
      * @param tripId 行程ID
-     * @return 分析结果
+     * @return 分析结果（包含驾驶分数）
      */
-    @PostExchange("/python/analysis/driving-behavior/{tripId}")
-    int analyzeDrivingBehavior(@org.springframework.web.bind.annotation.PathVariable("tripId") Long tripId);
+    @GetExchange("/python/analysis/driving-behavior/{tripId}")
+    Result<Integer> analyzeDrivingBehavior(@org.springframework.web.bind.annotation.PathVariable("tripId") Long tripId);
 
     /**
      * 分析成本

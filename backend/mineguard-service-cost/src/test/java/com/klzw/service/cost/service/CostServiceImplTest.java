@@ -10,18 +10,15 @@ import com.klzw.service.cost.dto.CostBudgetDTO;
 import com.klzw.service.cost.dto.CostDetailDTO;
 import com.klzw.service.cost.dto.CostQueryDTO;
 import com.klzw.service.cost.dto.SalaryConfigDTO;
-import com.klzw.service.cost.dto.SalaryRecordDTO;
 import com.klzw.service.cost.entity.CostBudget;
 import com.klzw.service.cost.entity.CostDetail;
 import com.klzw.service.cost.entity.SalaryConfig;
-import com.klzw.service.cost.entity.SalaryRecord;
 import com.klzw.service.cost.enums.BudgetStatusEnum;
 import com.klzw.service.cost.enums.BudgetTypeEnum;
 import com.klzw.service.cost.enums.CostTypeEnum;
 import com.klzw.service.cost.mapper.CostBudgetMapper;
 import com.klzw.service.cost.mapper.CostDetailMapper;
 import com.klzw.service.cost.mapper.SalaryConfigMapper;
-import com.klzw.service.cost.mapper.SalaryRecordMapper;
 import com.klzw.service.cost.service.impl.CostServiceImpl;
 import com.klzw.service.cost.vo.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,8 +51,7 @@ public class CostServiceImplTest {
     @Mock
     private SalaryConfigMapper salaryConfigMapper;
 
-    @Mock
-    private SalaryRecordMapper salaryRecordMapper;
+
 
     @Mock
     private CostBudgetMapper costBudgetMapper;
@@ -84,11 +80,9 @@ public class CostServiceImplTest {
     private CostDetailDTO costDetailDTO;
     private CostQueryDTO costQueryDTO;
     private SalaryConfigDTO salaryConfigDTO;
-    private SalaryRecordDTO salaryRecordDTO;
     private CostBudgetDTO costBudgetDTO;
     private CostDetail costDetail;
     private SalaryConfig salaryConfig;
-    private SalaryRecord salaryRecord;
     private CostBudget costBudget;
 
     @BeforeEach
@@ -111,16 +105,9 @@ public class CostServiceImplTest {
         salaryConfigDTO.setRoleCode("DRIVER");
         salaryConfigDTO.setRoleName("司机");
         salaryConfigDTO.setBaseSalary(new BigDecimal(5000));
-        salaryConfigDTO.setPerformanceBonus(new BigDecimal(0.1));
         salaryConfigDTO.setStatus(1);
 
-        salaryRecordDTO = new SalaryRecordDTO();
-        salaryRecordDTO.setDriverId(1L);
-        salaryRecordDTO.setDriverName("张三");
-        salaryRecordDTO.setPeriod("2024-01");
-        salaryRecordDTO.setBaseSalary(new BigDecimal(5000));
-        salaryRecordDTO.setBonus(new BigDecimal(500));
-        salaryRecordDTO.setDeduction(new BigDecimal(200));
+
 
         costBudgetDTO = new CostBudgetDTO();
         costBudgetDTO.setBudgetName("2024年燃油预算");
@@ -152,25 +139,12 @@ public class CostServiceImplTest {
         salaryConfig.setRoleCode("DRIVER");
         salaryConfig.setRoleName("司机");
         salaryConfig.setBaseSalary(new BigDecimal(5000));
-        salaryConfig.setPerformanceBonus(new BigDecimal(0.1));
         salaryConfig.setStatus(1);
         salaryConfig.setCreateTime(LocalDateTime.now());
         salaryConfig.setUpdateTime(LocalDateTime.now());
         salaryConfig.setDeleted(0);
 
-        salaryRecord = new SalaryRecord();
-        salaryRecord.setId(1L);
-        salaryRecord.setDriverId(1L);
-        salaryRecord.setDriverName("张三");
-        salaryRecord.setPeriod("2024-01");
-        salaryRecord.setBaseSalary(new BigDecimal(5000));
-        salaryRecord.setBonus(new BigDecimal(500));
-        salaryRecord.setDeduction(new BigDecimal(200));
-        salaryRecord.setTotalSalary(new BigDecimal(5300));
-        salaryRecord.setStatus(1);
-        salaryRecord.setCreateTime(LocalDateTime.now());
-        salaryRecord.setUpdateTime(LocalDateTime.now());
-        salaryRecord.setDeleted(0);
+
 
         costBudget = new CostBudget();
         costBudget.setId(1L);
@@ -437,135 +411,7 @@ public class CostServiceImplTest {
         verify(salaryConfigMapper, times(1)).selectList(any(LambdaQueryWrapper.class));
     }
 
-    @Test
-    void testAddSalaryRecord() {
-        // 模拟依赖方法的返回值
-        when(salaryRecordMapper.insert(any(SalaryRecord.class))).thenReturn(1);
 
-        // 调用被测方法
-        SalaryRecordVO result = costService.addSalaryRecord(salaryRecordDTO);
-
-        // 验证结果
-        assertNotNull(result);
-        assertEquals(1L, result.getDriverId());
-        assertEquals("张三", result.getDriverName());
-        assertEquals("2024-01", result.getPeriod());
-        assertEquals(new BigDecimal(5300), result.getTotalSalary());
-
-        // 验证依赖方法被调用
-        verify(salaryRecordMapper, times(1)).insert(any(SalaryRecord.class));
-    }
-
-    @Test
-    void testUpdateSalaryRecord() {
-        // 模拟依赖方法的返回值
-        when(salaryRecordMapper.selectById(anyLong())).thenReturn(salaryRecord);
-        when(salaryRecordMapper.updateById(any(SalaryRecord.class))).thenReturn(1);
-
-        // 调用被测方法
-        salaryRecordDTO.setId(1L);
-        salaryRecordDTO.setBonus(new BigDecimal(800));
-        SalaryRecordVO result = costService.updateSalaryRecord(salaryRecordDTO);
-
-        // 验证结果
-        assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals(new BigDecimal(800), result.getBonus());
-
-        // 验证依赖方法被调用
-        verify(salaryRecordMapper, times(1)).selectById(anyLong());
-        verify(salaryRecordMapper, times(1)).updateById(any(SalaryRecord.class));
-    }
-
-    @Test
-    void testUpdateSalaryRecordWithException() {
-        // 模拟依赖方法返回null
-        when(salaryRecordMapper.selectById(anyLong())).thenReturn(null);
-
-        // 调用被测方法，验证异常
-        salaryRecordDTO.setId(1L);
-        assertThrows(RuntimeException.class, () -> costService.updateSalaryRecord(salaryRecordDTO));
-
-        // 验证依赖方法被调用
-        verify(salaryRecordMapper, times(1)).selectById(anyLong());
-    }
-
-    @Test
-    void testDeleteSalaryRecord() {
-        // 模拟依赖方法的返回值
-        when(salaryRecordMapper.selectById(anyLong())).thenReturn(salaryRecord);
-        when(salaryRecordMapper.updateById(any(SalaryRecord.class))).thenReturn(1);
-
-        // 调用被测方法
-        costService.deleteSalaryRecord(1L);
-
-        // 验证依赖方法被调用
-        verify(salaryRecordMapper, times(1)).selectById(anyLong());
-        verify(salaryRecordMapper, times(1)).updateById(any(SalaryRecord.class));
-    }
-
-    @Test
-    void testDeleteSalaryRecordWithException() {
-        // 模拟依赖方法返回null
-        when(salaryRecordMapper.selectById(anyLong())).thenReturn(null);
-
-        // 调用被测方法，验证异常
-        assertThrows(RuntimeException.class, () -> costService.deleteSalaryRecord(1L));
-
-        // 验证依赖方法被调用
-        verify(salaryRecordMapper, times(1)).selectById(anyLong());
-    }
-
-    @Test
-    void testGetSalaryRecord() {
-        // 模拟依赖方法的返回值
-        when(salaryRecordMapper.selectById(anyLong())).thenReturn(salaryRecord);
-
-        // 调用被测方法
-        SalaryRecordVO result = costService.getSalaryRecord(1L);
-
-        // 验证结果
-        assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals("张三", result.getDriverName());
-        assertEquals("2024-01", result.getPeriod());
-
-        // 验证依赖方法被调用
-        verify(salaryRecordMapper, times(1)).selectById(anyLong());
-    }
-
-    @Test
-    void testGetSalaryRecordWithNull() {
-        // 模拟依赖方法返回null
-        when(salaryRecordMapper.selectById(anyLong())).thenReturn(null);
-
-        // 调用被测方法
-        SalaryRecordVO result = costService.getSalaryRecord(1L);
-
-        // 验证结果
-        assertNull(result);
-
-        // 验证依赖方法被调用
-        verify(salaryRecordMapper, times(1)).selectById(anyLong());
-    }
-
-    @Test
-    void testGetSalaryRecordList() {
-        // 模拟依赖方法的返回值
-        when(salaryRecordMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.singletonList(salaryRecord));
-
-        // 调用被测方法
-        List<SalaryRecordVO> result = costService.getSalaryRecordList("张三", "2024-01", 1, 10);
-
-        // 验证结果
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(1L, result.get(0).getId());
-        assertEquals("张三", result.get(0).getDriverName());
-
-        // 验证依赖方法被调用
-        verify(salaryRecordMapper, times(1)).selectList(any(LambdaQueryWrapper.class));
-    }
 
     @Test
     void testAddBudget() {
@@ -821,7 +667,7 @@ public class CostServiceImplTest {
     @Test
     void testCalculateAndRecordTripCommission() {
         // 模拟依赖方法的返回值
-        when(pythonClient.analyzeDrivingBehavior(anyLong())).thenReturn(85);
+        when(pythonClient.analyzeDrivingBehavior(anyLong())).thenReturn(Result.success(85));
         when(costDetailMapper.insert(any(CostDetail.class))).thenAnswer(invocation -> {
             CostDetail detail = invocation.getArgument(0);
             detail.setId(100L);
@@ -863,7 +709,7 @@ public class CostServiceImplTest {
     @Test
     void testCalculateAndRecordTripCommissionWithSaveException() {
         // 模拟依赖方法的返回值
-        when(pythonClient.analyzeDrivingBehavior(anyLong())).thenReturn(85);
+        when(pythonClient.analyzeDrivingBehavior(anyLong())).thenReturn(Result.success(85));
         when(costDetailMapper.insert(any(CostDetail.class))).thenThrow(new RuntimeException("保存异常"));
 
         // 调用被测方法

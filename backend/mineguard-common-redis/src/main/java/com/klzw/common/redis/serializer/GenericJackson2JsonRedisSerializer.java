@@ -29,7 +29,11 @@ public class GenericJackson2JsonRedisSerializer implements RedisSerializer<Objec
             .build();
         
         // 注册Java 8日期时间模块，支持LocalDateTime等类型
-        mapper.registerModule(new JavaTimeModule());
+        JavaTimeModule javaTimeModule = new JavaTimeModule();
+        mapper.registerModule(javaTimeModule);
+        
+        // 禁用 REQUIRE_HANDLERS_FOR_JAVA8_TIMES，确保Java 8日期时间类型能够被正确处理
+        mapper.disable(com.fasterxml.jackson.databind.MapperFeature.REQUIRE_HANDLERS_FOR_JAVA8_TIMES);
         
         // 启用类型信息包含，确保反序列化时能正确识别类型
         mapper.activateDefaultTyping(ptv, JsonMapper.DefaultTyping.NON_FINAL);

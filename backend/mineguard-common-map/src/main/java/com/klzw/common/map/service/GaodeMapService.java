@@ -165,29 +165,36 @@ public class GaodeMapService implements GeoCodingService, RoutePlanningService, 
     public Route drivingRoute(GeoPoint origin, GeoPoint destination) {
         validatePoint(origin);
         validatePoint(destination);
-        return calculateRoute(origin, destination, "driving");
+        return calculateRoute(origin, destination, "driving", 0);
+    }
+
+    @Override
+    public Route drivingRoute(GeoPoint origin, GeoPoint destination, Integer strategy) {
+        validatePoint(origin);
+        validatePoint(destination);
+        return calculateRoute(origin, destination, "driving", strategy);
     }
 
     @Override
     public Route walkingRoute(GeoPoint origin, GeoPoint destination) {
         validatePoint(origin);
         validatePoint(destination);
-        return calculateRoute(origin, destination, "walking");
+        return calculateRoute(origin, destination, "walking", 0);
     }
 
     @Override
     public Route cyclingRoute(GeoPoint origin, GeoPoint destination) {
         validatePoint(origin);
         validatePoint(destination);
-        return calculateRoute(origin, destination, "bicycling");
+        return calculateRoute(origin, destination, "bicycling", 0);
     }
 
-    private Route calculateRoute(GeoPoint origin, GeoPoint destination, String mode) {
+    private Route calculateRoute(GeoPoint origin, GeoPoint destination, String mode, Integer strategy) {
         Map<String, String> params = new HashMap<>();
         params.put("origin", origin.getLongitude() + "," + origin.getLatitude());
         params.put("destination", destination.getLongitude() + "," + destination.getLatitude());
         params.put("output", "json");
-        params.put("strategy", "0");
+        params.put("strategy", strategy.toString());
 
         String path = "/direction/" + mode;
         Map<String, Object> result = client.request(path, params);

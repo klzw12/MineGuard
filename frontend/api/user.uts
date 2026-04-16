@@ -165,3 +165,19 @@ export function searchContacts(params: {
 }): Promise<PageResult<UserVO> | null> {
   return http.get<PageResult<UserVO>>('/user/contacts/search', params)
 }
+
+export function getAttendanceStatistics(userId: number, startDate: string, endDate: string): Promise<{ [key: string]: any } | null> {
+  return http.get<{ [key: string]: any }>(`/user/attendance/statistics`, { userId, startDate, endDate })
+}
+
+export function checkIn(): Promise<{ [key: string]: any } | null> {
+  return http.post<{ [key: string]: any }>('/attendance/check-in', {})
+}
+
+export function checkOut(): Promise<{ [key: string]: any } | null> {
+  return http.post<{ [key: string]: any }>('/attendance/check-out', {})
+}
+
+export function getAttendanceStatus(): Promise<{ [key: string]: any } | null> {
+  return http.get<{ [key: string]: any }>('/attendance/status')
+}

@@ -380,7 +380,7 @@ class StatisticsServiceTest {
         costData.setDepreciationCost(new BigDecimal("400.0"));
         costData.setManagementCost(new BigDecimal("200.0"));
         costData.setOtherCost(new BigDecimal("100.0"));
-        when(costClient.getCostStatistics(anyString(), anyString())).thenReturn(costData);
+        when(costClient.getCostStatistics(anyString(), anyString())).thenReturn(com.klzw.common.core.result.Result.success(costData));
 
         // 执行测试
         CostStatisticsVO result = statisticsService.calculateCostStatistics(LocalDate.now().toString());
@@ -600,7 +600,7 @@ class StatisticsServiceTest {
         // Mock CostClient
         com.klzw.common.core.domain.dto.CostStatisticsResponseDTO costData = new com.klzw.common.core.domain.dto.CostStatisticsResponseDTO();
         costData.setFuelCost(new BigDecimal("1000.0"));
-        when(costClient.getCostStatistics(anyString(), anyString())).thenReturn(costData);
+        when(costClient.getCostStatistics(anyString(), anyString())).thenReturn(com.klzw.common.core.result.Result.success(costData));
 
         // 执行测试
         LocalDate startDate = LocalDate.now().minusDays(2);

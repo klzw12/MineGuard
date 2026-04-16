@@ -5,6 +5,7 @@ import com.klzw.common.database.domain.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Data
@@ -61,6 +62,8 @@ public class Vehicle extends BaseEntity {
     private String dimensions;
     
     private String inspectionRecord;
+    
+    private BigDecimal depreciationRate;
     
     private String remark;
 }

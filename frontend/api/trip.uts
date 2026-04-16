@@ -17,13 +17,15 @@ export interface TripCreateDTO {
 export interface TripEndDTO {
   endLongitude: number
   endLatitude: number
+  tolls?: number
+  tollDistance?: number
 }
 
 export interface Trip {
-  id: number
+  id: string
   tripNo: string
-  vehicleId: number
-  driverId: number
+  vehicleId: string
+  driverId: string
   startLocation: string
   endLocation: string
   estimatedStartTime: string
@@ -44,6 +46,11 @@ export interface Trip {
   endLatitude: number
   createTime: string
   updateTime: string
+  priority: string
+  deadline: string
+  lastLongitude: number
+  lastLatitude: number
+  lastRecordTime: string
 }
 
 export interface TripTrack {
@@ -58,25 +65,29 @@ export interface TripTrack {
 export interface PageResult<T> {
   total: number
   pages: number
-  pageNum: number
-  pageSize: number
-  records: T[]
+  page: number
+  size: number
+  list: T[]
 }
 
 export function createTrip(data: TripCreateDTO): Promise<number | null> {
   return http.post<number>('/trip', data)
 }
 
-export function startTrip(id: number): Promise<void | null> {
+export function startTrip(id: string): Promise<void | null> {
   return http.post<void>(`/trip/${id}/start`)
 }
 
-export function endTrip(id: number, data: TripEndDTO): Promise<void | null> {
+export function endTrip(id: string, data: TripEndDTO): Promise<void | null> {
   return http.post<void>(`/trip/${id}/end`, data)
 }
 
-export function getTrip(id: number): Promise<Trip | null> {
+export function getTrip(id: string): Promise<Trip | null> {
   return http.get<Trip>(`/trip/${id}`)
+}
+
+export function getActiveTrip(): Promise<Trip | null> {
+  return http.get<Trip>('/trip/active')
 }
 
 export function getTripPage(params: {
@@ -89,7 +100,7 @@ export function getTripPage(params: {
   return http.get<PageResult<Trip>>('/trip/page', params)
 }
 
-export function getTripTrack(id: number): Promise<TripTrack[] | null> {
+export function getTripTrack(id: string): Promise<TripTrack[] | null> {
   return http.get<TripTrack[]>(`/trip/${id}/track`)
 }
 
@@ -101,7 +112,7 @@ export function playTripTrack(tracks: TripTrack[]) {
   return sortedTracks
 }
 
-export function acceptTrip(id: number): Promise<void | null> {
+export function acceptTrip(id: string): Promise<void | null> {
   return http.post<void>(`/trip/${id}/accept`)
 }
 
@@ -111,4 +122,46 @@ export function getTripList(params: {
   status?: number
 }): Promise<PageResult<Trip> | null> {
   return http.get<PageResult<Trip>>('/trip/page', params)
+}
+
+export interface TripDetailVO extends Trip {
+  vehicleNo: string
+  driverName: string
+  aiAnalysis: string | null
+  costDetails: CostDetailItem[]
+}
+
+export interface CostDetailItem {
+  id: number
+  costType: number
+  costTypeName: string
+  costName: string
+  amount: number
+  description: string | null
+  createTime: string
+}
+
+export interface AiAnalysisResult {
+  analysis: {
+    driving_score: number
+    recommendations: string[]
+    speeding_analysis?: string
+    acceleration_analysis?: string
+    overall_evaluation?: string
+  }
+  cleaning_report?: {
+    original_count: number
+    cleaned_count: number
+    removed_count: number
+  }
+  status: string
+  message: string
+}
+
+export function getTripDetail(id: string): Promise<TripDetailVO | null> {
+  return http.get<TripDetailVO>(`/trip/${id}/detail`)
+}
+
+export function getTripCostDetails(tripId: string): Promise<CostDetailItem[] | null> {
+  return http.get<CostDetailItem[]>(`/trip/${tripId}/cost-details`)
 }

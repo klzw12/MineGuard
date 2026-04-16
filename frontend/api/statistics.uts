@@ -179,7 +179,7 @@ export const statisticsApi = {
     return http.get<TransportStatisticsVO[]>('/statistics/transport', params)
   },
 
-  calculateAllStatistics: (): Promise<any | null> => {
-    return http.post<any>('/statistics/calculate-all', {})
+  calculateAllStatistics: (date: string): Promise<any | null> => {
+    return http.post<any>(`/statistics/calculate-all?date=${date}`, {})
   }
 }

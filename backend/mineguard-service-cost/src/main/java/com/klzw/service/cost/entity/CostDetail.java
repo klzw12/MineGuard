@@ -25,8 +25,6 @@ public class CostDetail {
 
     private BigDecimal amount;
 
-    private BigDecimal quantity;
-
     private Long vehicleId;
 
     private Long tripId;

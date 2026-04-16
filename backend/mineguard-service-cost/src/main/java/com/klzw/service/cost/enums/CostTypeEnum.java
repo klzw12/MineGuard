@@ -8,7 +8,8 @@ public enum CostTypeEnum {
     INSURANCE(4, "保险成本"),
     DEPRECIATION(5, "折旧成本"),
     MANAGEMENT(6, "管理成本"),
-    OTHER(7, "其他成本");
+    OTHER(7, "其他成本"),
+    TRIP_COMMISSION(8, "行程提成");
 
     private final int code;
     private final String name;

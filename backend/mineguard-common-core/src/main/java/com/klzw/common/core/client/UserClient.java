@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
+import org.springframework.web.service.annotation.PostExchange;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -32,4 +33,11 @@ public interface UserClient {
 
     @GetExchange("/user/{userId}/role")
     Result<String> getUserRole(@PathVariable("userId") Long userId);
+
+    @PostExchange("/driver/score/update-from-trip")
+    Result<Integer> updateDriverScoreFromTrip(
+            @RequestParam("driverId") Long driverId,
+            @RequestParam("pythonScore") Integer pythonScore,
+            @RequestParam("tripDistance") Double tripDistance
+    );
 }

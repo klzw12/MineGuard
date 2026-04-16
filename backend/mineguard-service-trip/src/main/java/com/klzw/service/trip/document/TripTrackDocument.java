@@ -44,4 +44,6 @@ public class TripTrackDocument {
 
     private String location;
 
+    private Integer pointIndex;
+
 }

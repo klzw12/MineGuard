@@ -1,59 +1,62 @@
 <template>
-	<view class="admin-container">
+	<view class="admin-layout-container">
 		<AdminSidebar />
 		
 		<view class="admin-content">
-			<view class="header-section">
+			<view class="page-header">
 				<text class="page-title">薪酬管理</text>
 			</view>
 			
 			<!-- 搜索栏 -->
-			<view class="search-section">
-				<view class="search-box">
-					<input 
-						v-model="searchQuery"
-						type="text"
-						placeholder="搜索用户姓名"
-						placeholder-style="color: #999"
-						class="search-input"
-						@input="handleSearch"
-					/>
-					<view class="search-btn" @click="handleSearch">
-						<text>🔍</text>
+			<view class="content-card">
+				<view class="table-header">
+					<view class="search-box">
+						<text class="search-icon">🔍</text>
+						<input type="text" placeholder="搜索用户姓名..." placeholder-style="color: rgba(255,255,255,0.4)" v-model="searchQuery" @input="handleSearch" />
 					</view>
 				</view>
-			</view>
 			
 			<!-- 用户列表 -->
-			<view class="user-list-section">
 				<view v-if="loading" class="loading-container">
 					<text class="loading-text">加载中...</text>
 				</view>
 				<view v-else-if="userList.length === 0" class="empty-container">
 					<text class="empty-text">暂无用户</text>
 				</view>
-				<view v-else class="user-list">
-					<view class="user-item" v-for="user in userList" :key="user.id">
-						<view class="user-info">
-							<view class="user-avatar">
-								<image :src="getAvatarUrl(user.avatar)" mode="aspectFill"></image>
+				<view v-else class="table-container">
+					<view class="table-row header">
+						<text class="table-cell">用户信息</text>
+						<text class="table-cell">角色</text>
+						<text class="table-cell">状态</text>
+						<text class="table-cell">起薪设置</text>
+						<text class="table-cell">操作</text>
+					</view>
+					<view class="table-row" v-for="(user, index) in userList" :key="user.id">
+						<text class="table-cell">
+							<view class="user-info">
+								<view class="user-avatar">
+									<text class="avatar-text">{{ getAvatarText(user) }}</text>
+								</view>
+								<view class="user-details">
+									<text class="user-name">{{ user.realName || user.userName }}</text>
+								</view>
 							</view>
-							<view class="user-details">
-								<text class="user-name">{{ user.userName }}</text>
-								<text class="user-role">{{ user.roleName }}</text>
-								<text class="user-status" :class="user.status === 1 ? 'status-active' : 'status-inactive'">
-									{{ user.status === 1 ? '在职' : '离职' }}
-								</text>
+						</text>
+						<text class="table-cell">{{ user.roleName }}</text>
+						<text class="table-cell">
+							<view class="status-tag" :class="user.status === 1 ? 'active' : 'inactive'">
+								{{ user.status === 1 ? '在职' : '离职' }}
 							</view>
-						</view>
-						<view class="user-actions">
-							<view class="action-btn primary" @click="showSalaryAdjustModal(user)">
-								<text>起薪调整</text>
+						</text>
+						<text class="table-cell">
+							<view class="status-tag" :class="user.hasSalaryConfig ? 'active' : 'inactive'">
+								{{ user.hasSalaryConfig ? '已设置' : '未设置' }}
 							</view>
-							<view class="action-btn secondary" @click="showPerformanceModal(user)">
-								<text>分发绩效</text>
-							</view>
-						</view>
+						</text>
+						<text class="table-cell actions">
+							<view class="action-link primary" @click="showSalaryAdjustModal(user)">起薪调整</view>
+							<view class="action-link secondary" @click="showPerformanceModal(user)">分发绩效</view>
+						</text>
 					</view>
 				</view>
 				
@@ -89,38 +92,26 @@
 					<view class="salary-form">
 						<view class="form-item">
 							<text class="form-label">用户</text>
-							<text class="form-value">{{ currentUser?.userName }} - {{ currentUser?.roleName }}</text>
+							<text class="form-value">{{ (currentUser?.realName || currentUser?.userName) }} - {{ currentUser?.roleName }}</text>
 						</view>
 						<view class="form-item">
-							<text class="form-label">基础工资(元/月)</text>
-							<input 
-								class="form-input"
-								type="digit" 
-								v-model="salaryForm.baseSalary" 
-								placeholder="请输入基础工资"
-								placeholder-style="color: #999"
-							/>
-						</view>
-						<view class="form-item">
-							<text class="form-label">日薪(元/天)</text>
-							<input 
-								class="form-input"
-								type="digit" 
-								v-model="salaryForm.dailySalary" 
-								placeholder="请输入日薪（可选）"
-								placeholder-style="color: #999"
-							/>
-						</view>
-						<view class="form-item">
-							<text class="form-label">时薪(元/小时)</text>
-							<input 
-								class="form-input"
-								type="digit" 
-								v-model="salaryForm.hourlySalary" 
-								placeholder="请输入时薪（可选）"
-								placeholder-style="color: #999"
-							/>
-						</view>
+				<text class="form-label">基础工资(元/月)</text>
+				<input 
+					class="form-input"
+					type="digit" 
+					v-model="salaryForm.baseSalary" 
+					placeholder="请输入基础工资"
+					placeholder-style="color: #999"
+				/>
+			</view>
+			<view class="form-item">
+				<text class="form-label">日薪(元/天)</text>
+				<text class="form-value">{{ salaryForm.dailySalary || '自动计算' }}</text>
+			</view>
+			<view class="form-item">
+				<text class="form-label">时薪(元/小时)</text>
+				<text class="form-value">{{ salaryForm.hourlySalary || '自动计算' }}</text>
+			</view>
 						<view class="form-item">
 							<text class="form-label">加班倍率</text>
 							<input 
@@ -131,16 +122,7 @@
 								placeholder-style="color: #999"
 							/>
 						</view>
-						<view class="form-item">
-							<text class="form-label">绩效奖金(元/月)</text>
-							<input 
-								class="form-input"
-								type="digit" 
-								v-model="salaryForm.performanceBonus" 
-								placeholder="请输入绩效奖金"
-								placeholder-style="color: #999"
-							/>
-						</view>
+						
 					</view>
 					<view class="modal-btns">
 						<view class="modal-btn cancel" @click="closeSalaryModal">
@@ -160,7 +142,7 @@
 					<view class="performance-form">
 						<view class="form-item">
 							<text class="form-label">用户</text>
-							<text class="form-value">{{ currentUser?.userName }} - {{ currentUser?.roleName }}</text>
+							<text class="form-value">{{ (currentUser?.realName || currentUser?.userName) }} - {{ currentUser?.roleName }}</text>
 						</view>
 						<view class="form-item">
 							<text class="form-label">绩效金额(元)</text>
@@ -205,408 +187,336 @@
 
 <script setup lang="uts">
 	import { ref, onMounted, computed } from 'vue'
-	import AdminSidebar from '../../../components/AdminSidebar.uvue'
-	import * as userApi from '@/api/user.uts'
-	import * as costApi from '@/api/cost.uts'
-	import { getAvatarUrl } from '@/utils/image.uts'
+import AdminSidebar from '../../../components/AdminSidebar.uvue'
+import { pageUsers } from '@/api/user.uts'
+import costApi from '@/api/cost.uts'
+import { getAvatarUrl } from '@/utils/image.uts'
 
-	const loading = ref(false)
-	const searchQuery = ref('')
-	const currentPage = ref(1)
-	const pageSize = ref(10)
-	const total = ref(0)
-	const userList = ref<any[]>([])
-	
-	const salaryModalVisible = ref(false)
-	const performanceModalVisible = ref(false)
-	const currentUser = ref<any>(null)
-	
-	const salaryForm = ref({
+const loading = ref(false)
+const searchQuery = ref('')
+const currentPage = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
+const userList = ref<any[]>([])
+
+const salaryModalVisible = ref(false)
+const performanceModalVisible = ref(false)
+const currentUser = ref<any>(null)
+
+const salaryForm = ref({
+	baseSalary: '',
+	dailySalary: '',
+	hourlySalary: '',
+	overtimeRate: '1.5'
+})
+
+const performanceForm = ref({
+	amount: '',
+	month: '',
+	remark: ''
+})
+
+const totalPages = computed(() => {
+	return Math.ceil(total.value / pageSize.value)
+})
+
+async function loadUsers() {
+	loading.value = true
+	try {
+		const params = {
+			pageNum: currentPage.value,
+			pageSize: pageSize.value,
+			keyword: searchQuery.value
+		}
+		const response = await pageUsers(params)
+		if (response) {
+			// 过滤掉没有realname的用户
+			let users = (response.list || []).filter(user => user.realName)
+			
+			// 检查每个用户是否设置了起薪
+			const usersWithSalaryConfig = await Promise.all(
+				users.map(async (user) => {
+					try {
+						const hasSalaryConfig = await costApi.checkSalaryConfig(user.id)
+						return { ...user, hasSalaryConfig: hasSalaryConfig || false }
+					} catch (e) {
+						console.error(`检查用户 ${user.id} 起薪设置失败`, e)
+						return { ...user, hasSalaryConfig: false }
+					}
+				})
+			)
+			
+			userList.value = usersWithSalaryConfig
+			total.value = userList.value.length
+		}
+	} catch (e: any) {
+		uni.showToast({
+			title: e.message || '加载失败',
+			icon: 'none',
+			position: 'bottom'
+		})
+	} finally {
+		loading.value = false
+	}
+}
+
+// 获取用户姓名首字作为头像
+function getAvatarText(user: any) {
+	if (user.realName) {
+		return user.realName.charAt(0)
+	}
+	return ''
+}
+
+async function handleSearch() {
+	currentPage.value = 1
+	await loadUsers()
+}
+
+async function changePage(page: number) {
+	if (page < 1 || page > totalPages.value) return
+	currentPage.value = page
+	await loadUsers()
+}
+
+async function showSalaryAdjustModal(user: any) {
+	currentUser.value = user
+	salaryForm.value = {
 		baseSalary: '',
 		dailySalary: '',
 		hourlySalary: '',
-		overtimeRate: '1.5',
-		performanceBonus: ''
-	})
+		overtimeRate: '1.5'
+	}
 	
-	const performanceForm = ref({
-		amount: '',
-		month: '',
-		remark: ''
-	})
-
-	const totalPages = computed(() => {
-		return Math.ceil(total.value / pageSize.value)
-	})
-
-	async function loadUsers() {
-		loading.value = true
-		try {
-			const params = {
-				page: currentPage.value,
-				pageSize: pageSize.value,
-				keyword: searchQuery.value
+	// 加载现有薪酬配置
+	try {
+		const configs = await costApi.getSalaryConfigList()
+		if (configs) {
+			const userConfig = configs.find((c: costApi.SalaryConfigVO) => c.userId === user.id)
+			if (userConfig) {
+			salaryForm.value = {
+				baseSalary: String(userConfig.baseSalary || ''),
+				dailySalary: String(userConfig.dailySalary || ''),
+				hourlySalary: String(userConfig.hourlySalary || ''),
+				overtimeRate: String(userConfig.overtimeRate || '1.5')
 			}
-			const response = await userApi.getAdminUserList(params)
-			if (response) {
-				userList.value = response.records || []
-				total.value = response.total || 0
-			}
-		} catch (e: any) {
+		}
+		}
+	} catch (e) {
+		console.error('加载薪酬配置失败', e)
+	}
+	
+	salaryModalVisible.value = true
+}
+
+function closeSalaryModal() {
+	salaryModalVisible.value = false
+	currentUser.value = null
+	salaryForm.value = {
+		baseSalary: '',
+		dailySalary: '',
+		hourlySalary: '',
+		overtimeRate: '1.5'
+	}
+}
+
+async function confirmSalary() {
+	if (!salaryForm.value.baseSalary) {
+		uni.showToast({
+			title: '请输入基础工资',
+			icon: 'none',
+			position: 'bottom'
+		})
+		return
+	}
+
+	if (!currentUser.value) return
+
+	try {
+		const data: costApi.SalaryConfigDTO = {
+			roleCode: currentUser.value.roleCode,
+			roleName: currentUser.value.roleName || '',
+			userId: currentUser.value.id,
+			userName: currentUser.value.realName || currentUser.value.userName || '',
+			baseSalary: parseFloat(salaryForm.value.baseSalary) || 0,
+			dailySalary: parseFloat(salaryForm.value.dailySalary) || 0,
+			hourlySalary: parseFloat(salaryForm.value.hourlySalary) || 0,
+			overtimeRate: parseFloat(salaryForm.value.overtimeRate) || 1.5,
+			status: 1,
+			effectiveDate: new Date().toISOString().split('T')[0],
+			expiryDate: '2099-12-31'
+		}
+
+		// 检查是否存在现有配置
+		const configs = await costApi.getSalaryConfigList()
+		const existingConfig = configs?.find((c: costApi.SalaryConfigVO) => c.userId === currentUser.value.id)
+
+		if (existingConfig?.id) {
+			data.id = existingConfig.id
+			await costApi.updateSalaryConfig(data)
 			uni.showToast({
-				title: e.message || '加载失败',
-				icon: 'none',
-				position: 'bottom'
-			})
-		} finally {
-			loading.value = false
-		}
-	}
-
-	async function handleSearch() {
-		currentPage.value = 1
-		await loadUsers()
-	}
-
-	async function changePage(page: number) {
-		if (page < 1 || page > totalPages.value) return
-		currentPage.value = page
-		await loadUsers()
-	}
-
-	async function showSalaryAdjustModal(user: any) {
-		currentUser.value = user
-		salaryForm.value = {
-			baseSalary: '',
-			dailySalary: '',
-			hourlySalary: '',
-			overtimeRate: '1.5',
-			performanceBonus: ''
-		}
-		
-		// 加载现有薪酬配置
-		try {
-			const configs = await costApi.getSalaryConfigList()
-			if (configs) {
-				const userConfig = configs.find((c: costApi.SalaryConfigVO) => c.roleCode === user.roleCode)
-				if (userConfig) {
-					salaryForm.value = {
-						baseSalary: String(userConfig.baseSalary || ''),
-						dailySalary: String(userConfig.dailySalary || ''),
-						hourlySalary: String(userConfig.hourlySalary || ''),
-						overtimeRate: String(userConfig.overtimeRate || '1.5'),
-						performanceBonus: String(userConfig.performanceBonus || '')
-					}
-				}
-			}
-		} catch (e) {
-			console.error('加载薪酬配置失败', e)
-		}
-		
-		salaryModalVisible.value = true
-	}
-
-	function closeSalaryModal() {
-		salaryModalVisible.value = false
-		currentUser.value = null
-		salaryForm.value = {
-			baseSalary: '',
-			dailySalary: '',
-			hourlySalary: '',
-			overtimeRate: '1.5',
-			performanceBonus: ''
-		}
-	}
-
-	async function confirmSalary() {
-		if (!salaryForm.value.baseSalary) {
-			uni.showToast({
-				title: '请输入基础工资',
-				icon: 'none',
-				position: 'bottom'
-			})
-			return
-		}
-
-		if (!currentUser.value) return
-
-		try {
-			const data: costApi.SalaryConfigDTO = {
-				roleCode: currentUser.value.roleCode,
-				roleName: currentUser.value.roleName || '',
-				baseSalary: parseFloat(salaryForm.value.baseSalary) || 0,
-				dailySalary: parseFloat(salaryForm.value.dailySalary) || 0,
-				hourlySalary: parseFloat(salaryForm.value.hourlySalary) || 0,
-				overtimeRate: parseFloat(salaryForm.value.overtimeRate) || 1.5,
-				performanceBonus: parseFloat(salaryForm.value.performanceBonus) || 0,
-				status: 1,
-				effectiveDate: new Date().toISOString().split('T')[0],
-				expiryDate: '2099-12-31'
-			}
-
-			// 检查是否存在现有配置
-			const configs = await costApi.getSalaryConfigList()
-			const existingConfig = configs?.find((c: costApi.SalaryConfigVO) => c.roleCode === currentUser.value.roleCode)
-
-			if (existingConfig?.id) {
-				data.id = existingConfig.id
-				await costApi.updateSalaryConfig(data)
-				uni.showToast({
-					title: '薪酬配置更新成功',
-					icon: 'success',
-					position: 'bottom'
-				})
-			} else {
-				await costApi.addSalaryConfig(data)
-				uni.showToast({
-					title: '薪酬配置添加成功',
-					icon: 'success',
-					position: 'bottom'
-				})
-			}
-
-			closeSalaryModal()
-		} catch (e: any) {
-			uni.showToast({
-				title: e.message || '操作失败',
-				icon: 'none',
-				position: 'bottom'
-			})
-		}
-	}
-
-	function showPerformanceModal(user: any) {
-		currentUser.value = user
-		performanceForm.value = {
-			amount: '',
-			month: new Date().toISOString().split('T')[0].substring(0, 7), // YYYY-MM
-			remark: ''
-		}
-		performanceModalVisible.value = true
-	}
-
-	function closePerformanceModal() {
-		performanceModalVisible.value = false
-		currentUser.value = null
-		performanceForm.value = {
-			amount: '',
-			month: '',
-			remark: ''
-		}
-	}
-
-	async function confirmPerformance() {
-		if (!performanceForm.value.amount) {
-			uni.showToast({
-				title: '请输入绩效金额',
-				icon: 'none',
-				position: 'bottom'
-			})
-			return
-		}
-
-		if (!currentUser.value) return
-
-		try {
-			// 这里可以调用分发绩效的API
-			// 假设我们有一个costApi.distributePerformance方法
-			// await costApi.distributePerformance({
-			//     userId: currentUser.value.id,
-			//     amount: parseFloat(performanceForm.value.amount),
-			//     month: performanceForm.value.month,
-			//     remark: performanceForm.value.remark
-			// })
-			
-			uni.showToast({
-				title: '绩效分发成功',
+				title: '薪酬配置更新成功',
 				icon: 'success',
 				position: 'bottom'
 			})
-			closePerformanceModal()
-		} catch (e: any) {
+		} else {
+			await costApi.addSalaryConfig(data)
 			uni.showToast({
-				title: e.message || '操作失败',
-				icon: 'none',
+				title: '薪酬配置添加成功',
+				icon: 'success',
 				position: 'bottom'
 			})
 		}
+
+		// 立即更新UI，将当前用户的起薪设置状态改为已设置
+		const userIndex = userList.value.findIndex(user => user.id === currentUser.value.id)
+		if (userIndex !== -1) {
+			userList.value[userIndex].hasSalaryConfig = true
+		}
+
+		closeSalaryModal()
+	} catch (e: any) {
+		uni.showToast({
+			title: e.message || '操作失败',
+			icon: 'none',
+			position: 'bottom'
+		})
+	}
+}
+
+function showPerformanceModal(user: any) {
+	currentUser.value = user
+	performanceForm.value = {
+		amount: '',
+		month: new Date().toISOString().split('T')[0].substring(0, 7), // YYYY-MM
+		remark: ''
+	}
+	performanceModalVisible.value = true
+}
+
+function closePerformanceModal() {
+	performanceModalVisible.value = false
+	currentUser.value = null
+	performanceForm.value = {
+		amount: '',
+		month: '',
+		remark: ''
+	}
+}
+
+async function confirmPerformance() {
+	if (!performanceForm.value.amount) {
+		uni.showToast({
+			title: '请输入绩效金额',
+			icon: 'none',
+			position: 'bottom'
+		})
+		return
 	}
 
-	function showDatePicker() {
-		// 这里可以实现日期选择器
-		// 简化处理，直接使用当前月份
-		performanceForm.value.month = new Date().toISOString().split('T')[0].substring(0, 7)
-	}
+	if (!currentUser.value) return
 
-	onMounted(() => {
-		loadUsers()
-	})
+	try {
+		const amount = parseFloat(performanceForm.value.amount)
+		const month = performanceForm.value.month
+		
+		// 创建新的绩效成本记录
+		const costData: costApi.CostDetailDTO = {
+			costType: 3, // 人工成本
+			costName: '绩效奖金',
+			amount: amount,
+			userId: currentUser.value.id,
+			costDate: month + '-01', // 使用月份的第一天作为成本日期
+			description: performanceForm.value.remark || '绩效奖金',
+			remark: `用户: ${currentUser.value.realName || currentUser.value.userName}, 月份: ${month}`
+		}
+		
+		await costApi.addCostDetail(costData)
+		
+		uni.showToast({
+			title: '绩效分发成功',
+			icon: 'success',
+			position: 'bottom'
+		})
+		closePerformanceModal()
+	} catch (e: any) {
+		uni.showToast({
+			title: e.message || '操作失败',
+			icon: 'none',
+			position: 'bottom'
+		})
+	}
+}
+
+function showDatePicker() {
+	// 这里可以实现日期选择器
+	// 简化处理，直接使用当前月份
+	performanceForm.value.month = new Date().toISOString().split('T')[0].substring(0, 7)
+}
+
+onMounted(async () => {
+	// 加载用户列表
+	await loadUsers()
+})
 </script>
 
 <style lang="scss">
-	.admin-container {
-		display: flex;
-		flex-direction: row;
-		min-height: 100vh;
-		background-color: #f5f5f5;
-	}
-
-	.admin-content {
-		flex: 1;
-		margin-left: 240rpx;
-		padding: 40rpx;
-		box-sizing: border-box;
-		min-height: 100vh;
-	}
-
-	.header-section {
-		margin-bottom: 30rpx;
-	}
-
-	.page-title {
-		font-size: 32rpx;
-		font-weight: bold;
-		color: #0056b3;
-	}
-
-	.search-section {
-		margin-bottom: 30rpx;
-	}
-
-	.search-box {
-		display: flex;
-		flex-direction: row;
-		background-color: #fff;
-		border-radius: 10rpx;
-		padding: 0 20rpx;
-		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-	}
-
-	.search-input {
-		flex: 1;
-		padding: 20rpx 0;
-		font-size: 28rpx;
-		color: #333;
-	}
-
-	.search-btn {
-		padding: 20rpx;
-		font-size: 32rpx;
-	}
-
-	.user-list-section {
-		background-color: #fff;
-		border-radius: 20rpx;
-		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-		padding: 30rpx;
-	}
-
-	.loading-container,
-	.empty-container {
-		padding: 80rpx;
-		text-align: center;
-	}
-
-	.loading-text,
-	.empty-text {
-		font-size: 28rpx;
-		color: #999;
-	}
-
-	.user-list {
-		margin-bottom: 30rpx;
-	}
-
-	.user-item {
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		align-items: center;
-		padding: 30rpx 0;
-		border-bottom: 1rpx solid #f0f0f0;
-		
-		&:last-child {
-			border-bottom: none;
-		}
-	}
-
+	/* 引入通用admin样式 */
+	@import '@/styles/admin.scss';
+	
+	/* 自定义样式 */
 	.user-info {
 		display: flex;
 		flex-direction: row;
 		align-items: center;
-		flex: 1;
-	}
-
-	.user-avatar {
-		width: 80rpx;
-		height: 80rpx;
-		border-radius: 50%;
-		overflow: hidden;
-		margin-right: 20rpx;
 		
-		image {
-			width: 100%;
-			height: 100%;
-		}
-	}
-
-	.user-details {
-		flex: 1;
-	}
-
-	.user-name {
-		font-size: 28rpx;
-		font-weight: 500;
-		color: #333;
-		margin-bottom: 8rpx;
-		display: block;
-	}
-
-	.user-role {
-		font-size: 24rpx;
-		color: #666;
-		margin-bottom: 8rpx;
-		display: block;
-	}
-
-	.user-status {
-		font-size: 20rpx;
-		padding: 4rpx 12rpx;
-		border-radius: 10rpx;
+		.user-avatar {
+			width: 60rpx;
+			height: 60rpx;
+			border-radius: 50%;
+			background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
 		
-		&.status-active {
-			background-color: #E8F5E9;
-			color: #2E7D32;
+display: flex;
+			align-items: center;
+			justify-content: center;
+			margin-right: 15rpx;
+			
+			.avatar-text {
+				font-size: 28rpx;
+				font-weight: bold;
+				color: #fff;
+			}
 		}
 		
-		&.status-inactive {
-			background-color: #FFEBEE;
-			color: #C62828;
+		.user-details {
+			flex: 1;
+			
+			.user-name {
+				font-size: 26rpx;
+				font-weight: 500;
+				color: #fff;
+				display: block;
+			}
 		}
 	}
-
-	.user-actions {
-		display: flex;
-		flex-direction: row;
-		gap: 15rpx;
-	}
-
-	.action-btn {
-		padding: 15rpx 25rpx;
-		border-radius: 10rpx;
-		font-size: 24rpx;
+	
+	.action-link {
+		cursor: pointer;
+		transition: opacity 0.2s ease;
+		
+		&:active {
+			opacity: 0.7;
+		}
 		
 		&.primary {
-			background-color: #007AFF;
-			color: #fff;
+			color: #007AFF;
 		}
 		
 		&.secondary {
-			background-color: #34C759;
-			color: #fff;
+			color: #34C759;
 		}
 	}
-
+	
 	.pagination {
 		display: flex;
 		flex-direction: row;
@@ -614,37 +524,39 @@
 		align-items: center;
 		margin-top: 30rpx;
 		padding-top: 30rpx;
-		border-top: 1rpx solid #f0f0f0;
-	}
-
-	.page-info {
-		font-size: 24rpx;
-		color: #666;
-	}
-
-	.page-controls {
-		display: flex;
-		flex-direction: row;
-		gap: 10rpx;
-	}
-
-	.page-btn {
-		padding: 10rpx 20rpx;
-		border-radius: 10rpx;
-		font-size: 24rpx;
-		background-color: #f5f5f5;
+		border-top: 1rpx solid rgba(255, 255, 255, 0.08);
 		
-		&.active {
-			background-color: #007AFF;
-			color: #fff;
+		.page-info {
+			font-size: 24rpx;
+			color: rgba(255, 255, 255, 0.8);
 		}
 		
-		&.disabled {
-			opacity: 0.5;
-			cursor: not-allowed;
+		.page-controls {
+			display: flex;
+			flex-direction: row;
+			gap: 10rpx;
+			
+			.page-btn {
+				padding: 10rpx 20rpx;
+				border-radius: 10rpx;
+				font-size: 24rpx;
+				background-color: rgba(255, 255, 255, 0.1);
+				color: #fff;
+				
+				&.active {
+					background-color: #007AFF;
+					color: #fff;
+				}
+				
+				&.disabled {
+					opacity: 0.5;
+					cursor: not-allowed;
+				}
+			}
 		}
 	}
-
+	
+	/* 模态框样式 */
 	.modal-overlay {
 		position: fixed;
 		top: 0;
@@ -657,22 +569,23 @@
 		justify-content: center;
 		z-index: 999;
 	}
-
+	
 	.modal-content {
 		width: 650rpx;
-		background-color: #fff;
+		background-color: #2a3347;
 		border-radius: 20rpx;
 		padding: 40rpx;
+		border: 1rpx solid rgba(255, 255, 255, 0.08);
 	}
-
+	
 	.modal-title {
 		font-size: 32rpx;
 		font-weight: bold;
-		color: #333;
+		color: #fff;
 		text-align: center;
 		margin-bottom: 30rpx;
 	}
-
+	
 	.salary-form,
 	.performance-form {
 		margin-bottom: 30rpx;
@@ -683,54 +596,59 @@
 			.form-label {
 				display: block;
 				font-size: 24rpx;
-				color: #666;
+				color: rgba(255, 255, 255, 0.8);
 				margin-bottom: 12rpx;
 			}
 			
 			.form-input {
 				width: 100%;
 				padding: 20rpx;
-				border: 1rpx solid #ddd;
+				border: 1rpx solid rgba(255, 255, 255, 0.1);
 				border-radius: 10rpx;
 				font-size: 28rpx;
+				background-color: rgba(255, 255, 255, 0.05);
+				color: #fff;
 			}
 			
 			.form-textarea {
 				width: 100%;
 				padding: 20rpx;
-				border: 1rpx solid #ddd;
+				border: 1rpx solid rgba(255, 255, 255, 0.1);
 				border-radius: 10rpx;
 				font-size: 28rpx;
 				height: 150rpx;
 				resize: none;
+				background-color: rgba(255, 255, 255, 0.05);
+				color: #fff;
 			}
 			
 			.form-value {
 				font-size: 28rpx;
-				color: #333;
+				color: #fff;
 				font-weight: 500;
 			}
 			
 			.date-picker {
 				padding: 20rpx;
-				border: 1rpx solid #ddd;
+				border: 1rpx solid rgba(255, 255, 255, 0.1);
 				border-radius: 10rpx;
 				font-size: 28rpx;
-				color: #333;
+				color: #fff;
+				background-color: rgba(255, 255, 255, 0.05);
 				
 				.placeholder {
-					color: #999;
+					color: rgba(255, 255, 255, 0.4);
 				}
 			}
 		}
 	}
-
+	
 	.modal-btns {
 		display: flex;
 		flex-direction: row;
 		gap: 20rpx;
 	}
-
+	
 	.modal-btn {
 		flex: 1;
 		padding: 20rpx;
@@ -739,37 +657,28 @@
 		font-size: 28rpx;
 		
 		&.cancel {
-			background-color: #f5f5f5;
-			color: #666;
+			background-color: rgba(255, 255, 255, 0.1);
+			color: rgba(255, 255, 255, 0.8);
 		}
 		
 		&.confirm {
-			background-color: #007AFF;
+			background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
 			color: #fff;
 		}
 	}
-
-	@media (max-width: 768px) {
-		.admin-content {
-			margin-left: 200rpx;
-			padding: 30rpx;
-		}
+	
+	.loading-container,
+	.empty-container {
+		display: flex;
+		flex-direction: row;
+		justify-content: center;
+		align-items: center;
+		padding: 60rpx;
 		
-		.user-item {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 20rpx;
-		}
-		
-		.user-actions {
-			width: 100%;
-			justify-content: flex-end;
-		}
-	}
-
-	@media (min-width: 1024px) {
-		.admin-content {
-			padding: 50rpx;
+		.loading-text,
+		.empty-text {
+			font-size: 28rpx;
+			color: rgba(255, 255, 255, 0.6);
 		}
 	}
 </style>

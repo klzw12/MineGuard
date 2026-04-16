@@ -474,7 +474,7 @@
 		try {
 			const res = await vehicleApi.getVehiclePage({ page: 1, size: 100 })
 			if (res) {
-				vehicleOptions.value = (res.records || []).map((v: any) => ({ id: String(v.id), vehicleNo: v.vehicleNo }))
+				vehicleOptions.value = (res.list || []).map((v: any) => ({ id: String(v.id), vehicleNo: v.vehicleNo }))
 			}
 		} catch (e) {
 			console.error('获取车辆列表失败', e)

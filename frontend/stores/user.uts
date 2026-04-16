@@ -129,9 +129,9 @@ function handleLoginRedirect(user: UserVO) {
   
   // 正常用户跳转 - 管理员和启用的调度员跳转到管理端
   if (userRole.value === 'admin' || userRole.value === 'operator') {
-    console.log('Redirecting to admin home page')
+    console.log('Redirecting to admin statistics page')
     uni.redirectTo({
-      url: '/pages/admin/home/index'
+      url: '/pages/admin/statistics/index'
     })
   } else {
     console.log('Redirecting to user task page')

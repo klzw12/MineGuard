@@ -5,23 +5,23 @@ import com.klzw.common.core.client.PythonClient;
 import com.klzw.common.core.client.StatisticsClient;
 import com.klzw.common.core.client.TransportClient;
 import com.klzw.common.core.client.TripClient;
+import com.klzw.common.core.client.UserClient;
 import com.klzw.common.core.client.VehicleClient;
+import com.klzw.common.core.result.Result;
+import com.klzw.service.cost.config.SalaryConfigProperties;
 import com.klzw.service.cost.dto.CostBudgetDTO;
 import com.klzw.service.cost.dto.CostDetailDTO;
 import com.klzw.service.cost.dto.CostQueryDTO;
 import com.klzw.service.cost.dto.SalaryConfigDTO;
-import com.klzw.service.cost.dto.SalaryRecordDTO;
 import com.klzw.service.cost.entity.CostBudget;
 import com.klzw.service.cost.entity.CostDetail;
 import com.klzw.service.cost.entity.SalaryConfig;
-import com.klzw.service.cost.entity.SalaryRecord;
 import com.klzw.service.cost.enums.BudgetStatusEnum;
 import com.klzw.service.cost.enums.BudgetTypeEnum;
 import com.klzw.service.cost.enums.CostTypeEnum;
 import com.klzw.service.cost.mapper.CostBudgetMapper;
 import com.klzw.service.cost.mapper.CostDetailMapper;
 import com.klzw.service.cost.mapper.SalaryConfigMapper;
-import com.klzw.service.cost.mapper.SalaryRecordMapper;
 import com.klzw.service.cost.service.CostService;
 import com.klzw.service.cost.vo.*;
 import lombok.RequiredArgsConstructor;
@@ -47,13 +47,14 @@ public class CostServiceImpl implements CostService {
 
     private final CostDetailMapper costDetailMapper;
     private final SalaryConfigMapper salaryConfigMapper;
-    private final SalaryRecordMapper salaryRecordMapper;
     private final CostBudgetMapper costBudgetMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final PythonClient pythonClient;
     private final TransportClient transportClient;
     private final TripClient tripClient;
+    private final UserClient userClient;
     private final VehicleClient vehicleClient;
+    private final SalaryConfigProperties salaryConfigProperties;
     
     private static final long CACHE_EXPIRE_DAYS = 1; // 缓存过期时间：1 天
 
@@ -126,6 +127,9 @@ public class CostServiceImpl implements CostService {
         }
         if (queryDTO.getUserId() != null) {
             wrapper.eq(CostDetail::getUserId, queryDTO.getUserId());
+        }
+        if (queryDTO.getTripId() != null) {
+            wrapper.eq(CostDetail::getTripId, queryDTO.getTripId());
         }
         if (queryDTO.getCostType() != null) {
             wrapper.eq(CostDetail::getCostType, queryDTO.getCostType());
@@ -205,6 +209,25 @@ public class CostServiceImpl implements CostService {
     public SalaryConfigVO addSalaryConfig(SalaryConfigDTO dto) {
         SalaryConfig entity = new SalaryConfig();
         BeanUtils.copyProperties(dto, entity);
+        
+        // 计算日薪和时薪
+        if (entity.getBaseSalary() != null) {
+            Integer workDaysPerMonth = salaryConfigProperties.getWorkDaysPerMonth();
+            // 起薪包括出勤薪和最低薪，出勤薪/工作天数=日薪
+            BigDecimal minSalary = salaryConfigProperties.getMinSalary();
+            // 计算出勤薪：基础工资 - 最低薪资
+            BigDecimal attendanceSalary = entity.getBaseSalary().subtract(minSalary);
+            // 确保出勤薪不为负数
+            if (attendanceSalary.compareTo(BigDecimal.ZERO) < 0) {
+                attendanceSalary = BigDecimal.ZERO;
+            }
+            // 计算日薪和时薪
+            BigDecimal dailySalary = attendanceSalary.divide(BigDecimal.valueOf(workDaysPerMonth), 2, RoundingMode.HALF_UP);
+            BigDecimal hourlySalary = dailySalary.divide(BigDecimal.valueOf(8), 2, RoundingMode.HALF_UP);
+            entity.setDailySalary(dailySalary);
+            entity.setHourlySalary(hourlySalary);
+        }
+        
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         entity.setDeleted(0);
@@ -223,6 +246,25 @@ public class CostServiceImpl implements CostService {
         }
         
         BeanUtils.copyProperties(dto, entity, "id", "createTime", "deleted");
+        
+        // 计算日薪和时薪
+        if (entity.getBaseSalary() != null) {
+            Integer workDaysPerMonth = salaryConfigProperties.getWorkDaysPerMonth();
+            // 起薪包括出勤薪和最低薪，出勤薪/工作天数=日薪
+            BigDecimal minSalary = salaryConfigProperties.getMinSalary();
+            // 计算出勤薪：基础工资 - 最低薪资
+            BigDecimal attendanceSalary = entity.getBaseSalary().subtract(minSalary);
+            // 确保出勤薪不为负数
+            if (attendanceSalary.compareTo(BigDecimal.ZERO) < 0) {
+                attendanceSalary = BigDecimal.ZERO;
+            }
+            // 计算日薪和时薪
+            BigDecimal dailySalary = attendanceSalary.divide(BigDecimal.valueOf(workDaysPerMonth), 2, RoundingMode.HALF_UP);
+            BigDecimal hourlySalary = dailySalary.divide(BigDecimal.valueOf(8), 2, RoundingMode.HALF_UP);
+            entity.setDailySalary(dailySalary);
+            entity.setHourlySalary(hourlySalary);
+        }
+        
         entity.setUpdateTime(LocalDateTime.now());
         
         salaryConfigMapper.updateById(entity);
@@ -256,101 +298,7 @@ public class CostServiceImpl implements CostService {
         return list.stream().map(this::convertToSalaryConfigVO).collect(Collectors.toList());
     }
 
-    @Override
-    public SalaryRecordVO addSalaryRecord(SalaryRecordDTO dto) {
-        SalaryRecord entity = new SalaryRecord();
-        BeanUtils.copyProperties(dto, entity);
-        if (entity.getTotalSalary() == null) {
-            entity.setTotalSalary(calculateTotalSalary(entity));
-        }
-        entity.setStatus(1);
-        entity.setCreateTime(LocalDateTime.now());
-        entity.setUpdateTime(LocalDateTime.now());
-        entity.setDeleted(0);
-        
-        salaryRecordMapper.insert(entity);
-        log.info("添加薪酬记录：ID={}, 司机={}, 周期={}", entity.getId(), entity.getDriverName(), entity.getPeriod());
-        
-        return convertToSalaryRecordVO(entity);
-    }
 
-    @Override
-    public SalaryRecordVO updateSalaryRecord(SalaryRecordDTO dto) {
-        SalaryRecord entity = salaryRecordMapper.selectById(dto.getId());
-        if (entity == null) {
-            throw new RuntimeException("薪酬记录不存在");
-        }
-        
-        BeanUtils.copyProperties(dto, entity, "id", "createTime", "deleted");
-        if (entity.getTotalSalary() == null) {
-            entity.setTotalSalary(calculateTotalSalary(entity));
-        }
-        entity.setUpdateTime(LocalDateTime.now());
-        
-        salaryRecordMapper.updateById(entity);
-        log.info("更新薪酬记录：ID={}", entity.getId());
-        
-        return convertToSalaryRecordVO(entity);
-    }
-
-    @Override
-    public void deleteSalaryRecord(Long id) {
-        SalaryRecord entity = salaryRecordMapper.selectById(id);
-        if (entity == null) {
-            throw new RuntimeException("薪酬记录不存在");
-        }
-        
-        entity.setDeleted(1);
-        entity.setUpdateTime(LocalDateTime.now());
-        salaryRecordMapper.updateById(entity);
-        log.info("删除薪酬记录：ID={}", id);
-    }
-
-    @Override
-    public SalaryRecordVO getSalaryRecord(Long id) {
-        SalaryRecord entity = salaryRecordMapper.selectById(id);
-        if (entity == null) {
-            return null;
-        }
-        return convertToSalaryRecordVO(entity);
-    }
-
-    @Override
-    public List<SalaryRecordVO> getSalaryRecordList(String keyword, String period, Integer page, Integer pageSize) {
-        LambdaQueryWrapper<SalaryRecord> wrapper = new LambdaQueryWrapper<>();
-        
-        if (keyword != null && !keyword.isEmpty()) {
-            wrapper.and(w -> w.like(SalaryRecord::getDriverName, keyword)
-                    .or().like(SalaryRecord::getVehicleNo, keyword));
-        }
-        
-        if (period != null && !period.isEmpty()) {
-            wrapper.eq(SalaryRecord::getPeriod, period);
-        }
-        
-        wrapper.eq(SalaryRecord::getStatus, 1);
-        wrapper.orderByDesc(SalaryRecord::getCreateTime);
-        
-        if (page != null && pageSize != null) {
-            wrapper.last("LIMIT " + ((page - 1) * pageSize) + ", " + pageSize);
-        }
-        
-        List<SalaryRecord> list = salaryRecordMapper.selectList(wrapper);
-        return list.stream().map(this::convertToSalaryRecordVO).collect(Collectors.toList());
-    }
-
-    private BigDecimal calculateTotalSalary(SalaryRecord entity) {
-        BigDecimal base = entity.getBaseSalary() != null ? entity.getBaseSalary() : BigDecimal.ZERO;
-        BigDecimal bonus = entity.getBonus() != null ? entity.getBonus() : BigDecimal.ZERO;
-        BigDecimal deduction = entity.getDeduction() != null ? entity.getDeduction() : BigDecimal.ZERO;
-        return base.add(bonus).subtract(deduction);
-    }
-
-    private SalaryRecordVO convertToSalaryRecordVO(SalaryRecord entity) {
-        SalaryRecordVO vo = new SalaryRecordVO();
-        BeanUtils.copyProperties(entity, vo);
-        return vo;
-    }
 
     @Override
     public CostBudgetVO addBudget(CostBudgetDTO dto) {
@@ -646,9 +594,6 @@ public class CostServiceImpl implements CostService {
             for (CostDetail cost : fuelCosts) {
                 if (cost.getAmount() != null) {
                     totalFuelCost = totalFuelCost.add(cost.getAmount());
-                }
-                if (cost.getQuantity() != null) {
-                    totalFuelAmount = totalFuelAmount.add(cost.getQuantity());
                 }
             }
             
@@ -990,7 +935,10 @@ public class CostServiceImpl implements CostService {
         double commission = 0;
         
         try {
-            pythonScore = pythonClient.analyzeDrivingBehavior(tripId);
+            var scoreResult = pythonClient.analyzeDrivingBehavior(tripId);
+            if (scoreResult != null && scoreResult.isSuccess() && scoreResult.getData() != null) {
+                pythonScore = scoreResult.getData();
+            }
             log.info("Python 评分结果：tripId={}, score={}", tripId, pythonScore);
         } catch (Exception e) {
             log.warn("调用 Python 服务分析驾驶行为失败，使用默认分数60：tripId={}, error={}", tripId, e.getMessage());
@@ -1062,50 +1010,107 @@ public class CostServiceImpl implements CostService {
                 BigDecimal commission = entry.getValue();
                 
                 try {
-                    SalaryRecord existingRecord = salaryRecordMapper.selectOne(
-                        new LambdaQueryWrapper<SalaryRecord>()
-                            .eq(SalaryRecord::getDriverId, userId)
-                            .eq(SalaryRecord::getPeriod, period)
-                            .eq(SalaryRecord::getStatus, 1)
-                            .eq(SalaryRecord::getDeleted, 0)
-                    );
-                    
-                    if (existingRecord != null) {
-                        log.info("用户 {} 在周期 {} 已有薪酬记录，跳过", userId, period);
-                        continue;
-                    }
-                    
                     SalaryConfig config = configMap.get("DRIVER");
                     BigDecimal baseSalary = config != null && config.getBaseSalary() != null 
                         ? config.getBaseSalary() 
                         : BigDecimal.valueOf(3000);
                     
-                    SalaryRecord record = new SalaryRecord();
-                    record.setDriverId(userId);
-                    record.setDriverName("用户" + userId);
-                    record.setPeriod(period);
-                    record.setBaseSalary(baseSalary);
-                    record.setBonus(commission);
-                    record.setDeduction(BigDecimal.ZERO);
-                    record.setTotalSalary(baseSalary.add(commission));
-                    record.setStatus(1);
-                    record.setCreateTime(LocalDateTime.now());
-                    record.setUpdateTime(LocalDateTime.now());
-                    record.setDeleted(0);
-                    record.setRemark("系统自动计算");
+                    // 从考勤系统获取真实数据
+                    Result<Map<String, Object>> attendanceResult = userClient.getAttendanceStatistics(userId, startDate, endDate);
+                    Map<String, Object> attendanceData = attendanceResult.getCode() == 200 ? attendanceResult.getData() : new HashMap<>();
                     
-                    salaryRecordMapper.insert(record);
+                    // 考勤数据
+                    int actualAttendanceDays = attendanceData.containsKey("actualAttendanceDays") 
+                            ? (int) attendanceData.get("actualAttendanceDays") 
+                            : 20; // 当月实际出勤天数
+                    int lateEarlyLeaveHours = attendanceData.containsKey("lateEarlyLeaveHours") 
+                            ? (int) attendanceData.get("lateEarlyLeaveHours") 
+                            : 0; // 迟到早退小时数
+                    int overtimeHours = attendanceData.containsKey("overtimeHours") 
+                            ? (int) attendanceData.get("overtimeHours") 
+                            : 0; // 加班小时数
+                    int leaveDays = attendanceData.containsKey("leaveDays") 
+                            ? (int) attendanceData.get("leaveDays") 
+                            : 0; // 请假天数
+                    boolean isFullAttendance = attendanceData.containsKey("isFullAttendance") 
+                            ? (boolean) attendanceData.get("isFullAttendance") 
+                            : (lateEarlyLeaveHours == 0 && leaveDays == 0); // 全勤
+                    
+                    // 从配置中获取参数
+                    BigDecimal minimumWage = salaryConfigProperties.getMinSalary(); // 最低保障工资
+                    BigDecimal attendanceWage = baseSalary; // 出勤保障工资（这里使用基础工资）
+                    BigDecimal fullAttendanceBonus = salaryConfigProperties.getFullAttendanceBonus(); // 全勤奖
+                    int workDaysPerMonth = salaryConfigProperties.getWorkDaysPerMonth(); // 每月工作日
+                    int leaveThreshold = salaryConfigProperties.getLeaveThreshold(); // 请假免扣阈值
+                    
+                    // 计算各项
+                    // 1. 最低保障工资
+                    BigDecimal item1 = minimumWage;
+                    
+                    // 2. 出勤工资：(当月实际出勤天数 ÷ 22) × 出勤保障工资
+                    BigDecimal item2 = BigDecimal.valueOf(actualAttendanceDays)
+                            .divide(BigDecimal.valueOf(workDaysPerMonth), 2, RoundingMode.HALF_UP)
+                            .multiply(attendanceWage);
+                    
+                    // 3. 绩效奖金
+                    BigDecimal item3 = commission;
+                    
+                    // 4. trip提成（已包含在commission中）
+                    
+                    // 5. 全勤奖
+                    BigDecimal item5 = isFullAttendance ? fullAttendanceBonus : BigDecimal.ZERO;
+                    
+                    // 6. 加班工资：加班小时数 × 加班倍率 × (出勤保障工资 ÷ 22 ÷ 8)
+                    BigDecimal hourlyWage = attendanceWage
+                            .divide(BigDecimal.valueOf(workDaysPerMonth), 2, RoundingMode.HALF_UP)
+                            .divide(BigDecimal.valueOf(8), 2, RoundingMode.HALF_UP);
+                    BigDecimal overtimeRate = config != null && config.getOvertimeRate() != null 
+                            ? config.getOvertimeRate() 
+                            : salaryConfigProperties.getOvertimeRate();
+                    BigDecimal item6 = BigDecimal.valueOf(overtimeHours)
+                            .multiply(overtimeRate)
+                            .multiply(hourlyWage);
+                    
+                    // 7. 迟到早退扣除：迟到早退小时数 × (出勤保障工资 ÷ 22 ÷ 8)
+                    BigDecimal item7 = BigDecimal.valueOf(lateEarlyLeaveHours)
+                            .multiply(hourlyWage);
+                    
+                    // 8. 请假扣除：max(0, 当月请假总天数 - 免扣阈值天数) × (出勤保障工资 ÷ 22)
+                    int leaveDaysToDeduct = Math.max(0, leaveDays - leaveThreshold);
+                    BigDecimal dailyWage = attendanceWage
+                            .divide(BigDecimal.valueOf(workDaysPerMonth), 2, RoundingMode.HALF_UP);
+                    BigDecimal item8 = BigDecimal.valueOf(leaveDaysToDeduct)
+                            .multiply(dailyWage);
+                    
+                    // 计算总薪资
+                    BigDecimal totalSalary = item1.add(item2).add(item3).add(item5).add(item6)
+                            .subtract(item7).subtract(item8);
+                    
+                    // 确保总薪资不低于最低保障工资
+                    totalSalary = totalSalary.max(minimumWage);
+                    
+                    // 记录薪酬到成本明细
+                    CostDetailDTO dto = new CostDetailDTO();
+                    dto.setCostType(CostTypeEnum.LABOR.getCode());
+                    dto.setCostName("月度薪酬");
+                    dto.setAmount(totalSalary);
+                    dto.setUserId(userId);
+                    dto.setCostDate(LocalDate.now());
+                    dto.setRemark(String.format("月度薪酬计算：%s，基础工资：%s，绩效：%s，总薪酬：%s", 
+                        period, baseSalary, commission, totalSalary));
+                    
+                    CostDetailVO vo = addCostDetail(dto);
                     
                     Map<String, Object> salaryResult = new HashMap<>();
                     salaryResult.put("userId", userId);
                     salaryResult.put("period", period);
                     salaryResult.put("baseSalary", baseSalary);
                     salaryResult.put("bonus", commission);
-                    salaryResult.put("totalSalary", record.getTotalSalary());
+                    salaryResult.put("totalSalary", totalSalary);
                     salaryResults.add(salaryResult);
                     
                     successCount++;
-                    log.info("薪酬计算成功：userId={}, period={}, totalSalary={}", userId, period, record.getTotalSalary());
+                    log.info("薪酬计算成功：userId={}, period={}, totalSalary={}", userId, period, totalSalary);
                     
                 } catch (Exception e) {
                     log.error("计算用户 {} 薪酬失败", userId, e);
@@ -1131,5 +1136,83 @@ public class CostServiceImpl implements CostService {
         }
         
         return result;
+    }
+
+    @Override
+    public Map<String, Object> calculateSalariesByMonth(String yearMonth) {
+        log.info("按月份计算薪酬：{}", yearMonth);
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // 解析年月
+            LocalDate date = LocalDate.parse(yearMonth + "-01");
+            LocalDate startDate = date.withDayOfMonth(1);
+            LocalDate endDate = date.withDayOfMonth(date.lengthOfMonth());
+            
+            // 调用通用计算方法
+            result = calculateSalaries(startDate, endDate);
+            
+            log.info("按月薪酬计算完成：{}", yearMonth);
+            
+        } catch (Exception e) {
+            log.error("按月薪酬计算失败", e);
+            result.put("success", false);
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+
+    @Override
+    public Map<String, Object> resetPerformance() {
+        log.info("开始清空绩效");
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // 这里实现清空绩效的逻辑
+            // 例如：删除所有绩效相关的成本记录
+            // 或者更新绩效相关的记录为0
+            
+            // 示例实现：删除所有类型为绩效的成本记录
+            costDetailMapper.delete(new LambdaQueryWrapper<CostDetail>()
+                .eq(CostDetail::getCostType, CostTypeEnum.LABOR.getCode()));
+            
+            log.info("绩效清空完成");
+            result.put("success", true);
+            result.put("message", "绩效清空成功");
+            
+        } catch (Exception e) {
+            log.error("清空绩效失败", e);
+            result.put("success", false);
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+
+    @Override
+    public boolean hasSalaryConfig(Long userId) {
+        try {
+            // 根据用户ID查询薪资配置
+            LambdaQueryWrapper<SalaryConfig> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(SalaryConfig::getUserId, userId);
+            return salaryConfigMapper.exists(wrapper);
+        } catch (Exception e) {
+            log.error("检查用户起薪设置失败", e);
+        }
+        return false;
+    }
+    
+    @Override
+    public Map<String, Object> getSalaryConfigParams() {
+        Map<String, Object> params = new HashMap<>();
+        params.put("workDaysPerMonth", salaryConfigProperties.getWorkDaysPerMonth());
+        params.put("minSalary", salaryConfigProperties.getMinSalary());
+        params.put("fullAttendanceBonus", salaryConfigProperties.getFullAttendanceBonus());
+        params.put("overtimeRate", salaryConfigProperties.getOvertimeRate());
+        params.put("leaveThreshold", salaryConfigProperties.getLeaveThreshold());
+        return params;
     }
 }

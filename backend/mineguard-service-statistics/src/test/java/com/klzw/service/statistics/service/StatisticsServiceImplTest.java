@@ -276,7 +276,7 @@ public class StatisticsServiceImplTest {
         costStats.setManagementCost(new BigDecimal(100));
         costStats.setOtherCost(new BigDecimal(50));
         
-        when(costClient.getCostStatistics(anyString(), anyString())).thenReturn(costStats);
+        when(costClient.getCostStatistics(anyString(), anyString())).thenReturn(com.klzw.common.core.result.Result.success(costStats));
         when(costStatisticsMapper.insert(any(CostStatistics.class))).thenReturn(1);
 
         // 调用被测方法
@@ -666,7 +666,7 @@ public class StatisticsServiceImplTest {
         CostStatisticsResponseDTO costStats = new CostStatisticsResponseDTO();
         costStats.setFuelCost(new BigDecimal(1000));
         
-        when(costClient.getCostStatistics(anyString(), anyString())).thenReturn(costStats);
+        when(costClient.getCostStatistics(anyString(), anyString())).thenReturn(com.klzw.common.core.result.Result.success(costStats));
         
         Map<String, Object> aiResult = new HashMap<>();
         aiResult.put("analysis", "测试分析结果");

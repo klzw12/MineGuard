@@ -15,12 +15,13 @@
 			></map>
 			
 			<!-- 事件触发悬浮按钮 -->
-<view class="event-fab" v-if="isSimulating" @click="showEventSelector">
-	<text class="fab-icon">⚠️</text>
-</view>
+			<view class="event-fab" v-if="isSimulating" @click="showEventSelector">
+				<text class="fab-icon">⚠️</text>
+			</view>
 			
 			<!-- 行程信息卡片 -->
-			<view class="trip-info-card" v-if="tripInfo">
+			<!-- 行程信息卡片（仅在未开始行程时显示） -->
+			<view class="trip-info-card" v-if="tripInfo && !isSimulating">
 				<view class="trip-header">
 					<text class="trip-title">{{ tripInfo.taskNo }}</text>
 					<view class="status-badge" :class="statusClass">
@@ -57,6 +58,26 @@
 					</view>
 				</view>
 			</view>
+			
+			<!-- 行驶信息卡片（仅在开始行程后显示） -->
+			<view class="driving-info-card" v-if="isSimulating">
+				<view class="driving-stats">
+					<view class="driving-stat-item">
+						<text class="driving-stat-label">速度</text>
+						<text class="driving-stat-value">{{ currentSpeed }} km/h</text>
+					</view>
+					<view class="driving-stat-divider"></view>
+					<view class="driving-stat-item">
+						<text class="driving-stat-label">已行驶</text>
+						<text class="driving-stat-value">{{ (traveledDistance / 1000).toFixed(1) }} km</text>
+					</view>
+					<view class="driving-stat-divider"></view>
+					<view class="driving-stat-item">
+						<text class="driving-stat-label">预计到达</text>
+						<text class="driving-stat-value">{{ estimatedArrivalTime }}</text>
+					</view>
+				</view>
+			</view>
 		</view>
 		
 		<!-- 底部操作栏 -->
@@ -64,10 +85,16 @@
 			<button class="action-btn secondary" @click="backToTaskList">
 				<text>返回任务列表</text>
 			</button>
-			<button class="action-btn primary" @click="startSimulation" v-if="!isSimulating">
+			<button class="action-btn primary" @click="startSimulation" v-if="!isSimulating && !isPaused">
 				<text>开始导航</text>
 			</button>
-			<button class="action-btn danger" @click="endTrip" v-if="isSimulating">
+			<button class="action-btn warning" @click="pauseTrip" v-if="isSimulating && !isPaused">
+				<text>暂停行程</text>
+			</button>
+			<button class="action-btn primary" @click="resumeTrip" v-if="isPaused">
+				<text>继续行程</text>
+			</button>
+			<button class="action-btn danger" @click="endTrip" v-if="isSimulating || isPaused">
 				<text>结束行程</text>
 			</button>
 		</view>
@@ -76,8 +103,10 @@
 
 <script setup lang="uts">
 	import { ref, computed, onMounted } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
-import { startTaskSimulation, generateRandomEvent, type MacroRoute, type MicroTrackPoint } from '@/utils/trackSimulator.uts'
+import { startTaskSimulation, generateRandomEvent, type MacroRoute, type MicroTrackPoint, getRouteFromAMap, type Coordinate } from '@/utils/trackSimulator.uts'
+import { getActiveTrip, endTrip as endTripApi } from '@/api/trip.uts'
+import { toast } from '@/utils/toast.uts'
+import { startTripWarningCheck, stopTripWarningCheck } from '@/api/warning.uts'
 	
 	// 任务参数
 	const taskParams = ref({
@@ -91,7 +120,9 @@ import { startTaskSimulation, generateRandomEvent, type MacroRoute, type MicroTr
 		endLatitude: 0,
 		startLocation: '',
 		endLocation: '',
-		taskNo: ''
+		taskNo: '',
+		deadline: '',
+		priority: ''
 	})
 	
 	// 地图相关
@@ -104,8 +135,10 @@ import { startTaskSimulation, generateRandomEvent, type MacroRoute, type MicroTr
 	// 轨迹模拟
 	let simulationController: any = null
 	const isSimulating = ref(false)
+	const isPaused = ref(false)
 	const traveledDistance = ref(0)
 	const currentSpeed = ref(0)
+	const estimatedArrivalTime = ref('')
 	
 	// 行程信息
 	const tripInfo = ref<any>(null)
@@ -120,51 +153,104 @@ import { startTaskSimulation, generateRandomEvent, type MacroRoute, type MicroTr
 		return isSimulating.value ? '行程中' : '未开始'
 	})
 	
-onShow(() => {
-		// 接收任务参数
-		receiveTaskParams()
-	})
+onMounted(async () => {
+			// 接收任务参数
+			await receiveTaskParams()
+		})
 	
 	/**
 	 * 接收任务参数
 	 */
-	function receiveTaskParams() {
-		const pages = getCurrentPages()
-		const currentPage = pages[pages.length - 1]
-		const options = currentPage.$page?.options || {}
-		
-		if (options.taskId) {
-			taskParams.value = {
-				taskId: options.taskId,
-				tripId: options.tripId || '',
-				vehicleId: options.vehicleId || '',
-				driverId: options.driverId || '',
-				startLongitude: parseFloat(options.startLongitude) || 0,
-				startLatitude: parseFloat(options.startLatitude) || 0,
-				endLongitude: parseFloat(options.endLongitude) || 0,
-				endLatitude: parseFloat(options.endLatitude) || 0,
-				startLocation: options.startLocation || '起点',
-				endLocation: options.endLocation || '终点',
-				taskNo: options.taskNo || `TASK_${options.taskId}`
-			}
+	async function receiveTaskParams() {
+			// 使用uni.getLaunchOptionsSync()获取参数，确保在任何情况下都能获取到传递的参数
+			const launchOptions = uni.getLaunchOptionsSync()
+			const options = launchOptions.query || {}
 			
-			// 初始化地图和轨迹模拟
-			initMapWithTask()
-		} else {
-			// 没有任务参数，显示提示
-			uni.showModal({
-				title: '提示',
-				content: '请先在任务列表接单',
-				showCancel: false,
-				success: () => {
-					// 直接跳转到任务列表页面
-					uni.reLaunch({
-						url: '/pages/user/task/index'
-					})
+			if (options.taskId) {
+				taskParams.value = {
+					taskId: options.taskId,
+					tripId: options.tripId || '',
+					vehicleId: options.vehicleId || '',
+					driverId: options.driverId || '',
+					startLongitude: !isNaN(parseFloat(options.startLongitude || 0)) ? parseFloat(options.startLongitude || 0) : 0,
+					startLatitude: !isNaN(parseFloat(options.startLatitude || 0)) ? parseFloat(options.startLatitude || 0) : 0,
+					endLongitude: !isNaN(parseFloat(options.endLongitude || 0)) ? parseFloat(options.endLongitude || 0) : 0,
+					endLatitude: !isNaN(parseFloat(options.endLatitude || 0)) ? parseFloat(options.endLatitude || 0) : 0,
+					startLocation: options.startLocation || '起点',
+					endLocation: options.endLocation || '终点',
+					taskNo: options.taskNo || `TASK_${options.taskId}`,
+					deadline: options.deadline || '',
+					priority: options.priority || ''
 				}
-			})
+				
+				// 初始化地图和轨迹模拟
+				initMapWithTask()
+			} else {
+				// 没有任务参数，查询用户的进行中行程
+				try {
+					toast.loading('加载中...')
+					const activeTrip = await getActiveTrip()
+					if (activeTrip) {
+						// 有进行中行程，使用行程信息初始化地图
+						// 如果有最后位置，使用最后位置作为起点
+						const startLongitude = activeTrip.lastLongitude && activeTrip.lastLatitude 
+							? activeTrip.lastLongitude 
+							: activeTrip.startLongitude
+						const startLatitude = activeTrip.lastLongitude && activeTrip.lastLatitude 
+							? activeTrip.lastLatitude 
+							: activeTrip.startLatitude
+						
+						taskParams.value = {
+							taskId: '',
+							tripId: activeTrip.id,
+							vehicleId: activeTrip.vehicleId,
+							driverId: activeTrip.driverId,
+							startLongitude: !isNaN(parseFloat(startLongitude || 0)) ? parseFloat(startLongitude || 0) : 0,
+							startLatitude: !isNaN(parseFloat(startLatitude || 0)) ? parseFloat(startLatitude || 0) : 0,
+							endLongitude: !isNaN(parseFloat(activeTrip.endLongitude || 0)) ? parseFloat(activeTrip.endLongitude || 0) : 0,
+							endLatitude: !isNaN(parseFloat(activeTrip.endLatitude || 0)) ? parseFloat(activeTrip.endLatitude || 0) : 0,
+							startLocation: activeTrip.startLocation || '起点',
+							endLocation: activeTrip.endLocation || '终点',
+							taskNo: `TRIP_${activeTrip.id}`,
+							deadline: activeTrip.deadline || '',
+							priority: activeTrip.priority || ''
+						}
+						
+						// 初始化地图和轨迹模拟
+						initMapWithTask()
+					} else {
+						// 没有进行中行程，显示提示
+						uni.showModal({
+							title: '提示',
+							content: '请先在任务列表接单',
+							showCancel: false,
+							success: () => {
+								// 直接跳转到任务列表页面
+								uni.reLaunch({
+									url: '/pages/user/task/index'
+								})
+							}
+						})
+					}
+				} catch (e: any) {
+					console.error('获取进行中行程失败:', e)
+					// 获取失败，显示提示
+					uni.showModal({
+						title: '提示',
+						content: '请先在任务列表接单',
+						showCancel: false,
+						success: () => {
+							// 直接跳转到任务列表页面
+							uni.reLaunch({
+								url: '/pages/user/task/index'
+							})
+						}
+					})
+				} finally {
+					uni.hideLoading()
+				}
+			}
 		}
-	}
 	
 	/**
 	 * 初始化地图和轨迹模拟
@@ -188,33 +274,161 @@ onShow(() => {
 			estimatedDuration: 0
 		}
 		
+		// 绘制预计路线
+		drawOriginalRoute()
+		
 		// 显示操作栏（开始导航按钮）
 		showActionBar.value = true
-		
-		// 不自动开始模拟，等待用户点击"开始导航"按钮
-		console.log('等待用户点击开始导航按钮')
 	}
 	
 	/**
+ * 绘制预计路线（根据拥堵情况显示不同颜色）
+ */
+async function drawOriginalRoute() {
+	const params = taskParams.value
+	
+	// 确保经纬度值有效
+	const startLongitude = !isNaN(parseFloat(params.startLongitude)) ? parseFloat(params.startLongitude) : 0
+	const startLatitude = !isNaN(parseFloat(params.startLatitude)) ? parseFloat(params.startLatitude) : 0
+	const endLongitude = !isNaN(parseFloat(params.endLongitude)) ? parseFloat(params.endLongitude) : 0
+	const endLatitude = !isNaN(parseFloat(params.endLatitude)) ? parseFloat(params.endLatitude) : 0
+	
+	const startPoint: Coordinate = {
+		longitude: startLongitude,
+		latitude: startLatitude,
+		name: '起点'
+	}
+	
+	const endPoint: Coordinate = {
+		longitude: endLongitude,
+		latitude: endLatitude,
+		name: '终点'
+	}
+	
+	try {
+		// 获取路线数据
+		const routeData = await getRouteFromAMap(startPoint, endPoint)
+		const path = routeData?.path || []
+		const trafficSegments = routeData?.trafficSegments || []
+		
+		// 计算总距离
+		let totalDistance = 0
+		if (path && path.length > 1) {
+			for (let i = 0; i < path.length - 1; i++) {
+				totalDistance += calculateDistance(
+					path[i].latitude,
+					path[i].longitude,
+					path[i + 1].latitude,
+					path[i + 1].longitude
+				)
+			}
+		} else {
+			// 如果没有路径数据，计算起点到终点的直线距离
+			totalDistance = calculateDistance(startLatitude, startLongitude, endLatitude, endLongitude)
+		}
+		
+		// 更新行程信息
+		tripInfo.value = {
+			...tripInfo.value,
+			totalDistance: totalDistance,
+			tolls: routeData?.tolls || 0,
+			tollDistance: routeData?.tollDistance || 0
+		}
+		
+		// 清空现有的折线
+		polyline.value = []
+		
+		// 根据交通状况绘制不同颜色的线段
+		if (trafficSegments && trafficSegments.length > 0) {
+			trafficSegments.forEach((segment: any, index: number) => {
+				const points = segment.points.map((point: Coordinate) => ({
+					longitude: parseFloat(point.longitude),
+					latitude: parseFloat(point.latitude)
+				}))
+				
+				// 根据拥堵状态设置颜色
+				let color = '#34C759' // 默认绿色
+				switch (segment.status) {
+					case '畅通':
+					case '1':
+						color = '#34C759' // 绿色
+						break
+					case '缓行':
+					case '2':
+						color = '#FFFF00' // 黄色
+						break
+					case '拥堵':
+					case '3':
+					case '4':
+						color = '#FF0000' // 红色
+						break
+				}
+				
+				polyline.value.push({
+					points: points,
+					color: color,
+					width: 6,
+					dashedLine: false
+				})
+			})
+		} else if (path && path.length > 0) {
+			// 如果没有交通状况数据，绘制默认绿色路线
+			const points = path.map((point: Coordinate) => ({
+				longitude: parseFloat(point.longitude),
+				latitude: parseFloat(point.latitude)
+			}))
+			
+			polyline.value.push({
+				points: points,
+				color: '#34C759',
+				width: 6,
+				dashedLine: false
+			})
+		} else {
+			// 绘制默认路线（起点到终点的直线）
+			console.log('没有路径数据，绘制默认路线（起点到终点的直线）')
+			drawRoute([startPoint, endPoint])
+		}
+	} catch (error) {
+		console.error('绘制预计路线失败:', error)
+		// 绘制默认路线（起点到终点的直线）
+		drawRoute([startPoint, endPoint])
+		// 计算起点到终点的直线距离
+		const totalDistance = calculateDistance(startLatitude, startLongitude, endLatitude, endLongitude)
+		// 更新行程信息
+		tripInfo.value = {
+			...tripInfo.value,
+			totalDistance: totalDistance
+		}
+	}
+}
+
+	/**
 	 * 开始轨迹模拟
 	 */
-	function startSimulation() {
+	async function startSimulation() {
 		const params = taskParams.value
 		
-		if (!params.tripId || !params.startLongitude || !params.endLongitude) {
+		if (!params.tripId) {
 			console.error('缺少必要参数')
 			return
 		}
 		
+		// 确保经纬度值有效
+		const startLongitude = !isNaN(parseFloat(params.startLongitude)) ? parseFloat(params.startLongitude) : 0
+		const startLatitude = !isNaN(parseFloat(params.startLatitude)) ? parseFloat(params.startLatitude) : 0
+		const endLongitude = !isNaN(parseFloat(params.endLongitude)) ? parseFloat(params.endLongitude) : 0
+		const endLatitude = !isNaN(parseFloat(params.endLatitude)) ? parseFloat(params.endLatitude) : 0
+		
 		const startPoint = {
-			longitude: params.startLongitude,
-			latitude: params.startLatitude,
+			longitude: startLongitude,
+			latitude: startLatitude,
 			name: '起点'
 		}
 		
 		const endPoint = {
-			longitude: params.endLongitude,
-			latitude: params.endLatitude,
+			longitude: endLongitude,
+			latitude: endLatitude,
 			name: '终点'
 		}
 		
@@ -222,10 +436,10 @@ onShow(() => {
 		showActionBar.value = true
 		
 		// 开始模拟
-		simulationController = startTaskSimulation(
-			parseInt(params.tripId),
-			parseInt(params.vehicleId),
-			parseInt(params.driverId),
+		simulationController = await startTaskSimulation(
+			params.tripId,
+			params.vehicleId,
+			params.driverId,
 			startPoint,
 			endPoint,
 			(track: MicroTrackPoint) => {
@@ -239,51 +453,93 @@ onShow(() => {
 			() => {
 				// 轨迹发送完成
 				onSimulationComplete()
-			}
+			},
+			// 传递截止日期和优先级参数（这里可以从任务参数中获取，或者使用默认值）
+			params.deadline ? new Date(params.deadline).getTime() : undefined,
+			params.priority
 		)
 		
-		console.log('轨迹模拟已开始')
-	}
-	
-	/**
-	 * 轨迹点更新回调
-	 */
-	function onTrackUpdate(track: MicroTrackPoint) {
-		// 更新当前位置
-		currentLongitude.value = track.longitude
-		currentLatitude.value = track.latitude
-		currentSpeed.value = track.speed
-		traveledDistance.value = track.distance
+		// 连接WebSocket，将轨迹数据发送到后端
+		simulationController.connectWebSocket(params.tripId)
 		
-		// 更新车辆标记点
-		updateVehicleMarker(track.longitude, track.latitude, track.direction)
-		
-		// 更新地图中心点
-		mapScale.value = 16
-	}
-	
-	/**
-	 * 路线更新回调
-	 */
-	function onRouteUpdate(route: MacroRoute) {
-		tripInfo.value = {
-			taskNo: taskParams.value.taskNo,
-			startLocation: taskParams.value.startLocation,
-			endLocation: taskParams.value.endLocation,
-			totalDistance: route.totalDistance,
-			estimatedDuration: route.estimatedDuration
+		// 启动预警检查
+		try {
+			await startTripWarningCheck(params.tripId, params.vehicleId)
+		} catch (error) {
+			console.error('启动预警检查失败:', error)
 		}
-		
-		// 绘制路线
-		drawRoute(route.keyPoints)
 	}
 	
 	/**
-	 * 模拟完成回调
-	 */
+ * 轨迹点更新回调
+ */
+function onTrackUpdate(track: MicroTrackPoint) {
+	// 确保经纬度值有效
+	const longitude = !isNaN(parseFloat(track.longitude)) ? parseFloat(track.longitude) : 0
+	const latitude = !isNaN(parseFloat(track.latitude)) ? parseFloat(track.latitude) : 0
+	
+	// 更新当前位置
+	currentLongitude.value = longitude
+	currentLatitude.value = latitude
+	currentSpeed.value = track.speed
+	traveledDistance.value = track.distance
+	
+	// 更新车辆标记点
+	updateVehicleMarker(longitude, latitude, track.direction)
+	
+	// 更新地图中心点
+	mapScale.value = 16
+	
+	// 绘制轨迹
+	drawTrack(track)
+}
+	
+	/**
+ * 路线更新回调
+ */
+function onRouteUpdate(route: MacroRoute) {
+	tripInfo.value = {
+		taskNo: taskParams.value.taskNo,
+		startLocation: taskParams.value.startLocation,
+		endLocation: taskParams.value.endLocation,
+		totalDistance: route.totalDistance,
+		estimatedDuration: route.estimatedDuration
+	}
+
+	// 计算预计到达时间
+	if (route.estimatedDuration) {
+		const now = new Date()
+		const arrivalTime = new Date(now.getTime() + route.estimatedDuration * 1000)
+		const hours = arrivalTime.getHours().toString().padStart(2, '0')
+		const minutes = arrivalTime.getMinutes().toString().padStart(2, '0')
+		const seconds = arrivalTime.getSeconds().toString().padStart(2, '0')
+		estimatedArrivalTime.value = `${hours}:${minutes}:${seconds}`
+	} else {
+		estimatedArrivalTime.value = '--:--:--'
+	}
+
+	// 不绘制绿色直线，保留预计路线
+	// drawRoute([route.keyPoints[0], route.keyPoints[route.keyPoints.length - 1]])
+}
+	
+	/**
+ * 模拟完成回调
+ */
 	function onSimulationComplete() {
 		isSimulating.value = false
 		showActionBar.value = false
+		
+		// 调用后端结束行程API
+		if (taskParams.value.tripId) {
+			endTripApi(taskParams.value.tripId, {
+				endLongitude: currentLongitude.value,
+				endLatitude: currentLatitude.value
+			}).then(() => {
+				console.log('行程已结束')
+			}).catch((error) => {
+				console.error('结束行程失败:', error)
+			})
+		}
 		
 		uni.showModal({
 			title: '行程结束',
@@ -298,11 +554,20 @@ onShow(() => {
 	/**
  * 返回任务列表
  */
-function backToTaskList() {
-	// 停止模拟
+async function backToTaskList() {
+	// 停止模拟（stop()已包含关闭WebSocket）
 	if (simulationController) {
 		simulationController.stop()
 		simulationController = null
+	}
+	
+	// 停止预警检查
+	if (taskParams.value.tripId) {
+		try {
+			await stopTripWarningCheck(taskParams.value.tripId)
+		} catch (error) {
+			console.error('停止预警检查失败:', error)
+		}
 	}
 	
 	// 直接跳转到任务列表页面
@@ -312,6 +577,28 @@ function backToTaskList() {
 }
 	
 	/**
+ * 暂停行程
+ */
+function pauseTrip() {
+	if (simulationController) {
+		simulationController.pause()
+		isPaused.value = true
+		isSimulating.value = false
+	}
+}
+
+/**
+ * 继续行程
+ */
+function resumeTrip() {
+	if (simulationController) {
+		simulationController.resume()
+		isPaused.value = false
+		isSimulating.value = true
+	}
+}
+
+/**
  * 结束行程
  */
 function endTrip() {
@@ -320,13 +607,39 @@ function endTrip() {
 		content: '确定要结束当前行程吗？',
 		success: async (res) => {
 			if (res.confirm) {
-				// 停止模拟
+				// 停止模拟（stop()已包含关闭WebSocket）
 				if (simulationController) {
 					simulationController.stop()
 					simulationController = null
 				}
 				
+				// 调用后端结束行程API
+				if (taskParams.value.tripId) {
+					try {
+						await endTripApi(taskParams.value.tripId, {
+							endLongitude: currentLongitude.value,
+							endLatitude: currentLatitude.value,
+							tolls: tripInfo.value?.tolls || 0,
+							tollDistance: tripInfo.value?.tollDistance || 0
+						})
+						console.log('行程已结束')
+					} catch (error) {
+						console.error('结束行程失败:', error)
+						toast('结束行程失败')
+					}
+				}
+				
+				// 停止预警检查
+				if (taskParams.value.tripId) {
+					try {
+						await stopTripWarningCheck(taskParams.value.tripId)
+					} catch (error) {
+						console.error('停止预警检查失败:', error)
+					}
+				}
+				
 				isSimulating.value = false
+				isPaused.value = false
 				showActionBar.value = false
 				
 				// 返回任务列表
@@ -346,18 +659,46 @@ function updateMarkers(startLon: number, startLat: number, endLon: number, endLa
 				longitude: startLon,
 				latitude: startLat,
 				title: '起点',
-				iconPath: '/static/marker-start.png',
+				iconPath: '/static/svgs/position.svg',
 				width: 40,
-				height: 40
+				height: 40,
+				callout: {
+					content: '起点',
+					color: '#fff',
+					fontSize: 14,
+					borderRadius: 4,
+					bgColor: '#34c759',
+					padding: 8,
+					display: 'ALWAYS'
+				}
 			},
 			{
 				id: 2,
 				longitude: endLon,
 				latitude: endLat,
 				title: '终点',
-				iconPath: '/static/marker-end.png',
+				iconPath: '/static/svgs/position.svg',
 				width: 40,
-				height: 40
+				height: 40,
+				callout: {
+					content: '终点',
+					color: '#fff',
+					fontSize: 14,
+					borderRadius: 4,
+					bgColor: '#ff3b30',
+					padding: 8,
+					display: 'ALWAYS'
+				}
+			},
+			{
+				id: 3,
+				longitude: startLon,
+				latitude: startLat,
+				title: '车辆位置',
+				iconPath: '/static/svgs/car.svg',
+				width: 35,
+				height: 35,
+				anchor: { x: 0.5, y: 0.5 }
 			}
 		]
 	}
@@ -371,10 +712,11 @@ function updateMarkers(startLon: number, startLat: number, endLon: number, endLa
 			longitude: lon,
 			latitude: lat,
 			title: `🚗 ${taskParams.value.taskNo}`,
-			iconPath: '/static/marker-vehicle.png',
-			width: 50,
-			height: 50,
-			rotate: direction
+			iconPath: '/static/svgs/car.svg',
+			width: 35,
+			height: 35,
+			rotate: direction,
+			anchor: { x: 0.5, y: 0.5 }
 		}
 		
 		// 更新或添加车辆标记
@@ -387,23 +729,97 @@ function updateMarkers(startLon: number, startLat: number, endLon: number, endLa
 	}
 	
 	/**
-	 * 绘制路线
-	 */
-	function drawRoute(keyPoints: any[]) {
-		if (keyPoints.length < 2) return
-		
-		const points = keyPoints.map(point => ({
-			longitude: point.longitude,
-			latitude: point.latitude
-		}))
-		
-		polyline.value = [{
-			points: points,
-			color: '#34C759',
-			width: 6,
-			dashedLine: false
-		}]
+ * 绘制路线
+ */
+function drawRoute(keyPoints: any[]) {
+	if (keyPoints.length < 2) return
+	
+	const points = keyPoints.map(point => ({
+		longitude: !isNaN(parseFloat(point.longitude)) ? parseFloat(point.longitude) : 0,
+		latitude: !isNaN(parseFloat(point.latitude)) ? parseFloat(point.latitude) : 0
+	}))
+	
+	polyline.value = [{
+		points: points,
+		color: '#34C759',
+		width: 6,
+		dashedLine: false
+	}]
+}
+
+/**
+ * 绘制轨迹
+ */
+function drawTrack(track: MicroTrackPoint) {
+	// 确保经纬度值有效
+	const longitude = !isNaN(parseFloat(track.longitude)) ? parseFloat(track.longitude) : 0
+	const latitude = !isNaN(parseFloat(track.latitude)) ? parseFloat(track.latitude) : 0
+
+	// 找到模拟轨迹在 polyline.value 中的索引
+	// 使用蓝色(#007AFF)作为模拟轨迹颜色，避免与交通状况颜色(红/黄/绿)冲突
+	let trackIndex = -1
+	for (let i = 0; i < polyline.value.length; i++) {
+		if (polyline.value[i].color === '#007AFF' && polyline.value[i].width === 8) {
+			trackIndex = i
+			break
+		}
 	}
+	
+	// 如果没有找到模拟轨迹，就在 polyline.value 的末尾添加一个新的轨迹线
+	if (trackIndex === -1) {
+		trackIndex = polyline.value.length
+		polyline.value.push({
+			points: [],
+			color: '#007AFF', // 蓝色，区别于交通状况颜色
+			width: 8,
+			dashedLine: false
+		})
+	}
+
+	// 只添加当前轨迹点，避免跳跃重叠
+	// 检查当前轨迹点是否与最后一个轨迹点相同
+	const lastPoint = polyline.value[trackIndex].points[polyline.value[trackIndex].points.length - 1]
+	if (!lastPoint || (lastPoint.longitude !== longitude || lastPoint.latitude !== latitude)) {
+		// 检查是否存在方向反向走的情况
+		if (lastPoint) {
+			// 计算当前轨迹点与最后一个轨迹点的距离
+			const distance = calculateDistance(lastPoint.latitude, lastPoint.longitude, latitude, longitude)
+			// 如果距离过大，可能是方向反向走，或者是跳跃，跳过这个轨迹点
+			if (distance > 1000) { // 1000米
+				return
+			}
+		}
+
+		// 添加当前轨迹点
+		polyline.value[trackIndex].points.push({
+			longitude: longitude,
+			latitude: latitude
+		})
+
+		// 限制轨迹点数量，避免性能问题
+		if (polyline.value[trackIndex].points.length > 1000) {
+			polyline.value[trackIndex].points.shift()
+		}
+	}
+}
+
+/**
+ * 计算两个经纬度点之间的距离（米）
+ */
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+	const R = 6371e3; // 地球半径（米）
+	const φ1 = lat1 * Math.PI / 180;
+	const φ2 = lat2 * Math.PI / 180;
+	const Δφ = (lat2 - lat1) * Math.PI / 180;
+	const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+	const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+		Math.cos(φ1) * Math.cos(φ2) *
+		Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+	const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+	return R * c;
+}
 	
 	/**
  * 显示事件选择器
@@ -449,16 +865,13 @@ function triggerEvent(eventType: string) {
  * 发送事件到后端
  */
 function sendEventToBackend(eventType: string) {
-	// TODO: 通过 WebSocket 或 HTTP 发送事件到后端
-	console.log('发送事件到后端:', eventType)
+	// 通过 WebSocket 或 HTTP 发送事件到后端
 	
 	uni.showToast({
 		title: '事件已发送',
 		icon: 'success'
 	})
 }
-	
-	
 	
 	/**
 	 * 地图区域变化
@@ -487,19 +900,19 @@ function sendEventToBackend(eventType: string) {
 		position: absolute;
 		top: 30rpx;
 		right: 30rpx;
-		width: 100rpx;
-		height: 100rpx;
-		background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%);
+		width: 80rpx;
+		height: 80rpx;
+		background: linear-gradient(135deg, #FF3B30 0%, #FF6B6B 100%);
 		border-radius: 50%;
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		box-shadow: 0 8rpx 24rpx rgba(255, 149, 0, 0.4);
+		box-shadow: 0 8rpx 24rpx rgba(255, 59, 48, 0.4);
 		z-index: 999;
 	}
 	
 	.fab-icon {
-		font-size: 48rpx;
+		font-size: 40rpx;
 	}
 	
 	.trip-info-card {
@@ -602,20 +1015,67 @@ function sendEventToBackend(eventType: string) {
 	}
 	
 	.stat-divider {
-		width: 1rpx;
-		height: 60rpx;
-		background-color: #e8e8e8;
-	}
+			width: 1rpx;
+			height: 60rpx;
+			background-color: #e8e8e8;
+		}
+
+		.driving-info-card {
+			position: absolute;
+			top: 30rpx;
+			left: 30rpx;
+			right: 30rpx;
+			background-color: rgba(255, 255, 255, 0.95);
+			border-radius: 24rpx;
+			padding: 24rpx;
+			box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
+			z-index: 998;
+		}
+
+		.driving-stats {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-around;
+		}
+
+		.driving-stat-item {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 4rpx;
+		}
+
+		.driving-stat-label {
+			font-size: 20rpx;
+			color: #8F959E;
+		}
+
+		.driving-stat-value {
+			font-size: 28rpx;
+			font-weight: bold;
+			color: #2c3e50;
+		}
+
+		.driving-stat-divider {
+			width: 1rpx;
+			height: 50rpx;
+			background-color: #e8e8e8;
+		}
 	
 	.action-bar {
-		padding: 24rpx;
+		padding: 16rpx 24rpx;
 		background-color: #fff;
 		box-shadow: 0 -4rpx 15rpx rgba(0, 0, 0, 0.05);
+		display: flex;
+		flex-direction: row;
+		gap: 16rpx;
 	}
 	
 	.action-btn {
-		height: 88rpx;
-		border-radius: 20rpx;
+		flex: 1;
+		height: 64rpx;
+		border-radius: 12rpx;
 		display: flex;
 		justify-content: center;
 		align-items: center;
@@ -629,9 +1089,17 @@ function sendEventToBackend(eventType: string) {
 	.action-btn.danger {
 		background: linear-gradient(135deg, #FF3B30 0%, #FF6B6B 100%);
 	}
+
+	.action-btn.warning {
+		background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%);
+	}
+	
+	.action-btn.secondary {
+		background: linear-gradient(135deg, #8F959E 0%, #6B7280 100%);
+	}
 	
 	.action-btn text {
-		font-size: 32rpx;
+		font-size: 24rpx;
 		font-weight: 500;
 		color: #fff;
 	}

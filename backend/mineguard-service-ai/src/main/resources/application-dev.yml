@@ -20,3 +20,7 @@ spring:
       - nacos:common-redis.yml?group=Shared_Dev&refresh=true
       - nacos:common-web.yml?group=Shared_Dev&refresh=true
       - nacos:common-mongo.yml?group=Shared_Dev&refresh=true
+
+ai:
+  deepseek:
+    base-url: https://api.deepseek.com

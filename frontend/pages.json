@@ -1,12 +1,6 @@
 {
 	"pages": [
 		{
-			"path": "pages/index/index",
-			"style": {
-				"navigationBarTitleText": "MineGuard"
-			}
-		},
-		{
 			"path": "pages/auth/login",
 			"style": {
 				"navigationBarTitleText": "登录"
@@ -86,9 +80,9 @@
 			}
 		},
 		{
-			"path": "pages/admin/home/index",
+			"path": "pages/user/track-test/index",
 			"style": {
-				"navigationBarTitleText": "管理中心",
+				"navigationBarTitleText": "轨迹测试",
 				"navigationStyle": "custom"
 			}
 		},
@@ -226,9 +220,21 @@
 			}
 		},
 		{
+			"path": "pages/admin/trip/detail",
+			"style": {
+				"navigationBarTitleText": "行程详情"
+			}
+		},
+		{
 			"path": "pages/admin/cost/index",
 			"style": {
 				"navigationBarTitleText": "成本管理"
+			}
+		},
+		{
+			"path": "pages/admin/ai/index",
+			"style": {
+				"navigationBarTitleText": "AI服务"
 			}
 		},
 		{

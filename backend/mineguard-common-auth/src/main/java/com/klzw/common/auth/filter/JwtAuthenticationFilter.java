@@ -140,6 +140,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         
         String path = request.getRequestURI();
-        return path.contains("/login") || path.contains("/register") || path.contains("/captcha") || path.contains("/reset-password") || path.contains("/auth/refresh");
+        log.debug("JwtAuthenticationFilter checking path: {}", path);
+        boolean shouldNotFilter = path.contains("/login") || path.contains("/register") || path.contains("/captcha") || path.contains("/reset-password") || path.contains("/auth/refresh") || path.startsWith("/ws/");
+        log.debug("JwtAuthenticationFilter shouldNotFilter: {}", shouldNotFilter);
+        return shouldNotFilter;
     }
 }

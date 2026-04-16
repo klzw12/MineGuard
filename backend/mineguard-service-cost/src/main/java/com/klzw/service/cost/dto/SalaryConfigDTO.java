@@ -14,6 +14,10 @@ public class SalaryConfigDTO {
 
     private String roleName;
 
+    private Long userId;
+
+    private String userName;
+
     private BigDecimal baseSalary;
 
     private BigDecimal dailySalary;
@@ -21,8 +25,6 @@ public class SalaryConfigDTO {
     private BigDecimal hourlySalary;
 
     private BigDecimal overtimeRate;
-
-    private BigDecimal performanceBonus;
 
     private Integer status;
 

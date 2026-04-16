@@ -1,0 +1,46 @@
+import { http } from '@/utils/request.uts'
+
+export interface ChatMessage {
+  role: string
+  content: string
+}
+
+export interface ChatRequest {
+  message: string
+  history: ChatMessage[]
+}
+
+export function chat(request: ChatRequest): Promise<any | null> {
+  return http.post<any>('/ai/chat', request)
+}
+
+export function analyzeStatisticsData(statisticsData: any): Promise<any | null> {
+  return http.post<any>('/ai/analyze/statistics', statisticsData)
+}
+
+export function analyzeCostData(costData: any): Promise<any | null> {
+  return http.post<any>('/ai/analyze/cost', costData)
+}
+
+export function generateFinancialReport(financialData: any): Promise<any | null> {
+  return http.post<any>('/ai/generate/financial-report', financialData)
+}
+
+export function generateOptimizationSuggestions(analysisData: any): Promise<any | null> {
+  return http.post<any>('/ai/generate/optimization-suggestions', analysisData)
+}
+
+export function getCurrentProvider(): Promise<any | null> {
+  return http.get<any>('/ai/provider/current')
+}
+
+const aiApi = {
+  chat,
+  analyzeStatisticsData,
+  analyzeCostData,
+  generateFinancialReport,
+  generateOptimizationSuggestions,
+  getCurrentProvider
+}
+
+export default aiApi

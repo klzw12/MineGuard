@@ -7,14 +7,20 @@ import com.klzw.common.core.client.UserClient;
 import com.klzw.common.core.client.VehicleClient;
 import com.klzw.common.core.client.DispatchClient;
 import com.klzw.common.core.client.WarningClient;
+import com.klzw.common.core.client.CostClient;
+import com.klzw.common.core.client.PythonClient;
+import com.klzw.common.core.client.AiClient;
+import com.klzw.common.core.client.MessageClient;
 import com.klzw.common.core.domain.PageRequest;
 import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.domain.dto.TripResponse;
 import com.klzw.common.core.domain.dto.TripCreateRequest;
+import com.klzw.common.core.result.Result;
 import com.klzw.common.map.domain.GeoPoint;
 import com.klzw.common.map.util.GeoUtils;
 import com.klzw.service.trip.constant.TripResultCode;
 import com.klzw.service.trip.dto.TripDTO;
+import com.klzw.service.trip.dto.TripEndDTO;
 import com.klzw.service.trip.entity.Trip;
 import com.klzw.service.trip.enums.TripStatusEnum;
 import com.klzw.service.trip.exception.TripException;
@@ -50,13 +56,22 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
     private final VehicleClient vehicleClient;
     private final DispatchClient dispatchClient;
     private final WarningClient warningClient;
+    private final CostClient costClient;
+    private final PythonClient pythonClient;
+    private final AiClient aiClient;
+    private final MessageClient messageClient;
     private final TripStatusProcessor tripStatusProcessor;
     private final com.klzw.service.trip.service.TripTrackService tripTrackService;
+    private final com.klzw.common.redis.service.RedisCacheService redisCacheService;
 
     @Override
-    public PageResult<TripVO> page(PageRequest pageRequest) {
+    public PageResult<TripVO> page(PageRequest pageRequest, Integer status) {
         Page<Trip> page = new Page<>(pageRequest.getPage(), pageRequest.getSize());
         LambdaQueryWrapper<Trip> wrapper = new LambdaQueryWrapper<>();
+        
+        if (status != null) {
+            wrapper.eq(Trip::getStatus, status);
+        }
         wrapper.orderByDesc(Trip::getCreateTime);
         
         Page<Trip> result = getBaseMapper().selectPage(page, wrapper);
@@ -224,7 +239,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void endTrip(Long id, Double endLongitude, Double endLatitude) {
+    public void endTrip(Long id, TripEndDTO dto) {
         Trip trip = getBaseMapper().selectById(id);
         if (trip == null) {
             throw new TripException(TripResultCode.TRIP_NOT_FOUND);
@@ -238,37 +253,104 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         int newStatus = TripStatusEnum.COMPLETED.getCode(); // 已完成
         trip.setStatus(newStatus);
         trip.setActualEndTime(LocalDateTime.now());
-        trip.setEndLongitude(endLongitude);
-        trip.setEndLatitude(endLatitude);
         
-        // 计算实际里程和时长
+        // 如果传入的终点坐标无效（为null或0），使用预计终点坐标
+        Double validEndLongitude = dto.getEndLongitude();
+        Double validEndLatitude = dto.getEndLatitude();
+        if (dto.getEndLongitude() == null || dto.getEndLatitude() == null || 
+            (dto.getEndLongitude() == 0.0 && dto.getEndLatitude() == 0.0)) {
+            validEndLongitude = trip.getEndLongitude();
+            validEndLatitude = trip.getEndLatitude();
+            log.info("使用预计终点坐标：endLongitude={}, endLatitude={}", validEndLongitude, validEndLatitude);
+        }
+        trip.setEndLongitude(validEndLongitude);
+        trip.setEndLatitude(validEndLatitude);
+        
+        // 计算实际时长
+        if (trip.getActualStartTime() != null) {
+            long durationMinutes = java.time.Duration.between(trip.getActualStartTime(), LocalDateTime.now()).toMinutes();
+            trip.setActualDuration((int) durationMinutes);
+        }
+        
+        // 先从轨迹数据计算实际里程
+        double trackDistance = 0.0;
         try {
-            GeoPoint startPoint = new GeoPoint(trip.getStartLongitude(), trip.getStartLatitude());
-            GeoPoint endPoint = new GeoPoint(endLongitude, endLatitude);
-            double distance = GeoUtils.calculateDistance(startPoint, endPoint) / 1000; // 转换为公里
-            trip.setActualMileage(java.math.BigDecimal.valueOf(distance));
-            
-            if (trip.getActualStartTime() != null) {
-                long durationMinutes = java.time.Duration.between(trip.getActualStartTime(), LocalDateTime.now()).toMinutes();
-                trip.setActualDuration((int) durationMinutes);
+            trackDistance = tripTrackService.calculateTotalDistance(id);
+            log.info("从轨迹数据计算里程：tripId={}, 里程={}公里", id, trackDistance);
+        } catch (Exception e) {
+            log.warn("从轨迹计算里程失败：tripId={}, error={}", id, e.getMessage());
+        }
+        
+        // 设置实际里程（优先使用轨迹里程，如果轨迹里程为0则使用直线距离作为备用）
+        if (trackDistance > 0) {
+            trip.setActualMileage(java.math.BigDecimal.valueOf(trackDistance));
+            log.info("使用轨迹里程作为实际里程：tripId={}, actualMileage={}公里", id, trackDistance);
+        } else {
+            // 备用方案：使用直线距离
+            try {
+                if (trip.getStartLongitude() != null && trip.getStartLatitude() != null &&
+                    validEndLongitude != null && validEndLatitude != null) {
+                    GeoPoint startPoint = new GeoPoint(trip.getStartLongitude(), trip.getStartLatitude());
+                    GeoPoint endPoint = new GeoPoint(validEndLongitude, validEndLatitude);
+                    double distance = GeoUtils.calculateDistance(startPoint, endPoint) / 1000; // 转换为公里
+                    trip.setActualMileage(java.math.BigDecimal.valueOf(distance));
+                    log.info("使用直线距离作为实际里程（备用）：tripId={}, actualMileage={}公里", id, distance);
+                }
+            } catch (Exception e) {
+                log.warn("计算直线距离失败", e);
+            }
+        }
+        
+        // 计算平均速度（公里/小时）
+        if (trip.getActualDuration() != null && trip.getActualDuration() > 0 && trip.getActualMileage() != null) {
+            double averageSpeed = (trip.getActualMileage().doubleValue() / trip.getActualDuration()) * 60;
+            trip.setAverageSpeed(averageSpeed);
+        }
+        
+        // 计算实际佣金金额（假设每公里0.5元）
+        try {
+            if (trip.getActualMileage() != null) {
+                java.math.BigDecimal commissionAmount = trip.getActualMileage().multiply(new java.math.BigDecimal("0.5"));
+                trip.setEstimatedCommissionAmount(commissionAmount);
             }
         } catch (Exception e) {
-            log.warn("计算实际里程和时长失败", e);
+            log.warn("计算实际佣金金额失败", e);
         }
         
         getBaseMapper().updateById(trip);
         log.info("结束行程成功，行程ID：{}", id);
 
         try {
-            List<com.klzw.service.trip.dto.TripTrackDTO> tracks = tripTrackService.getTracksFromRedis(id);
+            List<com.klzw.common.core.domain.dto.TripTrackDTO> tracks = tripTrackService.getTracksFromRedis(id);
             if (tracks != null && !tracks.isEmpty()) {
                 tripTrackService.batchSaveTracks(tracks);
                 log.info("行程结束，轨迹已持久化到MongoDB：行程ID={}, 轨迹点数={}", id, tracks.size());
             } else {
                 log.info("行程结束，无轨迹数据需要持久化：行程ID={}", id);
+                tripTrackService.deleteTracksFromRedis(id);
+            }
+            
+            if (trip.getVehicleId() != null) {
+                tripTrackService.deleteVehicleTripRelation(trip.getVehicleId());
+                log.info("已清理车辆与行程的关联关系：车辆ID={}", trip.getVehicleId());
             }
         } catch (Exception e) {
-            log.error("行程结束持久化轨迹失败（不影响主流程）：行程ID={}, 错误={}", id, e.getMessage());
+            log.error("行程结束持久化轨迹失败，清理Redis数据：行程ID={}, 错误={}", id, e.getMessage());
+            try {
+                tripTrackService.deleteTracksFromRedis(id);
+                if (trip.getVehicleId() != null) {
+                    tripTrackService.deleteVehicleTripRelation(trip.getVehicleId());
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        
+        // 停止预警检查
+        try {
+            warningClient.stopTripWarningCheck(id);
+            log.info("已停止预警检查：行程ID={}", id);
+        } catch (Exception e) {
+            log.error("停止预警检查失败：行程ID={}，错误={}", id, e.getMessage());
         }
         
         // 回调dispatch模块完成任务
@@ -281,8 +363,156 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
             }
         }
         
+        // 创建成本明细记录
+        try {
+            createCostDetails(trip, dto.getTolls(), dto.getTollDistance());
+        } catch (Exception e) {
+            log.error("创建成本明细记录失败：行程ID={}，错误={}", id, e.getMessage());
+        }
+        
+        // Python服务计算行程得分并更新司机分数
+        try {
+            var scoreResult = pythonClient.analyzeDrivingBehavior(id);
+            if (scoreResult != null && scoreResult.isSuccess() && scoreResult.getData() != null) {
+                int pythonScore = scoreResult.getData();
+                log.info("Python服务计算行程得分完成：行程ID={}, 得分={}", id, pythonScore);
+                
+                // 更新司机分数
+                if (trip.getDriverId() != null && trip.getActualMileage() != null) {
+                    double tripDistance = trip.getActualMileage().doubleValue();
+                    var updateResult = userClient.updateDriverScoreFromTrip(trip.getDriverId(), pythonScore, tripDistance);
+                    if (updateResult != null && updateResult.isSuccess()) {
+                        log.info("司机分数更新成功：司机ID={}, 行程得分={}", trip.getDriverId(), updateResult.getData());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Python服务计算行程得分失败：行程ID={}，错误={}", id, e.getMessage());
+        }
+        
+        // AI服务分析行程并推送意见
+        try {
+            Map<String, Object> tripData = new java.util.HashMap<>();
+            tripData.put("tripId", id);
+            tripData.put("driverId", trip.getDriverId());
+            tripData.put("vehicleId", trip.getVehicleId());
+            tripData.put("actualMileage", trip.getActualMileage());
+            tripData.put("actualDuration", trip.getActualDuration());
+            tripData.put("averageSpeed", trip.getAverageSpeed());
+            
+            var result = aiClient.analyzeDrivingBehavior(tripData);
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                // 保存AI分析结果到Trip表
+                String aiAnalysisJson = com.klzw.common.core.util.JsonUtils.toJson(result.getData());
+                trip.setAiAnalysis(aiAnalysisJson);
+                this.updateById(trip);
+                log.info("AI服务分析行程完成并保存结果：行程ID={}", id);
+                
+                // 推送消息给管理端
+                try {
+                    messageClient.sendMessageByRole(
+                        "admin",
+                        "行程分析报告",
+                        String.format("行程 %s 已完成AI分析，请查看行程详情获取分析报告", trip.getTripNo()),
+                        "trip_analysis"
+                    );
+                    log.info("已推送行程分析报告给管理端：行程ID={}", id);
+                } catch (Exception msgEx) {
+                    log.error("推送行程分析报告失败：行程ID={}，错误={}", id, msgEx.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("AI服务分析行程失败：行程ID={}，错误={}", id, e.getMessage());
+        }
+        
         // 处理状态变化（车辆状态更新 + 通知）
         tripStatusProcessor.processStatusChange(trip, oldStatus, newStatus);
+    }
+    
+    /**
+     * 创建成本明细记录
+     */
+    private void createCostDetails(Trip trip, java.math.BigDecimal tolls, Integer tollDistance) {
+        if (trip.getActualMileage() == null || trip.getVehicleId() == null) {
+            return;
+        }
+        
+        // 获取车辆信息，包括折旧系数
+        try {
+            var vehicleResult = vehicleClient.getById(trip.getVehicleId());
+            if (vehicleResult == null || !vehicleResult.isSuccess()) {
+                log.warn("获取车辆信息失败：车辆ID={}", trip.getVehicleId());
+                return;
+            }
+            
+            var vehicleInfo = vehicleResult.getData();
+            if (vehicleInfo == null) {
+                log.warn("车辆信息为空：车辆ID={}", trip.getVehicleId());
+                return;
+            }
+            
+            // 创建车辆折旧成本明细
+            java.math.BigDecimal depreciationRate = vehicleInfo.getDepreciationRate();
+            if (depreciationRate != null && depreciationRate.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                java.math.BigDecimal depreciationAmount = trip.getActualMileage().multiply(depreciationRate).setScale(2, java.math.RoundingMode.HALF_UP);
+                
+                Map<String, Object> depreciationCost = new java.util.HashMap<>();
+                depreciationCost.put("costType", 5); // 折旧成本
+                depreciationCost.put("costName", "车辆折旧");
+                depreciationCost.put("amount", depreciationAmount);
+                depreciationCost.put("vehicleId", trip.getVehicleId());
+                depreciationCost.put("tripId", trip.getId());
+                depreciationCost.put("costDate", java.time.LocalDate.now());
+                depreciationCost.put("remark", "行程ID: " + trip.getId() + ", 里程: " + trip.getActualMileage() + "公里, 折旧系数: " + depreciationRate);
+                
+                costClient.addCostDetail(depreciationCost);
+                log.info("创建车辆折旧成本明细成功：行程ID={}, 金额={}", trip.getId(), depreciationAmount);
+            }
+        } catch (Exception e) {
+            log.error("创建车辆折旧成本明细失败：行程ID={}，错误={}", trip.getId(), e.getMessage());
+        }
+        
+        // 创建行程提成成本明细
+        try {
+            if (trip.getEstimatedCommissionAmount() != null && trip.getDriverId() != null) {
+                Map<String, Object> commissionCost = new java.util.HashMap<>();
+                commissionCost.put("costType", 8); // 行程提成
+                commissionCost.put("costName", "行程提成");
+                commissionCost.put("amount", trip.getEstimatedCommissionAmount());
+                commissionCost.put("userId", trip.getDriverId());
+                commissionCost.put("tripId", trip.getId());
+                commissionCost.put("costDate", java.time.LocalDate.now());
+                commissionCost.put("remark", "行程ID: " + trip.getId() + ", 里程: " + trip.getActualMileage() + "公里");
+                
+                costClient.addCostDetail(commissionCost);
+                log.info("创建行程提成成本明细成功：行程ID={}, 金额={}", trip.getId(), trip.getEstimatedCommissionAmount());
+            }
+        } catch (Exception e) {
+            log.error("创建行程提成成本明细失败：行程ID={}，错误={}", trip.getId(), e.getMessage());
+        }
+        
+        // 创建过路费成本明细
+        try {
+            if (tolls != null && tolls.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                Map<String, Object> tollCost = new java.util.HashMap<>();
+                tollCost.put("costType", 6); // 过路费
+                tollCost.put("costName", "过路费");
+                tollCost.put("amount", tolls);
+                tollCost.put("vehicleId", trip.getVehicleId());
+                tollCost.put("tripId", trip.getId());
+                tollCost.put("costDate", java.time.LocalDate.now());
+                String remark = "行程ID: " + trip.getId() + ", 过路费: " + tolls + "元";
+                if (tollDistance != null && tollDistance > 0) {
+                    remark += ", 收费路段距离: " + tollDistance + "米";
+                }
+                tollCost.put("remark", remark);
+                
+                costClient.addCostDetail(tollCost);
+                log.info("创建过路费成本明细成功：行程ID={}, 金额={}元", trip.getId(), tolls);
+            }
+        } catch (Exception e) {
+            log.error("创建过路费成本明细失败：行程ID={}，错误={}", trip.getId(), e.getMessage());
+        }
     }
 
     @Override
@@ -476,6 +706,32 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
             log.warn("获取司机信息失败，driverId={}", trip.getDriverId(), e);
         }
         
+        // 从调度任务获取优先级和截止日期
+        try {
+            if (trip.getDispatchTaskId() != null) {
+                var taskDetailResult = dispatchClient.getTaskDetail(trip.getDispatchTaskId());
+                if (taskDetailResult != null && taskDetailResult.getCode() == 200 && taskDetailResult.getData() != null) {
+                    var taskDetail = taskDetailResult.getData();
+                    // 设置优先级
+                    if (taskDetail.containsKey("priority")) {
+                        vo.setPriority((String) taskDetail.get("priority"));
+                    }
+                    // 设置截止日期
+                    if (taskDetail.containsKey("scheduledEndTime")) {
+                        vo.setDeadline((java.time.LocalDateTime) taskDetail.get("scheduledEndTime"));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("获取调度任务信息失败，dispatchTaskId={}", trip.getDispatchTaskId(), e);
+        }
+        
+        // 设置AI分析结果
+        vo.setAiAnalysis(trip.getAiAnalysis());
+        
+        // 设置预计提成金额
+        vo.setEstimatedCommissionAmount(trip.getEstimatedCommissionAmount());
+        
         return vo;
     }
 
@@ -592,6 +848,55 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
     public List<com.klzw.service.trip.vo.TripTrackVO> getTracksByTripId(Long tripId) {
         return tripTrackService.getByTripId(tripId);
     }
+    
+    @Override
+    public TripVO getActiveTrip() {
+        // 获取当前登录用户的ID
+        Long driverId = com.klzw.common.auth.context.UserContext.getUserId();
+        if (driverId == null) {
+            return null;
+        }
+        
+        // 查询该用户的进行中行程
+        LambdaQueryWrapper<Trip> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Trip::getDriverId, driverId);
+        wrapper.eq(Trip::getStatus, TripStatusEnum.IN_PROGRESS.getCode());
+        
+        Trip trip = getBaseMapper().selectOne(wrapper);
+        if (trip == null) {
+            return null;
+        }
+        
+        TripVO vo = convertToVO(trip);
+        
+        // 从 Redis 中获取行程的最后一次存储位置
+        try {
+            String trackKey = "trip:track:" + trip.getId();
+            List<?> trackList = redisCacheService.lRange(trackKey, -1L, -1L);
+            if (trackList != null && !trackList.isEmpty()) {
+                Object lastTrack = trackList.get(0);
+                if (lastTrack instanceof java.util.Map) {
+                    java.util.Map<?, ?> trackMap = (java.util.Map<?, ?>) lastTrack;
+                    Object longitude = trackMap.get("longitude");
+                    Object latitude = trackMap.get("latitude");
+                    Object recordTime = trackMap.get("recordTime");
+                    
+                    if (longitude != null && latitude != null) {
+                        vo.setLastLongitude(Double.parseDouble(longitude.toString()));
+                        vo.setLastLatitude(Double.parseDouble(latitude.toString()));
+                    }
+                    
+                    if (recordTime != null) {
+                        vo.setLastRecordTime(LocalDateTime.parse(recordTime.toString()));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("获取行程最后位置失败：tripId={}, error={}", trip.getId(), e.getMessage());
+        }
+        
+        return vo;
+    }
 
     public List<Map<String, Object>> getTripWarningRecords(Long tripId) {
         log.info("获取行程预警记录：tripId={}", tripId);
@@ -604,5 +909,92 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
             log.warn("获取行程预警记录失败：tripId={}, error={}", tripId, e.getMessage());
         }
         return List.of();
+    }
+
+    @Override
+    public TripVO getTripDetail(Long id) {
+        Trip trip = getBaseMapper().selectById(id);
+        if (trip == null) {
+            return null;
+        }
+        return convertToVO(trip);
+    }
+
+    @Override
+    public List<Map<String, Object>> getTripCostDetails(Long tripId) {
+        log.info("获取行程成本明细：tripId={}", tripId);
+        try {
+            Result<List<Map<String, Object>>> result = costClient.getCostDetailList(tripId);
+            if (result != null && result.isSuccess() && result.getData() != null) {
+                return result.getData();
+            }
+        } catch (Exception e) {
+            log.warn("获取行程成本明细失败：tripId={}, error={}", tripId, e.getMessage());
+        }
+        return List.of();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelTrip(Long id, String reason) {
+        Trip trip = getBaseMapper().selectById(id);
+        if (trip == null) {
+            throw new TripException(TripResultCode.TRIP_NOT_FOUND);
+        }
+        
+        if (trip.getStatus() == TripStatusEnum.COMPLETED.getCode() || trip.getStatus() == TripStatusEnum.CANCELLED.getCode()) {
+            log.warn("行程已完成或已取消，无法取消：tripId={}, status={}", id, trip.getStatus());
+            return;
+        }
+        
+        int oldStatus = trip.getStatus();
+        int newStatus = TripStatusEnum.CANCELLED.getCode();
+        trip.setStatus(newStatus);
+        trip.setCancellationReason(reason);
+        trip.setUpdateTime(LocalDateTime.now());
+        
+        getBaseMapper().updateById(trip);
+        log.info("取消行程成功，行程ID：{}，原因：{}", id, reason);
+        
+        // 清理Redis中的轨迹数据和车辆关联关系
+        try {
+            tripTrackService.deleteTracksFromRedis(id);
+            if (trip.getVehicleId() != null) {
+                tripTrackService.deleteVehicleTripRelation(trip.getVehicleId());
+                log.info("已清理车辆与行程的关联关系：车辆ID={}", trip.getVehicleId());
+            }
+        } catch (Exception e) {
+            log.error("清理Redis数据失败：行程ID={}，错误={}", id, e.getMessage());
+        }
+        
+        // 停止预警检查
+        try {
+            warningClient.stopTripWarningCheck(id);
+            log.info("已停止预警检查：行程ID={}", id);
+        } catch (Exception e) {
+            log.error("停止预警检查失败：行程ID={}，错误={}", id, e.getMessage());
+        }
+        
+        // 处理状态变化（车辆状态更新 + 通知）
+        tripStatusProcessor.processStatusChange(trip, oldStatus, newStatus);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelTripByDispatchTaskId(Long dispatchTaskId, String reason) {
+        log.info("根据调度任务ID取消行程：dispatchTaskId={}, reason={}", dispatchTaskId, reason);
+        
+        LambdaQueryWrapper<Trip> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Trip::getDispatchTaskId, dispatchTaskId);
+        wrapper.ne(Trip::getStatus, TripStatusEnum.COMPLETED.getCode());
+        wrapper.ne(Trip::getStatus, TripStatusEnum.CANCELLED.getCode());
+        
+        Trip trip = getBaseMapper().selectOne(wrapper);
+        if (trip != null) {
+            cancelTrip(trip.getId(), reason);
+            log.info("已取消关联行程：tripId={}, dispatchTaskId={}", trip.getId(), dispatchTaskId);
+        } else {
+            log.info("未找到需要取消的行程：dispatchTaskId={}", dispatchTaskId);
+        }
     }
 }

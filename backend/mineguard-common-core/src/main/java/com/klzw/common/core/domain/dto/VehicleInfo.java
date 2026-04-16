@@ -25,4 +25,5 @@ public class VehicleInfo {
     private BigDecimal cargoWeight;
     private Double startLongitude;
     private Double startLatitude;
+    private BigDecimal depreciationRate;
 }

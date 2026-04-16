@@ -184,9 +184,9 @@
 				pageNum: 1,
 				pageSize: 20
 			})
-			if (result && result.records) {
+			if (result && result.list) {
 				const currentUserId = userStore.userInfo.value?.id
-				searchResults.value = result.records.filter((u: UserVO) => u.id !== currentUserId)
+				searchResults.value = result.list.filter((u: UserVO) => u.id !== currentUserId)
 			}
 		} catch (e: any) {
 			console.log('搜索用户失败:', e?.message)

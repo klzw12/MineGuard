@@ -1,0 +1,57 @@
+<template>
+	<view class="filter-buttons">
+		<button class="filter-btn" :class="{ active: currentValue === null }" @click="selectFilter(null)">
+			<text>全部</text>
+		</button>
+		<button 
+			v-for="item in options" 
+			:key="item.value"
+			class="filter-btn" 
+			:class="{ active: currentValue === item.value }" 
+			@click="selectFilter(item.value)"
+		>
+			<text>{{ item.label }}</text>
+		</button>
+	</view>
+</template>
+
+<script setup lang="uts">
+	const props = defineProps({
+		options: {
+			type: Array,
+			default: () => []
+		},
+		currentValue: {
+			type: [String, Number, null],
+			default: null
+		}
+	})
+
+	const emit = defineEmits(['filter-change'])
+
+	function selectFilter(value: any) {
+		emit('filter-change', value)
+	}
+</script>
+
+<style scoped>
+	.filter-buttons {
+		display: flex;
+		flex-direction: row;
+		gap: 15rpx;
+		flex-wrap: wrap;
+	}
+
+	.filter-btn {
+		padding: 15rpx 25rpx;
+		background-color: #2a3347;
+		color: rgba(255, 255, 255, 0.7);
+		font-size: 22rpx;
+		border-radius: 12rpx;
+
+		&.active {
+			background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+			color: #fff;
+		}
+	}
+</style>

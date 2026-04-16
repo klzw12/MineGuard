@@ -8,6 +8,7 @@ import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.result.Result;
 import com.klzw.service.trip.controller.TripController;
 import com.klzw.service.trip.dto.TripDTO;
+import com.klzw.service.trip.dto.TripEndDTO;
 import com.klzw.service.trip.dto.TripStatisticsResponseDTO;
 import com.klzw.service.trip.service.TripService;
 import com.klzw.service.trip.vo.TripStatisticsVO;
@@ -116,7 +117,7 @@ public class TripControllerTest {
     @DisplayName("测试分页查询行程接口")
     void testPage() throws Exception {
         PageResult<TripVO> pageResult = PageResult.of(1, 1, 10, Collections.singletonList(testTripVO));
-        when(tripService.page(any(PageRequest.class))).thenReturn(pageResult);
+        when(tripService.page(any(PageRequest.class), any())).thenReturn(pageResult);
 
         mockMvc.perform(get("/trip/page")
                         .param("page", "1")
@@ -125,7 +126,7 @@ public class TripControllerTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.total").value(1));
 
-        verify(tripService).page(any(PageRequest.class));
+        verify(tripService).page(any(PageRequest.class), any());
     }
 
     @Test
@@ -143,7 +144,7 @@ public class TripControllerTest {
     @Test
     @DisplayName("测试结束行程接口")
     void testEndTrip() throws Exception {
-        doNothing().when(tripService).endTrip(1L, 116.487428, 39.91923);
+        doNothing().when(tripService).endTrip(eq(1L), any(TripEndDTO.class));
 
         mockMvc.perform(post("/trip/1/end")
                         .param("endLongitude", "116.487428")
@@ -151,7 +152,7 @@ public class TripControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
 
-        verify(tripService).endTrip(1L, 116.487428, 39.91923);
+        verify(tripService).endTrip(eq(1L), any(TripEndDTO.class));
     }
 
     @Test

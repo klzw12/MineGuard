@@ -10,6 +10,7 @@ import com.klzw.common.core.domain.PageRequest;
 import com.klzw.common.core.domain.dto.VehicleStatus;
 import com.klzw.common.core.result.Result;
 import com.klzw.service.trip.dto.TripDTO;
+import com.klzw.service.trip.dto.TripEndDTO;
 import com.klzw.service.trip.entity.Trip;
 import com.klzw.service.trip.enums.TripStatusEnum;
 import com.klzw.service.trip.exception.TripException;
@@ -185,10 +186,11 @@ public class TripServiceTest {
         when(tripMapper.selectById(1L)).thenReturn(testTrip);
         when(tripTrackService.getTracksFromRedis(1L)).thenReturn(Collections.emptyList());
 
-        // 执行结束
-        tripService.endTrip(1L, 116.487428, 39.91923);
+        TripEndDTO dto = new TripEndDTO();
+        dto.setEndLongitude(116.487428);
+        dto.setEndLatitude(39.91923);
+        tripService.endTrip(1L, dto);
 
-        // 验证状态已更新
         assertEquals(TripStatusEnum.COMPLETED.getCode(), testTrip.getStatus());
         assertNotNull(testTrip.getActualEndTime());
         assertEquals(116.487428, testTrip.getEndLongitude());
@@ -202,7 +204,10 @@ public class TripServiceTest {
     void testEndTrip_NotFound() {
         when(tripMapper.selectById(1L)).thenReturn(null);
 
-        assertThrows(TripException.class, () -> tripService.endTrip(1L, 116.487428, 39.91923));
+        TripEndDTO dto = new TripEndDTO();
+        dto.setEndLongitude(116.487428);
+        dto.setEndLatitude(39.91923);
+        assertThrows(TripException.class, () -> tripService.endTrip(1L, dto));
     }
 
     @Test
@@ -211,7 +216,10 @@ public class TripServiceTest {
         testTrip.setStatus(TripStatusEnum.PENDING.getCode());
         when(tripMapper.selectById(1L)).thenReturn(testTrip);
 
-        assertThrows(TripException.class, () -> tripService.endTrip(1L, 116.487428, 39.91923));
+        TripEndDTO dto = new TripEndDTO();
+        dto.setEndLongitude(116.487428);
+        dto.setEndLatitude(39.91923);
+        assertThrows(TripException.class, () -> tripService.endTrip(1L, dto));
     }
 
     @Test
@@ -379,7 +387,7 @@ public class TripServiceTest {
         when(vehicleClient.getById(anyLong())).thenReturn(Result.success(new com.klzw.common.core.domain.dto.VehicleInfo()));
         when(userClient.getUserById(anyLong())).thenReturn(Result.success(Collections.singletonMap("realName", "司机")));
 
-        com.klzw.common.core.result.PageResult<TripVO> result = tripService.page(createPageRequest(1, 10));
+        com.klzw.common.core.result.PageResult<TripVO> result = tripService.page(createPageRequest(1, 10), null);
 
         assertNotNull(result);
         assertEquals(1, result.getTotal());

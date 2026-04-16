@@ -2,6 +2,7 @@ package com.klzw.service.vehicle.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.klzw.common.core.client.CostClient;
 import com.klzw.service.vehicle.dto.VehicleInsuranceDTO;
 import com.klzw.service.vehicle.entity.VehicleInsurance;
 import com.klzw.service.vehicle.mapper.VehicleInsuranceMapper;
@@ -9,12 +10,17 @@ import com.klzw.service.vehicle.service.VehicleInsuranceService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
 public class VehicleInsuranceServiceImpl extends ServiceImpl<VehicleInsuranceMapper, VehicleInsurance> implements VehicleInsuranceService {
+
+    @Resource
+    private CostClient costClient;
     
     @Override
     public VehicleInsurance addInsurance(VehicleInsuranceDTO insuranceDTO) {
@@ -36,6 +42,22 @@ public class VehicleInsuranceServiceImpl extends ServiceImpl<VehicleInsuranceMap
             insurance.setStatus(1);
         }
         save(insurance);
+
+        // 调用CostClient添加成本明细
+        try {
+            Map<String, Object> costDetailRequest = new java.util.HashMap<>();
+            costDetailRequest.put("costType", 4); // 保险成本
+            costDetailRequest.put("costName", "车辆保险费用");
+            costDetailRequest.put("amount", insuranceDTO.getInsuranceAmount());
+            costDetailRequest.put("vehicleId", insuranceDTO.getVehicleId());
+            costDetailRequest.put("costDate", insuranceDTO.getStartDate() != null ? insuranceDTO.getStartDate().toString() : null);
+            costDetailRequest.put("description", "车辆保险: " + insuranceDTO.getInsuranceCompany());
+            costClient.addCostDetail(costDetailRequest);
+            log.info("添加车辆保险成本明细成功: vehicleId={}, amount={}", insuranceDTO.getVehicleId(), insuranceDTO.getInsuranceAmount());
+        } catch (Exception e) {
+            log.error("添加车辆保险成本明细失败", e);
+        }
+
         return insurance;
     }
     

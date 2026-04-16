@@ -1,0 +1,478 @@
+<template>
+	<view class="container">
+		<view class="map-wrapper">
+			<map 
+				id="amap"
+				:longitude="currentLongitude"
+				:latitude="currentLatitude"
+				:scale="mapScale"
+				:markers="mapMarkers"
+				:polyline="polyline"
+				:show-location="false"
+				:rotate="mapRotate"
+				:skew="mapSkew"
+				:enable-3D="true"
+				style="width: 100%; height: 100%;"
+			></map>
+			
+			<view class="control-panel">
+				<button class="start-btn" @click="startDrawing">开始绘制</button>
+				<button class="stop-btn" @click="stopDrawing" v-if="isDrawing">停止绘制</button>
+				<view class="event-buttons" v-if="isDrawing">
+					<button class="event-btn" @click="toggleMapFollow">{{ mapFollowEnabled ? '关闭跟随' : '开启跟随' }}</button>
+					<button class="event-btn" @click="toggleMapRotation">{{ mapRotationEnabled ? '关闭旋转' : '开启旋转' }}</button>
+					<button class="event-btn" @click="triggerStay">触发停留</button>
+					<button class="event-btn" @click="triggerSpeedLimit">触发超速</button>
+					<button class="event-btn" @click="triggerFailure">触发故障</button>
+					<button class="event-btn" @click="triggerRouteDeviation">触发路线偏离</button>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref, onMounted } from 'vue'
+	import { startTaskSimulation, type MicroTrackPoint, getRouteFromAMap, type Coordinate } from '@/utils/trackSimulator.uts'
+	
+	// 地图相关
+	const currentLongitude = ref(113.080445) // 起点经度
+	const currentLatitude = ref(39.929471) // 起点纬度
+	const mapScale = ref(18) // 增大缩放级别，以便更好地显示轨迹
+	const mapMarkers = ref<any[]>([])
+	const polyline = ref<any[]>([])
+	const mapFollowEnabled = ref(true) // 地图跟随模式
+	const mapRotationEnabled = ref(false) // 地图旋转模式
+	const mapRotate = ref(0) // 地图旋转角度
+	const mapSkew = ref(60) // 地图倾斜角度
+	
+	// 轨迹绘制
+	let simulationController: any = null
+	const isDrawing = ref(false)
+	
+	// 起点和终点
+	const startPoint = {
+		longitude: 113.080445,
+		latitude: 39.929471,
+		name: '大同煤矿同塔建材有限责任公司'
+	}
+	
+	const endPoint = {
+		longitude: 113.129917,
+		latitude: 40.188462,
+		name: '山西煤炭运销集团新旺煤业'
+	}
+	
+	onMounted(async () => {
+		// 初始化地图标记点
+		initMarkers()
+		
+		// 绘制原始轨迹点（紫色线）
+		await drawOriginalRoute()
+	})
+	
+	/**
+	 * 绘制原始轨迹点（根据拥堵情况显示不同颜色）
+	 */
+	async function drawOriginalRoute() {
+		// 获取原始宏观轨迹点和交通状况
+		const routeData = await getRouteFromAMap(startPoint, endPoint)
+		const originalPath = routeData?.path || []
+		const trafficSegments = routeData?.trafficSegments || []
+		
+		// 清空现有的折线
+		polyline.value = []
+		
+		// 如果有交通状况数据，根据拥堵情况绘制不同颜色的线段
+		if (trafficSegments.length > 0) {
+			// 为每个交通线段绘制不同颜色的线
+			trafficSegments.forEach((segment, index) => {
+				// 根据交通状况设置颜色
+				let color = '#9933FF' // 默认紫色
+				switch (segment.status) {
+					case '畅通':
+						color = '#00FF00' // 绿色
+						break
+					case '缓行':
+						color = '#FFFF00' // 黄色
+						break
+					case '拥堵':
+						color = '#FF0000' // 红色
+						break
+					default:
+						color = '#9933FF' // 紫色
+				}
+				
+				// 添加线段到折线数组
+				polyline.value.push({
+					points: segment.points,
+					color: color,
+					width: 4,
+					dashedLine: false
+				})
+			})
+		} else {
+			// 如果没有交通状况数据，绘制默认紫色线
+			polyline.value.push({
+				points: originalPath,
+				color: '#9933FF', // 紫色
+				width: 4,
+				dashedLine: false
+			})
+		}
+	}
+	
+	/**
+	 * 初始化标记点
+	 */
+	function initMarkers() {
+		mapMarkers.value = [
+			{
+				id: 1,
+				longitude: startPoint.longitude,
+				latitude: startPoint.latitude,
+				title: startPoint.name,
+				iconPath: '/static/marker-start.png',
+				width: 40,
+				height: 40,
+				callout: {
+					content: '起点',
+					color: '#fff',
+					fontSize: 14,
+					borderRadius: 4,
+					bgColor: '#ff3b30',
+					padding: 8,
+					display: 'ALWAYS'
+				}
+			},
+			{
+				id: 2,
+				longitude: endPoint.longitude,
+				latitude: endPoint.latitude,
+				title: endPoint.name,
+				iconPath: '/static/marker-end.png',
+				width: 40,
+				height: 40,
+				callout: {
+					content: '终点',
+					color: '#fff',
+					fontSize: 14,
+					borderRadius: 4,
+					bgColor: '#ff3b30',
+					padding: 8,
+					display: 'ALWAYS'
+				}
+			}
+		]
+	}
+	
+
+	
+	/**
+	 * 开始绘制轨迹
+	 */
+	async function startDrawing() {
+		isDrawing.value = true
+		
+		try {
+			// 开始模拟轨迹
+			simulationController = await startTaskSimulation(
+				'2043229856201637890', // tripId
+				'1', // vehicleId
+				'1', // driverId
+				startPoint,
+				endPoint,
+				(track: MicroTrackPoint) => {
+					// 实时更新轨迹
+					onTrackUpdate(track)
+				},
+				(route: any) => {
+					// 路线更新
+					console.log('Route updated:', route)
+				},
+				() => {
+					// 轨迹绘制完成
+					console.log('Track drawing completed')
+					isDrawing.value = false
+				}
+			)
+			
+			console.log('开始绘制轨迹')
+		} catch (error) {
+			console.error('开始绘制轨迹失败:', error)
+			isDrawing.value = false
+		}
+	}
+	
+	/**
+	 * 停止绘制轨迹
+	 */
+	function stopDrawing() {
+		if (simulationController) {
+			simulationController.stop()
+			simulationController = null
+			isDrawing.value = false
+			console.log('停止绘制轨迹')
+		}
+	}
+	
+	/**
+	 * 切换地图跟随模式
+	 */
+	function toggleMapFollow() {
+		mapFollowEnabled.value = !mapFollowEnabled.value
+		console.log('地图跟随模式:', mapFollowEnabled.value ? '开启' : '关闭')
+	}
+	
+	/**
+	 * 切换地图旋转模式
+	 */
+	function toggleMapRotation() {
+		mapRotationEnabled.value = !mapRotationEnabled.value
+		if (!mapRotationEnabled.value) {
+			mapRotate.value = 0 // 重置旋转角度
+		}
+		console.log('地图旋转模式:', mapRotationEnabled.value ? '开启' : '关闭')
+	}
+	
+	/**
+	 * 触发停留事件
+	 */
+	function triggerStay() {
+		if (simulationController) {
+			simulationController.triggerStay()
+		}
+	}
+	
+	/**
+	 * 触发超速事件
+	 */
+	function triggerSpeedLimit() {
+		if (simulationController) {
+			simulationController.triggerSpeedLimit()
+		}
+	}
+	
+	/**
+	 * 触发故障事件
+	 */
+	function triggerFailure() {
+		if (simulationController) {
+			simulationController.triggerFailure()
+		}
+	}
+	
+	/**
+	 * 触发路线偏离事件
+	 */
+	function triggerRouteDeviation() {
+		if (simulationController) {
+			simulationController.triggerRouteDeviation()
+		}
+	}
+	
+	/**
+	 * 轨迹点更新回调
+	 */
+	function onTrackUpdate(track: MicroTrackPoint) {
+		// 确保经纬度值有效
+		const longitude = !isNaN(parseFloat(track.longitude)) ? parseFloat(track.longitude) : 0
+		const latitude = !isNaN(parseFloat(track.latitude)) ? parseFloat(track.latitude) : 0
+		
+		// 根据跟随模式决定是否更新地图中心
+		if (mapFollowEnabled.value) {
+			currentLongitude.value = longitude
+			currentLatitude.value = latitude
+		}
+		
+		// 根据旋转模式决定是否更新地图旋转角度
+		if (mapRotationEnabled.value) {
+			mapRotate.value = track.direction
+		}
+		
+		// 更新车辆标记点
+		updateVehicleMarker(longitude, latitude, track.direction)
+		
+		// 绘制轨迹
+		drawTrack(track)
+		
+		// 在控制台打印轨迹点
+		// console.log('Track point:', track)
+		// 输出单点格式的经纬度，便于复制
+		console.log(`${longitude},${latitude}`)
+	}
+	
+	/**
+	 * 更新车辆标记点
+	 */
+	function updateVehicleMarker(lon: number, lat: number, direction: number) {
+		const vehicleMarker = {
+			id: 3,
+			longitude: lon,
+			latitude: lat,
+			title: '车辆',
+			iconPath: '/static/marker-vehicle.png',
+			width: 50,
+			height: 50,
+			rotate: direction
+		}
+		
+		// 更新或添加车辆标记
+		const existingIndex = mapMarkers.value.findIndex(m => m.id === 3)
+		if (existingIndex >= 0) {
+			mapMarkers.value[existingIndex] = vehicleMarker
+		} else {
+			mapMarkers.value.push(vehicleMarker)
+		}
+	}
+	
+	/**
+	 * 绘制轨迹
+	 */
+	function drawTrack(track: MicroTrackPoint) {
+		// 确保经纬度值有效
+		const longitude = !isNaN(parseFloat(track.longitude)) ? parseFloat(track.longitude) : 0
+		const latitude = !isNaN(parseFloat(track.latitude)) ? parseFloat(track.latitude) : 0
+		
+		// 如果还没有轨迹点，初始化轨迹
+		if (!polyline.value[1]) {
+			polyline.value[1] = {
+				points: [],
+				color: '#007AFF',
+				width: 4,
+				dashedLine: false
+			}
+		}
+		
+		// 只添加当前轨迹点，避免跳跃重叠
+		// 检查当前轨迹点是否与最后一个轨迹点相同
+		const lastPoint = polyline.value[1].points[polyline.value[1].points.length - 1]
+		if (!lastPoint || (lastPoint.longitude !== longitude || lastPoint.latitude !== latitude)) {
+			// 检查是否存在方向反向走的情况
+		if (lastPoint) {
+			// 计算当前轨迹点与最后一个轨迹点的距离
+			const distance = calculateDistance(lastPoint.latitude, lastPoint.longitude, latitude, longitude)
+			// 如果距离过大，可能是方向反向走，或者是跳跃，跳过这个轨迹点
+			// 只有当距离大于0且大于1000米时，才认为是不合理的
+			if (distance > 0 && distance > 1000) { // 1000米
+				console.warn('轨迹点距离过大，可能是方向反向走，跳过这个轨迹点', distance)
+				return
+			}
+		}
+			
+			// 添加当前轨迹点
+			polyline.value[1].points.push({
+				longitude: longitude,
+				latitude: latitude
+			})
+			
+			// 限制轨迹点数量，避免性能问题
+			if (polyline.value[1].points.length > 1000) {
+				polyline.value[1].points.shift()
+			}
+		}
+	}
+	
+	/**
+ * 计算两个经纬度点之间的距离（米）
+ */
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+	// 检查经纬度值是否有效
+	if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) {
+		return 0;
+	}
+	
+	// 检查经纬度值范围是否合理
+	if (lat1 < -90 || lat1 > 90 || lat2 < -90 || lat2 > 90) {
+		return 0;
+	}
+	if (lon1 < -180 || lon1 > 180 || lon2 < -180 || lon2 > 180) {
+		return 0;
+	}
+	
+	const R = 6371e3; // 地球半径（米）
+	const φ1 = lat1 * Math.PI / 180;
+	const φ2 = lat2 * Math.PI / 180;
+	const Δφ = (lat2 - lat1) * Math.PI / 180;
+	const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+	const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+		Math.cos(φ1) * Math.cos(φ2) *
+		Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+	const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+	const distance = R * c;
+	// 检查距离是否合理，避免计算错误
+	if (distance > 10000000) { // 10000公里
+		return 0;
+	}
+	
+	return distance;
+}
+</script>
+
+<style>
+	.container {
+		height: 100vh;
+		display: flex;
+		flex-direction: column;
+	}
+	
+	.map-wrapper {
+		flex: 1;
+		position: relative;
+	}
+	
+	.control-panel {
+		position: absolute;
+		bottom: 30rpx;
+		left: 30rpx;
+		right: 30rpx;
+		display: flex;
+		flex-direction: column;
+		gap: 20rpx;
+		z-index: 999;
+	}
+	
+	.start-btn, .stop-btn {
+		height: 88rpx;
+		border-radius: 20rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border: none;
+		font-size: 32rpx;
+		font-weight: 500;
+		color: #fff;
+	}
+	
+	.event-buttons {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 10rpx;
+		margin-top: 15rpx;
+	}
+	
+	.event-btn {
+		height: 70rpx;
+		border-radius: 15rpx;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border: none;
+		font-size: 24rpx;
+		font-weight: 500;
+		color: #fff;
+		flex: 1;
+		min-width: 120rpx;
+		background: linear-gradient(135deg, #FF9500 0%, #FFB74D 100%);
+	}
+	
+	.start-btn {
+		background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+	}
+	
+	.stop-btn {
+		background: linear-gradient(135deg, #FF3B30 0%, #FF6B6B 100%);
+	}
+</style>

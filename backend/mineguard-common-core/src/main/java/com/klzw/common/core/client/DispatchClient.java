@@ -35,4 +35,7 @@ public interface DispatchClient {
 
     @GetExchange("/dispatch/task/vehicle/{vehicleId}/active")
     Result<TripResponse> getActiveTripByVehicleId(@PathVariable("vehicleId") Long vehicleId);
+
+    @GetExchange("/dispatch/task/{taskId}/detail")
+    Result<Map<String, Object>> getTaskDetail(@PathVariable("taskId") Long taskId);
 }

@@ -38,4 +38,6 @@ public interface WarningRecordService {
     Map<String, Object> getWarningTypeStatistics(String startTime, String endTime);
 
     Map<String, Object> getWarningLevelStatistics(String startTime, String endTime);
+
+    void handleWarningsByVehicleId(Long vehicleId, Integer status, String handleResult);
 }

@@ -66,4 +66,10 @@ public class TripDTO {
 
     @Schema(description = "备注")
     private String remark;
+    
+    @Schema(description = "优先级: time, cost, distance")
+    private String priority;
+    
+    @Schema(description = "截止日期")
+    private LocalDateTime deadline;
 }

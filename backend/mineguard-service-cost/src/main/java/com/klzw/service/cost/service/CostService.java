@@ -4,12 +4,10 @@ import com.klzw.service.cost.dto.CostBudgetDTO;
 import com.klzw.service.cost.dto.CostDetailDTO;
 import com.klzw.service.cost.dto.CostQueryDTO;
 import com.klzw.service.cost.dto.SalaryConfigDTO;
-import com.klzw.service.cost.dto.SalaryRecordDTO;
 import com.klzw.service.cost.vo.CostBudgetVO;
 import com.klzw.service.cost.vo.CostDetailVO;
 import com.klzw.service.cost.vo.CostStatisticsVO;
 import com.klzw.service.cost.vo.SalaryConfigVO;
-import com.klzw.service.cost.vo.SalaryRecordVO;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -39,15 +37,7 @@ public interface CostService {
 
     List<SalaryConfigVO> getSalaryConfigList();
 
-    SalaryRecordVO addSalaryRecord(SalaryRecordDTO dto);
 
-    SalaryRecordVO updateSalaryRecord(SalaryRecordDTO dto);
-
-    void deleteSalaryRecord(Long id);
-
-    SalaryRecordVO getSalaryRecord(Long id);
-
-    List<SalaryRecordVO> getSalaryRecordList(String keyword, String period, Integer page, Integer pageSize);
 
     CostBudgetVO addBudget(CostBudgetDTO dto);
 
@@ -94,4 +84,34 @@ public interface CostService {
      * @return 计算结果
      */
     Map<String, Object> calculateSalaries(LocalDate startDate, LocalDate endDate);
+    
+    /**
+     * 按月份计算薪酬
+     * 
+     * @param yearMonth 年月（格式：yyyy-MM）
+     * @return 计算结果
+     */
+    Map<String, Object> calculateSalariesByMonth(String yearMonth);
+    
+    /**
+     * 清空绩效
+     * 
+     * @return 清空结果
+     */
+    Map<String, Object> resetPerformance();
+    
+    /**
+     * 检查用户是否设置了起薪
+     * 
+     * @param userId 用户ID
+     * @return 是否设置了起薪
+     */
+    boolean hasSalaryConfig(Long userId);
+    
+    /**
+     * 获取薪酬配置的基本参数
+     * 
+     * @return 配置参数
+     */
+    Map<String, Object> getSalaryConfigParams();
 }

@@ -3,6 +3,7 @@ package com.klzw.service.vehicle.service.impl;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.klzw.common.core.client.CostClient;
 import com.klzw.common.core.client.DispatchClient;
 import com.klzw.common.core.client.WarningClient;
 import com.klzw.common.core.domain.dto.WarningCreateDTO;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,6 +43,9 @@ public class VehicleFaultServiceImpl extends ServiceImpl<VehicleFaultMapper, Veh
     private final DispatchClient dispatchClient;
 
     private final WarningClient warningClient;
+    
+    @Resource
+    private CostClient costClient;
     
     @Override
     public VehicleFault reportFault(VehicleFaultDTO faultDTO) {
@@ -138,6 +143,21 @@ public class VehicleFaultServiceImpl extends ServiceImpl<VehicleFaultMapper, Veh
         
         vehicleService.updateVehicleStatus(fault.getVehicleId(), targetStatus);
         log.info("车辆状态已恢复：vehicleId={}, status={}", fault.getVehicleId(), targetStatus);
+
+        // 调用CostClient添加成本明细
+        try {
+            Map<String, Object> costDetailRequest = new java.util.HashMap<>();
+            costDetailRequest.put("costType", 2); // 维修成本
+            costDetailRequest.put("costName", "车辆维修费用");
+            costDetailRequest.put("amount", repairCost);
+            costDetailRequest.put("vehicleId", fault.getVehicleId());
+            costDetailRequest.put("costDate", LocalDate.now().toString());
+            costDetailRequest.put("description", "车辆故障维修: " + fault.getFaultType());
+            costClient.addCostDetail(costDetailRequest);
+            log.info("添加车辆维修成本明细成功: vehicleId={}, amount={}", fault.getVehicleId(), repairCost);
+        } catch (Exception e) {
+            log.error("添加车辆维修成本明细失败", e);
+        }
         
         return fault;
     }

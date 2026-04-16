@@ -48,10 +48,19 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         
         log.debug("Path {} requires auth, checking token", path);
         
+        // 从请求头中获取token
         String authHeader = request.getHeaders().getFirst(GatewayConstant.AUTHORIZATION_HEADER);
         log.debug("Auth header: {}", authHeader != null ? "present" : "null");
         
         String token = getTokenFromHeader(authHeader);
+        
+        // 如果请求头中没有token，从查询参数中获取
+        if (token == null) {
+            token = getTokenFromQueryParams(request);
+            if (token != null) {
+                log.debug("Token found in query parameters");
+            }
+        }
         
         if (token == null) {
             log.warn("Token missing for path: {}", path);
@@ -92,6 +101,15 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             return authHeader.substring(GatewayConstant.BEARER_PREFIX.length());
         }
         return null;
+    }
+
+    /**
+     * 从查询参数中获取token
+     * @param request HTTP请求
+     * @return token字符串
+     */
+    private String getTokenFromQueryParams(ServerHttpRequest request) {
+        return request.getQueryParams().getFirst("token");
     }
 
     @Override

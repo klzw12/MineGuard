@@ -39,9 +39,9 @@ export interface VehicleCreateDTO {
 export interface PageResult<T> {
   total: number
   pages: number
-  pageNum: number
-  pageSize: number
-  records: T[]
+  page: number
+  size: number
+  list: T[]
 }
 
 export const vehicleApi = {

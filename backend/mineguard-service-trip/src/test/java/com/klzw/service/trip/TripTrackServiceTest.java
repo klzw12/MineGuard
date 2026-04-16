@@ -2,7 +2,7 @@ package com.klzw.service.trip;
 
 import com.klzw.common.redis.service.RedisCacheService;
 import com.klzw.service.trip.document.TripTrackDocument;
-import com.klzw.service.trip.dto.TripTrackDTO;
+import com.klzw.common.core.domain.dto.TripTrackDTO;
 import com.klzw.service.trip.exception.TripException;
 import com.klzw.service.trip.repository.TripTrackMongoRepository;
 import com.klzw.service.trip.service.TripTrackService;

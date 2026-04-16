@@ -5,6 +5,7 @@ import com.klzw.common.map.domain.Route;
 
 public interface RoutePlanningService {
     Route drivingRoute(GeoPoint origin, GeoPoint destination);
+    Route drivingRoute(GeoPoint origin, GeoPoint destination, Integer strategy);
     Route walkingRoute(GeoPoint origin, GeoPoint destination);
     Route cyclingRoute(GeoPoint origin, GeoPoint destination);
 }

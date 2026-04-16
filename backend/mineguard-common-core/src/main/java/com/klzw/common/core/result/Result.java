@@ -46,4 +46,8 @@ public class Result<T> {
     public static <T> Result<T> error(String message) {
         return new Result<>(ResultCodeEnum.INTERNAL_ERROR.getCode(), message, null);
     }
+
+    public boolean isSuccess() {
+        return this.code == ResultCodeEnum.SUCCESS.getCode();
+    }
 }

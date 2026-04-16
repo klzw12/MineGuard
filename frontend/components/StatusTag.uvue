@@ -1,0 +1,70 @@
+<template>
+	<view class="status-tag" :class="getStatusClass(status)">
+		<text>{{ getStatusText(status) }}</text>
+	</view>
+</template>
+
+<script setup lang="uts">
+	const props = defineProps({
+		status: {
+			type: [String, Number],
+			required: true
+		},
+		statusMap: {
+			type: Object,
+			default: () => ({
+				0: { text: '待处理', class: 'pending' },
+				1: { text: '已处理', class: 'processed' },
+				2: { text: '处理中', class: 'processing' },
+				3: { text: '已完成', class: 'completed' },
+				4: { text: '已拒绝', class: 'rejected' }
+			})
+		}
+	})
+
+	function getStatusClass(status: any): string {
+		return props.statusMap[status]?.class || 'default'
+	}
+
+	function getStatusText(status: any): string {
+		return props.statusMap[status]?.text || '未知'
+	}
+</script>
+
+<style scoped>
+	.status-tag {
+		padding: 8rpx 20rpx;
+		border-radius: 20rpx;
+		font-size: 22rpx;
+
+		&.pending {
+			background-color: rgba(255, 149, 0, 0.2);
+			color: #FF9500;
+		}
+
+		&.processed {
+			background-color: rgba(52, 199, 89, 0.2);
+			color: #34C759;
+		}
+
+		&.processing {
+			background-color: rgba(0, 122, 255, 0.2);
+			color: #007AFF;
+		}
+
+		&.completed {
+			background-color: rgba(142, 142, 147, 0.2);
+			color: #8E8E93;
+		}
+
+		&.rejected {
+			background-color: rgba(255, 59, 48, 0.2);
+			color: #FF3B30;
+		}
+
+		&.default {
+			background-color: rgba(255, 255, 255, 0.1);
+			color: rgba(255, 255, 255, 0.5);
+		}
+	}
+</style>

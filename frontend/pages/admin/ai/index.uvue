@@ -1,0 +1,328 @@
+<template>
+  <view class="ai-container">
+    <view class="chat-header">
+      <text class="header-title">AI 智能助手</text>
+      <text class="header-subtitle">MineGuard 矿山管理系统</text>
+    </view>
+    
+    <scroll-view 
+      class="chat-messages" 
+      :scroll-y="true" 
+      :scroll-into-view="scrollIntoView"
+      :scroll-with-animation="true"
+    >
+      <view class="message-list">
+        <view 
+          v-for="(msg, index) in messages" 
+          :key="index" 
+          :class="['message-item', msg.role]"
+          :id="'msg-' + index"
+        >
+          <view class="message-avatar">
+            <image 
+              v-if="msg.role === 'user'" 
+              class="avatar-icon" 
+              src="/static/icons/user.png"
+            />
+            <image 
+              v-else 
+              class="avatar-icon" 
+              src="/static/icons/ai.png"
+            />
+          </view>
+          <view class="message-content">
+            <text class="message-text">{{ msg.content }}</text>
+          </view>
+        </view>
+        
+        <view v-if="loading" class="message-item assistant loading">
+          <view class="message-avatar">
+            <image class="avatar-icon" src="/static/icons/ai.png"/>
+          </view>
+          <view class="message-content">
+            <text class="message-text">正在思考中...</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+    
+    <view class="chat-input-area">
+      <view class="quick-actions">
+        <view 
+          v-for="(action, index) in quickActions" 
+          :key="index" 
+          class="quick-action-btn"
+          @click="sendQuickMessage(action)"
+        >
+          <text class="quick-action-text">{{ action }}</text>
+        </view>
+      </view>
+      
+      <view class="input-row">
+        <input 
+          class="chat-input"
+          v-model="inputMessage"
+          placeholder="请输入您的问题..."
+          :adjust-position="true"
+          @confirm="sendMessage"
+        />
+        <button 
+          class="send-btn" 
+          :disabled="!inputMessage.trim() || loading"
+          @click="sendMessage"
+        >
+          <text class="send-btn-text">发送</text>
+        </button>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+import { ref, nextTick } from 'vue'
+import aiApi, { ChatMessage } from '@/api/ai'
+
+const messages = ref<ChatMessage[]>([
+  {
+    role: 'assistant',
+    content: '您好！我是MineGuard矿山管理系统的AI助手。我可以帮助您解答关于车辆管理、调度优化、成本分析等问题。请问有什么可以帮助您的？'
+  }
+])
+
+const inputMessage = ref('')
+const loading = ref(false)
+const scrollIntoView = ref('')
+
+const quickActions = ref<string[]>([
+  '今日车辆运行情况',
+  '成本分析建议',
+  '调度优化方案',
+  '预警统计'
+])
+
+const sendMessage = async () => {
+  const message = inputMessage.value.trim()
+  if (!message || loading.value) return
+  
+  messages.value.push({
+    role: 'user',
+    content: message
+  })
+  
+  inputMessage.value = ''
+  loading.value = true
+  
+  scrollToBottom()
+  
+  try {
+    const history = messages.value.slice(-10).map(m => ({
+      role: m.role,
+      content: m.content
+    }))
+    
+    const result = await aiApi.chat({
+      message: message,
+      history: history
+    })
+    
+    let responseText = '抱歉，我暂时无法回答这个问题。'
+    
+    if (result) {
+      const content = result['content']
+      if (content) {
+        if (typeof content === 'string') {
+          responseText = content
+        } else if (content['content']) {
+          const innerContent = content['content']
+          if (innerContent['response']) {
+            responseText = innerContent['response'] as string
+          } else if (innerContent['text']) {
+            responseText = innerContent['text'] as string
+          } else if (typeof innerContent === 'string') {
+            responseText = innerContent
+          }
+        } else if (content['response']) {
+          responseText = content['response'] as string
+        } else if (content['text']) {
+          responseText = content['text'] as string
+        }
+      }
+    }
+    
+    messages.value.push({
+      role: 'assistant',
+      content: responseText
+    })
+  } catch (e) {
+    messages.value.push({
+      role: 'assistant',
+      content: '抱歉，服务暂时不可用，请稍后再试。'
+    })
+  } finally {
+    loading.value = false
+    scrollToBottom()
+  }
+}
+
+const sendQuickMessage = (action: string) => {
+  inputMessage.value = action
+  sendMessage()
+}
+
+const scrollToBottom = () => {
+  nextTick(() => {
+    const lastIndex = messages.value.length - 1
+    if (lastIndex >= 0) {
+      scrollIntoView.value = 'msg-' + lastIndex
+    }
+  })
+}
+</script>
+
+<style scoped>
+.ai-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.chat-header {
+  padding: 20rpx 30rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #ffffff;
+}
+
+.header-subtitle {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 8rpx;
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 20rpx;
+}
+
+.message-list {
+  padding-bottom: 20rpx;
+}
+
+.message-item {
+  display: flex;
+  margin-bottom: 30rpx;
+}
+
+.message-item.user {
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.message-content {
+  max-width: 70%;
+  margin: 0 20rpx;
+  padding: 20rpx 24rpx;
+  border-radius: 16rpx;
+  word-break: break-all;
+}
+
+.message-item.user .message-content {
+  background-color: #667eea;
+}
+
+.message-item.assistant .message-content {
+  background-color: #ffffff;
+}
+
+.message-item.user .message-text {
+  color: #ffffff;
+}
+
+.message-item.assistant .message-text {
+  color: #333333;
+}
+
+.message-text {
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+.loading .message-content {
+  background-color: #e8e8e8;
+}
+
+.chat-input-area {
+  padding: 20rpx;
+  background-color: #ffffff;
+  border-top: 1rpx solid #e8e8e8;
+}
+
+.quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.quick-action-btn {
+  padding: 12rpx 24rpx;
+  background-color: #f0f0f0;
+  border-radius: 30rpx;
+}
+
+.quick-action-text {
+  font-size: 24rpx;
+  color: #666666;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.chat-input {
+  flex: 1;
+  height: 80rpx;
+  padding: 0 24rpx;
+  background-color: #f5f5f5;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+}
+
+.send-btn {
+  width: 140rpx;
+  height: 80rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.send-btn[disabled] {
+  opacity: 0.5;
+}
+
+.send-btn-text {
+  font-size: 28rpx;
+  color: #ffffff;
+}
+</style>

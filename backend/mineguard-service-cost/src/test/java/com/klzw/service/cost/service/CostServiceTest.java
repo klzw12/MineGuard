@@ -618,7 +618,7 @@ class CostServiceTest {
      */
     @Test
     void testCalculateAndRecordTripCommission() {
-        when(pythonClient.analyzeDrivingBehavior(1L)).thenReturn(80);
+        when(pythonClient.analyzeDrivingBehavior(1L)).thenReturn(Result.success(80));
         when(costDetailMapper.insert(any(CostDetail.class))).thenAnswer(invocation -> {
             CostDetail detail = invocation.getArgument(0);
             detail.setId(100L);

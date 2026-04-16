@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -25,6 +26,21 @@ public class AiController {
 
     private final AiService aiService;
     private final PythonClient pythonClient;
+
+    @RateLimit(keyPrefix = "ai_chat", limit = 30, window = 1, message = "AI对话请求过于频繁，请稍后再试")
+    @PostMapping("/chat")
+    public Result<AnalysisResultVO> chat(
+            @RequestBody Map<String, Object> request) {
+        String message = (String) request.get("message");
+        List<Map<String, String>> history = (List<Map<String, String>>) request.get("history");
+        log.debug("AI对话: {}", message);
+        Map<String, Object> result = aiService.chat(message, history);
+        AnalysisResultVO vo = AnalysisResultVO.builder()
+                .status("success")
+                .content(result)
+                .build();
+        return Result.success(vo);
+    }
 
     @RateLimit(keyPrefix = "ai_analyze", limit = 10, window = 1, message = "AI分析请求过于频繁，请稍后再试")
     @PostMapping("/analyze/statistics")

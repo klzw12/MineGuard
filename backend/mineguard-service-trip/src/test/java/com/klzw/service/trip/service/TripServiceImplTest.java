@@ -14,6 +14,7 @@ import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.result.Result;
 import com.klzw.service.trip.constant.TripResultCode;
 import com.klzw.service.trip.dto.TripDTO;
+import com.klzw.service.trip.dto.TripEndDTO;
 import com.klzw.service.trip.dto.TripStatisticsResponseDTO;
 import com.klzw.service.trip.entity.Trip;
 import com.klzw.service.trip.enums.TripStatusEnum;
@@ -114,7 +115,7 @@ public class TripServiceImplTest {
         PageRequest pageRequest = new PageRequest();
         pageRequest.setPage(1);
         pageRequest.setSize(10);
-        PageResult<TripVO> result = tripService.page(pageRequest);
+        PageResult<TripVO> result = tripService.page(pageRequest, null);
 
         // 验证结果
         assertNotNull(result);
@@ -330,10 +331,11 @@ public class TripServiceImplTest {
         doNothing().when(dispatchClient).completeTaskByTrip(anyLong());
         doNothing().when(tripStatusProcessor).processStatusChange(any(Trip.class), anyInt(), anyInt());
 
-        // 执行结束行程
-        tripService.endTrip(1L, 116.1, 39.1);
+        TripEndDTO dto = new TripEndDTO();
+        dto.setEndLongitude(116.1);
+        dto.setEndLatitude(39.1);
+        tripService.endTrip(1L, dto);
 
-        // 验证方法调用
         verify(tripMapper, times(1)).selectById(1L);
         verify(tripMapper, times(1)).updateById(any(Trip.class));
         verify(tripTrackService, times(1)).getTracksFromRedis(1L);
@@ -343,22 +345,24 @@ public class TripServiceImplTest {
 
     @Test
     void endTrip_TripNotFound() {
-        // 模拟数据
         when(tripMapper.selectById(1L)).thenReturn(null);
 
-        // 执行结束行程，预期抛出异常
-        TripException exception = assertThrows(TripException.class, () -> tripService.endTrip(1L, 116.1, 39.1));
+        TripEndDTO dto = new TripEndDTO();
+        dto.setEndLongitude(116.1);
+        dto.setEndLatitude(39.1);
+        TripException exception = assertThrows(TripException.class, () -> tripService.endTrip(1L, dto));
         assertEquals(TripResultCode.TRIP_NOT_FOUND.getCode(), exception.getCode());
     }
 
     @Test
     void endTrip_TripStatusError() {
-        // 模拟数据
         trip.setStatus(TripStatusEnum.PENDING.getCode());
         when(tripMapper.selectById(1L)).thenReturn(trip);
 
-        // 执行结束行程，预期抛出异常
-        TripException exception = assertThrows(TripException.class, () -> tripService.endTrip(1L, 116.1, 39.1));
+        TripEndDTO dto = new TripEndDTO();
+        dto.setEndLongitude(116.1);
+        dto.setEndLatitude(39.1);
+        TripException exception = assertThrows(TripException.class, () -> tripService.endTrip(1L, dto));
         assertEquals(TripResultCode.TRIP_STATUS_ERROR.getCode(), exception.getCode());
     }
 

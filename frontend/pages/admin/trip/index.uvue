@@ -204,7 +204,7 @@
 		try {
 			const res = await getTripList({ page: currentPage.value, size: pageSize.value, status: currentStatus.value })
 			if (res) {
-				tripList.value = res.records || []
+				tripList.value = res.list || []
 				total.value = res.total || 0
 			}
 		} catch (e) {
@@ -220,7 +220,7 @@
 			getRouteTemplateList()
 		])
 			if (vehicleRes) {
-				vehicleOptions.value = (vehicleRes.records || []).map((v: any) => ({ id: String(v.id), vehicleNo: v.vehicleNo }))
+				vehicleOptions.value = (vehicleRes.list || []).map((v: any) => ({ id: String(v.id), vehicleNo: v.vehicleNo }))
 			}
 			if (driverRes) {
 				driverOptions.value = (driverRes || []).map((d: any) => ({ id: String(d.id), name: d.realName || d.username }))
@@ -275,7 +275,7 @@
 			success: async (res) => {
 				if (res.confirm) {
 					try {
-						await endTripApi(String(trip.id))
+						await endTripApi(String(trip.id), { endLongitude: 0, endLatitude: 0, tolls: 0, tollDistance: 0 })
 						uni.showToast({ title: '行程已结束', icon: 'success' })
 						fetchTripList()
 					} catch (e) {

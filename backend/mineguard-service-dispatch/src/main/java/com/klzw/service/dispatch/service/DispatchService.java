@@ -1,6 +1,8 @@
 package com.klzw.service.dispatch.service;
 
 import com.klzw.service.dispatch.entity.TransportTask;
+import com.klzw.service.dispatch.entity.MaintenanceTask;
+import com.klzw.service.dispatch.entity.InspectionTask;
 import com.klzw.service.dispatch.vo.DispatchTaskVO;
 
 import java.time.LocalDateTime;
@@ -81,4 +83,36 @@ public interface DispatchService {
      * @return 行程ID
      */
     Long createTripFromTask(TransportTask task, Long driverId, Long vehicleId);
+    
+    /**
+     * 获取维修任务
+     * 
+     * @param taskId 任务ID
+     * @return 维修任务
+     */
+    MaintenanceTask getMaintenanceTask(Long taskId);
+    
+    /**
+     * 获取巡检任务
+     * 
+     * @param taskId 任务ID
+     * @return 巡检任务
+     */
+    InspectionTask getInspectionTask(Long taskId);
+    
+    /**
+     * 更新维修任务
+     * 
+     * @param task 维修任务
+     * @return 维修任务
+     */
+    MaintenanceTask updateMaintenanceTask(MaintenanceTask task);
+    
+    /**
+     * 更新巡检任务
+     * 
+     * @param task 巡检任务
+     * @return 巡检任务
+     */
+    InspectionTask updateInspectionTask(InspectionTask task);
 }

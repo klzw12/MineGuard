@@ -1,5 +1,6 @@
 package com.klzw.service.warning.processor;
 
+import com.klzw.common.core.domain.dto.TripTrackDTO;
 import com.klzw.common.map.domain.GeoPoint;
 import com.klzw.common.map.util.GeoUtils;
 import com.klzw.common.redis.service.RedisCacheService;
@@ -26,7 +27,7 @@ public class WarningTriggerProcessor {
     private final RedisCacheService redisCacheService;
     private final Random random = new Random();
 
-    private static final String TRACK_HISTORY_PREFIX = "vehicle:track:history:";
+    private static final String TRACK_HISTORY_PREFIX = "trip:track:";
     private static final int TRACK_HISTORY_SIZE = 10;
     private static final int HEARTBEAT_TIMEOUT_SECONDS = 60;
     private static final double ABNORMAL_OFFSET_THRESHOLD = 0.05;
@@ -42,7 +43,7 @@ public class WarningTriggerProcessor {
     private static final int FATIGUE_DRIVING_EXPIRE_HOURS = 8;
 
     public WarningRecord processTrack(WarningTrackDTO track) {
-        List<WarningTrackDTO> history = getTrackHistory(track.getVehicleId());
+        List<WarningTrackDTO> history = getTrackHistory(track.getTripId());
         
         WarningRecord warning = null;
         
@@ -202,40 +203,30 @@ public class WarningTriggerProcessor {
             return null;
         }
         
-        boolean isInSafeZone = isInSafeZone(track);
-        if (!isInSafeZone) {
-            return null;
-        }
-        
         boolean isLongStay = checkLongStay(track, history);
         if (!isLongStay) {
             return null;
         }
         
-        String checkKey = "vehicle:theft:check:" + track.getVehicleId();
-        Boolean theftCheckStarted = redisCacheService.get(checkKey);
-        
-        if (theftCheckStarted == null) {
-            startTheftCheck(track.getVehicleId());
+        boolean isAbnormalLocation = isAbnormalLocation(track);
+        if (!isAbnormalLocation) {
             return null;
         }
         
-        boolean isWsTimeout = isWsResponseTimeout(track.getVehicleId());
-        boolean isPhoneUnanswered = checkPhoneUnanswered(track.getVehicleId());
+        WarningRecord warning = createWarningRecord(track);
+        warning.setWarningType(WarningTypeEnum.ABNORMAL_BEHAVIOR.getCode());
+        warning.setWarningLevel(WarningLevelEnum.HIGH.getCode());
+        warning.setWarningContent("疑似盗卸行为 - 长时间停留且位置异常");
+        log.error("高危预警：疑似盗卸行为，车辆ID={}, 司机ID={}", 
+            track.getVehicleId(), track.getDriverId());
         
-        if (isWsTimeout && isPhoneUnanswered) {
-            WarningRecord warning = createWarningRecord(track);
-            warning.setWarningType(WarningTypeEnum.ABNORMAL_BEHAVIOR.getCode());
-            warning.setWarningLevel(WarningLevelEnum.HIGH.getCode());
-            warning.setWarningContent("疑似盗卸行为 - 长时间停留、WS未响应、电话未接");
-            log.error("高危预警：疑似盗卸行为，车辆ID={}, 司机ID={}", 
-                track.getVehicleId(), track.getDriverId());
-            
-            clearTheftCheck(track.getVehicleId());
-            return warning;
-        }
-        
-        return null;
+        return warning;
+    }
+    
+    private boolean isAbnormalLocation(WarningTrackDTO track) {
+        String key = "vehicle:abnormal:location:" + track.getVehicleId();
+        Boolean isAbnormal = redisCacheService.get(key);
+        return isAbnormal != null && isAbnormal;
     }
 
     private boolean checkLongStay(WarningTrackDTO current, List<WarningTrackDTO> history) {
@@ -362,23 +353,35 @@ public class WarningTriggerProcessor {
         return "WARN" + System.currentTimeMillis() + random.nextInt(1000);
     }
 
-    private List<WarningTrackDTO> getTrackHistory(Long vehicleId) {
-        String key = TRACK_HISTORY_PREFIX + vehicleId;
-        List<WarningTrackDTO> history = redisCacheService.get(key);
-        return history != null ? history : new ArrayList<>();
+    private List<WarningTrackDTO> getTrackHistory(Long tripId) {
+        String key = TRACK_HISTORY_PREFIX + tripId;
+        List<TripTrackDTO> tripHistory = redisCacheService.lRange(key, 0L, -1L);
+        if (tripHistory == null || tripHistory.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        return tripHistory.stream()
+            .map(this::convertToWarningTrackDTO)
+            .collect(java.util.stream.Collectors.toList());
+    }
+    
+    private WarningTrackDTO convertToWarningTrackDTO(TripTrackDTO tripTrack) {
+        WarningTrackDTO dto = new WarningTrackDTO();
+        dto.setTripId(tripTrack.getTripId());
+        dto.setVehicleId(tripTrack.getVehicleId());
+        dto.setDriverId(tripTrack.getDriverId());
+        dto.setLongitude(tripTrack.getLongitude());
+        dto.setLatitude(tripTrack.getLatitude());
+        dto.setSpeed(tripTrack.getSpeed() != null ? java.math.BigDecimal.valueOf(tripTrack.getSpeed()) : null);
+        dto.setDirection(tripTrack.getDirection() != null ? String.valueOf(tripTrack.getDirection()) : null);
+        dto.setMileage(tripTrack.getAltitude());
+        dto.setIsReported(false);
+        return dto;
     }
 
     private void saveTrackToHistory(WarningTrackDTO track) {
-        String key = TRACK_HISTORY_PREFIX + track.getVehicleId();
-        List<WarningTrackDTO> history = getTrackHistory(track.getVehicleId());
-        
-        history.add(track);
-        if (history.size() > TRACK_HISTORY_SIZE) {
-            history.remove(0);
-        }
-        
-        redisCacheService.set(key, history, 1, TimeUnit.HOURS);
-        
+        // 预警模块只查询，不存储轨迹数据
+        // 轨迹数据由 trip 模块负责存储
         String heartbeatKey = "vehicle:heartbeat:" + track.getVehicleId();
         redisCacheService.set(heartbeatKey, System.currentTimeMillis(), HEARTBEAT_TIMEOUT_SECONDS + 10, TimeUnit.SECONDS);
     }

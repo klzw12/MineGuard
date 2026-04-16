@@ -1,9 +1,11 @@
 package com.klzw.service.user.controller;
 
 import com.klzw.common.core.result.Result;
+import com.klzw.service.user.service.DriverScoreService;
 import com.klzw.service.user.service.DriverService;
 import com.klzw.service.user.vo.DriverVehicleVO;
 import com.klzw.service.user.vo.DriverVO;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,6 +18,7 @@ import java.util.Map;
 public class DriverController {
 
     private final DriverService driverService;
+    private final DriverScoreService driverScoreService;
 
     @GetMapping("/{id}")
     public Result<DriverVO> getById(@PathVariable Long id) {
@@ -145,5 +148,15 @@ public class DriverController {
         String belongingTeam = body.get("belongingTeam");
         driverService.updateBelongingTeamByUserId(userId, belongingTeam);
         return Result.success();
+    }
+
+    @PostMapping("/score/update-from-trip")
+    @Operation(summary = "根据行程更新司机分数（内部调用）")
+    public Result<Integer> updateDriverScoreFromTrip(
+            @RequestParam Long driverId,
+            @RequestParam Integer pythonScore,
+            @RequestParam Double tripDistance) {
+        int tripScore = driverScoreService.updateScoreFromTrip(driverId, pythonScore, tripDistance);
+        return Result.success(tripScore);
     }
 }

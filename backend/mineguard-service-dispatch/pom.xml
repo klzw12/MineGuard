@@ -53,6 +53,11 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>com.klzw</groupId>
+            <artifactId>mineguard-common-redis</artifactId>
+            <version>${mineguard.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
         </dependency>

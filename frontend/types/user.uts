@@ -100,10 +100,10 @@ export type AssignRoleDTO = {
 }
 
 export type PageResult<T> = {
-  records: T[]
+  list: T[]
   total: number
   size: number
-  current: number
+  page: number
   pages: number
 }
 

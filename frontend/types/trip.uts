@@ -1,0 +1,75 @@
+export type TripVO = {
+  id: string
+  tripNo: string
+  taskId: string
+  vehicleId: string
+  vehicleNo: string
+  driverId: string
+  driverName: string
+  startLocation: string
+  startLongitude: number
+  startLatitude: number
+  endLocation: string
+  endLongitude: number
+  endLatitude: number
+  cargoWeight: number
+  status: number
+  statusName: string
+  actualStartTime: string
+  actualEndTime: string
+  plannedDuration: number
+  actualDuration: number
+  distance: number
+  fuelConsumption: number
+  createTime: string
+  updateTime: string
+}
+
+export type TripDTO = {
+  id?: string
+  taskId: string
+  vehicleId: string
+  driverId: string
+  startLocation: string
+  startLongitude: number
+  startLatitude: number
+  endLocation: string
+  endLongitude: number
+  endLatitude: number
+  cargoWeight: number
+  actualStartTime?: string
+  actualEndTime?: string
+}
+
+export type TripTrackVO = {
+  id: string
+  tripId: string
+  latitude: number
+  longitude: number
+  speed: number
+  direction: number
+  timestamp: string
+  createTime: string
+}
+
+export type TripTrackDTO = {
+  tripId: string
+  latitude: number
+  longitude: number
+  speed: number
+  direction: number
+  timestamp: string
+}
+
+export type TripStatisticsVO = {
+  tripId: string
+  totalDistance: number
+  totalDuration: number
+  averageSpeed: number
+  maxSpeed: number
+  fuelConsumption: number
+  startLocation: string
+  endLocation: string
+  startTime: string
+  endTime: string
+}

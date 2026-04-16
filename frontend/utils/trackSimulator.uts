@@ -1,6 +1,7 @@
 // 轨迹模拟器 - 宏观 + 微观结合的轨迹存储策略
 
-import { WS_URL } from './config.uts'
+import { WS_URL, SIMULATION_SPEED_MODE } from './config.uts'
+import config from '../config.js'
 
 export type Coordinate = {
     longitude: number
@@ -10,20 +11,21 @@ export type Coordinate = {
 
 export type MacroRoute = {
     routeId: string
-    tripId: number
-    vehicleId: number
-    driverId: number
+    tripId: string
+    vehicleId: string
+    driverId: string
     startLocation: Coordinate
     endLocation: Coordinate
     keyPoints: Coordinate[]
     totalDistance: number
     estimatedDuration: number
+    originalPath?: Coordinate[] // 原始轨迹点，用于微观轨迹生成
 }
 
 export type MicroTrackPoint = {
-    tripId: number
-    vehicleId: number
-    driverId: number
+    tripId: string
+    vehicleId: string
+    driverId: string
     routeId: string
     segmentIndex: number
     pointIndex: number
@@ -65,36 +67,47 @@ export type SimulationController = {
     triggerSpeedLimit: () => void
     triggerFailure: () => void
     triggerRouteDeviation: () => void
-    connectWebSocket: (tripId: number) => void
+    connectWebSocket: (tripId: string) => void
     disconnectWebSocket: () => void
 }
 
-const SIM_CONFIG = {
-    acceleration: 2,
-    deceleration: 3,
-    maxSpeed: 80,
-    minSpeed: 5,
-    cruiseSpeed: 60,
-    stayThreshold: 120,
-    speedLimit: 70,
-    gpsOffset: 5,
-    trackDensity: 10,
-    keyPointDensity: 500
+// 根据速度模式设置配置
+const getSimConfig = () => {
+    const isFastMode = SIMULATION_SPEED_MODE === 'fast'
+    
+    return {
+        acceleration: 1,
+        deceleration: 2,
+        maxSpeed: 80,
+        minSpeed: 5,
+        cruiseSpeed: 60,
+        stayThreshold: 120,
+        speedLimit: 70,
+        gpsOffset: 5,
+        trackDensity: isFastMode ? 50 : 3, // fast模式下轨迹点拆分变少
+        keyPointDensity: 200,
+        intervalMs: isFastMode ? 100 : 500, // fast模式下定时器间隔更短
+        sendInterval: isFastMode ? 5 : 10 // fast模式每5次发送一次(0.5秒)，normal模式每10次发送一次(5秒)
+    }
 }
 
-export function startTaskSimulation(
-    tripId: number,
-    vehicleId: number,
-    driverId: number,
+const SIM_CONFIG = getSimConfig()
+
+export async function startTaskSimulation(
+    tripId: string,
+    vehicleId: string,
+    driverId: string,
     startPoint: Coordinate,
     endPoint: Coordinate,
     onTrackUpdate: (track: MicroTrackPoint) => void,
     onRouteUpdate?: (route: MacroRoute) => void,
-    onComplete?: () => void
-): SimulationController {
+    onComplete?: () => void,
+    deadline?: number, // 截止时间戳
+    priority?: string // 优先级: 'time' | 'cost' | 'distance'
+): Promise<SimulationController> {
     let ws: WebSocket | null = null
     let intervalId: number | null = null
-    let state: SimulationState = {
+    let state: any = {
         isRunning: true,
         isPaused: false,
         currentSpeed: 0,
@@ -103,60 +116,172 @@ export function startTaskSimulation(
         totalSegments: 0,
         totalPoints: 0,
         traveledDistance: 0,
-        wsConnected: false
+        wsConnected: false,
+        currentEvent: null
     }
     
     let segmentIndex = 0
     let pointIndex = 0
+    let segments: TrackSegment[] = []
     
-    const macroRoute = generateMacroRoute(
-        tripId,
-        vehicleId,
-        driverId,
-        startPoint,
-        endPoint
-    )
-    
-    onRouteUpdate?.(macroRoute)
-    
-    const segments = generateMicroSegments(macroRoute)
-    
-    state.totalSegments = segments.length
-    state.totalPoints = segments.reduce((sum, seg) => sum + seg.points.length, 0)
-    
-    segmentIndex = 0
-    pointIndex = 0
-    
-    intervalId = setInterval(() => {
-        if (!state.isRunning || state.isPaused) return
+    try {
+        // 异步获取宏观路径
+        const macroRoute = await generateMacroRoute(
+            tripId,
+            vehicleId,
+            driverId,
+            startPoint,
+            endPoint,
+            deadline,
+            priority
+        )
         
-        if (segmentIndex < segments.length) {
-            const segment = segments[segmentIndex]
+        onRouteUpdate?.(macroRoute)
+        
+        // 生成微观轨迹段
+        segments = generateMicroSegments(macroRoute)
+        
+        state.totalSegments = segments.length
+        state.totalPoints = segments.reduce((sum, seg) => sum + seg.points.length, 0)
+        
+        segmentIndex = 0
+        pointIndex = 0
+        
+        let sendCount = 0
+        intervalId = setInterval(() => {
+            if (!state.isRunning || state.isPaused) return
             
-            if (segment && pointIndex < segment.points.length) {
-                const track = segment.points[pointIndex]
-                
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify(track))
+            // 处理事件
+            if (state.currentEvent) {
+                const event = state.currentEvent
+                switch (event.type) {
+                    case 'stay':
+                        // 盗卸停留，速度为0，位置不变
+                        if (event.duration > 0) {
+                            const currentTrack = segments[state.currentSegmentIndex]?.points[state.currentPointIndex] || segments[0]?.points[0]
+                            if (currentTrack) {
+                                const stayTrack = {
+                                    ...currentTrack,
+                                    speed: 0,
+                                    recordTime: Date.now()
+                                }
+                                
+                                // 根据速度模式发送轨迹数据
+                                if (sendCount % SIM_CONFIG.sendInterval === 0 && ws && ws.readyState === WebSocket.OPEN) {
+                                    ws.send(JSON.stringify(stayTrack))
+                                }
+                                
+                                onTrackUpdate(stayTrack)
+                                event.duration--
+                                sendCount++
+                            }
+                            return
+                        } else {
+                            state.currentEvent = null
+                        }
+                        break
+                    case 'speed_limit':
+                        // 超速行驶
+                        break
+                    case 'vehicle_failure':
+                        // 车辆故障
+                        break
+                    case 'route_deviation':
+                        // 路线偏离
+                        break
                 }
-                
-                onTrackUpdate(track)
-                
-                state.currentSegmentIndex = segmentIndex
-                state.currentPointIndex = pointIndex
-                state.currentSpeed = track.speed
-                state.traveledDistance = track.distance
-                
-                pointIndex++
-            } else {
-                segmentIndex++
-                pointIndex = 0
             }
-        } else {
-            stop()
-            onComplete?.()
+            
+            if (segmentIndex < segments.length) {
+                const segment = segments[segmentIndex]
+                
+                if (segment && pointIndex < segment.points.length) {
+                    const track = segment.points[pointIndex]
+                    
+                    // 根据速度模式发送轨迹数据
+                    if (sendCount % SIM_CONFIG.sendInterval === 0 && ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify(track))
+                    }
+                    
+                    onTrackUpdate(track)
+                    
+                    state.currentSegmentIndex = segmentIndex
+                    state.currentPointIndex = pointIndex
+                    state.currentSpeed = track.speed
+                    state.traveledDistance = track.distance
+                    
+                    pointIndex++
+                    sendCount++
+                } else {
+                    segmentIndex++
+                    pointIndex = 0
+                    sendCount = 0
+                }
+            } else {
+                stop()
+                onComplete?.()
+            }
+        }, SIM_CONFIG.intervalMs)
+    } catch (error) {
+        console.error('生成轨迹失败:', error)
+        // 发生错误时，使用简化的道路路线
+        const fallbackPath = generateRoadPath(startPoint, endPoint, calculateDistance(startPoint.latitude, startPoint.longitude, endPoint.latitude, endPoint.longitude))
+        const fallbackRoute: MacroRoute = {
+            routeId: `ROUTE_${Date.now()}`,
+            tripId,
+            vehicleId,
+            driverId,
+            startLocation: startPoint,
+            endLocation: endPoint,
+            keyPoints: [startPoint, endPoint],
+            totalDistance: calculateDistance(startPoint.latitude, startPoint.longitude, endPoint.latitude, endPoint.longitude),
+            estimatedDuration: 60
         }
-    }, 1000)
+        onRouteUpdate?.(fallbackRoute)
+        segments = generateMicroSegments(fallbackRoute)
+        state.totalSegments = segments.length
+        state.totalPoints = segments.reduce((sum, seg) => sum + seg.points.length, 0)
+        
+        // 重置轨迹索引
+        segmentIndex = 0
+        pointIndex = 0
+        
+        // 重新启动定时器
+        let sendCount = 0
+        intervalId = setInterval(() => {
+            if (!state.isRunning || state.isPaused) return
+            
+            if (segmentIndex < segments.length) {
+                const segment = segments[segmentIndex]
+                
+                if (segment && pointIndex < segment.points.length) {
+                    const track = segment.points[pointIndex]
+                    
+                    // 根据速度模式发送轨迹数据
+                    if (sendCount % SIM_CONFIG.sendInterval === 0 && ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify(track))
+                    }
+                    
+                    onTrackUpdate(track)
+                    
+                    state.currentSegmentIndex = segmentIndex
+                    state.currentPointIndex = pointIndex
+                    state.currentSpeed = track.speed
+                    state.traveledDistance = track.distance
+                    
+                    pointIndex++
+                    sendCount++
+                } else {
+                    segmentIndex++
+                    pointIndex = 0
+                    sendCount = 0
+                }
+            } else {
+                stop()
+                onComplete?.()
+            }
+        }, SIM_CONFIG.intervalMs)
+    }
     
     function stop() {
         state.isRunning = false
@@ -169,17 +294,14 @@ export function startTaskSimulation(
             ws = null
         }
         state.wsConnected = false
-        console.log('轨迹模拟已停止')
     }
     
     function pause() {
         state.isPaused = true
-        console.log('轨迹模拟已暂停')
     }
     
     function resume() {
         state.isPaused = false
-        console.log('轨迹模拟已恢复')
     }
     
     function getState(): SimulationState {
@@ -191,11 +313,17 @@ export function startTaskSimulation(
         if (currentSegment && pointIndex < currentSegment.points.length) {
             const stayStartIndex = pointIndex
             const stayDuration = duration
+            const currentPoint = currentSegment.points[stayStartIndex]
+            
+            // 保存当前位置
+            const currentLongitude = currentPoint.longitude
+            const currentLatitude = currentPoint.latitude
             
             for (let i = stayStartIndex; i < Math.min(stayStartIndex + stayDuration, currentSegment.points.length); i++) {
                 currentSegment.points[i].speed = 0
-                currentSegment.points[i].longitude += (Math.random() - 0.5) * 0.0001
-                currentSegment.points[i].latitude += (Math.random() - 0.5) * 0.0001
+                // 保持位置不变
+                currentSegment.points[i].longitude = currentLongitude
+                currentSegment.points[i].latitude = currentLatitude
             }
             
             console.log(`触发停留，持续${duration}秒`)
@@ -215,16 +343,7 @@ export function startTaskSimulation(
                 const currentPoint = currentSegment.points[i]
                 if (currentPoint) {
                     currentPoint.speed = prevSpeed + (targetSpeed - prevSpeed) * ratio
-                    
-                    if (i > speedStartIndex) {
-                        const prevTrack = currentSegment.points[i - 1]
-                        if (prevTrack) {
-                            const speedIncrement = currentPoint.speed - prevTrack.speed
-                            const offset = calculateOffsetBySpeed(currentPoint.speed, speedIncrement)
-                            currentPoint.longitude += offset.longitude
-                            currentPoint.latitude += offset.latitude
-                        }
-                    }
+                    // 移除额外的偏移，确保车辆在超速时仍然沿着道路行驶
                 }
             }
             
@@ -269,32 +388,44 @@ export function startTaskSimulation(
         }
     }
     
-    function connectWebSocket(tripIdParam: number) {
+    function connectWebSocket(tripIdParam: string) {
         if (ws !== null) {
-            console.log('WebSocket 已连接，无需重复连接')
             return
         }
         
-        const wsUrl = `${WS_URL}/trip?tripId=${tripIdParam}`
+        // 从localStorage获取token
+        const token = uni.getStorageSync('token')
+        
+        // 使用网关的WebSocket地址，并携带token
+        const wsUrl = `ws://localhost:8080/ws/trip?tripId=${tripIdParam}${token ? `&token=${token}` : ''}`
         ws = new WebSocket(wsUrl)
         
         ws.onopen = () => {
-            console.log('WebSocket 连接成功')
             state.wsConnected = true
         }
         
         ws.onmessage = (event) => {
-            console.log('收到消息:', event.data)
+            try {
+                const message = JSON.parse(event.data)
+                if (message.type === 'alert') {
+                    // 处理预警消息
+                    console.log('收到预警消息:', message)
+                    // 这里可以添加显示预警的逻辑
+                } else if (message.type === 'event') {
+                    // 处理事件消息
+                    console.log('收到事件消息:', message)
+                }
+            } catch (error) {
+                console.error('解析 WebSocket 消息失败:', error)
+            }
         }
         
         ws.onclose = () => {
-            console.log('WebSocket 连接已关闭')
             state.wsConnected = false
             ws = null
         }
         
         ws.onerror = (error) => {
-            console.error('WebSocket 连接错误:', error)
             state.wsConnected = false
         }
     }
@@ -304,7 +435,6 @@ export function startTaskSimulation(
             ws.close()
             ws = null
             state.wsConnected = false
-            console.log('WebSocket 已断开')
         }
     }
     
@@ -322,17 +452,23 @@ export function startTaskSimulation(
     }
 }
 
-function generateMacroRoute(
-    tripId: number,
-    vehicleId: number,
-    driverId: number,
+async function generateMacroRoute(
+    tripId: string,
+    vehicleId: string,
+    driverId: string,
     startPoint: Coordinate,
-    endPoint: Coordinate
-): MacroRoute {
-    const routeData = getRouteFromAMap(startPoint, endPoint)
+    endPoint: Coordinate,
+    deadline?: number, // 截止时间戳
+    priority?: string // 优先级: 'time' | 'cost' | 'distance'
+): Promise<MacroRoute> {
+    // 获取宏观路径数据
+    const routeData = await getRouteFromAMap(startPoint, endPoint, deadline, priority)
+    const originalPath = routeData?.path || []
     
-    const keyPoints = sampleKeyPoints(routeData?.path || [], SIM_CONFIG.keyPointDensity)
+    // 采样关键点，确保路径分段合理
+    const keyPoints = sampleKeyPoints(originalPath, SIM_CONFIG.keyPointDensity)
     
+    // 添加起点和终点
     keyPoints.unshift({
         ...startPoint,
         name: '起点'
@@ -342,8 +478,10 @@ function generateMacroRoute(
         name: '终点'
     })
     
-    const totalDistance = calculateTotalDistance(keyPoints)
+
     
+    // 计算总距离和预计持续时间
+    const totalDistance = calculateTotalDistance(keyPoints)
     const estimatedDuration = Math.floor(totalDistance / (SIM_CONFIG.cruiseSpeed / 3.6))
     
     return {
@@ -353,9 +491,10 @@ function generateMacroRoute(
         driverId,
         startLocation: startPoint,
         endLocation: endPoint,
-        keyPoints,
+        keyPoints, // 宏观路径的关键点
         totalDistance,
-        estimatedDuration
+        estimatedDuration,
+        originalPath // 保存原始轨迹点，用于微观轨迹生成
     }
 }
 
@@ -363,46 +502,138 @@ function generateMicroSegments(macroRoute: MacroRoute): TrackSegment[] {
     const segments: TrackSegment[] = []
     let totalDistance = 0
     
-    for (let i = 0; i < macroRoute.keyPoints.length - 1; i++) {
-        const startPoint = macroRoute.keyPoints[i]
-        const endPoint = macroRoute.keyPoints[i + 1]
+    // 如果有原始轨迹点，使用原始轨迹点生成微观轨迹
+    if (macroRoute.originalPath && macroRoute.originalPath.length > 1) {
+        console.log('使用原始轨迹点生成微观轨迹')
         
-        const segmentDistance = calculateDistance(
-            startPoint.latitude,
-            startPoint.longitude,
-            endPoint.latitude,
-            endPoint.longitude
-        )
+        // 计算总距离
+        totalDistance = calculateTotalDistance(macroRoute.originalPath)
         
-        const points = generateSegmentPoints(
-            macroRoute.tripId,
-            macroRoute.vehicleId,
-            macroRoute.driverId,
-            i,
-            startPoint,
-            endPoint,
-            segmentDistance,
-            totalDistance
-        )
+        // 生成微观轨迹点
+        const points: MicroTrackPoint[] = []
+        let currentDistance = 0
+        let pointIndex = 0
         
+        // 遍历原始轨迹点，在每两个点之间生成插值点
+        for (let i = 0; i < macroRoute.originalPath.length - 1; i++) {
+            const startPoint = macroRoute.originalPath[i]
+            const endPoint = macroRoute.originalPath[i + 1]
+            
+            // 计算两点之间的距离
+            const segmentDistance = calculateDistance(
+                startPoint.latitude,
+                startPoint.longitude,
+                endPoint.latitude,
+                endPoint.longitude
+            )
+            
+            // 计算需要生成的插值点数量
+            const numInterpolationPoints = Math.max(2, Math.ceil(segmentDistance / SIM_CONFIG.trackDensity))
+            
+            // 生成速度曲线
+            const speedProfile = calculateSpeedProfile(numInterpolationPoints, segmentDistance)
+            
+            // 生成插值点
+            for (let j = 0; j < numInterpolationPoints; j++) {
+                const ratio = j / (numInterpolationPoints - 1)
+                
+                // 计算插值点的经纬度
+                const longitude = startPoint.longitude + (endPoint.longitude - startPoint.longitude) * ratio
+                const latitude = startPoint.latitude + (endPoint.latitude - startPoint.latitude) * ratio
+                
+                // 计算方向
+                const direction = calculateDirection(startPoint, endPoint)
+                
+                // 计算速度
+                const speed = speedProfile[j] || SIM_CONFIG.cruiseSpeed
+                
+                // 计算距离
+                const distance = currentDistance + segmentDistance * ratio
+                
+                // 添加轨迹点
+                points.push({
+                    tripId: macroRoute.tripId,
+                    vehicleId: macroRoute.vehicleId,
+                    driverId: macroRoute.driverId,
+                    routeId: macroRoute.routeId,
+                    segmentIndex: 0,
+                    pointIndex: pointIndex++,
+                    longitude: longitude,
+                    latitude: latitude,
+                    speed: speed,
+                    direction: direction,
+                    altitude: 1000 + Math.random() * 100,
+                    recordTime: Date.now() + points.length * 1000,
+                    distance: Math.floor(distance)
+                })
+            }
+            
+            // 更新当前距离
+            currentDistance += segmentDistance
+        }
+        
+
+        
+        // 添加单个段到 segments 数组
         segments.push({
-            segmentIndex: i,
-            startPoint,
-            endPoint,
-            distance: segmentDistance,
+            segmentIndex: 0,
+            startPoint: macroRoute.originalPath[0],
+            endPoint: macroRoute.originalPath[macroRoute.originalPath.length - 1],
+            distance: totalDistance,
             points
         })
+    } else {
+        // 否则，使用原来的方法生成轨迹
+        console.log('使用默认方法生成微观轨迹')
         
-        totalDistance += segmentDistance
+        // 宏观到微观，分段获取轨迹点
+        for (let i = 0; i < macroRoute.keyPoints.length - 1; i++) {
+            const startPoint = macroRoute.keyPoints[i]
+            const endPoint = macroRoute.keyPoints[i + 1]
+            
+            // 计算当前段的距离
+            const segmentDistance = calculateDistance(
+                startPoint.latitude,
+                startPoint.longitude,
+                endPoint.latitude,
+                endPoint.longitude
+            )
+            
+            // 生成当前段的微观轨迹点
+            const points = generateSegmentPoints(
+                macroRoute.tripId,
+                macroRoute.vehicleId,
+                macroRoute.driverId,
+                i,
+                startPoint,
+                endPoint,
+                segmentDistance,
+                totalDistance
+            )
+            
+
+            
+            // 添加当前段到 segments 数组
+            segments.push({
+                segmentIndex: i,
+                startPoint,
+                endPoint,
+                distance: segmentDistance,
+                points
+            })
+            
+            // 更新总距离
+            totalDistance += segmentDistance
+        }
     }
     
     return segments
 }
 
 function generateSegmentPoints(
-    tripId: number,
-    vehicleId: number,
-    driverId: number,
+    tripId: string,
+    vehicleId: string,
+    driverId: string,
     segmentIndex: number,
     startPoint: Coordinate,
     endPoint: Coordinate,
@@ -411,25 +642,50 @@ function generateSegmentPoints(
 ): MicroTrackPoint[] {
     const points: MicroTrackPoint[] = []
     
+    // 计算当前段的轨迹点数量，确保密度合理
     const numPoints = Math.ceil(segmentDistance / SIM_CONFIG.trackDensity)
     
-    const direction = calculateDirection(startPoint, endPoint)
-    
+    // 计算速度曲线
     const speedProfile = calculateSpeedProfile(numPoints, segmentDistance)
+    
+    // 计算初始方向
+    let currentDirection = calculateDirection(startPoint, endPoint)
+    
+    // 生成当前段的微观轨迹点
+    let currentLatitude = startPoint.latitude
+    let currentLongitude = startPoint.longitude
     
     for (let i = 0; i <= numPoints; i++) {
         const ratio = i / numPoints
         
-        const longitude = startPoint.longitude + (endPoint.longitude - startPoint.longitude) * ratio
-        const latitude = startPoint.latitude + (endPoint.latitude - startPoint.latitude) * ratio
+        // 计算当前点的速度
+        const speed = speedProfile[i] || SIM_CONFIG.cruiseSpeed
         
-        const gpsOffset = {
-            longitude: (Math.random() - 0.5) * 0.0001,
-            latitude: (Math.random() - 0.5) * 0.0001
-        }
+        // 计算时间差（秒）
+        const deltaTime = 1
         
+        // 计算位移（米）
+        const deltaDistance = speed * deltaTime
+        
+        // 计算经纬度变化
+        // 纬度每变化1度约等于111320米
+        const deltaLatitude = deltaDistance / 111320
+        // 经度每变化1度约等于111320 * cos(纬度) 米
+        const deltaLongitude = deltaDistance / (111320 * Math.cos(currentLatitude * Math.PI / 180))
+        
+        // 计算新的经纬度
+        currentLatitude += deltaLatitude * Math.cos(currentDirection * Math.PI / 180)
+        currentLongitude += deltaLongitude * Math.sin(currentDirection * Math.PI / 180)
+        
+        // 方向角缓慢变化（每秒变化不超过5°）
+        currentDirection += (Math.random() - 0.5) * 10
+        // 确保方向角在0-360度之间
+        currentDirection = (currentDirection + 360) % 360
+        
+        // 计算当前点的距离
         const distance = startDistance + segmentDistance * ratio
         
+        // 添加轨迹点
         points.push({
             tripId,
             vehicleId,
@@ -437,15 +693,17 @@ function generateSegmentPoints(
             routeId: `ROUTE_${Date.now()}`,
             segmentIndex,
             pointIndex: i,
-            longitude: longitude + gpsOffset.longitude,
-            latitude: latitude + gpsOffset.latitude,
-            speed: speedProfile[i] || SIM_CONFIG.cruiseSpeed,
-            direction: direction,
+            longitude: currentLongitude,
+            latitude: currentLatitude,
+            speed: speed,
+            direction: currentDirection,
             altitude: 1000 + Math.random() * 100,
             recordTime: Date.now() + i * 1000,
             distance: Math.floor(distance)
         })
     }
+    
+
     
     return points
 }
@@ -453,13 +711,14 @@ function generateSegmentPoints(
 function calculateSpeedProfile(numPoints: number, totalDistance: number): number[] {
     const speeds: number[] = []
     
-    const accelPoints = Math.floor(numPoints * 0.1)
+    const accelPoints = Math.floor(numPoints * 0.05) // 减少加速度阶段的点数，使车辆更快达到巡航速度
     const decelPoints = Math.floor(numPoints * 0.1)
     
     for (let i = 0; i <= numPoints; i++) {
         if (i < accelPoints) {
             const ratio = i / accelPoints
-            speeds.push(SIM_CONFIG.cruiseSpeed * ratio)
+            // 增加加速度，使车辆更快达到巡航速度
+            speeds.push(Math.min(SIM_CONFIG.cruiseSpeed, SIM_CONFIG.cruiseSpeed * ratio * 2))
         } else if (i > numPoints - decelPoints) {
             const ratio = (numPoints - i) / decelPoints
             speeds.push(SIM_CONFIG.cruiseSpeed * ratio)
@@ -472,26 +731,119 @@ function calculateSpeedProfile(numPoints: number, totalDistance: number): number
     return speeds
 }
 
-function getRouteFromAMap(startPoint: Coordinate, endPoint: Coordinate): { path: Coordinate[] } {
-    const path = interpolatePath(startPoint, endPoint, 50)
-    return { path }
+
+function generateRoadPath(start: Coordinate, end: Coordinate, distance: number): Coordinate[] {
+    const points: Coordinate[] = []
+    
+    // 计算道路路线的点数，确保密度合理
+    const steps = Math.ceil(distance / 100) // 每100米一个点
+    
+    // 计算初始方向
+    let currentDirection = calculateDirection(start, end)
+    
+    // 生成道路路线点
+    let currentLatitude = start.latitude
+    let currentLongitude = start.longitude
+    
+    for (let i = 0; i <= steps; i++) {
+        const ratio = i / steps
+        
+        // 计算当前点的速度
+        const speed = SIM_CONFIG.cruiseSpeed
+        
+        // 计算时间差（秒）
+        const deltaTime = 1
+        
+        // 计算位移（米）
+        const deltaDistance = speed * deltaTime
+        
+        // 计算经纬度变化
+        // 纬度每变化1度约等于111320米
+        const deltaLatitude = deltaDistance / 111320
+        // 经度每变化1度约等于111320 * cos(纬度) 米
+        const deltaLongitude = deltaDistance / (111320 * Math.cos(currentLatitude * Math.PI / 180))
+        
+        // 计算新的经纬度
+        currentLatitude += deltaLatitude * Math.cos(currentDirection * Math.PI / 180)
+        currentLongitude += deltaLongitude * Math.sin(currentDirection * Math.PI / 180)
+        
+        // 方向角缓慢变化（每100米变化不超过5°）
+        currentDirection += (Math.random() - 0.5) * 5
+        // 确保方向角在0-360度之间
+        currentDirection = (currentDirection + 360) % 360
+        
+        // 添加轨迹点
+        points.push({
+            longitude: currentLongitude,
+            latitude: currentLatitude
+        })
+    }
+    
+    return points
 }
 
 function interpolatePath(start: Coordinate, end: Coordinate, steps: number): Coordinate[] {
     const points: Coordinate[] = []
+    
+    // 计算路径总长度
+    const totalDistance = calculateDistance(start.latitude, start.longitude, end.latitude, end.longitude)
+    
+    // 计算每个点的位置，添加随机偏移，使路径更加自然
     for (let i = 0; i <= steps; i++) {
         const ratio = i / steps
+        
+        // 基础位置（直线）
+        const baseLongitude = start.longitude + (end.longitude - start.longitude) * ratio
+        const baseLatitude = start.latitude + (end.latitude - start.latitude) * ratio
+        
+        // 添加随机偏移，使路径更加自然
+        // 偏移量与总距离成正比，最大偏移为总距离的0.2%
+        const maxOffset = totalDistance * 0.002
+        const offsetLongitude = (Math.random() - 0.5) * maxOffset / 111320 // 1度经度约等于111320米
+        const offsetLatitude = (Math.random() - 0.5) * maxOffset / 111320 // 1度纬度约等于111320米
+        
+        // 起点和终点不添加偏移
+        const finalLongitude = i === 0 || i === steps ? baseLongitude : baseLongitude + offsetLongitude
+        const finalLatitude = i === 0 || i === steps ? baseLatitude : baseLatitude + offsetLatitude
+        
         points.push({
-            longitude: start.longitude + (end.longitude - start.longitude) * ratio,
-            latitude: start.latitude + (end.latitude - start.latitude) * ratio
+            longitude: finalLongitude,
+            latitude: finalLatitude
         })
     }
     return points
 }
 
 function sampleKeyPoints(path: Coordinate[], densityMeters: number): Coordinate[] {
-    const step = Math.max(1, Math.floor(densityMeters / 10))
-    return path.filter((_, index) => index % step === 0)
+    if (path.length <= 2) {
+        return path
+    }
+    
+    const keyPoints: Coordinate[] = []
+    let lastPoint = path[0]
+    keyPoints.push(lastPoint)
+    
+    for (let i = 1; i < path.length; i++) {
+        const currentPoint = path[i]
+        const distance = calculateDistance(
+            lastPoint.latitude,
+            lastPoint.longitude,
+            currentPoint.latitude,
+            currentPoint.longitude
+        )
+        
+        if (distance >= densityMeters) {
+            keyPoints.push(currentPoint)
+            lastPoint = currentPoint
+        }
+    }
+    
+    // 确保最后一个点是路径的终点
+    if (keyPoints[keyPoints.length - 1] !== path[path.length - 1]) {
+        keyPoints.push(path[path.length - 1])
+    }
+    
+    return keyPoints
 }
 
 function calculateTotalDistance(points: Coordinate[]): number {
@@ -528,10 +880,130 @@ function calculateOffsetBySpeed(speed: number, speedIncrement: number): Coordina
     }
 }
 
+export async function getRouteFromAMap(
+    startPoint: Coordinate, 
+    endPoint: Coordinate, 
+    deadline?: number, // 截止时间戳
+    priority?: string // 优先级: 'time' | 'cost' | 'distance'
+): Promise<{ path: Coordinate[]; trafficSegments?: any[]; tolls?: number; tollDistance?: number }> {
+    // 计算两点之间的距离
+    const distance = calculateDistance(
+        startPoint.latitude,
+        startPoint.longitude,
+        endPoint.latitude,
+        endPoint.longitude
+    )
+    
+    // 如果距离小于200米，直接用直线连接
+    if (distance < 200) {
+        return { path: [startPoint, endPoint] }
+    }
+    
+    // 根据截止日期和优先级选择路线规划策略
+    let strategy = 4 // 默认：躲避拥堵
+    
+    if (deadline && priority) {
+        const now = Date.now()
+        const timeRemaining = deadline - now
+        
+        // 根据剩余时间和优先级选择策略
+        if (timeRemaining < 3600000) { // 剩余时间少于1小时
+            if (priority === 'time') {
+                strategy = 0 // 速度优先
+            } else if (priority === 'cost') {
+                strategy = 1 // 费用优先
+            } else {
+                strategy = 2 // 常规最快
+            }
+        } else if (timeRemaining < 7200000) { // 剩余时间少于2小时
+            if (priority === 'time') {
+                strategy = 2 // 常规最快
+            } else if (priority === 'cost') {
+                strategy = 7 // 费用优先，不走高速且避免所有收费路段
+            } else {
+                strategy = 4 // 躲避拥堵
+            }
+        } else { // 剩余时间充足
+            if (priority === 'time') {
+                strategy = 4 // 躲避拥堵
+            } else if (priority === 'cost') {
+                strategy = 7 // 费用优先，不走高速且避免所有收费路段
+            } else {
+                strategy = 5 // 多策略
+            }
+        }
+    }
+    
+    // 使用高德地图的路线规划 API 获取基于道路的路线
+    const apiKey = config.amap.webServiceKey // 从配置文件中获取 API key
+    const origin = `${startPoint.longitude},${startPoint.latitude}`
+    const destination = `${endPoint.longitude},${endPoint.latitude}`
+    const url = `https://restapi.amap.com/v3/direction/driving?origin=${origin}&destination=${destination}&key=${apiKey}&strategy=${strategy}&extensions=all`
+    
+    try {
+        // 实际调用高德地图 API
+        const response = await fetch(url)
+        const data = await response.json()
+        
+        // 解析 API 返回的数据
+        if (data.status === '1' && data.route && data.route.paths && data.route.paths.length > 0) {
+            const path = data.route.paths[0]
+            if (path.steps && path.steps.length > 0) {
+                const coordinates: Coordinate[] = []
+                const trafficSegments: any[] = []
+                
+                // 解析每一步的 polyline 和交通状况
+                path.steps.forEach((step: any) => {
+                    if (step.polyline) {
+                        const points = step.polyline.split(';')
+                        points.forEach((point: string) => {
+                            const [longitude, latitude] = point.split(',').map(Number)
+                            coordinates.push({ longitude, latitude })
+                        })
+                    }
+                    
+                    // 解析交通状况
+                    if (step.tmcs && step.tmcs.length > 0) {
+                        step.tmcs.forEach((tmc: any) => {
+                            if (tmc.polyline) {
+                                const points = tmc.polyline.split(';')
+                                const tmcPoints: Coordinate[] = []
+                                points.forEach((point: string) => {
+                                    const [longitude, latitude] = point.split(',').map(Number)
+                                    tmcPoints.push({ longitude, latitude })
+                                })
+                                trafficSegments.push({
+                                    points: tmcPoints,
+                                    status: tmc.status,
+                                    distance: tmc.distance
+                                })
+                            }
+                        })
+                    }
+                })
+                
+                // 解析过路费信息
+                const tolls = parseFloat(path.tolls) || 0
+                const tollDistance = parseFloat(path.toll_distance) || 0
+                
+                return { path: coordinates, trafficSegments, tolls, tollDistance }
+            }
+        }
+        
+        // 如果 API 调用失败，使用简化的道路路线生成
+        const fallbackPath = generateRoadPath(startPoint, endPoint, distance)
+        return { path: fallbackPath }
+    } catch (error) {
+        // 发生错误时，使用简化的道路路线生成
+        const fallbackPath = generateRoadPath(startPoint, endPoint, distance)
+        return { path: fallbackPath }
+    }
+}
+
 export function generateRandomEvent(
-    tripId: number,
-    vehicleId: number,
-    driverId: number,
+    tripId: string,
+    vehicleId: string,
+    driverId: string,
     longitude: number,
     latitude: number,
     eventType: string

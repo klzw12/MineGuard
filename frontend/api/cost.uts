@@ -55,11 +55,12 @@ export interface SalaryConfigVO {
   id: number
   roleCode: string
   roleName: string
+  userId: number
+  userName: string
   baseSalary: number
   dailySalary: number
   hourlySalary: number
   overtimeRate: number
-  performanceBonus: number
   status: number
   statusName: string
   effectiveDate: string
@@ -71,11 +72,12 @@ export interface SalaryConfigDTO {
   id?: number
   roleCode: string
   roleName: string
+  userId: number
+  userName: string
   baseSalary: number
   dailySalary: number
   hourlySalary: number
   overtimeRate: number
-  performanceBonus: number
   status: number
   effectiveDate: string
   expiryDate: string
@@ -90,6 +92,7 @@ export interface SalaryRecordVO {
   period: string
   baseSalary: number
   bonus: number
+  tripCommission: number
   deduction: number
   totalSalary: number
   status: number
@@ -106,6 +109,7 @@ export interface SalaryRecordDTO {
   period: string
   baseSalary: number
   bonus: number
+  tripCommission: number
   deduction: number
   totalSalary?: number
   status?: number
@@ -153,7 +157,7 @@ export interface CostBudgetDTO {
   remark?: string
 }
 
-export const costApi = {
+const costApi = {
   getCostDetailList: (params: any): Promise<CostDetailVO[] | null> => {
     return http.get<CostDetailVO[]>('/cost/detail/list', params)
   },
@@ -272,5 +276,19 @@ export const costApi = {
 
   calculateSalaries: (): Promise<any | null> => {
     return http.post<any>('/cost/calculate-salaries', {})
+  },
+
+  resetPerformance: (): Promise<any | null> => {
+    return http.post<any>('/cost/reset-performance', {})
+  },
+
+  checkSalaryConfig: (userId: number): Promise<boolean | null> => {
+    return http.get<boolean>('/cost/salary-config/check', { userId })
+  },
+
+  getSalaryConfigParams: (): Promise<any | null> => {
+    return http.get<any>('/cost/salary-config/params')
   }
 }
+
+export default costApi

@@ -5,34 +5,37 @@
 			<view class="page-header">
 				<text class="page-title">司机报表</text>
 				<view class="header-actions">
-					<view class="action-btn" @click="exportReport">
-						<text class="action-text">导出报表</text>
-					</view>
+				<view class="action-btn" @click="exportReport">
+					<text class="action-text">导出报表</text>
 				</view>
+				<view class="action-btn calculate" @click="calculateStatistics">
+					<text class="action-text">触发统计</text>
+				</view>
+			</view>
 			</view>
 			
 			<view class="stats-grid">
-				<view class="stat-card">
-					<text class="stat-value">168</text>
-					<text class="stat-label">司机总数</text>
-					<text class="stat-trend positive">↑ 8%</text>
-				</view>
-				<view class="stat-card">
-					<text class="stat-value">142</text>
-					<text class="stat-label">在岗</text>
-					<text class="stat-trend positive">↑ 5%</text>
-				</view>
-				<view class="stat-card">
-					<text class="stat-value">15</text>
-					<text class="stat-label">休息中</text>
-					<text class="stat-trend">-</text>
-				</view>
-				<view class="stat-card">
-					<text class="stat-value">11</text>
-					<text class="stat-label">请假</text>
-					<text class="stat-trend negative">↓ 2%</text>
-				</view>
+			<view class="stat-card">
+				<text class="stat-value">{{ driverStats.total || 0 }}</text>
+				<text class="stat-label">司机总数</text>
+				<text class="stat-trend positive">↑ 8%</text>
 			</view>
+			<view class="stat-card">
+				<text class="stat-value">{{ driverStats.onDuty || 0 }}</text>
+				<text class="stat-label">在岗</text>
+				<text class="stat-trend positive">↑ 5%</text>
+			</view>
+			<view class="stat-card">
+				<text class="stat-value">{{ driverStats.onRest || 0 }}</text>
+				<text class="stat-label">休息中</text>
+				<text class="stat-trend">-</text>
+			</view>
+			<view class="stat-card">
+				<text class="stat-value">{{ driverStats.onLeave || 0 }}</text>
+				<text class="stat-label">请假</text>
+				<text class="stat-trend negative">↓ 2%</text>
+			</view>
+		</view>
 			
 			<view class="content-card">
 				<view class="card-header">
@@ -88,27 +91,103 @@
 </template>
 
 <script setup lang="uts">
-	import { ref } from 'vue'
+	import { ref, onMounted } from 'vue'
 	import AdminSidebar from '@/components/AdminSidebar.uvue'
+	import { statisticsApi } from '@/api/statistics.uts'
+	import type { DriverStatisticsVO } from '@/api/statistics.uts'
 	
-	const driverRanking = ref([
-		{ name: '张师傅', tasks: 156, safetyScore: 98, score: 96.5 },
-		{ name: '李师傅', tasks: 148, safetyScore: 95, score: 94.2 },
-		{ name: '王师傅', tasks: 142, safetyScore: 92, score: 91.8 },
-		{ name: '赵师傅', tasks: 138, safetyScore: 90, score: 89.5 },
-		{ name: '孙师傅', tasks: 135, safetyScore: 88, score: 87.3 }
-	])
+	const loading = ref(false)
+	const driverRanking = ref([])
+	const attendanceStats = ref([])
+	const driverStats = ref({
+		total: 0,
+		onDuty: 0,
+		onRest: 0,
+		onLeave: 0
+	})
 	
-	const attendanceStats = ref([
-		{ name: '张师傅', days: 28, late: 0, early: 0, status: '在岗', statusClass: 'active' },
-		{ name: '李师傅', days: 26, late: 1, early: 0, status: '在岗', statusClass: 'active' },
-		{ name: '王师傅', days: 25, late: 2, early: 1, status: '休息', statusClass: 'rest' },
-		{ name: '赵师傅', days: 27, late: 0, early: 0, status: '在岗', statusClass: 'active' },
-		{ name: '孙师傅', days: 22, late: 3, early: 2, status: '请假', statusClass: 'leave' }
-	])
+	async function loadDriverStatistics() {
+		loading.value = true
+		try {
+			// 获取司机统计数据
+			const result = await statisticsApi.getDriverStatistics({
+				startDate: new Date().toISOString().split('T')[0],
+				endDate: new Date().toISOString().split('T')[0]
+			})
+			
+			if (result) {
+				// 处理司机排名数据
+				driverRanking.value = result
+					.filter((driver: DriverStatisticsVO) => driver.performanceScore > 0)
+					.sort((a: DriverStatisticsVO, b: DriverStatisticsVO) => b.performanceScore - a.performanceScore)
+					.slice(0, 5)
+					.map((driver: DriverStatisticsVO) => ({
+						name: driver.userName,
+						tasks: driver.tripCount || 0,
+						safetyScore: 100 - (driver.warningCount || 0) * 2,
+						score: driver.performanceScore || 0
+					}))
+				
+				// 处理出勤统计数据
+				attendanceStats.value = result.map((driver: DriverStatisticsVO) => {
+					let status = '在岗'
+					let statusClass = 'active'
+					
+					// 简单模拟状态判断
+					if (driver.attendanceDays < 10) {
+						status = '请假'
+						statusClass = 'leave'
+					} else if (driver.attendanceDays < 20) {
+						status = '休息'
+						statusClass = 'rest'
+					}
+					
+					return {
+						name: driver.userName,
+						days: driver.attendanceDays || 0,
+						late: driver.lateCount || 0,
+						early: driver.earlyLeaveCount || 0,
+						status,
+						statusClass
+					}
+				})
+				
+				// 计算司机状态统计
+				driverStats.value = {
+					total: result.length,
+					onDuty: attendanceStats.value.filter(item => item.statusClass === 'active').length,
+					onRest: attendanceStats.value.filter(item => item.statusClass === 'rest').length,
+					onLeave: attendanceStats.value.filter(item => item.statusClass === 'leave').length
+				}
+			}
+		} catch (e: any) {
+			uni.showToast({ title: e.message || '加载失败', icon: 'none' })
+		} finally {
+			loading.value = false
+		}
+	}
 	
 	function exportReport() {
 		uni.showToast({ title: '导出功能开发中', icon: 'none' })
+	}
+	
+	onMounted(() => {
+		loadDriverStatistics()
+	})
+
+	async function calculateStatistics() {
+		uni.showToast({ title: '正在触发统计...', icon: 'loading' })
+		
+		try {
+			await statisticsApi.calculateAllStatistics()
+			uni.hideToast()
+			uni.showToast({ title: '统计触发成功', icon: 'success' })
+			// 统计完成后刷新数据
+			loadDriverStatistics()
+		} catch (e) {
+			uni.hideToast()
+			uni.showToast({ title: '统计触发失败', icon: 'none' })
+		}
 	}
 </script>
 
@@ -246,23 +325,28 @@
 	}
 	
 	.status-tag {
-		padding: 6rpx 16rpx;
-		border-radius: 8rpx;
-		font-size: 22rpx;
-		
-		&.active {
-			background-color: rgba(52, 199, 89, 0.2);
-			color: #34C759;
+				padding: 6rpx 16rpx;
+				border-radius: 8rpx;
+				font-size: 22rpx;
+				
+				&.active {
+					background-color: rgba(52, 199, 89, 0.2);
+					color: #34C759;
+				}
+				
+				&.rest {
+					background-color: rgba(255, 149, 0, 0.2);
+					color: #FF9500;
+				}
+				
+				&.leave {
+					background-color: rgba(255, 59, 48, 0.2);
+					color: #FF3B30;
+				}
+			}
+
+		.action-btn.calculate {
+			background: linear-gradient(135deg, #FF9500 0%, #FF6600 100%);
+			box-shadow: 0 4rpx 20rpx rgba(255, 149, 0, 0.3);
 		}
-		
-		&.rest {
-			background-color: rgba(255, 149, 0, 0.2);
-			color: #FF9500;
-		}
-		
-		&.leave {
-			background-color: rgba(255, 59, 48, 0.2);
-			color: #FF3B30;
-		}
-	}
 </style>

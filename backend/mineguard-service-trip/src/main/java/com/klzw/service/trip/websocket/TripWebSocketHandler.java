@@ -8,7 +8,7 @@ import com.klzw.common.auth.util.JwtUtils;
 import com.klzw.common.websocket.properties.WebSocketProperties;
 import com.klzw.common.websocket.service.MessageHistoryService;
 import com.klzw.common.websocket.service.SmartMessagePushService;
-import com.klzw.service.trip.dto.TripTrackDTO;
+import com.klzw.common.core.domain.dto.TripTrackDTO;
 import com.klzw.service.trip.enums.TripStatusEnum;
 import com.klzw.service.trip.service.TripTrackService;
 import com.klzw.service.trip.service.TripService;
@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.CloseStatus;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -69,9 +70,7 @@ public class TripWebSocketHandler extends WebSocketHandler {
                 return;
             }
             
-            // 调用父类方法完成认证
-            super.afterConnectionEstablished(session);
-            
+            // 认证已经在网关完成，这里直接建立连接
             log.info("行程WebSocket连接建立成功: tripId={}, sessionId={}", tripId, session.getId());
         } catch (Exception e) {
             log.error("行程WebSocket连接失败: tripId={}", tripId, e);
@@ -146,16 +145,34 @@ public class TripWebSocketHandler extends WebSocketHandler {
                 // 如果没有时间戳，使用当前时间
                 trackDTO.setRecordTime(System.currentTimeMillis());
             }
-            
-            // 从行程中获取 vehicleId
-            TripVO trip = tripService.getById(tripId);
-            if (trip != null && trip.getVehicleId() != null) {
+            // 从 JSON 中提取司机ID
+            if (jsonNode.has("driverId")) {
                 try {
-                    // 尝试将 String 类型的 vehicleId 转换为 Long
-                    trackDTO.setVehicleId(Long.parseLong(trip.getVehicleId()));
+                    trackDTO.setDriverId(jsonNode.get("driverId").asLong());
                 } catch (NumberFormatException e) {
-                    log.warn("车辆ID格式错误：{}", trip.getVehicleId());
-                    // 不设置 vehicleId，避免影响轨迹点存储
+                    log.warn("司机ID格式错误：{}", jsonNode.get("driverId").asText());
+                }
+            }
+            
+            // 从行程中获取 vehicleId 和 driverId
+            TripVO trip = tripService.getById(tripId);
+            if (trip != null) {
+                if (trip.getVehicleId() != null) {
+                    try {
+                        // 尝试将 String 类型的 vehicleId 转换为 Long
+                        trackDTO.setVehicleId(Long.parseLong(trip.getVehicleId()));
+                    } catch (NumberFormatException e) {
+                        log.warn("车辆ID格式错误：{}", trip.getVehicleId());
+                        // 不设置 vehicleId，避免影响轨迹点存储
+                    }
+                }
+                if (trip.getDriverId() != null && trackDTO.getDriverId() == null) {
+                    try {
+                        // 尝试将 String 类型的 driverId 转换为 Long
+                        trackDTO.setDriverId(Long.parseLong(trip.getDriverId()));
+                    } catch (NumberFormatException e) {
+                        log.warn("司机ID格式错误：{}", trip.getDriverId());
+                    }
                 }
             }
             

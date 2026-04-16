@@ -5,6 +5,7 @@
 			<view class="header-actions">
 				<button class="export-btn" @click="exportData">导出报表</button>
 				<button class="refresh-btn" @click="refreshData">刷新数据</button>
+				<button class="calculate-btn" @click="calculateStatistics">触发统计</button>
 			</view>
 		</view>
 		
@@ -566,6 +567,23 @@
 		}, 1500)
 	}
 
+	const calculateStatistics = async () => {
+		uni.showToast({ title: '正在触发统计...', icon: 'loading' })
+		
+		const today = new Date()
+		const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+		
+		try {
+			await statisticsApi.calculateAllStatistics(dateStr)
+			uni.hideToast()
+			uni.showToast({ title: '统计触发成功', icon: 'success' })
+			fetchData()
+		} catch (e) {
+			uni.hideToast()
+			uni.showToast({ title: '统计触发失败', icon: 'none' })
+		}
+	}
+
 	const getScoreClass = (score: number): string => {
 		if (score >= 90) return 'excellent'
 		if (score >= 80) return 'good'
@@ -604,17 +622,21 @@
 			flex-direction: row;
 			gap: 15rpx;
 
-			.export-btn, .refresh-btn {
-				padding: 15rpx 30rpx;
-				background-color: #2a3347;
-				color: #fff;
-				font-size: 24rpx;
-				border-radius: 12rpx;
-			}
+			.export-btn, .refresh-btn, .calculate-btn {
+					padding: 15rpx 30rpx;
+					background-color: #2a3347;
+					color: #fff;
+					font-size: 24rpx;
+					border-radius: 12rpx;
+				}
 
-			.export-btn {
-				background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
-			}
+				.export-btn {
+					background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+				}
+
+				.calculate-btn {
+					background: linear-gradient(135deg, #FF9500 0%, #FF6600 100%);
+				}
 		}
 	}
 

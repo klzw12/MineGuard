@@ -29,6 +29,8 @@ public class SalaryRecord {
 
     private BigDecimal bonus;
 
+    private BigDecimal tripCommission;
+
     private BigDecimal deduction;
 
     private BigDecimal totalSalary;

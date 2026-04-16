@@ -15,6 +15,10 @@ public class SalaryConfigVO {
 
     private String roleName;
 
+    private Long userId;
+
+    private String userName;
+
     private BigDecimal baseSalary;
 
     private BigDecimal dailySalary;
@@ -22,8 +26,6 @@ public class SalaryConfigVO {
     private BigDecimal hourlySalary;
 
     private BigDecimal overtimeRate;
-
-    private BigDecimal performanceBonus;
 
     private Integer status;
 

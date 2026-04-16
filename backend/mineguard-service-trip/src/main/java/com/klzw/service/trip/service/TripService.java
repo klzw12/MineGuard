@@ -6,6 +6,7 @@ import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.domain.dto.TripResponse;
 import com.klzw.common.core.domain.dto.TripCreateRequest;
 import com.klzw.service.trip.dto.TripDTO;
+import com.klzw.service.trip.dto.TripEndDTO;
 import com.klzw.service.trip.dto.TripStatisticsResponseDTO;
 import com.klzw.service.trip.entity.Trip;
 import com.klzw.service.trip.vo.TripStatisticsVO;
@@ -15,7 +16,7 @@ import java.util.List;
 
 public interface TripService extends IService<Trip> {
 
-    PageResult<TripVO> page(PageRequest pageRequest);
+    PageResult<TripVO> page(PageRequest pageRequest, Integer status);
 
     TripVO getById(Long id);
 
@@ -29,7 +30,7 @@ public interface TripService extends IService<Trip> {
 
     void startTrip(Long id);
 
-    void endTrip(Long id, Double endLongitude, Double endLatitude);
+    void endTrip(Long id, TripEndDTO dto);
 
     List<TripVO> getByVehicleId(Long vehicleId);
 
@@ -56,4 +57,29 @@ public interface TripService extends IService<Trip> {
      * 获取行程轨迹
      */
     List<com.klzw.service.trip.vo.TripTrackVO> getTracksByTripId(Long tripId);
+    
+    /**
+     * 获取用户的进行中行程
+     */
+    TripVO getActiveTrip();
+    
+    /**
+     * 获取行程完整详情（包含AI分析、成本明细）
+     */
+    TripVO getTripDetail(Long id);
+    
+    /**
+     * 获取行程成本明细列表
+     */
+    List<java.util.Map<String, Object>> getTripCostDetails(Long tripId);
+    
+    /**
+     * 取消行程
+     */
+    void cancelTrip(Long id, String reason);
+    
+    /**
+     * 根据调度任务ID取消行程
+     */
+    void cancelTripByDispatchTaskId(Long dispatchTaskId, String reason);
 }

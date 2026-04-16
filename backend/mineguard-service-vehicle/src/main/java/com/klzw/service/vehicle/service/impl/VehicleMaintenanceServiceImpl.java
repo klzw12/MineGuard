@@ -1,6 +1,7 @@
 package com.klzw.service.vehicle.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.klzw.common.core.client.CostClient;
 import com.klzw.service.vehicle.dto.VehicleMaintenanceDTO;
 import com.klzw.service.vehicle.entity.VehicleMaintenance;
 import com.klzw.service.vehicle.mapper.VehicleMaintenanceMapper;
@@ -9,7 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -17,6 +20,9 @@ public class VehicleMaintenanceServiceImpl extends ServiceImpl<VehicleMaintenanc
     
     @Resource
     private VehicleMaintenanceMapper vehicleMaintenanceMapper;
+
+    @Resource
+    private CostClient costClient;
     
     @Override
     public VehicleMaintenance addMaintenanceRecord(VehicleMaintenanceDTO maintenanceDTO) {
@@ -31,6 +37,22 @@ public class VehicleMaintenanceServiceImpl extends ServiceImpl<VehicleMaintenanc
         maintenance.setMaintenanceContent(maintenanceDTO.getMaintenanceContent());
         maintenance.setMaintenanceCost(maintenanceDTO.getMaintenanceCost());
         save(maintenance);
+
+        // 调用CostClient添加成本明细
+        try {
+            Map<String, Object> costDetailRequest = new java.util.HashMap<>();
+            costDetailRequest.put("costType", 2); // 维修成本
+            costDetailRequest.put("costName", "车辆保养费用");
+            costDetailRequest.put("amount", maintenanceDTO.getMaintenanceCost());
+            costDetailRequest.put("vehicleId", maintenanceDTO.getVehicleId());
+            costDetailRequest.put("costDate", maintenanceDTO.getMaintenanceDate() != null ? maintenanceDTO.getMaintenanceDate().toString() : null);
+            costDetailRequest.put("description", "车辆保养: " + maintenanceDTO.getMaintenanceContent());
+            costClient.addCostDetail(costDetailRequest);
+            log.info("添加车辆保养成本明细成功: vehicleId={}, amount={}", maintenanceDTO.getVehicleId(), maintenanceDTO.getMaintenanceCost());
+        } catch (Exception e) {
+            log.error("添加车辆保养成本明细失败", e);
+        }
+
         return maintenance;
     }
     

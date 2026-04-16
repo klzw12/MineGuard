@@ -7,7 +7,9 @@ import com.klzw.service.ai.adapter.AiAdapter;
 import com.klzw.service.ai.service.AiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -26,13 +28,98 @@ public class AiServiceImpl implements AiService {
     @Autowired
     private PythonClient pythonClient;
 
+    @Qualifier("chatClientWithTools")
+    @Autowired(required = false)
+    private ChatClient chatClientWithTools;
+
     @Value("${ai.default-provider:deepseek}")
     private String aiProvider;
 
     @Value("${ai.providers}")
     private List<String> providers;
 
+    @Override
+    public Map<String, Object> chat(String message, List<Map<String, String>> history) {
+        try {
+            log.info("AI对话: {}", message);
+            
+            if (chatClientWithTools != null) {
+                return chatWithTools(message, history);
+            }
+            
+            AiAdapter adapter = getAiAdapter();
+            String prompt = buildChatPrompt(message, history);
+            Map<String, Object> parameters = new HashMap<>();
+            Map<String, Object> response = adapter.sendRequest(prompt, parameters);
+            return adapter.parseResponse(response);
+        } catch (Exception e) {
+            log.error("AI对话异常", e);
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("success", false);
+            errorResult.put("error", e.getMessage());
+            errorResult.put("response", "AI服务暂时不可用，请稍后再试。");
+            return errorResult;
+        }
+    }
 
+    private Map<String, Object> chatWithTools(String message, List<Map<String, String>> history) {
+        try {
+            StringBuilder systemPrompt = new StringBuilder();
+            systemPrompt.append("你是MineGuard矿山管理系统的AI助手。\n");
+            systemPrompt.append("当用户询问车辆运行情况、成本分析、调度优化、预警统计等问题时，你应该调用提供的工具来获取真实数据。\n");
+            systemPrompt.append("可用的工具：\n");
+            systemPrompt.append("- get_vehicle_status: 获取今日车辆运行情况\n");
+            systemPrompt.append("- get_cost_analysis: 获取成本分析报告\n");
+            systemPrompt.append("- get_dispatch_optimization: 获取调度优化方案\n");
+            systemPrompt.append("- get_warning_statistics: 获取预警统计信息\n");
+            systemPrompt.append("- get_trip_statistics: 获取行程统计数据\n");
+            systemPrompt.append("- search_vehicles: 搜索车辆信息\n");
+            systemPrompt.append("请根据用户问题选择合适的工具调用，回答要简洁明了，用中文回答。");
+            
+            ChatClient.ChatRequestRequestSpec chatRequest = chatClientWithTools.prompt()
+                    .system(systemPrompt.toString())
+                    .user(message);
+            
+            String response = chatRequest.call().content();
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("content", response);
+            result.put("status", "success");
+            result.put("tool", true);
+            return result;
+        } catch (Exception e) {
+            log.error("使用工具调用失败，回退到普通模式", e);
+            AiAdapter adapter = getAiAdapter();
+            String prompt = buildChatPrompt(message, history);
+            Map<String, Object> parameters = new HashMap<>();
+            Map<String, Object> response = adapter.sendRequest(prompt, parameters);
+            return adapter.parseResponse(response);
+        }
+    }
+
+    private String buildChatPrompt(String message, List<Map<String, String>> history) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("你是MineGuard矿山管理系统的AI助手，专门帮助用户解答关于矿山车辆管理、调度、成本分析等问题。\n\n");
+        
+        if (history != null && !history.isEmpty()) {
+            prompt.append("对话历史：\n");
+            for (Map<String, String> h : history) {
+                String role = h.get("role");
+                String content = h.get("content");
+                if ("user".equals(role)) {
+                    prompt.append("用户: ").append(content).append("\n");
+                } else {
+                    prompt.append("助手: ").append(content).append("\n");
+                }
+            }
+            prompt.append("\n");
+        }
+        
+        prompt.append("用户: ").append(message).append("\n\n");
+        prompt.append("请用中文回答，回答要简洁明了。");
+        
+        return prompt.toString();
+    }
 
     @Override
     public Map<String, Object> analyzeStatisticsData(Map<String, Object> statisticsData) {

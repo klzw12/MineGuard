@@ -223,6 +223,13 @@ public class VehicleController {
         }).collect(java.util.stream.Collectors.toList());
         return Result.success(result);
     }
+
+    @Operation(summary = "检查车辆是否存在")
+    @GetMapping("/{id}/exists")
+    public Result<Boolean> existsById(@PathVariable Long id) {
+        boolean result = vehicleService.existsById(id);
+        return Result.success(result);
+    }
     
     @Operation(summary = "报废车辆", description = "将车辆标记为报废状态（软删除）")
     @PutMapping("/{id}/scrap")

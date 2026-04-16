@@ -11,6 +11,9 @@ import java.util.Map;
 @HttpExchange
 public interface AiClient {
 
+    @PostExchange("/ai/chat")
+    Result<Map<String, Object>> chat(@RequestBody Map<String, Object> request);
+
     @PostExchange("/ai/analyze/statistics")
     Result<Map<String, Object>> analyzeStatisticsData(@RequestBody Map<String, Object> statisticsData);
 

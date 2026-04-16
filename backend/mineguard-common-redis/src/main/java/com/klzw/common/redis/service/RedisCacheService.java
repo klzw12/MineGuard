@@ -26,7 +26,7 @@ public class RedisCacheService {
         try {
             redisTemplate.opsForValue().set(key, value, expire, timeUnit);
         } catch (Exception e) {
-            log.error("Redis缓存设置失败: key={}", key);
+            log.error("Redis缓存设置失败: key={}, value={}, error={}", key, value, e.getMessage(), e);
             throw new RedisException(RedisResultCode.CACHE_SET_FAILED, "缓存设置失败: " + key, e);
         }
     }
@@ -278,6 +278,21 @@ public class RedisCacheService {
         } catch (Exception e) {
             log.error("Redis列表范围获取失败: key={}", key);
             throw new RedisException(RedisResultCode.CACHE_OPERATION_FAILED, "列表范围获取失败: " + key, e);
+        }
+    }
+
+    /**
+     * 根据模式获取所有匹配的键
+     *
+     * @param pattern 键模式，如 "vehicle:heartbeat:*"
+     * @return 匹配的键集合
+     */
+    public Set<String> keys(String pattern) {
+        try {
+            return redisTemplate.keys(pattern);
+        } catch (Exception e) {
+            log.error("Redis获取键失败: pattern={}", pattern);
+            throw new RedisException(RedisResultCode.CACHE_OPERATION_FAILED, "获取键失败: " + pattern, e);
         }
     }
 }

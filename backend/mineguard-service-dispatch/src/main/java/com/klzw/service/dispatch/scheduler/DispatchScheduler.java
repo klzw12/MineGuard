@@ -16,13 +16,13 @@ public class DispatchScheduler {
 
     private final DispatchService dispatchService;
 
-    @Scheduled(cron = "0 0 * * * ?")
+    @Scheduled(cron = "0 */5 * * * ?")
     public void checkAndExecuteDispatchTasks() {
         try {
             log.info("定时检查并执行调度任务");
             
             // 获取待执行的调度任务
-            List<TransportTask> pendingTasks = dispatchService.getDispatchTaskList(0, null, null);
+            List<TransportTask> pendingTasks = dispatchService.getDispatchTaskList(1, null, null);
             
             if (pendingTasks != null && !pendingTasks.isEmpty()) {
                 log.info("发现待执行任务数量：{}", pendingTasks.size());

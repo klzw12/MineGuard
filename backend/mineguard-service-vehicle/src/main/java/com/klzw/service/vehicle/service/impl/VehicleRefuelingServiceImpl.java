@@ -1,6 +1,7 @@
 package com.klzw.service.vehicle.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.klzw.common.core.client.CostClient;
 import com.klzw.service.vehicle.dto.VehicleRefuelingDTO;
 import com.klzw.service.vehicle.entity.VehicleRefueling;
 import com.klzw.service.vehicle.entity.VehicleStatus;
@@ -12,8 +13,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -21,6 +24,9 @@ import java.util.List;
 public class VehicleRefuelingServiceImpl extends ServiceImpl<VehicleRefuelingMapper, VehicleRefueling> implements VehicleRefuelingService {
     
     private final VehicleStatusService vehicleStatusService;
+    
+    @Resource
+    private CostClient costClient;
     
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -41,6 +47,22 @@ public class VehicleRefuelingServiceImpl extends ServiceImpl<VehicleRefuelingMap
         save(refueling);
         
         updateVehicleFuelLevel(refuelingDTO.getVehicleId(), refuelingDTO.getRefuelingAmount());
+
+        // 调用CostClient添加成本明细
+        try {
+            Map<String, Object> costDetailRequest = new java.util.HashMap<>();
+            costDetailRequest.put("costType", 1); // 燃油成本
+            costDetailRequest.put("costName", "车辆加油费用");
+            costDetailRequest.put("amount", refuelingDTO.getTotalCost());
+            costDetailRequest.put("vehicleId", refuelingDTO.getVehicleId());
+            costDetailRequest.put("userId", refuelingDTO.getDriverId());
+            costDetailRequest.put("costDate", refuelingDTO.getRefuelingDate() != null ? refuelingDTO.getRefuelingDate().toString() : null);
+            costDetailRequest.put("description", "车辆加油: " + refuelingDTO.getRefuelingStation());
+            costClient.addCostDetail(costDetailRequest);
+            log.info("添加车辆加油成本明细成功: vehicleId={}, amount={}", refuelingDTO.getVehicleId(), refuelingDTO.getTotalCost());
+        } catch (Exception e) {
+            log.error("添加车辆加油成本明细失败", e);
+        }
         
         return refueling;
     }

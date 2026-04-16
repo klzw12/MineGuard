@@ -440,6 +440,37 @@ public class WarningRecordServiceImpl implements WarningRecordService {
     private String generateWarningNo() {
         return "WARN" + System.currentTimeMillis() + new Random().nextInt(1000);
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void handleWarningsByVehicleId(Long vehicleId, Integer status, String handleResult) {
+        if (vehicleId == null) {
+            log.warn("车辆ID为空，无法处理预警记录");
+            return;
+        }
+        
+        LambdaQueryWrapper<WarningRecord> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(WarningRecord::getVehicleId, vehicleId)
+               .eq(WarningRecord::getStatus, WarningRecordStatusEnum.PENDING.getCode());
+        
+        List<WarningRecord> pendingRecords = warningRecordMapper.selectList(wrapper);
+        
+        if (pendingRecords.isEmpty()) {
+            log.info("车辆{}没有待处理的预警记录", vehicleId);
+            return;
+        }
+        
+        int updateCount = 0;
+        for (WarningRecord record : pendingRecords) {
+            record.setStatus(status != null ? status : WarningRecordStatusEnum.RESOLVED.getCode());
+            record.setHandleResult(handleResult != null ? handleResult : "维修完成，自动处理");
+            record.setHandleTime(LocalDateTime.now());
+            warningRecordMapper.updateById(record);
+            updateCount++;
+        }
+        
+        log.info("已处理车辆{}的{}条待处理预警记录", vehicleId, updateCount);
+    }
     
     /**
      * 根据预警级别处理行程状态

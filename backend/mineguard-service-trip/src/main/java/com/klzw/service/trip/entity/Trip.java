@@ -53,15 +53,21 @@ public class Trip extends BaseEntity {
 
     private Integer actualDuration;
 
-    private Double fuelConsumption;
-
     private Double averageSpeed;
 
     private BigDecimal cargoWeight;
-    
-    // private BigDecimal estimatedCommissionAmount;  // 预计提成金额（调度时设定）
-    
+
+    private BigDecimal estimatedCommissionAmount;
+
     private String cancellationReason;
 
     private String remark;
+    
+    private String aiAnalysis;
+    
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String priority; // 优先级: time, cost, distance
+    
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private LocalDateTime deadline; // 截止日期
 }

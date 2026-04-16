@@ -3,6 +3,7 @@ package com.klzw.service.trip;
 import com.klzw.common.core.config.DotenvInitializer;
 import com.klzw.common.core.result.Result;
 import com.klzw.service.trip.dto.TripDTO;
+import com.klzw.service.trip.dto.TripEndDTO;
 import com.klzw.service.trip.entity.Trip;
 import com.klzw.service.trip.enums.TripStatusEnum;
 import com.klzw.service.trip.service.TripService;
@@ -146,7 +147,10 @@ public class TripIntegrationTest {
         assertNotNull(startedTrip.getActualStartTime());
 
         // 结束行程
-        tripService.endTrip(tripId, 116.1, 39.1);
+        TripEndDTO endDto = new TripEndDTO();
+        endDto.setEndLongitude(116.1);
+        endDto.setEndLatitude(39.1);
+        tripService.endTrip(tripId, endDto);
         TripVO endedTrip = tripService.getById(tripId);
         assertEquals(TripStatusEnum.COMPLETED.getCode(), endedTrip.getStatus());
         assertNotNull(endedTrip.getActualEndTime());
@@ -301,7 +305,10 @@ public class TripIntegrationTest {
         tripService.startTrip(tripId);
 
         // 结束行程
-        tripService.endTrip(tripId, 116.1, 39.1);
+        TripEndDTO endDto = new TripEndDTO();
+        endDto.setEndLongitude(116.1);
+        endDto.setEndLatitude(39.1);
+        tripService.endTrip(tripId, endDto);
 
         // 获取行程统计
         var statistics = tripService.getTripStatistics(tripId);
@@ -322,7 +329,10 @@ public class TripIntegrationTest {
         tripService.startTrip(tripId);
 
         // 结束行程
-        tripService.endTrip(tripId, 116.1, 39.1);
+        TripEndDTO endDto = new TripEndDTO();
+        endDto.setEndLongitude(116.1);
+        endDto.setEndLatitude(39.1);
+        tripService.endTrip(tripId, endDto);
 
         // 获取日期范围内的统计
         String startDate = LocalDateTime.now().minusDays(1).toLocalDate().toString();

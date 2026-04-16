@@ -73,4 +73,14 @@ public class TripCreateRequest {
      * 备注
      */
     private String remark;
+    
+    /**
+     * 优先级: time, cost, distance
+     */
+    private String priority;
+    
+    /**
+     * 截止日期
+     */
+    private LocalDateTime deadline;
 }

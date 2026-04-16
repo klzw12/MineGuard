@@ -1,7 +1,6 @@
 package com.klzw.common.core.client;
 
 import com.klzw.common.core.domain.dto.TripCreateRequest;
-import com.klzw.common.core.domain.dto.TripResponse;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -9,7 +8,6 @@ import org.springframework.web.service.annotation.GetExchange;
 import org.springframework.web.service.annotation.HttpExchange;
 import org.springframework.web.service.annotation.PostExchange;
 import reactor.core.publisher.Mono;
-import java.util.Map;
 
 @HttpExchange
 public interface TripClient {
@@ -36,5 +34,11 @@ public interface TripClient {
     com.klzw.common.core.result.Result<java.util.Map<String, Object>> getStatistics(
         @RequestParam("startDate") String startDate,
         @RequestParam("endDate") String endDate
+    );
+    
+    @PostExchange("/trip/cancel-by-dispatch/{dispatchTaskId}")
+    com.klzw.common.core.result.Result<Void> cancelTripByDispatchTaskId(
+        @PathVariable("dispatchTaskId") Long dispatchTaskId,
+        @RequestParam(value = "reason", required = false) String reason
     );
 }

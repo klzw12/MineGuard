@@ -162,3 +162,11 @@ export function clearPhoneUnanswered(vehicleId: number): Promise<void> {
 export function markVehicleInSafeZone(vehicleId: number, inSafeZone: boolean): Promise<void> {
   return http.post('/warning/safe-zone/mark', { vehicleId, inSafeZone })
 }
+
+export function startTripWarningCheck(tripId: string, vehicleId: string): Promise<void> {
+  return http.post(`/warning/trip/start-warning?tripId=${tripId}&vehicleId=${vehicleId}`)
+}
+
+export function stopTripWarningCheck(tripId: string): Promise<void> {
+  return http.post(`/warning/trip/stop-warning?tripId=${tripId}`)
+}

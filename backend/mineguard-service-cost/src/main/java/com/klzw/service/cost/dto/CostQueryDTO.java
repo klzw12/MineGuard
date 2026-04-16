@@ -11,6 +11,8 @@ public class CostQueryDTO {
 
     private Long userId;
 
+    private Long tripId;
+
     private Integer costType;
 
     private LocalDate startDate;

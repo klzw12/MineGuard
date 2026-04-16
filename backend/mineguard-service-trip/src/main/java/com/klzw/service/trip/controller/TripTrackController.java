@@ -1,7 +1,7 @@
 package com.klzw.service.trip.controller;
 
 import com.klzw.common.core.result.Result;
-import com.klzw.service.trip.dto.TripTrackDTO;
+import com.klzw.common.core.domain.dto.TripTrackDTO;
 import com.klzw.service.trip.service.TripTrackService;
 import com.klzw.service.trip.vo.TripTrackVO;
 import io.swagger.v3.oas.annotations.Operation;

@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS `vehicle` (
     `rated_load` VARCHAR(20) COMMENT '核定载质量',
     `dimensions` VARCHAR(100) COMMENT '外廓尺寸',
     `inspection_record` VARCHAR(500) COMMENT '年检记录',
+    `depreciation_rate` DECIMAL(10,4) DEFAULT 0.0500 COMMENT '折旧系数（元/公里），默认0.05元/公里',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `create_by` BIGINT COMMENT '创建人ID',

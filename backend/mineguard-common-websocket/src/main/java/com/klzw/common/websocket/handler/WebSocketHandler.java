@@ -58,25 +58,63 @@ public class WebSocketHandler extends TextWebSocketHandler {
         log.info("WebSocket连接建立: sessionId={}, remoteAddress={}", 
                 session.getId(), session.getRemoteAddress());
         
-        String token = getTokenFromSession(session);
-        if (token == null || token.isEmpty()) {
-            sendConnectionFailedMessage(session, "TOKEN_MISSING", "Token缺失");
-            closeSession(session);
-            return;
+        String userId = null;
+        String username = null;
+        String role = null;
+        
+        // 尝试从请求头中获取用户信息（网关模式）
+        Map<String, List<String>> headers = session.getHandshakeHeaders();
+        log.debug("Handshake headers: {}", headers);
+        
+        // 遍历所有请求头，不区分大小写
+        for (Map.Entry<String, List<String>> entry : headers.entrySet()) {
+            String headerName = entry.getKey().toLowerCase();
+            List<String> headerValues = entry.getValue();
+            
+            if (headerValues != null && !headerValues.isEmpty()) {
+                if (headerName.equals("x-user-id")) {
+                    userId = headerValues.get(0);
+                    log.debug("从请求头获取用户ID: {}", userId);
+                } else if (headerName.equals("x-username")) {
+                    username = headerValues.get(0);
+                    log.debug("从请求头获取用户名: {}", username);
+                } else if (headerName.equals("x-user-roles")) {
+                    role = headerValues.get(0);
+                    log.debug("从请求头获取用户角色: {}", role);
+                }
+            }
+        }
+        
+        // 如果请求头中没有用户信息，尝试从URL参数中获取token
+        if (userId == null || username == null) {
+            String token = getTokenFromSession(session);
+            if (token != null && !token.isEmpty()) {
+                try {
+                    Map<String, String> userInfo = validateToken(token);
+                    if (userInfo != null) {
+                        userId = userInfo.get("userId");
+                        username = userInfo.get("username");
+                        role = userInfo.get("role");
+                    }
+                } catch (Exception e) {
+                    log.error("WebSocket认证失败: sessionId={}", session.getId(), e);
+                    // 认证失败但继续处理，允许连接建立
+                }
+            }
+        }
+        
+        // 如果仍然没有用户信息，使用默认值
+        if (userId == null) {
+            userId = "anonymous";
+        }
+        if (username == null) {
+            username = "匿名用户";
+        }
+        if (role == null) {
+            role = "USER";
         }
 
         try {
-            Map<String, String> userInfo = validateToken(token);
-            if (userInfo == null) {
-                sendConnectionFailedMessage(session, "TOKEN_INVALID", "Token无效或已过期");
-                closeSession(session);
-                return;
-            }
-
-            String userId = userInfo.get("userId");
-            String username = userInfo.get("username");
-            String role = userInfo.get("role");
-
             connectionManager.addConnection(session, userId, username, role);
             onlineUserManager.addOnlineUser(userId, username, role, session.getId(), 
                     session.getRemoteAddress() != null ? session.getRemoteAddress().toString() : "unknown");

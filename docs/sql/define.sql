@@ -388,6 +388,7 @@ CREATE TABLE IF NOT EXISTS `vehicle` (
     `rated_load` VARCHAR(20) COMMENT '核定载质量',
     `dimensions` VARCHAR(100) COMMENT '外廓尺寸',
     `inspection_record` VARCHAR(500) COMMENT '年检记录',
+    `depreciation_rate` DECIMAL(10,4) DEFAULT 0.0500 COMMENT '折旧系数（元/公里），默认0.05元/公里',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     `create_by` BIGINT COMMENT '创建人ID',
@@ -799,6 +800,7 @@ CREATE TABLE IF NOT EXISTS `trip` (
     `update_by` BIGINT COMMENT '更新人ID',
     `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除：0-未删除，1-已删除',
     `remark` VARCHAR(500) COMMENT '备注',
+    `ai_analysis` TEXT COMMENT 'AI分析结果（JSON格式）',
     UNIQUE KEY `uk_trip_no` (`trip_no`),
     INDEX `idx_dispatch_task_id` (`dispatch_task_id`),
     INDEX `idx_vehicle_id` (`vehicle_id`),
@@ -845,11 +847,12 @@ CREATE TABLE IF NOT EXISTS `salary_config` (
     `id` BIGINT NOT NULL COMMENT '主键ID',
     `role_code` VARCHAR(50) NOT NULL COMMENT '角色编码',
     `role_name` VARCHAR(100) NOT NULL COMMENT '角色名称',
+    `user_id` BIGINT COMMENT '用户ID',
+    `user_name` VARCHAR(100) COMMENT '用户姓名',
     `base_salary` DECIMAL(12,2) COMMENT '基本工资',
     `daily_salary` DECIMAL(12,2) COMMENT '日工资',
     `hourly_salary` DECIMAL(12,2) COMMENT '时工资',
     `overtime_rate` DECIMAL(5,2) COMMENT '加班费率',
-    `performance_bonus` DECIMAL(12,2) COMMENT '绩效奖金',
     `status` INT NOT NULL DEFAULT 1 COMMENT '状态：0-禁用 1-启用',
     `effective_date` DATE COMMENT '生效日期',
     `expiry_date` DATE COMMENT '失效日期',
@@ -861,6 +864,7 @@ CREATE TABLE IF NOT EXISTS `salary_config` (
     `remark` VARCHAR(500) COMMENT '备注',
     PRIMARY KEY (`id`),
     KEY `idx_role_code` (`role_code`),
+    KEY `idx_user_id` (`user_id`),
     KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='薪资配置表';
 

@@ -25,11 +25,30 @@
 				</view>
 			</view>
 			
+			<!-- 出勤打卡 -->
+			<view class="attendance-section">
+				<text class="section-title">出勤打卡</text>
+				<view class="attendance-card">
+					<view class="attendance-status">
+						<text class="status-text">{{ attendanceStatusText }}</text>
+						<text class="status-time" v-if="lastCheckInTime">{{ lastCheckInTime }}</text>
+					</view>
+					<view class="attendance-buttons">
+						<view class="check-btn" :class="{ disabled: !canCheckIn }" @click="handleCheckIn">
+							<text class="check-btn-text">上班打卡</text>
+						</view>
+						<view class="check-btn" :class="{ disabled: !canCheckOut }" @click="handleCheckOut">
+							<text class="check-btn-text">下班打卡</text>
+						</view>
+					</view>
+				</view>
+			</view>
+
 			<!-- 功能菜单 -->
 			<view class="menu-section">
 				<text class="section-title">系统设置</text>
 				<view class="menu-list">
-					<view class="menu-item" v-for="i in 4" :key="i">
+					<view class="menu-item" v-for="i in 5" :key="i" @click="handleMenuItemClick(i-1)">
 						<view class="menu-icon">
 							<text>{{menuIcons[i-1]}}</text>
 						</view>
@@ -87,21 +106,61 @@
 				</view>
 			</view>
 		</view>
+		
+		<!-- 出勤管理模态框 -->
+		<view v-if="showAttendanceModal" class="modal-overlay" @click="closeAttendanceModal">
+			<view class="modal-content" @click.stop>
+				<text class="modal-title">出勤管理</text>
+				
+				<view class="attendance-section">
+					<view class="attendance-item">
+						<text class="attendance-label">实际出勤天数</text>
+						<text class="attendance-value">{{ attendanceData.actualAttendanceDays }} 天</text>
+					</view>
+					<view class="attendance-item">
+						<text class="attendance-label">迟到早退小时数</text>
+						<text class="attendance-value">{{ attendanceData.lateEarlyLeaveHours }} 小时</text>
+					</view>
+					<view class="attendance-item">
+						<text class="attendance-label">加班小时数</text>
+						<text class="attendance-value">{{ attendanceData.overtimeHours }} 小时</text>
+					</view>
+					<view class="attendance-item">
+						<text class="attendance-label">请假天数</text>
+						<text class="attendance-value">{{ attendanceData.leaveDays }} 天</text>
+					</view>
+					<view class="attendance-item">
+						<text class="attendance-label">全勤状态</text>
+						<text class="attendance-value" :class="attendanceData.isFullAttendance ? 'full-attendance' : 'not-full-attendance'">
+							{{ attendanceData.isFullAttendance ? '全勤' : '非全勤' }}
+						</text>
+					</view>
+				</view>
+				
+				<view class="modal-actions">
+					<view class="modal-btn confirm" @click="closeAttendanceModal">
+						<text>关闭</text>
+					</view>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
 <script setup lang="uts">
-	import { ref, onMounted } from 'vue'
+	import { ref, onMounted, computed } from 'vue'
 	import { onShow } from '@dcloudio/uni-app'
 	import AdminSidebar from '../../../components/AdminSidebar.uvue'
-	import { getCurrentUser, updateUser, uploadAvatar, getAvatarSignedUrl } from '@/api/user.uts'
-	import { logout as logoutApi } from '@/api/auth.uts'
+	import { getCurrentUser, updateUser, uploadAvatar, getAvatarSignedUrl, getAttendanceStatistics } from '@/api/user.uts'
+import { logout as logoutApi } from '@/api/auth.uts'
 	import { useUserStore } from '@/stores/user.uts'
+	import { checkInApi, checkOutApi, getAttendanceByDate } from '@/api/attendance.uts'
 	import type { UserVO, UserUpdateDTO } from '@/types/user.uts'
+	import type { CheckInDTO, CheckOutDTO } from '@/api/attendance.uts'
 	
-	const menuIcons = ['⚙️', '🔐', '📋', 'ℹ️']
-	const menuTexts = ['系统设置', '账号安全', '操作日志', '关于系统']
-	
+	const menuIcons = ['⚙️', '🔐', '📋', '📅', 'ℹ️']
+const menuTexts = ['系统设置', '账号安全', '操作日志', '出勤管理', '关于系统']
+
 	const userStore = useUserStore()
 	const userInfo = ref<UserVO>({
 		id: '',
@@ -119,6 +178,23 @@
 	})
 	const avatarUrl = ref('')
 	const DEFAULT_AVATAR = '/static/avatar/Minecraft.png'
+
+	// 出勤打卡相关
+	const attendanceStatus = ref('') // 未打卡、已上班、已下班
+	const lastCheckInTime = ref('')
+	const canCheckIn = ref(true)
+	const canCheckOut = ref(false)
+
+	const attendanceStatusText = computed(() => {
+		switch (attendanceStatus.value) {
+			case 'checked_in':
+				return '已上班打卡'
+			case 'checked_out':
+				return '已下班打卡'
+			default:
+				return '未打卡'
+		}
+	})
 	
 	const showEditModal = ref(false)
 	const editForm = ref<UserUpdateDTO>({
@@ -145,6 +221,10 @@
 	
 	function closeEditModal() {
 		showEditModal.value = false
+	}
+
+	function closeAttendanceModal() {
+		showAttendanceModal.value = false
 	}
 	
 	async function saveProfile() {
@@ -266,12 +346,174 @@
 	onMounted(() => {
 		loadUserInfo()
 		loadAvatarUrl()
+		loadAttendanceStatus()
 	})
 	
 	onShow(() => {
 		loadAvatarUrl()
+		loadAttendanceStatus()
 	})
-	
+
+	// 加载出勤状态
+	async function loadAttendanceStatus() {
+		try {
+			const today = new Date().toISOString().split('T')[0]
+			const result = await getAttendanceByDate(today)
+			if (result) {
+				attendanceStatus.value = result.checkInTime ? (result.checkOutTime ? 'checked_out' : 'checked_in') : ''
+				lastCheckInTime.value = result.checkInTime || ''
+				canCheckIn.value = !result.checkInTime
+				canCheckOut.value = !!result.checkInTime && !result.checkOutTime
+			} else {
+				attendanceStatus.value = ''
+				lastCheckInTime.value = ''
+				canCheckIn.value = true
+				canCheckOut.value = false
+			}
+		} catch (e: any) {
+			console.error('获取出勤状态失败', e)
+			// 失败时默认状态
+			attendanceStatus.value = ''
+			lastCheckInTime.value = ''
+			canCheckIn.value = true
+			canCheckOut.value = false
+		}
+	}
+
+	// 获取当前位置
+	function getCurrentLocation(): Promise<{ latitude: number, longitude: number, address: string }> {
+		return new Promise((resolve, reject) => {
+			uni.getLocation({
+				type: 'wgs84',
+				success: (res) => {
+					// 这里简化处理，实际应该调用逆地理编码 API 获取地址
+					resolve({
+						latitude: res.latitude,
+						longitude: res.longitude,
+						address: '未知地址'
+					})
+				},
+				fail: (err) => {
+					reject(err)
+				}
+			})
+		})
+	}
+
+	// 上班打卡
+	async function handleCheckIn() {
+		if (!canCheckIn.value) return
+		
+		uni.showLoading({ title: '正在打卡...' })
+		try {
+			// 获取当前位置
+			const location = await getCurrentLocation()
+			
+			const dto: CheckInDTO = {
+				latitude: location.latitude,
+				longitude: location.longitude,
+				address: location.address
+			}
+			
+			const result = await checkInApi(dto)
+			if (result) {
+				uni.showToast({ title: '上班打卡成功', icon: 'success' })
+				await loadAttendanceStatus()
+			}
+		} catch (e: any) {
+			uni.showToast({ title: e.message || '打卡失败', icon: 'none' })
+		} finally {
+			uni.hideLoading()
+		}
+	}
+
+	// 下班打卡
+	async function handleCheckOut() {
+		if (!canCheckOut.value) return
+		
+		uni.showLoading({ title: '正在打卡...' })
+		try {
+			// 获取当前位置
+			const location = await getCurrentLocation()
+			
+			const dto: CheckOutDTO = {
+				latitude: location.latitude,
+				longitude: location.longitude,
+				address: location.address
+			}
+			
+			const result = await checkOutApi(dto)
+			if (result) {
+				uni.showToast({ title: '下班打卡成功', icon: 'success' })
+				await loadAttendanceStatus()
+			}
+		} catch (e: any) {
+			uni.showToast({ title: e.message || '打卡失败', icon: 'none' })
+		} finally {
+			uni.hideLoading()
+		}
+	}
+
+	// 处理菜单点击
+	function handleMenuItemClick(index: number) {
+		switch (index) {
+			case 0: // 系统设置
+				// 跳转到系统设置页面
+				break
+			case 1: // 账号安全
+				// 跳转到账号安全页面
+				break
+			case 2: // 操作日志
+				// 跳转到操作日志页面
+				break
+			case 3: // 出勤管理
+				showAttendanceModal.value = true
+				loadAttendanceStatistics()
+				break
+			case 4: // 关于系统
+				// 跳转到关于系统页面
+				break
+		}
+	}
+
+	// 出勤统计相关
+	const showAttendanceModal = ref(false)
+	const attendanceData = ref({
+		actualAttendanceDays: 0,
+		lateEarlyLeaveHours: 0,
+		overtimeHours: 0,
+		leaveDays: 0,
+		isFullAttendance: false
+	})
+
+	async function loadAttendanceStatistics() {
+		uni.showLoading({
+			title: '加载中...'
+		})
+		try {
+			// 获取当前月份的起止日期
+			const now = new Date()
+			const startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+			const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+			
+			const startDateStr = startDate.toISOString().split('T')[0]
+			const endDateStr = endDate.toISOString().split('T')[0]
+			
+			const result = await getAttendanceStatistics(userInfo.value.id, startDateStr, endDateStr)
+			if (result) {
+				attendanceData.value = result
+			}
+		} catch (e: any) {
+			uni.showToast({
+				title: e.message || '获取出勤统计失败',
+				icon: 'none',
+				position: 'bottom'
+			})
+		} finally {
+			uni.hideLoading()
+		}
+	}
+
 	async function loadAvatarUrl() {
 		try {
 			// 先尝试从本地缓存获取，检查是否过期
@@ -575,7 +817,106 @@
 	}
 	
 	.modal-btn.confirm {
-		background-color: #007AFF;
-		color: #FFFFFF;
-	}
+			background-color: #007AFF;
+			color: #FFFFFF;
+		}
+
+		/* 出勤管理样式 */
+		.attendance-section {
+			margin-bottom: 30rpx;
+		}
+
+		.attendance-item {
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+			align-items: center;
+			padding: 20rpx 0;
+			border-bottom: 1rpx solid #f0f0f0;
+		}
+
+		.attendance-item:last-child {
+			border-bottom: none;
+		}
+
+		.attendance-label {
+			font-size: 26rpx;
+			color: #666666;
+		}
+
+		.attendance-value {
+			font-size: 26rpx;
+			color: #333333;
+			font-weight: 500;
+		}
+
+		.full-attendance {
+			color: #34C759;
+		}
+
+		.not-full-attendance {
+				color: #FF9500;
+			}
+
+		/* 出勤打卡样式 */
+		.attendance-section {
+			margin-bottom: 40rpx;
+		}
+
+		.attendance-card {
+			background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+			color: #fff;
+			border-radius: 20rpx;
+			padding: 40rpx;
+			box-shadow: 0 4rpx 20rpx rgba(76, 175, 80, 0.3);
+		}
+
+		.attendance-status {
+			text-align: center;
+			margin-bottom: 30rpx;
+		}
+
+		.status-text {
+			font-size: 32rpx;
+			font-weight: bold;
+			margin-bottom: 10rpx;
+			display: block;
+		}
+
+		.status-time {
+			font-size: 24rpx;
+			opacity: 0.9;
+			display: block;
+		}
+
+		.attendance-buttons {
+			display: flex;
+			flex-direction: row;
+			gap: 20rpx;
+		}
+
+		.check-btn {
+			flex: 1;
+			padding: 25rpx;
+			background-color: rgba(255, 255, 255, 0.2);
+			border-radius: 15rpx;
+			text-align: center;
+			transition: all 0.3s ease;
+		}
+
+		.check-btn:hover {
+			background-color: rgba(255, 255, 255, 0.3);
+		}
+
+		.check-btn.disabled {
+			background-color: rgba(255, 255, 255, 0.1);
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+
+		.check-btn-text {
+			font-size: 28rpx;
+			font-weight: bold;
+			color: #fff;
+		}
 </style>

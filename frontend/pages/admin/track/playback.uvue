@@ -4,13 +4,13 @@
 			<text class="page-title">轨迹回放</text>
 		</view>
 
-		<view class="filter-section">
+		<view class="filter-section" v-if="!tripId">
 			<view class="filter-row">
 				<view class="filter-item">
 					<text class="filter-label">行程ID：</text>
-					<input class="filter-input" v-model="tripId" placeholder="请输入行程ID" type="number" />
+					<input class="filter-input" v-model="manualTripId" placeholder="请输入行程ID" type="text" />
 				</view>
-				<button class="search-btn" @click="loadTrackData">加载轨迹</button>
+				<button class="search-btn" @click="loadTrackDataManual">加载轨迹</button>
 			</view>
 		</view>
 
@@ -27,7 +27,7 @@
 		</view>
 
 		<view class="empty-state" v-else>
-			<text class="empty-text">请输入行程ID加载轨迹数据</text>
+			<text class="empty-text">{{ tripId ? '加载中...' : '请输入行程ID加载轨迹数据' }}</text>
 		</view>
 
 		<view class="playback-control" v-if="tracks.length > 0">
@@ -111,12 +111,14 @@
 
 	interface TrackPoint {
 		id: number
-		tripId: number
+		tripId: string
 		longitude: number
 		latitude: number
 		speed: number
 		direction: number
 		recordTime: string
+		timestamp: string
+		createTime: string
 		mileage: number
 		fuelLevel: number
 		status: number
@@ -129,7 +131,8 @@
 		duration: number
 	}
 
-	const tripId = ref<number>(0)
+	const tripId = ref<string>('')
+	const manualTripId = ref<string>('')
 	const tracks = ref<TrackPoint[]>([])
 	const currentIndex = ref<number>(0)
 	const isPlaying = ref<boolean>(false)
@@ -198,7 +201,7 @@
 			longitude: startTrack.longitude,
 			latitude: startTrack.latitude,
 			title: '起点',
-			iconPath: '/static/icons/start.png',
+			iconPath: '/static/svgs/position.svg',
 			width: 30,
 			height: 30
 		})
@@ -208,7 +211,7 @@
 			longitude: endTrack.longitude,
 			latitude: endTrack.latitude,
 			title: '终点',
-			iconPath: '/static/icons/end.png',
+			iconPath: '/static/svgs/position.svg',
 			width: 30,
 			height: 30
 		})
@@ -218,7 +221,7 @@
 			longitude: currentTrack.longitude,
 			latitude: currentTrack.latitude,
 			title: '当前位置',
-			iconPath: '/static/icons/car.png',
+			iconPath: '/static/svgs/car.svg',
 			width: 35,
 			height: 35,
 			rotate: currentTrack.direction || 0
@@ -256,10 +259,23 @@
 			const result = await getTripTrack(tripId.value)
 			
 			if (result && Array.isArray(result)) {
-				tracks.value = result
+				// 处理时间字段映射并排序
+				const processedTracks = result.map((track: any) => ({
+					...track,
+					recordTime: track.recordTime || track.timestamp || track.createTime || ''
+				}))
+				
+				// 按时间排序（从早到晚）
+				const sortedTracks = processedTracks.sort((a: TrackPoint, b: TrackPoint) => {
+					const timeA = new Date(a.recordTime).getTime()
+					const timeB = new Date(b.recordTime).getTime()
+					return timeA - timeB
+				})
+				
+				tracks.value = sortedTracks
 				currentIndex.value = 0
 				detectStopPoints()
-				uni.showToast({ title: '加载成功', icon: 'success' })
+				uni.showToast({ title: `加载成功，共${sortedTracks.length}个轨迹点`, icon: 'success' })
 			} else {
 				uni.showToast({ title: '暂无轨迹数据', icon: 'none' })
 			}
@@ -269,6 +285,15 @@
 		} finally {
 			uni.hideLoading()
 		}
+	}
+
+	const loadTrackDataManual = async () => {
+		if (!manualTripId.value) {
+			uni.showToast({ title: '请输入行程ID', icon: 'none' })
+			return
+		}
+		tripId.value = manualTripId.value
+		await loadTrackData()
 	}
 
 	const detectStopPoints = () => {
@@ -405,6 +430,16 @@
 			mapScale.value = e.detail.scale
 		}
 	}
+
+	onMounted(() => {
+		const pages = getCurrentPages()
+		const currentPage = pages[pages.length - 1]
+		const options = (currentPage as any).options || (currentPage as any).$page?.options
+		if (options && options.tripId) {
+			tripId.value = options.tripId as string
+			loadTrackData()
+		}
+	})
 
 	onUnmounted(() => {
 		pausePlayback()

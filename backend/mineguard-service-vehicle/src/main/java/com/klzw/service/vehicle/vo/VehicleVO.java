@@ -2,6 +2,7 @@ package com.klzw.service.vehicle.vo;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -64,6 +65,8 @@ public class VehicleVO {
     private String remarks;
     
     private String inspectionRecord;
+    
+    private BigDecimal depreciationRate;
     
     private String insuranceNo;
     private String insuranceCompany;

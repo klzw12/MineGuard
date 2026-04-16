@@ -87,10 +87,31 @@ public class TripVO {
 
     @Schema(description = "备注")
     private String remark;
+    
+    @Schema(description = "优先级: time, cost, distance")
+    private String priority;
+    
+    @Schema(description = "截止日期")
+    private LocalDateTime deadline;
 
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
 
     @Schema(description = "更新时间")
     private LocalDateTime updateTime;
+    
+    @Schema(description = "最后位置经度")
+    private Double lastLongitude;
+    
+    @Schema(description = "最后位置纬度")
+    private Double lastLatitude;
+    
+    @Schema(description = "最后位置记录时间")
+    private LocalDateTime lastRecordTime;
+    
+    @Schema(description = "AI分析结果（JSON格式）")
+    private String aiAnalysis;
+    
+    @Schema(description = "预计提成金额")
+    private BigDecimal estimatedCommissionAmount;
 }

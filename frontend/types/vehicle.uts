@@ -1,0 +1,108 @@
+export type VehicleVO = {
+  id: string
+  licensePlate: string
+  vehicleType: number
+  vehicleTypeName: string
+  status: number
+  statusName: string
+  model: string
+  brand: string
+  purchaseDate: string
+  mileage: number
+  lastMaintenanceDate: string
+  insuranceExpiryDate: string
+  annualInspectionDate: string
+  vehicleOwner: string
+  contactPhone: string
+  belongsTo: string
+  createTime: string
+  updateTime: string
+}
+
+export type VehicleDTO = {
+  id?: string
+  licensePlate: string
+  vehicleType: number
+  model: string
+  brand: string
+  purchaseDate: string
+  mileage: number
+  lastMaintenanceDate: string
+  insuranceExpiryDate: string
+  annualInspectionDate: string
+  vehicleOwner: string
+  contactPhone: string
+  belongsTo: string
+}
+
+export type VehicleFaultVO = {
+  id: string
+  faultNo: string
+  vehicleId: string
+  vehicleNo: string
+  faultLocation: string
+  faultTime: string
+  faultType: string
+  faultDescription: string
+  status: number
+  statusName: string
+  reportId: string
+  reporterName: string
+  createTime: string
+  updateTime: string
+}
+
+export type VehicleFaultDTO = {
+  id?: string
+  vehicleId: string
+  faultLocation: string
+  faultTime: string
+  faultType: string
+  faultDescription: string
+}
+
+export type VehicleMaintenanceVO = {
+  id: string
+  maintenanceNo: string
+  vehicleId: string
+  vehicleNo: string
+  maintenanceType: string
+  maintenanceDate: string
+  maintenanceCost: number
+  maintenanceDescription: string
+  maintenanceStatus: number
+  maintenanceStatusName: string
+  createTime: string
+  updateTime: string
+}
+
+export type VehicleMaintenanceDTO = {
+  id?: string
+  vehicleId: string
+  maintenanceType: string
+  maintenanceDate: string
+  maintenanceCost: number
+  maintenanceDescription: string
+}
+
+export type VehicleRefuelVO = {
+  id: string
+  refuelNo: string
+  vehicleId: string
+  vehicleNo: string
+  refuelDate: string
+  refuelAmount: number
+  refuelCost: number
+  refuelStation: string
+  createTime: string
+  updateTime: string
+}
+
+export type VehicleRefuelDTO = {
+  id?: string
+  vehicleId: string
+  refuelDate: string
+  refuelAmount: number
+  refuelCost: number
+  refuelStation: string
+}

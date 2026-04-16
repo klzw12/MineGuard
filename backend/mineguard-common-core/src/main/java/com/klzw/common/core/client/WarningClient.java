@@ -38,4 +38,13 @@ public interface WarningClient {
 
     @GetExchange("/warning/trend")
     Result<List<Map<String, Object>>> getTrend(@RequestParam(value = "days", required = false, defaultValue = "7") int days);
+
+    @PostExchange("/warning/trip/stop-warning")
+    Result<Void> stopTripWarningCheck(@RequestParam("tripId") Long tripId);
+
+    @PutExchange("/warning/record/vehicle/{vehicleId}/handle")
+    Result<Void> handleWarningsByVehicleId(
+            @PathVariable("vehicleId") Long vehicleId,
+            @RequestParam(value = "status", required = false) Integer status,
+            @RequestParam(value = "handleResult", required = false) String handleResult);
 }

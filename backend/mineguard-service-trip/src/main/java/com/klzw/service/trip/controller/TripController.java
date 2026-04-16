@@ -6,6 +6,7 @@ import com.klzw.common.core.result.Result;
 import com.klzw.common.core.domain.dto.TripResponse;
 import com.klzw.common.core.domain.dto.TripCreateRequest;
 import com.klzw.service.trip.dto.TripDTO;
+import com.klzw.service.trip.dto.TripEndDTO;
 import com.klzw.service.trip.dto.TripStatisticsResponseDTO;
 import com.klzw.service.trip.service.TripService;
 import com.klzw.service.trip.vo.TripStatisticsVO;
@@ -29,8 +30,10 @@ public class TripController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询行程")
-    public Result<PageResult<TripVO>> page(PageRequest pageRequest) {
-        return Result.success(tripService.page(pageRequest));
+    public Result<PageResult<TripVO>> page(
+            PageRequest pageRequest,
+            @Parameter(description = "行程状态") @RequestParam(required = false) Integer status) {
+        return Result.success(tripService.page(pageRequest, status));
     }
 
     @GetMapping("/{id}")
@@ -76,9 +79,8 @@ public class TripController {
     @Operation(summary = "结束行程")
     public Result<Void> endTrip(
             @PathVariable Long id,
-            @Parameter(description = "终点经度") @RequestParam Double endLongitude,
-            @Parameter(description = "终点纬度") @RequestParam Double endLatitude) {
-        tripService.endTrip(id, endLongitude, endLatitude);
+            @RequestBody TripEndDTO dto) {
+        tripService.endTrip(id, dto);
         return Result.success();
     }
 
@@ -123,7 +125,8 @@ public class TripController {
     @PostMapping("/{id}/end/alert")
     @Operation(summary = "结束行程（预警触发）")
     public Result<Void> endTripAlert(@PathVariable Long id) {
-        tripService.endTrip(id, null, null);
+        TripEndDTO dto = new TripEndDTO();
+        tripService.endTrip(id, dto);
         return Result.success();
     }
 
@@ -152,5 +155,42 @@ public class TripController {
             @RequestParam("startDate") String startDate,
             @RequestParam("endDate") String endDate) {
         return Result.success(tripService.getStatisticsByDateRange(startDate, endDate));
+    }
+
+    @GetMapping("/active")
+    @Operation(summary = "获取用户的进行中行程")
+    public Result<TripVO> getActiveTrip() {
+        TripVO activeTrip = tripService.getActiveTrip();
+        return Result.success(activeTrip);
+    }
+
+    @GetMapping("/{id}/detail")
+    @Operation(summary = "获取行程完整详情（包含AI分析、成本明细）")
+    public Result<TripVO> getTripDetail(@PathVariable Long id) {
+        return Result.success(tripService.getTripDetail(id));
+    }
+
+    @GetMapping("/{id}/cost-details")
+    @Operation(summary = "获取行程成本明细列表")
+    public Result<List<java.util.Map<String, Object>>> getTripCostDetails(@PathVariable Long id) {
+        return Result.success(tripService.getTripCostDetails(id));
+    }
+
+    @PostMapping("/{id}/cancel")
+    @Operation(summary = "取消行程")
+    public Result<Void> cancelTrip(
+            @PathVariable Long id,
+            @RequestParam(required = false) String reason) {
+        tripService.cancelTrip(id, reason);
+        return Result.success();
+    }
+    
+    @PostMapping("/cancel-by-dispatch/{dispatchTaskId}")
+    @Operation(summary = "根据调度任务ID取消行程（内部调用）")
+    public Result<Void> cancelTripByDispatchTaskId(
+            @PathVariable Long dispatchTaskId,
+            @RequestParam(required = false) String reason) {
+        tripService.cancelTripByDispatchTaskId(dispatchTaskId, reason);
+        return Result.success();
     }
 }

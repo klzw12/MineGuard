@@ -636,6 +636,7 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         vo.setDimensions(vehicle.getDimensions());
         vo.setRemarks(vehicle.getRemark());
         vo.setInspectionRecord(vehicle.getInspectionRecord());
+        vo.setDepreciationRate(vehicle.getDepreciationRate());
         
         try {
             List<com.klzw.service.vehicle.entity.VehicleInsurance> insurances = vehicleInsuranceService.getVehicleInsurance(vehicle.getId());

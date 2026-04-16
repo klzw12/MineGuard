@@ -3,7 +3,9 @@
 		<view class="page-header">
 			<text class="page-title">成本管理</text>
 			<view class="header-actions">
-				<button class="primary-btn" @click="showAddModal = true">添加成本</button>
+				<button class="primary-btn" @click="showAddModal = true" v-if="currentTab === 'detail'">添加成本</button>
+				<button class="primary-btn" @click="showAddBudgetModal = true" v-if="currentTab === 'budget'">增添预算</button>
+				<button class="primary-btn" @click="calculateCostAnalysis" v-if="currentTab === 'analysis'">触发统计</button>
 			</view>
 		</view>
 		
@@ -66,7 +68,9 @@
 						<text class="cost-name">{{ item.costName }}</text>
 						<text class="cost-date">{{ item.costDate }}</text>
 						<view class="cost-info">
+							<text class="info-item" v-if="item.userName">用户：{{ item.userName }}</text>
 							<text class="info-item" v-if="item.vehicleNo">车辆：{{ item.vehicleNo }}</text>
+							<text class="info-item" v-if="item.tripNo">行程：{{ item.tripNo }}</text>
 							<text class="info-item" v-if="item.paymentMethod">支付：{{ item.paymentMethod }}</text>
 						</view>
 					</view>
@@ -121,11 +125,11 @@
 			<view class="salary-list">
 				<view class="salary-item" v-for="(item, index) in salaryList" :key="item.id">
 					<view class="salary-header">
-						<text class="role-name">{{ item.roleName }}</text>
-						<view class="salary-status" :class="item.status === 1 ? 'active' : 'inactive'">
-							<text class="status-text">{{ item.statusName }}</text>
+							<text class="role-name">{{ item.userName }}</text>
+							<view class="salary-status" :class="item.status === 1 ? 'active' : 'inactive'">
+								<text class="status-text">{{ item.statusName }}</text>
+							</view>
 						</view>
-					</view>
 					<view class="salary-details">
 						<view class="detail-row">
 							<text class="detail-label">基本工资</text>
@@ -248,41 +252,167 @@
 				</view>
 				<view class="modal-body">
 					<view class="form-item">
-						<text class="form-label">成本类型 *</text>
-						<picker mode="selector" :range="costTypes" range-key="name" @change="onCostTypeChange">
-							<view class="form-picker">{{ getCostTypeName(formData.costType) || '请选择' }}</view>
-						</picker>
-					</view>
-					<view class="form-item">
-						<text class="form-label">成本名称 *</text>
-						<input type="text" v-model="formData.costName" class="form-input" placeholder="请输入成本名称" />
-					</view>
-					<view class="form-item">
-						<text class="form-label">金额 *</text>
-						<input type="digit" v-model="formData.amount" class="form-input" placeholder="请输入金额" />
-					</view>
-					<view class="form-item">
-						<text class="form-label">成本日期 *</text>
-						<picker mode="date" :value="formData.costDate" @change="onCostDateChange">
-							<view class="form-picker">{{ formData.costDate || '请选择日期' }}</view>
-						</picker>
-					</view>
-					<view class="form-item">
-						<text class="form-label">支付方式</text>
-						<input type="text" v-model="formData.paymentMethod" class="form-input" placeholder="请输入支付方式" />
-					</view>
-					<view class="form-item">
-						<text class="form-label">发票号</text>
-						<input type="text" v-model="formData.invoiceNo" class="form-input" placeholder="请输入发票号" />
-					</view>
-					<view class="form-item">
-						<text class="form-label">描述</text>
-						<textarea v-model="formData.description" class="form-textarea" placeholder="请输入描述"></textarea>
-					</view>
+					<text class="form-label">成本类型 *</text>
+					<picker mode="selector" :range="costTypes" range-key="name" @change="onCostTypeChange">
+						<view class="form-picker">{{ getCostTypeName(formData.costType) || '请选择' }}</view>
+					</picker>
+				</view>
+				<view class="form-item">
+					<text class="form-label">成本名称 *</text>
+					<input type="text" v-model="formData.costName" class="form-input" placeholder="请输入成本名称" />
+				</view>
+				<view class="form-item">
+					<text class="form-label">金额 *</text>
+					<input type="digit" v-model="formData.amount" class="form-input" placeholder="请输入金额" />
+				</view>
+				<view class="form-item">
+					<text class="form-label">成本日期 *</text>
+					<picker mode="date" :value="formData.costDate" @change="onCostDateChange">
+						<view class="form-picker">{{ formData.costDate || '请选择日期' }}</view>
+					</picker>
+				</view>
+				<view class="form-item">
+					<text class="form-label">车辆</text>
+					<input type="text" v-model="formData.vehicleNo" class="form-input" placeholder="请输入车牌号" />
+				</view>
+				<view class="form-item">
+					<text class="form-label">用户</text>
+					<input type="text" v-model="formData.userName" class="form-input" placeholder="请输入用户名称" />
+				</view>
+				<view class="form-item">
+					<text class="form-label">行程</text>
+					<input type="text" v-model="formData.tripNo" class="form-input" placeholder="请输入行程编号" />
+				</view>
+				<view class="form-item">
+					<text class="form-label">支付方式</text>
+					<input type="text" v-model="formData.paymentMethod" class="form-input" placeholder="请输入支付方式" />
+				</view>
+				<view class="form-item">
+					<text class="form-label">发票号</text>
+					<input type="text" v-model="formData.invoiceNo" class="form-input" placeholder="请输入发票号" />
+				</view>
+				<view class="form-item">
+					<text class="form-label">描述</text>
+					<textarea v-model="formData.description" class="form-textarea" placeholder="请输入描述"></textarea>
+				</view>
 				</view>
 				<view class="modal-footer">
 					<button class="cancel-btn" @click="closeModal">取消</button>
 					<button class="confirm-btn" @click="submitForm">确定</button>
+				</view>
+			</view>
+		</view>
+
+		<view class="modal-overlay" v-if="showAddBudgetModal" @click="showAddBudgetModal = false">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">{{ editingBudget ? '编辑预算' : '增添预算' }}</text>
+					<text class="modal-close" @click="closeBudgetModal">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="form-label">预算名称 *</text>
+						<input type="text" v-model="budgetFormData.budgetName" class="form-input" placeholder="请输入预算名称" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">预算类型 *</text>
+						<picker mode="selector" :range="budgetTypes" range-key="name" @change="onBudgetTypeChange">
+							<view class="form-picker">{{ getBudgetName(budgetFormData.budgetType) || '请选择' }}</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">预算年份 *</text>
+						<input type="number" v-model="budgetFormData.budgetYear" class="form-input" placeholder="请输入预算年份" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">开始日期 *</text>
+						<picker mode="date" :value="budgetFormData.startDate" @change="onBudgetStartDateChange">
+							<view class="form-picker">{{ budgetFormData.startDate || '请选择日期' }}</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">结束日期 *</text>
+						<picker mode="date" :value="budgetFormData.endDate" @change="onBudgetEndDateChange">
+							<view class="form-picker">{{ budgetFormData.endDate || '请选择日期' }}</view>
+						</picker>
+					</view>
+					<view class="form-item">
+						<text class="form-label">燃油预算</text>
+						<input type="digit" v-model="budgetFormData.fuelBudget" class="form-input" placeholder="请输入燃油预算" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">维修预算</text>
+						<input type="digit" v-model="budgetFormData.maintenanceBudget" class="form-input" placeholder="请输入维修预算" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">人工预算</text>
+						<input type="digit" v-model="budgetFormData.laborBudget" class="form-input" placeholder="请输入人工预算" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">保险预算</text>
+						<input type="digit" v-model="budgetFormData.insuranceBudget" class="form-input" placeholder="请输入保险预算" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">折旧预算</text>
+						<input type="digit" v-model="budgetFormData.depreciationBudget" class="form-input" placeholder="请输入折旧预算" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">管理预算</text>
+						<input type="digit" v-model="budgetFormData.managementBudget" class="form-input" placeholder="请输入管理预算" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">其他预算</text>
+						<input type="digit" v-model="budgetFormData.otherBudget" class="form-input" placeholder="请输入其他预算" />
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="closeBudgetModal">取消</button>
+					<button class="confirm-btn" @click="submitBudgetForm">确定</button>
+				</view>
+			</view>
+		</view>
+
+		<view class="modal-overlay" v-if="showAddSalaryModal" @click="showAddSalaryModal = false">
+			<view class="modal-content" @click.stop>
+				<view class="modal-header">
+					<text class="modal-title">{{ editingSalary ? '编辑薪资配置' : '添加薪资配置' }}</text>
+					<text class="modal-close" @click="closeSalaryModal">×</text>
+				</view>
+				<view class="modal-body">
+					<view class="form-item">
+						<text class="form-label">用户名称</text>
+						<text class="form-value">{{ salaryFormData.userName || '未设置' }}</text>
+					</view>
+					<view class="form-item">
+						<text class="form-label">基本工资 *</text>
+						<input type="digit" v-model="salaryFormData.baseSalary" class="form-input" placeholder="请输入基本工资" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">日工资</text>
+						<input type="digit" v-model="salaryFormData.dailySalary" class="form-input" placeholder="请输入日工资" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">时工资</text>
+						<input type="digit" v-model="salaryFormData.hourlySalary" class="form-input" placeholder="请输入时工资" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">加班费率</text>
+						<input type="digit" v-model="salaryFormData.overtimeRate" class="form-input" placeholder="请输入加班费率" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">绩效奖金</text>
+						<input type="digit" v-model="salaryFormData.performanceBonus" class="form-input" placeholder="请输入绩效奖金" />
+					</view>
+					<view class="form-item">
+						<text class="form-label">状态</text>
+						<picker mode="selector" :range="statusOptions" @change="onSalaryStatusChange">
+							<view class="form-picker">{{ salaryFormData.status === 1 ? '启用' : '禁用' }}</view>
+						</picker>
+					</view>
+				</view>
+				<view class="modal-footer">
+					<button class="cancel-btn" @click="closeSalaryModal">取消</button>
+					<button class="confirm-btn" @click="submitSalaryForm">确定</button>
 				</view>
 			</view>
 		</view>
@@ -292,12 +422,12 @@
 <script setup lang="uts">
 	import AdminLayout from '../../../components/AdminLayout.uvue'
 	import { ref, onMounted } from 'vue'
-	import { 
-		costApi, 
-		type CostDetailVO, 
-		type CostStatisticsVO, 
-		type CostBudgetVO, 
-		type SalaryConfigVO 
+	import costApi from '@/api/cost.uts'
+	import type { 
+		CostDetailVO, 
+		CostStatisticsVO, 
+		CostBudgetVO, 
+		SalaryConfigVO 
 	} from '@/api/cost.uts'
 
 	type CostDetailType = CostDetailVO
@@ -314,7 +444,11 @@
 	const endDate = ref('')
 	const currentType = ref<number | null>(null)
 	const showAddModal = ref(false)
-	const editingCost = ref<CostDetailVO | null>(null)
+const showAddBudgetModal = ref(false)
+const showAddSalaryModal = ref(false)
+const editingCost = ref<CostDetailVO | null>(null)
+const editingBudget = ref<CostBudgetVO | null>(null)
+const editingSalary = ref<SalaryConfigVO | null>(null)
 	
 	const energyAnalysis = ref({
 		totalFuelCost: 0,
@@ -351,6 +485,12 @@
 		{ code: 7, name: '其他成本' }
 	])
 
+	const budgetTypes = ref([
+		{ code: 1, name: '月度' },
+		{ code: 2, name: '季度' },
+		{ code: 3, name: '年度' }
+	])
+
 	const formData = ref({
 		costType: 0,
 		costName: '',
@@ -358,8 +498,41 @@
 		costDate: '',
 		paymentMethod: '',
 		invoiceNo: '',
-		description: ''
+		description: '',
+		vehicleId: '',
+		vehicleNo: '',
+		userId: '',
+		userName: '',
+		tripId: '',
+		tripNo: ''
 	})
+
+	const budgetFormData = ref({
+		budgetName: '',
+		budgetType: 0,
+		budgetYear: new Date().getFullYear(),
+		startDate: '',
+		endDate: '',
+		fuelBudget: 0,
+		maintenanceBudget: 0,
+		laborBudget: 0,
+		insuranceBudget: 0,
+		depreciationBudget: 0,
+		managementBudget: 0,
+		otherBudget: 0
+	})
+
+	const salaryFormData = ref({
+		userName: '',
+		baseSalary: 0,
+		dailySalary: 0,
+		hourlySalary: 0,
+		overtimeRate: 1,
+		performanceBonus: 0,
+		status: 1
+	})
+
+	const statusOptions = ['启用', '禁用']
 
 	const switchTab = (tab: string) => {
 		currentTab.value = tab
@@ -458,8 +631,27 @@
 		}
 	}
 
+	const calculateCostAnalysis = async () => {
+		uni.showLoading({ title: '统计中...' })
+		try {
+			// 触发成本分析统计
+			await fetchAnalysisData()
+			uni.showToast({ title: '统计完成', icon: 'success' })
+		} catch (e) {
+			console.error('触发成本分析失败', e)
+			uni.showToast({ title: '统计失败', icon: 'none' })
+		} finally {
+			uni.hideLoading()
+		}
+	}
+
 	const getCostTypeName = (code: number): string => {
 		const type = costTypes.value.find(t => t.code === code)
+		return type ? type.name : ''
+	}
+
+	const getBudgetName = (code: number): string => {
+		const type = budgetTypes.value.find(t => t.code === code)
 		return type ? type.name : ''
 	}
 
@@ -469,8 +661,26 @@
 		formData.value.costName = costTypes.value[index].name
 	}
 
+	const onBudgetTypeChange = (e: any) => {
+		const index = e.detail.value
+		budgetFormData.value.budgetType = budgetTypes.value[index].code
+	}
+
 	const onCostDateChange = (e: any) => {
 		formData.value.costDate = e.detail.value
+	}
+
+	const onBudgetStartDateChange = (e: any) => {
+		budgetFormData.value.startDate = e.detail.value
+	}
+
+	const onBudgetEndDateChange = (e: any) => {
+		budgetFormData.value.endDate = e.detail.value
+	}
+
+	const onSalaryStatusChange = (e: any) => {
+		const index = e.detail.value
+		salaryFormData.value.status = index
 	}
 
 	const editCost = (cost: CostDetailVO) => {
@@ -525,11 +735,36 @@
 	}
 
 	const editBudget = (budget: CostBudgetVO) => {
-		uni.showToast({ title: '编辑预算', icon: 'none' })
+		editingBudget.value = budget
+		budgetFormData.value = {
+			budgetName: budget.budgetName,
+			budgetType: budget.budgetType,
+			budgetYear: budget.budgetYear,
+			startDate: budget.startDate,
+			endDate: budget.endDate,
+			fuelBudget: budget.fuelBudget || 0,
+			maintenanceBudget: budget.maintenanceBudget || 0,
+			laborBudget: budget.laborBudget || 0,
+			insuranceBudget: budget.insuranceBudget || 0,
+			depreciationBudget: budget.depreciationBudget || 0,
+			managementBudget: budget.managementBudget || 0,
+			otherBudget: budget.otherBudget || 0
+		}
+		showAddBudgetModal.value = true
 	}
 
 	const editSalary = (salary: SalaryConfigVO) => {
-		uni.showToast({ title: '编辑薪资配置', icon: 'none' })
+		editingSalary.value = salary
+		salaryFormData.value = {
+			userName: salary.userName || '',
+			baseSalary: salary.baseSalary || 0,
+			dailySalary: salary.dailySalary || 0,
+			hourlySalary: salary.hourlySalary || 0,
+			overtimeRate: salary.overtimeRate || 1,
+			performanceBonus: salary.performanceBonus || 0,
+			status: salary.status || 1
+		}
+		showAddSalaryModal.value = true
 	}
 
 	const deleteSalary = async (id: number) => {
@@ -571,6 +806,48 @@
 		}
 	}
 
+	const submitBudgetForm = async () => {
+		if (!budgetFormData.value.budgetName || budgetFormData.value.budgetType === 0 || !budgetFormData.value.budgetYear || !budgetFormData.value.startDate || !budgetFormData.value.endDate) {
+			uni.showToast({ title: '请填写完整信息', icon: 'none' })
+			return
+		}
+
+		try {
+			if (editingBudget.value) {
+				await costApi.updateBudget({ id: editingBudget.value.id, ...budgetFormData.value })
+				uni.showToast({ title: '更新成功', icon: 'success' })
+			} else {
+				await costApi.addBudget(budgetFormData.value)
+				uni.showToast({ title: '添加成功', icon: 'success' })
+			}
+			closeBudgetModal()
+			fetchBudgetList()
+		} catch (e) {
+			uni.showToast({ title: '操作失败', icon: 'none' })
+		}
+	}
+
+	const submitSalaryForm = async () => {
+		if (!salaryFormData.value.baseSalary) {
+			uni.showToast({ title: '请填写基本工资', icon: 'none' })
+			return
+		}
+
+		try {
+			if (editingSalary.value) {
+				await costApi.updateSalaryConfig({ id: editingSalary.value.id, ...salaryFormData.value })
+				uni.showToast({ title: '更新成功', icon: 'success' })
+			} else {
+				await costApi.addSalaryConfig(salaryFormData.value)
+				uni.showToast({ title: '添加成功', icon: 'success' })
+			}
+			closeSalaryModal()
+			fetchSalaryList()
+		} catch (e) {
+			uni.showToast({ title: '操作失败', icon: 'none' })
+		}
+	}
+
 	const closeModal = () => {
 		showAddModal.value = false
 		editingCost.value = null
@@ -581,7 +858,46 @@
 			costDate: '',
 			paymentMethod: '',
 			invoiceNo: '',
-			description: ''
+			description: '',
+			vehicleId: '',
+			vehicleNo: '',
+			userId: '',
+			userName: '',
+			tripId: '',
+			tripNo: ''
+		}
+	}
+
+	const closeBudgetModal = () => {
+		showAddBudgetModal.value = false
+		editingBudget.value = null
+		budgetFormData.value = {
+			budgetName: '',
+			budgetType: 0,
+			budgetYear: new Date().getFullYear(),
+			startDate: '',
+			endDate: '',
+			fuelBudget: 0,
+			maintenanceBudget: 0,
+			laborBudget: 0,
+			insuranceBudget: 0,
+			depreciationBudget: 0,
+			managementBudget: 0,
+			otherBudget: 0
+		}
+	}
+
+	const closeSalaryModal = () => {
+		showAddSalaryModal.value = false
+		editingSalary.value = null
+		salaryFormData.value = {
+			userName: '',
+			baseSalary: 0,
+			dailySalary: 0,
+			hourlySalary: 0,
+			overtimeRate: 1,
+			performanceBonus: 0,
+			status: 1
 		}
 	}
 
