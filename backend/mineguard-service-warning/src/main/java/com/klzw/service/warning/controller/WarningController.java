@@ -225,8 +225,11 @@ public class WarningController {
 
     @PostMapping("/trip/start-warning")
     @Operation(summary = "启动行程预警检查")
-    public Result<Void> startTripWarning(@RequestParam Long tripId, @RequestParam Long vehicleId) {
-        tripWarningManager.startTripWarningCheck(tripId, vehicleId);
+    public Result<Void> startTripWarning(
+            @RequestParam Long tripId, 
+            @RequestParam Long vehicleId,
+            @RequestParam(required = false, defaultValue = "normal") String speedMode) {
+        tripWarningManager.startTripWarningCheck(tripId, vehicleId, speedMode);
         return Result.success();
     }
 

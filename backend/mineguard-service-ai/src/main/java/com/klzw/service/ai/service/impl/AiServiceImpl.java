@@ -76,11 +76,11 @@ public class AiServiceImpl implements AiService {
             systemPrompt.append("- search_vehicles: 搜索车辆信息\n");
             systemPrompt.append("请根据用户问题选择合适的工具调用，回答要简洁明了，用中文回答。");
             
-            ChatClient.ChatRequestRequestSpec chatRequest = chatClientWithTools.prompt()
+            String response = chatClientWithTools.prompt()
                     .system(systemPrompt.toString())
-                    .user(message);
-            
-            String response = chatRequest.call().content();
+                    .user(message)
+                    .call()
+                    .content();
             
             Map<String, Object> result = new HashMap<>();
             result.put("content", response);

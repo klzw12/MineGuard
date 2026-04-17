@@ -30,11 +30,13 @@ public class TripWarningManager {
     private static final String TRACK_HISTORY_PREFIX = "trip:track:";
     private static final String HEARTBEAT_PREFIX = "vehicle:heartbeat:";
     private static final int HEARTBEAT_TIMEOUT_SECONDS = 60;
-    private static final int CHECK_INTERVAL_SECONDS = 5;
+    private static final int CHECK_INTERVAL_NORMAL_SECONDS = 5;
+    private static final int CHECK_INTERVAL_FAST_SECONDS = 1;
+    private static final String SPEED_MODE_KEY_PREFIX = "trip:speed:mode:";
 
     private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(10);
     private final Map<Long, ScheduledExecutorService> tripExecutors = new ConcurrentHashMap<>();
-    private final Map<Long, Long> tripVehicleMap = new ConcurrentHashMap<>(); // 行程ID到车辆ID的映射
+    private final Map<Long, Long> tripVehicleMap = new ConcurrentHashMap<>();
 
     /**
      * 启动行程预警检查
@@ -42,22 +44,35 @@ public class TripWarningManager {
      * @param vehicleId 车辆ID
      */
     public void startTripWarningCheck(Long tripId, Long vehicleId) {
-        // 存储行程ID和车辆ID的映射
-        tripVehicleMap.put(tripId, vehicleId);
-        log.info("启动行程预警检查：行程ID={}, 车辆ID={}", tripId, vehicleId);
+        startTripWarningCheck(tripId, vehicleId, "normal");
+    }
 
-        // 创建行程专用的线程池
+    /**
+     * 启动行程预警检查
+     * @param tripId 行程ID
+     * @param vehicleId 车辆ID
+     * @param speedMode 速度模式 (normal/fast)
+     */
+    public void startTripWarningCheck(Long tripId, Long vehicleId, String speedMode) {
+        tripVehicleMap.put(tripId, vehicleId);
+        
+        int checkInterval = "fast".equalsIgnoreCase(speedMode) ? CHECK_INTERVAL_FAST_SECONDS : CHECK_INTERVAL_NORMAL_SECONDS;
+        
+        String speedModeKey = SPEED_MODE_KEY_PREFIX + tripId;
+        redisCacheService.set(speedModeKey, speedMode, 24, TimeUnit.HOURS);
+        
+        log.info("启动行程预警检查：行程ID={}, 车辆ID={}, 速度模式={}, 检查间隔={}秒", tripId, vehicleId, speedMode, checkInterval);
+
         ScheduledExecutorService tripExecutor = Executors.newSingleThreadScheduledExecutor();
         tripExecutors.put(tripId, tripExecutor);
 
-        // 定时检查行程的预警
         tripExecutor.scheduleAtFixedRate(() -> {
             try {
                 checkTripWarning(tripId, vehicleId);
             } catch (Exception e) {
                 log.error("检查行程预警异常：行程ID={}", tripId, e);
             }
-        }, 0, CHECK_INTERVAL_SECONDS, TimeUnit.SECONDS);
+        }, 0, checkInterval, TimeUnit.SECONDS);
     }
 
     /**
@@ -65,11 +80,13 @@ public class TripWarningManager {
      * @param tripId 行程ID
      */
     public void stopTripWarningCheck(Long tripId) {
-        // 移除行程ID和车辆ID的映射
         tripVehicleMap.remove(tripId);
+        
+        String speedModeKey = SPEED_MODE_KEY_PREFIX + tripId;
+        redisCacheService.delete(speedModeKey);
+        
         log.info("停止行程预警检查：行程ID={}", tripId);
 
-        // 关闭行程专用的线程池
         ScheduledExecutorService tripExecutor = tripExecutors.remove(tripId);
         if (tripExecutor != null) {
             tripExecutor.shutdown();
