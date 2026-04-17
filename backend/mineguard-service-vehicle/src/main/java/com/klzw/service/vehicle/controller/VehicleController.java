@@ -231,6 +231,20 @@ public class VehicleController {
         return Result.success(result);
     }
     
+    @Operation(summary = "获取车辆总数")
+    @GetMapping("/count")
+    public Result<Integer> getVehicleCount() {
+        int count = vehicleService.getVehicleCount();
+        return Result.success(count);
+    }
+    
+    @Operation(summary = "获取所有车辆ID列表")
+    @GetMapping("/ids")
+    public Result<List<Long>> getVehicleIds() {
+        List<Long> ids = vehicleService.getVehicleIds();
+        return Result.success(ids);
+    }
+    
     @Operation(summary = "报废车辆", description = "将车辆标记为报废状态（软删除）")
     @PutMapping("/{id}/scrap")
     public Result<Boolean> scrapVehicle(@PathVariable Long id) {

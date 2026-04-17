@@ -555,6 +555,18 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         return getById(id) != null;
     }
     
+    @Override
+    public int getVehicleCount() {
+        return (int) count();
+    }
+    
+    @Override
+    public List<Long> getVehicleIds() {
+        return list().stream()
+                .map(Vehicle::getId)
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
     private int calculateVehicleScore(Vehicle vehicle, com.klzw.service.vehicle.dto.BestVehicleQueryDTO query) {
         int score = 0;
         

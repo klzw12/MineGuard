@@ -158,6 +158,18 @@ public interface VehicleService extends IService<Vehicle> {
     boolean existsById(Long id);
 
     /**
+     * 获取车辆总数
+     * @return 车辆总数
+     */
+    int getVehicleCount();
+
+    /**
+     * 获取所有车辆ID列表
+     * @return 车辆ID列表
+     */
+    List<Long> getVehicleIds();
+
+    /**
      * 获取故障车辆列表
      * @return 故障车辆列表
      */
