@@ -13,6 +13,7 @@ export type TripVO = {
   endLongitude: number
   endLatitude: number
   cargoWeight: number
+  actualCargoWeight: number | null
   status: number
   statusName: string
   actualStartTime: string

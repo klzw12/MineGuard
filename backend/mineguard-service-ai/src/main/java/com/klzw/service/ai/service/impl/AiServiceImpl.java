@@ -13,9 +13,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -203,6 +206,10 @@ public class AiServiceImpl implements AiService {
      */
     public Map<String, Object> analyzeDrivingBehavior(Map<String, Object> trackData) {
         log.info("分析驾驶行为");
+        
+        // 计算基于预警记录的驾驶得分
+        int warningBasedScore = calculateScoreFromWarnings(trackData);
+        
         try {
             // 1. 调用 Python 服务进行数据清洗
             Map<String, Object> cleanResult = pythonClient.cleanDrivingData(trackData);
@@ -218,7 +225,12 @@ public class AiServiceImpl implements AiService {
             Map<String, Object> aiResponse = adapter.sendRequest(prompt, parameters);
             Map<String, Object> analysisResult = adapter.parseResponse(aiResponse);
             
-            // 3. 整合结果
+            // 3. 使用预警得分覆盖AI得分
+            if (analysisResult.containsKey("driving_score")) {
+                analysisResult.put("driving_score", warningBasedScore);
+            }
+            
+            // 4. 整合结果
             Map<String, Object> result = new HashMap<>();
             result.put("analysis", analysisResult);
             result.put("cleaning_report", cleaningReport);
@@ -237,6 +249,11 @@ public class AiServiceImpl implements AiService {
                 Map<String, Object> response = adapter.sendRequest(prompt, parameters);
                 Map<String, Object> analysisResult = adapter.parseResponse(response);
                 
+                // 使用预警得分覆盖AI得分
+                if (analysisResult.containsKey("driving_score")) {
+                    analysisResult.put("driving_score", warningBasedScore);
+                }
+                
                 Map<String, Object> result = new HashMap<>();
                 result.put("analysis", analysisResult);
                 result.put("status", "success");
@@ -244,16 +261,122 @@ public class AiServiceImpl implements AiService {
                 return result;
             } catch (Exception ex) {
                 log.error("分析驾驶行为异常", ex);
-                // 返回默认结果
+                // 返回默认结果，使用预警得分
                 Map<String, Object> result = new HashMap<>();
                 Map<String, Object> analysis = new HashMap<>();
-                analysis.put("driving_score", 85);
-                analysis.put("recommendations", new String[]{"驾驶行为良好，继续保持"});
+                analysis.put("driving_score", warningBasedScore);
+                analysis.put("recommendations", generateRecommendationsFromWarnings(trackData, warningBasedScore));
                 result.put("analysis", analysis);
                 result.put("status", "success");
                 return result;
             }
         }
+    }
+    
+    /**
+     * 根据预警记录计算驾驶得分
+     * 基础分100分，根据预警级别扣分：
+     * - 高危预警（level=3）：每次扣20分
+     * - 中危预警（level=2）：每次扣10分
+     * - 低危预警（level=1）：每次扣5分
+     * 最低分0分
+     */
+    private int calculateScoreFromWarnings(Map<String, Object> trackData) {
+        int baseScore = 100;
+        
+        Object warningRecordsObj = trackData.get("warningRecords");
+        if (warningRecordsObj == null) {
+            return baseScore;
+        }
+        
+        List<Map<String, Object>> warningRecords = (List<Map<String, Object>>) warningRecordsObj;
+        if (warningRecords.isEmpty()) {
+            return baseScore;
+        }
+        
+        int deduction = 0;
+        for (Map<String, Object> record : warningRecords) {
+            Object levelObj = record.get("warningLevel");
+            if (levelObj != null) {
+                int level = ((Number) levelObj).intValue();
+                switch (level) {
+                    case 3: deduction += 20; break;
+                    case 2: deduction += 10; break;
+                    case 1: deduction += 5; break;
+                }
+            }
+        }
+        
+        return Math.max(0, baseScore - deduction);
+    }
+    
+    /**
+     * 根据预警记录生成建议
+     */
+    private String[] generateRecommendationsFromWarnings(Map<String, Object> trackData, int score) {
+        List<String> recommendations = new ArrayList<>();
+        
+        Object warningRecordsObj = trackData.get("warningRecords");
+        if (warningRecordsObj != null) {
+            List<Map<String, Object>> warningRecords = (List<Map<String, Object>>) warningRecordsObj;
+            
+            Map<Integer, Integer> levelCounts = new HashMap<>();
+            Map<Integer, Set<String>> typeWarnings = new HashMap<>();
+            
+            for (Map<String, Object> record : warningRecords) {
+                Object levelObj = record.get("warningLevel");
+                Object typeObj = record.get("warningType");
+                Object contentObj = record.get("warningContent");
+                
+                if (levelObj != null) {
+                    int level = ((Number) levelObj).intValue();
+                    levelCounts.merge(level, 1, Integer::sum);
+                }
+                
+                if (typeObj != null && contentObj != null) {
+                    int type = ((Number) typeObj).intValue();
+                    typeWarnings.computeIfAbsent(type, k -> new HashSet<>()).add(contentObj.toString());
+                }
+            }
+            
+            // 根据预警级别生成建议
+            if (levelCounts.getOrDefault(3, 0) > 0) {
+                recommendations.add("存在高危预警，请立即改进驾驶行为");
+            }
+            if (levelCounts.getOrDefault(2, 0) > 0) {
+                recommendations.add("存在中危预警，请注意驾驶安全");
+            }
+            if (levelCounts.getOrDefault(1, 0) > 0) {
+                recommendations.add("存在低危预警，建议优化驾驶习惯");
+            }
+            
+            // 根据预警类型生成具体建议
+            if (typeWarnings.containsKey(1)) {
+                recommendations.add("注意控制车速，避免超速行驶");
+            }
+            if (typeWarnings.containsKey(2)) {
+                recommendations.add("保持平稳驾驶，避免急加速急减速");
+            }
+            if (typeWarnings.containsKey(3)) {
+                recommendations.add("注意车辆状态，及时检查维护");
+            }
+        }
+        
+        if (recommendations.isEmpty()) {
+            recommendations.add("驾驶行为良好，继续保持");
+        }
+        
+        if (score >= 90) {
+            recommendations.add("驾驶评分优秀，请继续保持安全驾驶习惯");
+        } else if (score >= 70) {
+            recommendations.add("驾驶评分良好，仍有改进空间");
+        } else if (score >= 50) {
+            recommendations.add("驾驶评分一般，请加强安全意识");
+        } else {
+            recommendations.add("驾驶评分较低，建议参加安全培训");
+        }
+        
+        return recommendations.toArray(new String[0]);
     }
 
     /**
@@ -263,19 +386,92 @@ public class AiServiceImpl implements AiService {
      */
     private String generateDrivingBehaviorPrompt(Map<String, Object> trackData) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("请根据以下轨迹数据分析司机的驾驶行为：\n");
-        prompt.append("轨迹数据：\n");
+        prompt.append("请根据以下数据分析司机的驾驶行为：\n\n");
         
-        for (Map.Entry<String, Object> entry : trackData.entrySet()) {
-            prompt.append(entry.getKey()).append(": " ).append(entry.getValue()).append("\n");
+        // 行程基本信息
+        prompt.append("【行程基本信息】\n");
+        if (trackData.containsKey("tripId")) {
+            prompt.append("行程ID: ").append(trackData.get("tripId")).append("\n");
+        }
+        if (trackData.containsKey("actualMileage")) {
+            prompt.append("实际里程: ").append(trackData.get("actualMileage")).append(" km\n");
+        }
+        if (trackData.containsKey("actualDuration")) {
+            prompt.append("实际时长: ").append(trackData.get("actualDuration")).append(" 分钟\n");
+        }
+        if (trackData.containsKey("averageSpeed")) {
+            prompt.append("平均速度: ").append(trackData.get("averageSpeed")).append(" km/h\n");
         }
         
-        prompt.append("\n请生成以下内容：\n");
-        prompt.append("1. 驾驶行为分析\n");
-        prompt.append("2. 超速情况\n");
-        prompt.append("3. 急加速/急减速情况\n");
-        prompt.append("4. 驾驶行为评分\n");
-        prompt.append("5. 改进建议\n");
+        // 预警记录信息
+        Object warningRecordsObj = trackData.get("warningRecords");
+        if (warningRecordsObj != null) {
+            List<Map<String, Object>> warningRecords = (List<Map<String, Object>>) warningRecordsObj;
+            prompt.append("\n【预警记录】共").append(warningRecords.size()).append("条\n");
+            
+            Map<Integer, Integer> levelCounts = new HashMap<>();
+            for (Map<String, Object> record : warningRecords) {
+                Object levelObj = record.get("warningLevel");
+                if (levelObj != null) {
+                    int level = ((Number) levelObj).intValue();
+                    levelCounts.merge(level, 1, Integer::sum);
+                }
+            }
+            
+            prompt.append("预警统计: ");
+            if (levelCounts.getOrDefault(3, 0) > 0) {
+                prompt.append("高危").append(levelCounts.get(3)).append("条 ");
+            }
+            if (levelCounts.getOrDefault(2, 0) > 0) {
+                prompt.append("中危").append(levelCounts.get(2)).append("条 ");
+            }
+            if (levelCounts.getOrDefault(1, 0) > 0) {
+                prompt.append("低危").append(levelCounts.get(1)).append("条 ");
+            }
+            prompt.append("\n");
+            
+            // 列出部分预警详情
+            prompt.append("预警详情:\n");
+            int count = 0;
+            for (Map<String, Object> record : warningRecords) {
+                if (count >= 5) {
+                    prompt.append("... 还有").append(warningRecords.size() - 5).append("条预警\n");
+                    break;
+                }
+                String levelName = "未知";
+                Object levelObj = record.get("warningLevel");
+                if (levelObj != null) {
+                    int level = ((Number) levelObj).intValue();
+                    levelName = level == 3 ? "高危" : level == 2 ? "中危" : "低危";
+                }
+                prompt.append("  - [").append(levelName).append("] ");
+                prompt.append(record.getOrDefault("warningContent", "未知预警")).append("\n");
+                count++;
+            }
+        } else {
+            prompt.append("\n【预警记录】无预警\n");
+        }
+        
+        // 其他数据
+        prompt.append("\n【其他数据】\n");
+        for (Map.Entry<String, Object> entry : trackData.entrySet()) {
+            if (!entry.getKey().equals("tripId") && 
+                !entry.getKey().equals("actualMileage") && 
+                !entry.getKey().equals("actualDuration") && 
+                !entry.getKey().equals("averageSpeed") && 
+                !entry.getKey().equals("warningRecords")) {
+                prompt.append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
+            }
+        }
+        
+        prompt.append("\n请生成以下内容（JSON格式）：\n");
+        prompt.append("{\n");
+        prompt.append("  \"driving_score\": <根据预警情况计算的分数，0-100>,\n");
+        prompt.append("  \"analysis\": \"<驾驶行为综合分析>\",\n");
+        prompt.append("  \"speed_analysis\": \"<超速情况分析>\",\n");
+        prompt.append("  \"acceleration_analysis\": \"<急加速/急减速情况分析>\",\n");
+        prompt.append("  \"recommendations\": [\"<改进建议1>\", \"<改进建议2>\"]\n");
+        prompt.append("}\n");
         
         return prompt.toString();
     }

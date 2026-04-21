@@ -39,4 +39,12 @@ public class DriverStatisticsVO {
     private Integer routeDeviationCount;
 
     private BigDecimal performanceScore;
+
+    private BigDecimal fuelCost;
+
+    private BigDecimal tollCost;
+
+    private BigDecimal commissionAmount;
+
+    private BigDecimal totalCost;
 }

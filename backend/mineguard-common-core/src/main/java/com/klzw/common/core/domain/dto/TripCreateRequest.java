@@ -1,6 +1,7 @@
 package com.klzw.common.core.domain.dto;
 
 import lombok.Data;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -68,6 +69,16 @@ public class TripCreateRequest {
      * 行程类型（1-日常，2-应急，3-维修，4-其他）
      */
     private Integer tripType;
+    
+    /**
+     * 货物重量(吨)
+     */
+    private BigDecimal cargoWeight;
+    
+    /**
+     * 预计提成金额
+     */
+    private BigDecimal estimatedCommissionAmount;
     
     /**
      * 备注

@@ -57,6 +57,8 @@ public class Trip extends BaseEntity {
 
     private BigDecimal cargoWeight;
 
+    private BigDecimal actualCargoWeight;
+
     private BigDecimal estimatedCommissionAmount;
 
     private String cancellationReason;

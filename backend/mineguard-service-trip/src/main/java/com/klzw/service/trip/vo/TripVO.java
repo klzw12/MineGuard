@@ -70,6 +70,12 @@ public class TripVO {
     @Schema(description = "平均速度（km/h）")
     private Double averageSpeed;
 
+    @Schema(description = "货物重量（吨）")
+    private BigDecimal cargoWeight;
+
+    @Schema(description = "实际货物重量（吨）- 后核算填写")
+    private BigDecimal actualCargoWeight;
+
     @Schema(description = "取消原因")
     private String cancellationReason;
 

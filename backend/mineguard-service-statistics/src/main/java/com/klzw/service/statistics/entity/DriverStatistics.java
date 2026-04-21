@@ -18,6 +18,8 @@ public class DriverStatistics {
 
     private Long userId;
 
+    private String userName;
+
     private LocalDate statisticsDate;
 
     private Integer attendanceDays;
@@ -43,6 +45,14 @@ public class DriverStatistics {
     private Integer routeDeviationCount;
 
     private BigDecimal performanceScore;
+
+    private BigDecimal fuelCost;
+
+    private BigDecimal tollCost;
+
+    private BigDecimal commissionAmount;
+
+    private BigDecimal totalCost;
 
     private LocalDateTime createTime;
 

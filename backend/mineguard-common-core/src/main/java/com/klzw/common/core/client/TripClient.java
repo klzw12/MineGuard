@@ -36,6 +36,13 @@ public interface TripClient {
         @RequestParam("endDate") String endDate
     );
     
+    @GetExchange("/trip/statistics/driver/{driverId}")
+    com.klzw.common.core.result.Result<java.util.Map<String, Object>> getDriverStatistics(
+        @PathVariable("driverId") Long driverId,
+        @RequestParam("startDate") String startDate,
+        @RequestParam("endDate") String endDate
+    );
+    
     @PostExchange("/trip/cancel-by-dispatch/{dispatchTaskId}")
     com.klzw.common.core.result.Result<Void> cancelTripByDispatchTaskId(
         @PathVariable("dispatchTaskId") Long dispatchTaskId,

@@ -40,6 +40,8 @@ export interface Trip {
   actualDuration: number
   fuelConsumption: number
   averageSpeed: number
+  cargoWeight: number
+  actualCargoWeight: number | null
   startLongitude: number
   startLatitude: number
   endLongitude: number
@@ -164,4 +166,8 @@ export function getTripDetail(id: string): Promise<TripDetailVO | null> {
 
 export function getTripCostDetails(tripId: string): Promise<CostDetailItem[] | null> {
   return http.get<CostDetailItem[]>(`/trip/${tripId}/cost-details`)
+}
+
+export function updateActualCargoWeight(tripId: string, actualCargoWeight: number): Promise<void | null> {
+  return http.put<void>(`/trip/${tripId}/actual-cargo-weight`, { actualCargoWeight })
 }

@@ -1,86 +1,153 @@
 <template>
-  <view class="ai-container">
-    <view class="chat-header">
-      <text class="header-title">AI 智能助手</text>
-      <text class="header-subtitle">MineGuard 矿山管理系统</text>
-    </view>
-    
-    <scroll-view 
-      class="chat-messages" 
-      :scroll-y="true" 
-      :scroll-into-view="scrollIntoView"
-      :scroll-with-animation="true"
-    >
-      <view class="message-list">
-        <view 
-          v-for="(msg, index) in messages" 
-          :key="index" 
-          :class="['message-item', msg.role]"
-          :id="'msg-' + index"
-        >
-          <view class="message-avatar">
-            <image 
-              v-if="msg.role === 'user'" 
-              class="avatar-icon" 
-              src="/static/icons/user.png"
-            />
-            <image 
-              v-else 
-              class="avatar-icon" 
-              src="/static/icons/ai.png"
-            />
-          </view>
-          <view class="message-content">
-            <text class="message-text">{{ msg.content }}</text>
-          </view>
-        </view>
-        
-        <view v-if="loading" class="message-item assistant loading">
-          <view class="message-avatar">
-            <image class="avatar-icon" src="/static/icons/ai.png"/>
-          </view>
-          <view class="message-content">
-            <text class="message-text">正在思考中...</text>
-          </view>
-        </view>
+  <AdminLayout>
+    <view class="ai-page">
+      <view class="page-header">
+        <text class="page-title">AI 智能助手</text>
+        <text class="page-subtitle">MineGuard 矿山管理系统</text>
       </view>
-    </scroll-view>
-    
-    <view class="chat-input-area">
-      <view class="quick-actions">
-        <view 
-          v-for="(action, index) in quickActions" 
-          :key="index" 
-          class="quick-action-btn"
-          @click="sendQuickMessage(action)"
+      
+      <view class="chat-container">
+        <scroll-view 
+          class="chat-messages" 
+          :scroll-y="true" 
+          :scroll-into-view="scrollIntoView"
+          :scroll-with-animation="true"
         >
-          <text class="quick-action-text">{{ action }}</text>
+          <view class="message-list">
+            <view 
+              v-for="(msg, index) in messages" 
+              :key="index" 
+              :class="['message-item', msg.role]"
+              :id="'msg-' + index"
+            >
+              <view class="message-avatar">
+                <image 
+                  v-if="msg.role === 'user'" 
+                  class="avatar-icon" 
+                  src="/static/icons/user.png"
+                />
+                <image 
+                  v-else 
+                  class="avatar-icon" 
+                  src="/static/icons/ai.png"
+                />
+              </view>
+              <view class="message-content">
+                <text class="message-text" selectable="true">{{ msg.content }}</text>
+              </view>
+            </view>
+            
+            <view v-if="loading" class="message-item assistant loading">
+              <view class="message-avatar">
+                <image class="avatar-icon" src="/static/icons/ai.png"/>
+              </view>
+              <view class="message-content">
+                <view class="typing-indicator">
+                  <view class="typing-dot"></view>
+                  <view class="typing-dot"></view>
+                  <view class="typing-dot"></view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+        
+        <view class="chat-input-area">
+          <view class="quick-actions">
+            <view 
+              v-for="(action, index) in quickActions" 
+              :key="index" 
+              class="quick-action-btn"
+              @click="handleQuickAction(action)"
+            >
+              <text class="quick-action-text">{{ action.label }}</text>
+            </view>
+          </view>
+          
+          <view class="input-row">
+            <input 
+              class="chat-input"
+              v-model="inputMessage"
+              placeholder="请输入您的问题..."
+              :adjust-position="true"
+              @confirm="sendMessage"
+            />
+            <button 
+              class="send-btn" 
+              :disabled="!inputMessage.trim() || loading"
+              @click="sendMessage"
+            >
+              <text class="send-btn-text">发送</text>
+            </button>
+          </view>
         </view>
       </view>
       
-      <view class="input-row">
-        <input 
-          class="chat-input"
-          v-model="inputMessage"
-          placeholder="请输入您的问题..."
-          :adjust-position="true"
-          @confirm="sendMessage"
-        />
-        <button 
-          class="send-btn" 
-          :disabled="!inputMessage.trim() || loading"
-          @click="sendMessage"
-        >
-          <text class="send-btn-text">发送</text>
-        </button>
+      <view v-if="showDateModal" class="modal-overlay" @click="closeDateModal">
+        <view class="modal-content" @click.stop>
+          <view class="modal-header">
+            <text class="modal-title">{{ dateModalTitle }}</text>
+            <text class="modal-close" @click="closeDateModal">×</text>
+          </view>
+          <view class="modal-body">
+            <view class="date-row">
+              <text class="date-label">开始日期</text>
+              <picker 
+                mode="date" 
+                :value="startDate" 
+                @change="onStartDateChange"
+                class="date-picker"
+              >
+                <view class="date-value">{{ startDate || '请选择' }}</view>
+              </picker>
+            </view>
+            <view class="date-row">
+              <text class="date-label">结束日期</text>
+              <picker 
+                mode="date" 
+                :value="endDate" 
+                @change="onEndDateChange"
+                class="date-picker"
+              >
+                <view class="date-value">{{ endDate || '请选择' }}</view>
+              </picker>
+            </view>
+            <view class="quick-date-btns">
+              <view class="quick-date-btn" @click="setDateRange('today')">
+                <text class="quick-date-text">今日</text>
+              </view>
+              <view class="quick-date-btn" @click="setDateRange('week')">
+                <text class="quick-date-text">本周</text>
+              </view>
+              <view class="quick-date-btn" @click="setDateRange('month')">
+                <text class="quick-date-text">本月</text>
+              </view>
+            </view>
+          </view>
+          <view class="modal-footer">
+            <button class="modal-btn cancel" @click="closeDateModal">
+              <text class="modal-btn-text">取消</text>
+            </button>
+            <button class="modal-btn confirm" @click="confirmDateRange">
+              <text class="modal-btn-text">确定</text>
+            </button>
+          </view>
+        </view>
       </view>
     </view>
-  </view>
+  </AdminLayout>
 </template>
 
 <script setup lang="uts">
+import AdminLayout from '../../../components/AdminLayout.uvue'
 import { ref, nextTick } from 'vue'
 import aiApi, { ChatMessage } from '@/api/ai'
+
+type QuickAction = {
+  label: string
+  action: string
+  needDate: boolean
+}
 
 const messages = ref<ChatMessage[]>([
   {
@@ -93,12 +160,84 @@ const inputMessage = ref('')
 const loading = ref(false)
 const scrollIntoView = ref('')
 
-const quickActions = ref<string[]>([
-  '今日车辆运行情况',
-  '成本分析建议',
-  '调度优化方案',
-  '预警统计'
+const quickActions = ref<QuickAction[]>([
+  { label: '今日车辆运行情况', action: 'vehicle_status', needDate: false },
+  { label: '成本分析建议', action: 'cost_analysis', needDate: true },
+  { label: '调度优化方案', action: 'dispatch_optimization', needDate: true },
+  { label: '预警统计', action: 'warning_statistics', needDate: false }
 ])
+
+const showDateModal = ref(false)
+const dateModalTitle = ref('选择日期范围')
+const startDate = ref('')
+const endDate = ref('')
+const currentAction = ref('')
+
+const formatDate = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const getToday = (): string => {
+  return formatDate(new Date())
+}
+
+const handleQuickAction = (action: QuickAction) => {
+  if (action.needDate) {
+    currentAction.value = action.action
+    dateModalTitle.value = action.label + ' - 选择日期范围'
+    const today = getToday()
+    startDate.value = today
+    endDate.value = today
+    showDateModal.value = true
+  } else {
+    inputMessage.value = action.label
+    sendMessage()
+  }
+}
+
+const onStartDateChange = (e: any) => {
+  startDate.value = e.detail.value
+}
+
+const onEndDateChange = (e: any) => {
+  endDate.value = e.detail.value
+}
+
+const setDateRange = (range: string) => {
+  const today = new Date()
+  if (range === 'today') {
+    startDate.value = formatDate(today)
+    endDate.value = formatDate(today)
+  } else if (range === 'week') {
+    const dayOfWeek = today.getDay()
+    const startOfWeek = new Date(today)
+    startOfWeek.setDate(today.getDate() - dayOfWeek)
+    startDate.value = formatDate(startOfWeek)
+    endDate.value = formatDate(today)
+  } else if (range === 'month') {
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+    startDate.value = formatDate(startOfMonth)
+    endDate.value = formatDate(today)
+  }
+}
+
+const closeDateModal = () => {
+  showDateModal.value = false
+}
+
+const confirmDateRange = () => {
+  showDateModal.value = false
+  
+  const action = quickActions.value.find(a => a.action === currentAction.value)
+  if (action) {
+    const message = `${action.label}（${startDate.value} 至 ${endDate.value}）`
+    inputMessage.value = message
+    sendMessage()
+  }
+}
 
 const sendMessage = async () => {
   const message = inputMessage.value.trim()
@@ -164,11 +303,6 @@ const sendMessage = async () => {
   }
 }
 
-const sendQuickMessage = (action: string) => {
-  inputMessage.value = action
-  sendMessage()
-}
-
 const scrollToBottom = () => {
   nextTick(() => {
     const lastIndex = messages.value.length - 1
@@ -180,28 +314,35 @@ const scrollToBottom = () => {
 </script>
 
 <style scoped>
-.ai-container {
+.ai-page {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background-color: #f5f5f5;
+  height: calc(100vh - 100rpx);
 }
 
-.chat-header {
-  padding: 20rpx 30rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.page-header {
+  margin-bottom: 30rpx;
 }
 
-.header-title {
+.page-title {
   font-size: 36rpx;
   font-weight: bold;
   color: #ffffff;
 }
 
-.header-subtitle {
+.page-subtitle {
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.6);
   margin-top: 8rpx;
+}
+
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: #1e293b;
+  border-radius: 20rpx;
+  overflow: hidden;
 }
 
 .chat-messages {
@@ -216,6 +357,7 @@ const scrollToBottom = () => {
 .message-item {
   display: flex;
   margin-bottom: 30rpx;
+  align-items: flex-start;
 }
 
 .message-item.user {
@@ -223,11 +365,12 @@ const scrollToBottom = () => {
 }
 
 .message-avatar {
-  width: 80rpx;
-  height: 80rpx;
+  width: 70rpx;
+  height: 70rpx;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
+  background-color: #2a3347;
 }
 
 .avatar-icon {
@@ -236,19 +379,23 @@ const scrollToBottom = () => {
 }
 
 .message-content {
-  max-width: 70%;
+  max-width: 75%;
   margin: 0 20rpx;
-  padding: 20rpx 24rpx;
-  border-radius: 16rpx;
-  word-break: break-all;
+  padding: 24rpx 28rpx;
+  border-radius: 20rpx;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .message-item.user .message-content {
-  background-color: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-top-right-radius: 6rpx;
 }
 
 .message-item.assistant .message-content {
-  background-color: #ffffff;
+  background-color: #2a3347;
+  border-top-left-radius: 6rpx;
 }
 
 .message-item.user .message-text {
@@ -256,22 +403,55 @@ const scrollToBottom = () => {
 }
 
 .message-item.assistant .message-text {
-  color: #333333;
+  color: #e2e8f0;
 }
 
 .message-text {
   font-size: 28rpx;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .loading .message-content {
-  background-color: #e8e8e8;
+  padding: 20rpx 28rpx;
+}
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.typing-dot {
+  width: 12rpx;
+  height: 12rpx;
+  background-color: #667eea;
+  border-radius: 50%;
+  animation: typing 1.4s infinite ease-in-out both;
+}
+
+.typing-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes typing {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .chat-input-area {
   padding: 20rpx;
-  background-color: #ffffff;
-  border-top: 1rpx solid #e8e8e8;
+  background-color: #1a1f2e;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.08);
 }
 
 .quick-actions {
@@ -282,14 +462,19 @@ const scrollToBottom = () => {
 }
 
 .quick-action-btn {
-  padding: 12rpx 24rpx;
-  background-color: #f0f0f0;
+  padding: 14rpx 28rpx;
+  background-color: #2a3347;
   border-radius: 30rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+}
+
+.quick-action-btn:active {
+  background-color: #3a4357;
 }
 
 .quick-action-text {
   font-size: 24rpx;
-  color: #666666;
+  color: #94a3b8;
 }
 
 .input-row {
@@ -301,10 +486,16 @@ const scrollToBottom = () => {
 .chat-input {
   flex: 1;
   height: 80rpx;
-  padding: 0 24rpx;
-  background-color: #f5f5f5;
+  padding: 0 30rpx;
+  background-color: #2a3347;
   border-radius: 40rpx;
   font-size: 28rpx;
+  color: #ffffff;
+  border: 1rpx solid rgba(255, 255, 255, 0.1);
+}
+
+.chat-input::placeholder {
+  color: #64748b;
 }
 
 .send-btn {
@@ -322,6 +513,129 @@ const scrollToBottom = () => {
 }
 
 .send-btn-text {
+  font-size: 28rpx;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  width: 600rpx;
+  background-color: #1e293b;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30rpx;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-title {
+  font-size: 32rpx;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.modal-close {
+  font-size: 48rpx;
+  color: #64748b;
+  line-height: 1;
+}
+
+.modal-body {
+  padding: 30rpx;
+}
+
+.date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30rpx;
+}
+
+.date-label {
+  font-size: 28rpx;
+  color: #94a3b8;
+}
+
+.date-picker {
+  flex: 1;
+  margin-left: 30rpx;
+}
+
+.date-value {
+  padding: 20rpx 30rpx;
+  background-color: #2a3347;
+  border-radius: 10rpx;
+  font-size: 28rpx;
+  color: #ffffff;
+  text-align: center;
+}
+
+.quick-date-btns {
+  display: flex;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-top: 20rpx;
+}
+
+.quick-date-btn {
+  flex: 1;
+  padding: 20rpx 0;
+  background-color: #2a3347;
+  border-radius: 10rpx;
+  text-align: center;
+}
+
+.quick-date-btn:active {
+  background-color: #3a4357;
+}
+
+.quick-date-text {
+  font-size: 26rpx;
+  color: #94a3b8;
+}
+
+.modal-footer {
+  display: flex;
+  padding: 20rpx 30rpx 30rpx;
+  gap: 20rpx;
+}
+
+.modal-btn {
+  flex: 1;
+  height: 80rpx;
+  border-radius: 10rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-btn.cancel {
+  background-color: #2a3347;
+}
+
+.modal-btn.confirm {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.modal-btn-text {
   font-size: 28rpx;
   color: #ffffff;
 }

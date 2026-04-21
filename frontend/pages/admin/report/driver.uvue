@@ -49,11 +49,12 @@
 						</view>
 						<view class="ranking-info">
 							<text class="ranking-name">{{ driver.name }}</text>
-							<text class="ranking-stats">完成任务: {{ driver.tasks }} | 安全评分: {{ driver.safetyScore }}</text>
+							<text class="ranking-stats">完成任务: {{ driver.tasks }} | 预警: {{ driver.warningCount || 0 }}次</text>
+							<text class="ranking-cost">成本: ¥{{ driver.totalCost?.toFixed(2) || '0.00' }} | 提成: ¥{{ driver.commission?.toFixed(2) || '0.00' }}</text>
 						</view>
 						<view class="ranking-score">
 							<text class="score-value">{{ driver.score }}</text>
-							<text class="score-label">综合评分</text>
+							<text class="score-label">绩效评分</text>
 						</view>
 					</view>
 				</view>
@@ -124,7 +125,9 @@
 					.map((driver: DriverStatisticsVO) => ({
 						name: driver.userName,
 						tasks: driver.tripCount || 0,
-						safetyScore: 100 - (driver.warningCount || 0) * 2,
+						warningCount: driver.warningCount || 0,
+						totalCost: driver.totalCost || 0,
+						commission: driver.commissionAmount || 0,
 						score: driver.performanceScore || 0
 					}))
 				
@@ -305,6 +308,12 @@
 	.ranking-stats {
 		font-size: 22rpx;
 		color: rgba(255, 255, 255, 0.5);
+	}
+
+	.ranking-cost {
+		font-size: 20rpx;
+		color: #007AFF;
+		margin-top: 5rpx;
 	}
 	
 	.ranking-score {

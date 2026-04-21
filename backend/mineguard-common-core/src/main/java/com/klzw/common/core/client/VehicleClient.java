@@ -32,6 +32,9 @@ public interface VehicleClient {
     @GetExchange("/vehicle/available")
     Result<List<VehicleInfo>> getAvailableVehicles();
 
+    @GetExchange("/vehicle/idle")
+    Result<List<VehicleInfo>> getIdleVehicles();
+
     @GetExchange("/vehicle/fault")
     Result<List<VehicleInfo>> getFaultVehicles();
 

@@ -121,6 +121,8 @@ public class DispatchServiceImpl implements DispatchService {
             request.setEstimatedStartTime(task.getScheduledStartTime());
             request.setEstimatedEndTime(task.getScheduledEndTime());
             request.setTripType(1);
+            request.setCargoWeight(task.getCargoWeight());
+            request.setEstimatedCommissionAmount(task.getEstimatedCommissionAmount());
             request.setRemark("调度任务自动生成，任务编号：" + task.getTaskNo());
 
             var result = tripClient.createTrip(request).block();

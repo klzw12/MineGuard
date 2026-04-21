@@ -245,6 +245,13 @@ public class VehicleController {
         return Result.success(ids);
     }
     
+    @Operation(summary = "获取所有空闲车辆(包括专用车)")
+    @GetMapping("/idle")
+    public Result<List<VehicleVO>> getIdleVehicles() {
+        List<VehicleVO> vehicles = vehicleService.getIdleVehicles();
+        return Result.success(vehicles);
+    }
+    
     @Operation(summary = "报废车辆", description = "将车辆标记为报废状态（软删除）")
     @PutMapping("/{id}/scrap")
     public Result<Boolean> scrapVehicle(@PathVariable Long id) {

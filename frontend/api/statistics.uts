@@ -63,6 +63,10 @@ export interface DriverStatisticsVO {
   overSpeedCount: number
   routeDeviationCount: number
   performanceScore: number
+  fuelCost: number
+  tollCost: number
+  commissionAmount: number
+  totalCost: number
 }
 
 export interface FaultStatisticsVO {

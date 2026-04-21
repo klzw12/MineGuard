@@ -1,0 +1,170 @@
+<template>
+	<view>
+		<view class="picker-wrapper" @click="showPicker = true">
+			<text class="picker-value" :class="{ placeholder: !hasValue }">{{ displayText || placeholder }}</text>
+			<text class="picker-arrow">▼</text>
+		</view>
+
+		<view class="picker-mask" v-if="showPicker" @click="showPicker = false">
+			<view class="picker-content" @click.stop>
+				<view class="picker-header">
+					<text class="picker-title">{{ title }}</text>
+					<text class="picker-close" @click="showPicker = false">×</text>
+				</view>
+				<view class="picker-options">
+					<view 
+						class="picker-option" 
+						v-for="item in options" 
+						:key="item[valueKey]"
+						:class="{ selected: modelValue === item[valueKey] }"
+						@click="handleSelect(item)"
+					>
+						<text class="option-text">{{ item[labelKey] }}</text>
+						<text v-if="modelValue === item[valueKey]" class="option-check">✓</text>
+					</view>
+				</view>
+			</view>
+		</view>
+	</view>
+</template>
+
+<script setup lang="uts">
+	import { ref, computed, watch } from 'vue'
+
+	type PickerOption = {
+		[key: string]: any
+	}
+
+	const props = defineProps<{
+		modelValue: any
+		options: PickerOption[]
+		title: string
+		placeholder?: string
+		labelKey?: string
+		valueKey?: string
+	}>()
+
+	const emit = defineEmits<{
+		(e: 'update:modelValue', value: any): void
+		(e: 'change', item: PickerOption): void
+	}>()
+
+	const showPicker = ref(false)
+	const labelKey = computed(() => props.labelKey || 'name')
+	const valueKey = computed(() => props.valueKey || 'code')
+	const placeholder = computed(() => props.placeholder || '请选择')
+
+	const hasValue = computed(() => {
+		return props.modelValue !== null && props.modelValue !== undefined
+	})
+
+	const displayText = computed(() => {
+		if (!hasValue.value) return ''
+		const item = props.options.find((o: PickerOption) => o[valueKey.value] === props.modelValue)
+		return item ? item[labelKey.value] : ''
+	})
+
+	const handleSelect = (item: PickerOption) => {
+		emit('update:modelValue', item[valueKey.value])
+		emit('change', item)
+		showPicker.value = false
+	}
+</script>
+
+<style lang="scss">
+	.picker-wrapper {
+		width: 100%;
+		padding: 20rpx;
+		background-color: #2a3347;
+		border-radius: 10rpx;
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		box-sizing: border-box;
+	}
+
+	.picker-value {
+		font-size: 26rpx;
+		color: #fff;
+	}
+
+	.picker-value.placeholder {
+		color: rgba(255, 255, 255, 0.5);
+	}
+
+	.picker-arrow {
+		font-size: 20rpx;
+		color: rgba(255, 255, 255, 0.5);
+	}
+
+	.picker-mask {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background-color: rgba(0, 0, 0, 0.7);
+		display: flex;
+		justify-content: center;
+		align-items: flex-end;
+		z-index: 1001;
+	}
+
+	.picker-content {
+		width: 100%;
+		background-color: #1e2536;
+		border-radius: 32rpx 32rpx 0 0;
+		overflow: hidden;
+	}
+
+	.picker-header {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 30rpx;
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+	}
+
+	.picker-title {
+		font-size: 32rpx;
+		font-weight: bold;
+		color: #fff;
+	}
+
+	.picker-close {
+		font-size: 48rpx;
+		color: rgba(255, 255, 255, 0.6);
+		line-height: 1;
+	}
+
+	.picker-options {
+		padding: 16rpx 0;
+		max-height: 600rpx;
+		overflow-y: auto;
+	}
+
+	.picker-option {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 30rpx;
+	}
+
+	.picker-option.selected {
+		background-color: rgba(0, 122, 255, 0.2);
+	}
+
+	.option-text {
+		font-size: 28rpx;
+		color: #fff;
+	}
+
+	.option-check {
+		font-size: 32rpx;
+		color: #007AFF;
+		font-weight: bold;
+	}
+</style>

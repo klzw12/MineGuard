@@ -90,6 +90,30 @@
 							<text class="info-value">{{ tripDetail.estimatedCommissionAmount || 0 }} 元</text>
 						</view>
 					</view>
+					<view class="info-row">
+						<view class="info-item">
+							<text class="info-label">预计货物重量</text>
+							<text class="info-value">{{ tripDetail.cargoWeight || 0 }} 吨</text>
+						</view>
+						<view class="info-item">
+							<text class="info-label">实际货物重量</text>
+							<view class="editable-field" v-if="tripDetail.status === 3">
+								<input 
+									type="digit" 
+									v-model="actualCargoWeightInput" 
+									class="inline-input"
+									placeholder="请输入"
+								/>
+								<text class="unit">吨</text>
+								<button class="save-btn" @click="saveActualCargoWeight">保存</button>
+							</view>
+							<text class="info-value" v-else>{{ tripDetail.actualCargoWeight || '-' }} 吨</text>
+						</view>
+						<view class="info-item">
+							<text class="info-label">重量差异</text>
+							<text class="info-value" :class="getWeightDiffClass()">{{ getWeightDiff() }}</text>
+						</view>
+					</view>
 				</view>
 			</view>
 			
@@ -169,12 +193,13 @@
 <script setup lang="uts">
 	import AdminLayout from '../../../components/AdminLayout.uvue'
 	import { ref, computed, onMounted } from 'vue'
-	import { getTripDetail, getTripCostDetails, type TripDetailVO, type CostDetailItem, type AiAnalysisResult } from '@/api/trip.uts'
+	import { getTripDetail, getTripCostDetails, updateActualCargoWeight, type TripDetailVO, type CostDetailItem, type AiAnalysisResult } from '@/api/trip.uts'
 
 	const tripId = ref<string>('')
 	const tripDetail = ref<TripDetailVO | null>(null)
 	const costDetails = ref<CostDetailItem[]>([])
 	const aiAnalysis = ref<AiAnalysisResult | null>(null)
+	const actualCargoWeightInput = ref<string>('')
 
 	const totalCostAmount = computed(() => {
 		return costDetails.value.reduce((sum, item) => sum + (item.amount || 0), 0).toFixed(2)
@@ -219,6 +244,10 @@
 			if (detail) {
 				tripDetail.value = detail
 				
+				if (detail.actualCargoWeight != null) {
+					actualCargoWeightInput.value = String(detail.actualCargoWeight)
+				}
+				
 				if (detail.aiAnalysis) {
 					try {
 						aiAnalysis.value = JSON.parse(detail.aiAnalysis) as AiAnalysisResult
@@ -238,6 +267,48 @@
 		} finally {
 			uni.hideLoading()
 		}
+	}
+
+	const saveActualCargoWeight = async () => {
+		if (!tripId.value) return
+		
+		const weight = parseFloat(actualCargoWeightInput.value)
+		if (isNaN(weight) || weight < 0) {
+			uni.showToast({ title: '请输入有效的重量', icon: 'none' })
+			return
+		}
+		
+		try {
+			await updateActualCargoWeight(tripId.value, weight)
+			if (tripDetail.value) {
+				tripDetail.value.actualCargoWeight = weight
+			}
+			uni.showToast({ title: '保存成功', icon: 'success' })
+		} catch (e) {
+			console.error('保存实际货物重量失败', e)
+			uni.showToast({ title: '保存失败', icon: 'none' })
+		}
+	}
+
+	const getWeightDiff = (): string => {
+		if (!tripDetail.value) return '-'
+		const estimated = tripDetail.value.cargoWeight || 0
+		const actual = tripDetail.value.actualCargoWeight
+		if (actual == null) return '-'
+		const diff = actual - estimated
+		if (diff === 0) return '无差异'
+		const sign = diff > 0 ? '+' : ''
+		return `${sign}${diff.toFixed(2)} 吨`
+	}
+
+	const getWeightDiffClass = (): string => {
+		if (!tripDetail.value || tripDetail.value.actualCargoWeight == null) return ''
+		const estimated = tripDetail.value.cargoWeight || 0
+		const actual = tripDetail.value.actualCargoWeight
+		const diff = actual - estimated
+		if (diff > 0) return 'diff-positive'
+		if (diff < 0) return 'diff-negative'
+		return 'diff-zero'
 	}
 
 	const goToPlayback = () => {
@@ -352,6 +423,40 @@
 							display: block;
 							font-size: 26rpx;
 							color: #fff;
+							
+							&.diff-positive { color: #FF9500; }
+							&.diff-negative { color: #34C759; }
+							&.diff-zero { color: rgba(255, 255, 255, 0.7); }
+						}
+						
+						.editable-field {
+							display: flex;
+							flex-direction: row;
+							align-items: center;
+							gap: 10rpx;
+							
+							.inline-input {
+								width: 120rpx;
+								height: 50rpx;
+								padding: 0 15rpx;
+								background-color: rgba(255, 255, 255, 0.1);
+								border-radius: 8rpx;
+								color: #fff;
+								font-size: 24rpx;
+							}
+							
+							.unit {
+								font-size: 22rpx;
+								color: rgba(255, 255, 255, 0.5);
+							}
+							
+							.save-btn {
+								padding: 8rpx 20rpx;
+								background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+								color: #fff;
+								font-size: 22rpx;
+								border-radius: 8rpx;
+							}
 						}
 					}
 				}

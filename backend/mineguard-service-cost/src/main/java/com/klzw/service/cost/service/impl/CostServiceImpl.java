@@ -193,6 +193,7 @@ public class CostServiceImpl implements CostService {
         vo.setDepreciationCost(typeAmountMap.getOrDefault(CostTypeEnum.DEPRECIATION.getCode(), BigDecimal.ZERO));
         vo.setManagementCost(typeAmountMap.getOrDefault(CostTypeEnum.MANAGEMENT.getCode(), BigDecimal.ZERO));
         vo.setOtherCost(typeAmountMap.getOrDefault(CostTypeEnum.OTHER.getCode(), BigDecimal.ZERO));
+        vo.setTripCommissionCost(typeAmountMap.getOrDefault(CostTypeEnum.TRIP_COMMISSION.getCode(), BigDecimal.ZERO));
         
         log.debug("统计成本：总成本={}", totalAmount);
         
@@ -1214,5 +1215,70 @@ public class CostServiceImpl implements CostService {
         params.put("overtimeRate", salaryConfigProperties.getOvertimeRate());
         params.put("leaveThreshold", salaryConfigProperties.getLeaveThreshold());
         return params;
+    }
+
+    @Override
+    public Map<String, Object> getDriverCostStatistics(Long userId, LocalDate startDate, LocalDate endDate) {
+        log.info("获取司机成本统计：userId={}, startDate={}, endDate={}", userId, startDate, endDate);
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            LambdaQueryWrapper<CostDetail> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(CostDetail::getUserId, userId)
+                   .ge(CostDetail::getCostDate, startDate)
+                   .le(CostDetail::getCostDate, endDate);
+            
+            List<CostDetail> costDetails = costDetailMapper.selectList(wrapper);
+            
+            BigDecimal fuelCost = BigDecimal.ZERO;
+            BigDecimal tollCost = BigDecimal.ZERO;
+            BigDecimal commissionAmount = BigDecimal.ZERO;
+            BigDecimal totalCost = BigDecimal.ZERO;
+            
+            for (CostDetail detail : costDetails) {
+                if (detail.getAmount() != null) {
+                    totalCost = totalCost.add(detail.getAmount());
+                    
+                    Integer costType = detail.getCostType();
+                    if (costType != null) {
+                        switch (costType) {
+                            case 1: // FUEL
+                                fuelCost = fuelCost.add(detail.getAmount());
+                                break;
+                            case 5: // TOLL
+                                tollCost = tollCost.add(detail.getAmount());
+                                break;
+                            case 8: // TRIP_COMMISSION
+                                commissionAmount = commissionAmount.add(detail.getAmount());
+                                break;
+                        }
+                    }
+                }
+            }
+            
+            result.put("userId", userId);
+            result.put("startDate", startDate.toString());
+            result.put("endDate", endDate.toString());
+            result.put("fuelCost", fuelCost);
+            result.put("tollCost", tollCost);
+            result.put("commissionAmount", commissionAmount);
+            result.put("totalCost", totalCost);
+            result.put("recordCount", costDetails.size());
+            
+            log.info("司机成本统计完成：userId={}, totalCost={}", userId, totalCost);
+            
+        } catch (Exception e) {
+            log.error("获取司机成本统计失败：userId={}", userId, e);
+            result.put("userId", userId);
+            result.put("fuelCost", BigDecimal.ZERO);
+            result.put("tollCost", BigDecimal.ZERO);
+            result.put("commissionAmount", BigDecimal.ZERO);
+            result.put("totalCost", BigDecimal.ZERO);
+            result.put("recordCount", 0);
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
     }
 }

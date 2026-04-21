@@ -82,4 +82,14 @@ public interface TripService extends IService<Trip> {
      * 根据调度任务ID取消行程
      */
     void cancelTripByDispatchTaskId(Long dispatchTaskId, String reason);
+    
+    /**
+     * 更新实际货物重量（后核算）
+     */
+    void updateActualCargoWeight(Long id, java.math.BigDecimal actualCargoWeight);
+    
+    /**
+     * 获取司机行程统计（供 statistics 服务调用）
+     */
+    java.util.Map<String, Object> getDriverStatistics(Long driverId, String startDate, String endDate);
 }

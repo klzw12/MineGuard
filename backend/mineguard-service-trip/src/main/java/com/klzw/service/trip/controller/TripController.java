@@ -157,6 +157,15 @@ public class TripController {
         return Result.success(tripService.getStatisticsByDateRange(startDate, endDate));
     }
 
+    @GetMapping("/statistics/driver/{driverId}")
+    @Operation(summary = "获取司机行程统计（供 statistics 服务调用）")
+    public Result<java.util.Map<String, Object>> getDriverStatistics(
+            @PathVariable Long driverId,
+            @RequestParam("startDate") String startDate,
+            @RequestParam("endDate") String endDate) {
+        return Result.success(tripService.getDriverStatistics(driverId, startDate, endDate));
+    }
+
     @GetMapping("/active")
     @Operation(summary = "获取用户的进行中行程")
     public Result<TripVO> getActiveTrip() {
@@ -191,6 +200,16 @@ public class TripController {
             @PathVariable Long dispatchTaskId,
             @RequestParam(required = false) String reason) {
         tripService.cancelTripByDispatchTaskId(dispatchTaskId, reason);
+        return Result.success();
+    }
+
+    @PutMapping("/{id}/actual-cargo-weight")
+    @Operation(summary = "更新实际货物重量（后核算）")
+    public Result<Void> updateActualCargoWeight(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, java.math.BigDecimal> request) {
+        java.math.BigDecimal actualCargoWeight = request.get("actualCargoWeight");
+        tripService.updateActualCargoWeight(id, actualCargoWeight);
         return Result.success();
     }
 }

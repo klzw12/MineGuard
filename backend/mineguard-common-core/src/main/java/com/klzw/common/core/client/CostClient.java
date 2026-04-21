@@ -29,4 +29,10 @@ public interface CostClient {
 
     @GetExchange("/cost/statistics/internal")
     Result<CostStatisticsResponseDTO> getCostStatistics(@RequestParam("startDate") String startDate, @RequestParam("endDate") String endDate);
+
+    @GetExchange("/cost/statistics/driver/{userId}")
+    Result<Map<String, Object>> getDriverCostStatistics(
+            @PathVariable("userId") Long userId,
+            @RequestParam("startDate") String startDate,
+            @RequestParam("endDate") String endDate);
 }

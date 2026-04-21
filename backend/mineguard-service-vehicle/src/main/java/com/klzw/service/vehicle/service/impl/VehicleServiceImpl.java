@@ -567,6 +567,21 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
                 .collect(java.util.stream.Collectors.toList());
     }
     
+    @Override
+    public List<VehicleVO> getIdleVehicles() {
+        log.info("获取所有空闲车辆(包括专用车)");
+        
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Vehicle> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        wrapper.eq(Vehicle::getStatus, VehicleStatusEnum.IDLE.getCode());
+        wrapper.orderByDesc(Vehicle::getFuelLevel);
+        
+        List<Vehicle> vehicles = list(wrapper);
+        return vehicles.stream()
+                .map(this::convertToVO)
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
     private int calculateVehicleScore(Vehicle vehicle, com.klzw.service.vehicle.dto.BestVehicleQueryDTO query) {
         int score = 0;
         

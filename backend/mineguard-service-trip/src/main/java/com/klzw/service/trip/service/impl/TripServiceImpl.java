@@ -400,6 +400,17 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
             tripData.put("actualDuration", trip.getActualDuration());
             tripData.put("averageSpeed", trip.getAverageSpeed());
             
+            // 获取该行程的预警记录
+            try {
+                var warningResult = warningClient.getRecordsByTripId(id);
+                if (warningResult != null && warningResult.isSuccess() && warningResult.getData() != null) {
+                    tripData.put("warningRecords", warningResult.getData());
+                    log.info("获取行程预警记录成功：行程ID={}, 预警数量={}", id, warningResult.getData().size());
+                }
+            } catch (Exception warnEx) {
+                log.warn("获取行程预警记录失败：行程ID={}, 错误={}", id, warnEx.getMessage());
+            }
+            
             var result = aiClient.analyzeDrivingBehavior(tripData);
             if (result != null && result.isSuccess() && result.getData() != null) {
                 // 保存AI分析结果到Trip表
@@ -996,5 +1007,78 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         } else {
             log.info("未找到需要取消的行程：dispatchTaskId={}", dispatchTaskId);
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateActualCargoWeight(Long id, java.math.BigDecimal actualCargoWeight) {
+        log.info("更新实际货物重量：tripId={}, actualCargoWeight={}", id, actualCargoWeight);
+        
+        Trip trip = getBaseMapper().selectById(id);
+        if (trip == null) {
+            throw new RuntimeException("行程不存在：id=" + id);
+        }
+        
+        trip.setActualCargoWeight(actualCargoWeight);
+        getBaseMapper().updateById(trip);
+        
+        log.info("实际货物重量已更新：tripId={}", id);
+    }
+
+    @Override
+    public java.util.Map<String, Object> getDriverStatistics(Long driverId, String startDate, String endDate) {
+        log.info("获取司机行程统计：driverId={}, startDate={}, endDate={}", driverId, startDate, endDate);
+        
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        
+        try {
+            java.time.LocalDate start = java.time.LocalDate.parse(startDate);
+            java.time.LocalDate end = java.time.LocalDate.parse(endDate);
+            
+            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Trip> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+            wrapper.eq(Trip::getDriverId, driverId)
+                   .ge(Trip::getActualStartTime, start.atStartOfDay())
+                   .le(Trip::getActualEndTime, end.atTime(23, 59, 59))
+                   .eq(Trip::getStatus, 3); // 已完成的行程
+            
+            List<Trip> trips = getBaseMapper().selectList(wrapper);
+            
+            int tripCount = trips.size();
+            java.math.BigDecimal totalDistance = java.math.BigDecimal.ZERO;
+            java.math.BigDecimal totalDuration = java.math.BigDecimal.ZERO;
+            java.math.BigDecimal cargoWeight = java.math.BigDecimal.ZERO;
+            
+            for (Trip trip : trips) {
+                if (trip.getActualMileage() != null) {
+                    totalDistance = totalDistance.add(trip.getActualMileage());
+                }
+                if (trip.getActualDuration() != null) {
+                    totalDuration = totalDuration.add(java.math.BigDecimal.valueOf(trip.getActualDuration()));
+                }
+                if (trip.getCargoWeight() != null) {
+                    cargoWeight = cargoWeight.add(trip.getCargoWeight());
+                }
+            }
+            
+            result.put("driverId", driverId);
+            result.put("tripCount", tripCount);
+            result.put("totalDistance", totalDistance);
+            result.put("totalDuration", totalDuration);
+            result.put("cargoWeight", cargoWeight);
+            
+            log.info("司机行程统计完成：driverId={}, tripCount={}", driverId, tripCount);
+            
+        } catch (Exception e) {
+            log.error("获取司机行程统计失败：driverId={}", driverId, e);
+            result.put("driverId", driverId);
+            result.put("tripCount", 0);
+            result.put("totalDistance", java.math.BigDecimal.ZERO);
+            result.put("totalDuration", java.math.BigDecimal.ZERO);
+            result.put("cargoWeight", java.math.BigDecimal.ZERO);
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
     }
 }

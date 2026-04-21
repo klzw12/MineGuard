@@ -34,4 +34,6 @@ public class CostStatisticsVO {
     private BigDecimal managementCost;
 
     private BigDecimal otherCost;
+    
+    private BigDecimal tripCommissionCost;
 }

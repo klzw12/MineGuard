@@ -40,7 +40,7 @@ public class MineGuardToolProvider {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    @Tool(name = "get_vehicle_status", description = "获取今日车辆运行情况，包括总车辆数、可用车辆、故障车辆、维修车辆、今日行程数等统计信息")
+    @Tool(name = "get_vehicle_status", description = "获取今日车辆运行情况，包括总车辆数、空闲车辆数、故障车辆、维修车辆、今日行程数等统计信息")
     public Map<String, Object> getVehicleStatus() {
         log.info("[Tool] get_vehicle_status 被调用");
         Map<String, Object> result = new HashMap<>();
@@ -51,9 +51,9 @@ public class MineGuardToolProvider {
             Integer totalVehicles = totalResult != null && totalResult.getCode() == 200 ? totalResult.getData() : 0;
             result.put("totalVehicles", totalVehicles);
 
-            Result<List<VehicleInfo>> availableResult = vehicleClient.getAvailableVehicles();
-            Integer availableCount = availableResult != null && availableResult.getCode() == 200 && availableResult.getData() != null ? availableResult.getData().size() : 0;
-            result.put("availableVehicles", availableCount);
+            Result<List<VehicleInfo>> idleResult = vehicleClient.getIdleVehicles();
+            Integer idleCount = idleResult != null && idleResult.getCode() == 200 && idleResult.getData() != null ? idleResult.getData().size() : 0;
+            result.put("idleVehicles", idleCount);
 
             Result<List<VehicleInfo>> faultResult = vehicleClient.getFaultVehicles();
             Integer faultCount = faultResult != null && faultResult.getCode() == 200 && faultResult.getData() != null ? faultResult.getData().size() : 0;
@@ -107,7 +107,11 @@ public class MineGuardToolProvider {
                 result.put("fuelCost", data.getFuelCost());
                 result.put("maintenanceCost", data.getMaintenanceCost());
                 result.put("laborCost", data.getLaborCost());
+                result.put("insuranceCost", data.getInsuranceCost());
+                result.put("depreciationCost", data.getDepreciationCost());
+                result.put("managementCost", data.getManagementCost());
                 result.put("otherCost", data.getOtherCost());
+                result.put("tripCommissionCost", data.getTripCommissionCost());
             }
 
             Map<String, Object> tripStats = tripClient.getStatistics(startOfMonth, endOfMonth).getData();

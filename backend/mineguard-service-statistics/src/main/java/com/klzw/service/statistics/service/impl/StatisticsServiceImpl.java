@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.klzw.common.core.client.AiClient;
 import com.klzw.common.core.client.CostClient;
 import com.klzw.common.core.client.TripClient;
+import com.klzw.common.core.client.UserClient;
 import com.klzw.common.core.client.VehicleClient;
 import com.klzw.common.core.client.WarningClient;
 import com.klzw.service.statistics.dto.StatisticsQueryDTO;
@@ -45,6 +46,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final TripClient tripClient;
     private final CostClient costClient;
     private final VehicleClient vehicleClient;
+    private final UserClient userClient;
     private final AiClient aiClient;
     private final WarningClient warningClient;
     
@@ -280,38 +282,82 @@ public class StatisticsServiceImpl implements StatisticsService {
         entity.setUserId(userId);
         entity.setStatisticsDate(statisticsDate);
         
+        // 获取用户名
         try {
-            // 使用 StatisticsClient 调用相关服务获取司机统计数据
-            // 这里可以调用多个服务获取不同维度的司机数据
-            // 例如：考勤数据、行程数据、违规数据等
-            // 为简化实现，暂时使用默认值
-            entity.setAttendanceDays(0);
-            entity.setAttendanceHours(BigDecimal.ZERO);
-            entity.setTripCount(0);
-            entity.setTotalDistance(BigDecimal.ZERO);
-            entity.setCargoWeight(BigDecimal.ZERO);
-            entity.setLateCount(0);
-            entity.setEarlyLeaveCount(0);
-            entity.setWarningCount(0);
-            entity.setViolationCount(0);
-            entity.setOverSpeedCount(0);
-            entity.setRouteDeviationCount(0);
-            entity.setPerformanceScore(BigDecimal.valueOf(100));
+            var userResult = userClient.getUserById(userId);
+            if (userResult != null && userResult.isSuccess() && userResult.getData() != null) {
+                Object userData = userResult.getData();
+                if (userData instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> userMap = (Map<String, Object>) userData;
+                    entity.setUserName((String) userMap.get("realName"));
+                }
+            }
         } catch (Exception e) {
-            log.warn("获取司机统计数据失败，使用默认值：{}", e.getMessage());
-            entity.setAttendanceDays(0);
-            entity.setAttendanceHours(BigDecimal.ZERO);
+            log.warn("获取用户名失败：userId={}", userId);
+        }
+        
+        // 获取行程统计数据
+        try {
+            var tripResult = tripClient.getDriverStatistics(userId, date, date);
+            if (tripResult != null && tripResult.getCode() == 200 && tripResult.getData() != null) {
+                Map<String, Object> tripStats = tripResult.getData();
+                entity.setTripCount(getIntegerValue(tripStats, "tripCount"));
+                entity.setTotalDistance(getBigDecimalValue(tripStats, "totalDistance"));
+                entity.setCargoWeight(getBigDecimalValue(tripStats, "cargoWeight"));
+            }
+        } catch (Exception e) {
+            log.warn("获取司机行程统计失败：userId={}, error={}", userId, e.getMessage());
             entity.setTripCount(0);
             entity.setTotalDistance(BigDecimal.ZERO);
             entity.setCargoWeight(BigDecimal.ZERO);
-            entity.setLateCount(0);
-            entity.setEarlyLeaveCount(0);
-            entity.setWarningCount(0);
-            entity.setViolationCount(0);
-            entity.setOverSpeedCount(0);
-            entity.setRouteDeviationCount(0);
-            entity.setPerformanceScore(BigDecimal.valueOf(100));
         }
+        
+        // 获取成本统计数据
+        try {
+            var costResult = costClient.getDriverCostStatistics(userId, date, date);
+            if (costResult != null && costResult.getCode() == 200 && costResult.getData() != null) {
+                Map<String, Object> costStats = costResult.getData();
+                entity.setFuelCost(getBigDecimalValue(costStats, "fuelCost"));
+                entity.setTollCost(getBigDecimalValue(costStats, "tollCost"));
+                entity.setCommissionAmount(getBigDecimalValue(costStats, "commissionAmount"));
+                entity.setTotalCost(getBigDecimalValue(costStats, "totalCost"));
+            }
+        } catch (Exception e) {
+            log.warn("获取司机成本统计失败：userId={}, error={}", userId, e.getMessage());
+            entity.setFuelCost(BigDecimal.ZERO);
+            entity.setTollCost(BigDecimal.ZERO);
+            entity.setCommissionAmount(BigDecimal.ZERO);
+            entity.setTotalCost(BigDecimal.ZERO);
+        }
+        
+        // 获取预警统计数据
+        try {
+            var warningResult = warningClient.getStatistics(date + "T00:00:00", date + "T23:59:59");
+            if (warningResult != null && warningResult.getCode() == 200 && warningResult.getData() != null) {
+                Map<String, Object> warningStats = warningResult.getData();
+                // 这里需要根据driverId过滤预警记录，暂时使用总数
+                entity.setWarningCount(getIntegerValue(warningStats, "totalCount"));
+            }
+        } catch (Exception e) {
+            log.warn("获取司机预警统计失败：userId={}, error={}", userId, e.getMessage());
+            entity.setWarningCount(0);
+        }
+        
+        // 绩效评分：基础分100，每次预警扣5分，最低0分
+        // 绩效奖金由管理端手动发放，不在此自动计算
+        int baseScore = 100;
+        int warningDeduction = (entity.getWarningCount() != null ? entity.getWarningCount() : 0) * 5;
+        entity.setPerformanceScore(BigDecimal.valueOf(Math.max(0, baseScore - warningDeduction)));
+        
+        // 默认值
+        entity.setAttendanceDays(1);
+        entity.setAttendanceHours(BigDecimal.valueOf(8));
+        entity.setLateCount(0);
+        entity.setEarlyLeaveCount(0);
+        entity.setViolationCount(0);
+        entity.setOverSpeedCount(0);
+        entity.setRouteDeviationCount(0);
         
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());

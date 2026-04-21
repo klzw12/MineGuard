@@ -165,6 +165,7 @@ public class CostController {
         response.setDepreciationCost(vo.getDepreciationCost());
         response.setManagementCost(vo.getManagementCost());
         response.setOtherCost(vo.getOtherCost());
+        response.setTripCommissionCost(vo.getTripCommissionCost());
         
         return Result.success(response);
     }
@@ -371,5 +372,14 @@ public class CostController {
         log.debug("获取薪酬配置参数");
         Map<String, Object> params = costService.getSalaryConfigParams();
         return Result.success(params);
+    }
+
+    @GetMapping("/statistics/driver/{userId}")
+    public Result<Map<String, Object>> getDriverCostStatistics(
+            @PathVariable Long userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        log.debug("获取司机成本统计：userId={}, {} 至 {}", userId, startDate, endDate);
+        return Result.success(costService.getDriverCostStatistics(userId, startDate, endDate));
     }
 }

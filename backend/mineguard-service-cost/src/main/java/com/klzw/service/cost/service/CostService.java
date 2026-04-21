@@ -114,4 +114,14 @@ public interface CostService {
      * @return 配置参数
      */
     Map<String, Object> getSalaryConfigParams();
+
+    /**
+     * 获取司机成本统计
+     * 
+     * @param userId 司机用户ID
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 成本统计数据
+     */
+    Map<String, Object> getDriverCostStatistics(Long userId, LocalDate startDate, LocalDate endDate);
 }

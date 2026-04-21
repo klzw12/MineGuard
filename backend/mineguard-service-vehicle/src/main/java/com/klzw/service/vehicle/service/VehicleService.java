@@ -170,6 +170,12 @@ public interface VehicleService extends IService<Vehicle> {
     List<Long> getVehicleIds();
 
     /**
+     * 获取所有空闲车辆(包括专用车)
+     * @return 空闲车辆列表
+     */
+    List<VehicleVO> getIdleVehicles();
+
+    /**
      * 获取故障车辆列表
      * @return 故障车辆列表
      */

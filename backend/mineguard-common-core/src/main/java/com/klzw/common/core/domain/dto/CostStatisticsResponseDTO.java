@@ -60,4 +60,9 @@ public class CostStatisticsResponseDTO {
      * 其他成本
      */
     private BigDecimal otherCost;
+    
+    /**
+     * 行程提成
+     */
+    private BigDecimal tripCommissionCost;
 }
