@@ -16,6 +16,12 @@ public class VehicleStatisticsVO {
 
     private LocalDate statisticsDate;
 
+    private LocalDate startDate;
+
+    private LocalDate endDate;
+
+    private String period;
+
     private Integer tripCount;
 
     private BigDecimal totalDistance;

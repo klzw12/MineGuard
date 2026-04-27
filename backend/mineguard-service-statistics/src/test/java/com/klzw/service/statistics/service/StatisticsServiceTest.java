@@ -409,7 +409,7 @@ class StatisticsServiceTest {
         });
 
         // 执行测试
-        VehicleStatisticsVO result = statisticsService.calculateVehicleStatistics(1L, LocalDate.now().toString());
+        VehicleStatisticsVO result = statisticsService.calculateVehicleStatistics(1L, LocalDate.now().toString(), LocalDate.now().toString());
 
         // 验证结果
         assertNotNull(result);

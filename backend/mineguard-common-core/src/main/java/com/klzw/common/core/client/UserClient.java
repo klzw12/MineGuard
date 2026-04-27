@@ -40,4 +40,10 @@ public interface UserClient {
             @RequestParam("pythonScore") Integer pythonScore,
             @RequestParam("tripDistance") Double tripDistance
     );
+    
+    @GetExchange("/user/driver/ids")
+    Result<List<Long>> getDriverIds();
+    
+    @GetExchange("/user/driver/user/{userId}")
+    Result<Object> getDriverByUserId(@PathVariable("userId") Long userId);
 }

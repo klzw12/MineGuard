@@ -250,7 +250,7 @@ public class DriverServiceImpl implements DriverService {
         }
         
         var vehicleInfo = vehicleResult.getData();
-        Integer vehicleType = vehicleInfo.getVehicleType();
+        Integer vehicleType = (Integer) vehicleInfo.get("vehicleType");
         
         if ("DRIVER".equals(roleCode)) {
             if (vehicleType != null && (vehicleType == 7 || vehicleType == 9)) {
@@ -351,7 +351,7 @@ public class DriverServiceImpl implements DriverService {
             try {
                 var result = vehicleClient.getById(dv.getVehicleId());
                 if (result != null && result.getData() != null) {
-                    vo.setVehicleNo(result.getData().getVehicleNo());
+                    vo.setVehicleNo((String) result.getData().get("vehicleNo"));
                 }
             } catch (Exception e) {
                 log.warn("获取车辆信息失败：车辆 ID={}", dv.getVehicleId());
@@ -374,7 +374,7 @@ public class DriverServiceImpl implements DriverService {
             new LambdaQueryWrapper<Driver>()
                 .eq(Driver::getDeleted, 0)
                 .eq(Driver::getStatus, 1)
-        ).stream().map(Driver::getId).collect(Collectors.toList());
+        ).stream().map(Driver::getUserId).collect(Collectors.toList());
     }
 
     @Override
@@ -553,7 +553,8 @@ public class DriverServiceImpl implements DriverService {
                         var result = vehicleClient.getById(dv.getVehicleId());
                         if (result != null && result.getData() != null) {
                             var vInfo = result.getData();
-                            if (vInfo.getFuelLevel() != null && vInfo.getFuelLevel() >= 70) {
+                            Integer fuelLevel = (Integer) vInfo.get("fuelLevel");
+                            if (fuelLevel != null && fuelLevel >= 70) {
                                 score += 1;
                             }
                         }

@@ -298,17 +298,18 @@ class StatisticsControllerTest {
      */
     @Test
     void testCalculateVehicleStatistics() throws Exception {
-        when(statisticsService.calculateVehicleStatistics(anyLong(), anyString()))
+        when(statisticsService.calculateVehicleStatistics(anyLong(), anyString(), anyString()))
                 .thenReturn(testVehicleStatisticsVO);
 
         mockMvc.perform(post("/statistics/vehicle/calculate")
                         .param("vehicleId", "1")
-                        .param("date", LocalDate.now().toString()))
+                        .param("startDate", LocalDate.now().toString())
+                        .param("endDate", LocalDate.now().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.vehicleId").value(1));
 
-        verify(statisticsService, times(1)).calculateVehicleStatistics(anyLong(), anyString());
+        verify(statisticsService, times(1)).calculateVehicleStatistics(anyLong(), anyString(), anyString());
     }
 
     /**
@@ -321,16 +322,17 @@ class StatisticsControllerTest {
         driverStatisticsVO.setUserId(1L);
         driverStatisticsVO.setStatisticsDate(LocalDate.now());
 
-        when(statisticsService.calculateDriverStatistics(anyLong(), anyString()))
+        when(statisticsService.calculateDriverStatistics(anyLong(), anyString(), anyString()))
                 .thenReturn(driverStatisticsVO);
 
         mockMvc.perform(post("/statistics/driver/calculate")
                         .param("userId", "1")
-                        .param("date", LocalDate.now().toString()))
+                        .param("startDate", LocalDate.now().toString())
+                        .param("endDate", LocalDate.now().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
 
-        verify(statisticsService, times(1)).calculateDriverStatistics(anyLong(), anyString());
+        verify(statisticsService, times(1)).calculateDriverStatistics(anyLong(), anyString(), anyString());
     }
 
     /**
@@ -338,15 +340,16 @@ class StatisticsControllerTest {
      */
     @Test
     void testCalculateFaultStatistics() throws Exception {
-        doNothing().when(statisticsService).calculateFaultStatistics(anyLong(), anyString());
+        doNothing().when(statisticsService).calculateFaultStatistics(anyLong(), anyString(), anyString());
 
         mockMvc.perform(post("/statistics/fault/calculate")
                         .param("vehicleId", "1")
-                        .param("date", LocalDate.now().toString()))
+                        .param("startDate", LocalDate.now().toString())
+                        .param("endDate", LocalDate.now().toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
 
-        verify(statisticsService, times(1)).calculateFaultStatistics(anyLong(), anyString());
+        verify(statisticsService, times(1)).calculateFaultStatistics(anyLong(), anyString(), anyString());
     }
 
     /**

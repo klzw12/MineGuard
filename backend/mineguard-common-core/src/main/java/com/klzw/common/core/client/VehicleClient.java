@@ -18,7 +18,7 @@ import java.util.Map;
 public interface VehicleClient {
 
     @GetExchange("/vehicle/{id}")
-    Result<VehicleInfo> getById(@PathVariable("id") Long id);
+    Result<java.util.Map<String, Object>> getById(@PathVariable("id") Long id);
 
     @GetExchange("/vehicle/{id}/exists")
     Result<Boolean> existsById(@PathVariable("id") Long id);
@@ -30,19 +30,19 @@ public interface VehicleClient {
     Result<VehicleStatus> updateStatus(@PathVariable("id") Long id, @RequestBody VehicleStatus status);
 
     @GetExchange("/vehicle/available")
-    Result<List<VehicleInfo>> getAvailableVehicles();
+    Result<List<java.util.Map<String, Object>>> getAvailableVehicles();
 
     @GetExchange("/vehicle/idle")
-    Result<List<VehicleInfo>> getIdleVehicles();
+    Result<List<java.util.Map<String, Object>>> getIdleVehicles();
 
     @GetExchange("/vehicle/fault")
-    Result<List<VehicleInfo>> getFaultVehicles();
+    Result<List<java.util.Map<String, Object>>> getFaultVehicles();
 
     @GetExchange("/vehicle/maintenance")
-    Result<List<VehicleInfo>> getMaintenanceVehicles();
+    Result<List<java.util.Map<String, Object>>> getMaintenanceVehicles();
 
     @PostExchange("/vehicle/best")
-    Result<List<VehicleInfo>> selectBestVehicle(
+    Result<List<java.util.Map<String, Object>>> selectBestVehicle(
         @RequestParam(required = false) Long driverId,
         @RequestParam(required = false) BigDecimal startLongitude,
         @RequestParam(required = false) BigDecimal startLatitude,
@@ -68,11 +68,11 @@ public interface VehicleClient {
                                                @RequestParam("longitude") Double longitude);
 
     @GetExchange("/vehicle/available/type/{vehicleType}")
-    Result<List<VehicleInfo>> getAvailableVehiclesByType(@PathVariable("vehicleType") Integer vehicleType);
+    Result<List<java.util.Map<String, Object>>> getAvailableVehiclesByType(@PathVariable("vehicleType") Integer vehicleType);
 
     @GetExchange("/vehicle/repairman")
-    Result<List<VehicleInfo>> getRepairmanVehicles();
+    Result<List<java.util.Map<String, Object>>> getRepairmanVehicles();
 
     @GetExchange("/vehicle/safety-officer")
-    Result<List<VehicleInfo>> getSafetyOfficerVehicles();
+    Result<List<java.util.Map<String, Object>>> getSafetyOfficerVehicles();
 }

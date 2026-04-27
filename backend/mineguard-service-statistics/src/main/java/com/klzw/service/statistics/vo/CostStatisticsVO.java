@@ -10,7 +10,7 @@ public class CostStatisticsVO {
 
     private Long id;
 
-    private LocalDate statisticsDate;
+    private LocalDate statisticsMonth;
 
     private BigDecimal fuelCost;
 

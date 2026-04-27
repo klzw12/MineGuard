@@ -325,4 +325,19 @@ public class VehicleController {
         return Result.success(result);
     }
     
+    @Operation(summary = "获取车辆统计数据", description = "获取车辆的运营天数、油耗、行驶里程等统计数据")
+    @GetMapping("/{id}/statistics")
+    public Result<java.util.Map<String, Object>> getVehicleStatistics(
+            @PathVariable Long id,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate) {
+        return Result.success(vehicleService.getVehicleStatistics(id, startDate, endDate));
+    }
+    
+    @Operation(summary = "获取所有车辆统计数据列表", description = "获取所有车辆的运营天数、油耗、行驶里程等统计数据")
+    @GetMapping("/statistics/all")
+    public Result<java.util.List<java.util.Map<String, Object>>> getAllVehicleStatistics() {
+        return Result.success(vehicleService.getAllVehicleStatistics());
+    }
+    
 }

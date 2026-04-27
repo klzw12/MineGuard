@@ -215,7 +215,7 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
         
         if (planType == 1) {
             List<DriverInfo> availableDrivers = getAvailableDriversList();
-            List<VehicleInfo> availableVehicles = getAvailableVehiclesList();
+            List<java.util.Map<String, Object>> availableVehicles = getAvailableVehiclesList();
             
             if (availableDrivers.size() < taskCount) {
                 log.warn("可用司机数量不足: 需要 {}, 实际 {}", taskCount, availableDrivers.size());
@@ -300,7 +300,7 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
         return true;
     }
     
-    private Long getAvailableCommonVehicle(Long driverId, List<VehicleInfo> availableVehicles, Set<Long> assignedVehicleIds) {
+    private Long getAvailableCommonVehicle(Long driverId, List<java.util.Map<String, Object>> availableVehicles, Set<Long> assignedVehicleIds) {
         try {
             Result<List<DriverVehicleInfo>> result = driverClient.getCommonVehicles(driverId);
             if (result != null && result.getData() != null && !result.getData().isEmpty()) {
@@ -309,7 +309,12 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
                     
                     if (vehicleId != null && !assignedVehicleIds.contains(vehicleId)) {
                         boolean isAvailable = availableVehicles.stream()
-                            .anyMatch(v -> v.getId().equals(vehicleId));
+                            .anyMatch(v -> {
+                                Object idObj = v.get("id");
+                                Long id = idObj instanceof Number ? ((Number) idObj).longValue() : 
+                                          idObj instanceof String ? Long.parseLong((String) idObj) : null;
+                                return vehicleId.equals(id);
+                            });
                         if (isAvailable) {
                             return vehicleId;
                         }
@@ -322,10 +327,13 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
         return null;
     }
     
-    private Long assignRandomVehicle(List<VehicleInfo> availableVehicles, Set<Long> assignedVehicleIds) {
-        for (VehicleInfo vehicle : availableVehicles) {
-            if (!assignedVehicleIds.contains(vehicle.getId())) {
-                return vehicle.getId();
+    private Long assignRandomVehicle(List<java.util.Map<String, Object>> availableVehicles, Set<Long> assignedVehicleIds) {
+        for (java.util.Map<String, Object> vehicle : availableVehicles) {
+            Object idObj = vehicle.get("id");
+            Long vehicleId = idObj instanceof Number ? ((Number) idObj).longValue() : 
+                             idObj instanceof String ? Long.parseLong((String) idObj) : null;
+            if (vehicleId != null && !assignedVehicleIds.contains(vehicleId)) {
+                return vehicleId;
             }
         }
         return null;
@@ -360,17 +368,22 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
         return new ArrayList<>();
     }
     
-    private List<VehicleInfo> getAvailableVehiclesList() {
+    private List<java.util.Map<String, Object>> getAvailableVehiclesList() {
         try {
             var result = vehicleClient.getAvailableVehicles();
-            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            java.util.List<java.util.Map<String, Object>> vehicles = result != null ? result.getData() : null;
             if (vehicles != null) {
                 List<Long> assignedVehicleIds = transportTaskMapper.findAssignedButNotAcceptedVehicleIds();
                 log.info("已分配待接单的车辆ID列表: {}", assignedVehicleIds);
                 
                 if (!assignedVehicleIds.isEmpty()) {
-                    List<VehicleInfo> filteredVehicles = vehicles.stream()
-                        .filter(v -> !assignedVehicleIds.contains(v.getId()))
+                    List<java.util.Map<String, Object>> filteredVehicles = vehicles.stream()
+                        .filter(v -> {
+                            Object idObj = v.get("id");
+                            Long id = idObj instanceof Number ? ((Number) idObj).longValue() : 
+                                      idObj instanceof String ? Long.parseLong((String) idObj) : null;
+                            return id != null && !assignedVehicleIds.contains(id);
+                        })
                         .collect(Collectors.toList());
                     
                     if (filteredVehicles.isEmpty()) {
@@ -517,10 +530,12 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
                     null
             );
             
-            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            List<java.util.Map<String, Object>> vehicles = result != null ? result.getData() : null;
             if (vehicles != null && !vehicles.isEmpty()) {
-                VehicleInfo vehicle = vehicles.get(0);
-                Long vehicleId = vehicle.getId();
+                java.util.Map<String, Object> vehicle = vehicles.get(0);
+                Object idObj = vehicle.get("id");
+                Long vehicleId = idObj instanceof Number ? ((Number) idObj).longValue() : 
+                                 idObj instanceof String ? Long.parseLong((String) idObj) : null;
                 log.info("智能分配车辆成功, vehicleId: {}", vehicleId);
                 return vehicleId;
             }
@@ -573,11 +588,12 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     private Long assignFaultVehicle() {
         try {
             var result = vehicleClient.getFaultVehicles();
-            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            List<java.util.Map<String, Object>> vehicles = result != null ? result.getData() : null;
             if (vehicles != null && !vehicles.isEmpty()) {
                 int randomIndex = (int) (Math.random() * vehicles.size());
-                VehicleInfo vehicle = vehicles.get(randomIndex);
-                return vehicle.getId();
+                java.util.Map<String, Object> vehicle = vehicles.get(randomIndex);
+                Object id = vehicle.get("id");
+                return id != null ? Long.valueOf(id.toString()) : null;
             }
         } catch (Exception e) {
             log.error("获取故障车辆失败", e);
@@ -588,11 +604,12 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     private Long assignMaintenanceVehicle() {
         try {
             var result = vehicleClient.getMaintenanceVehicles();
-            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            List<java.util.Map<String, Object>> vehicles = result != null ? result.getData() : null;
             if (vehicles != null && !vehicles.isEmpty()) {
                 int randomIndex = (int) (Math.random() * vehicles.size());
-                VehicleInfo vehicle = vehicles.get(randomIndex);
-                return vehicle.getId();
+                java.util.Map<String, Object> vehicle = vehicles.get(randomIndex);
+                Object id = vehicle.get("id");
+                return id != null ? Long.valueOf(id.toString()) : null;
             }
         } catch (Exception e) {
             log.error("获取维护中车辆失败", e);
@@ -603,15 +620,16 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     private Long assignRandomAvailableVehicle() {
         try {
             var result = vehicleClient.getAvailableVehicles();
-            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            List<java.util.Map<String, Object>> vehicles = result != null ? result.getData() : null;
             if (vehicles != null && !vehicles.isEmpty()) {
-                List<VehicleInfo> filteredVehicles = vehicles.stream()
-                        .filter(v -> v.getVehicleType() == null || v.getVehicleType() != 9)
+                List<java.util.Map<String, Object>> filteredVehicles = vehicles.stream()
+                        .filter(v -> v.get("vehicleType") == null || (Integer) v.get("vehicleType") != 9)
                         .collect(java.util.stream.Collectors.toList());
                 if (!filteredVehicles.isEmpty()) {
                     int randomIndex = (int) (Math.random() * filteredVehicles.size());
-                    VehicleInfo vehicle = filteredVehicles.get(randomIndex);
-                    return vehicle.getId();
+                    java.util.Map<String, Object> vehicle = filteredVehicles.get(randomIndex);
+                    Object id = vehicle.get("id");
+                    return id != null ? Long.valueOf(id.toString()) : null;
                 }
             }
         } catch (Exception e) {
@@ -623,12 +641,15 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     private Long assignRepairmanVehicle() {
         try {
             var result = vehicleClient.getRepairmanVehicles();
-            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            List<java.util.Map<String, Object>> vehicles = result != null ? result.getData() : null;
             if (vehicles != null && !vehicles.isEmpty()) {
                 int randomIndex = (int) (Math.random() * vehicles.size());
-                VehicleInfo vehicle = vehicles.get(randomIndex);
-                log.info("分配维修专用车成功, vehicleId: {}, vehicleNo: {}", vehicle.getId(), vehicle.getVehicleNo());
-                return vehicle.getId();
+                java.util.Map<String, Object> vehicle = vehicles.get(randomIndex);
+                Object idObj = vehicle.get("id");
+                Long vehicleId = idObj instanceof Number ? ((Number) idObj).longValue() : 
+                                 idObj instanceof String ? Long.parseLong((String) idObj) : null;
+                log.info("分配维修专用车成功, vehicleId: {}, vehicleNo: {}", vehicleId, vehicle.get("vehicleNo"));
+                return vehicleId;
             }
             log.warn("没有可用的维修专用车，尝试分配普通车辆");
             return assignRandomAvailableVehicle();
@@ -641,12 +662,15 @@ public class DispatchPlanServiceImpl implements DispatchPlanService {
     private Long assignSafetyOfficerVehicle() {
         try {
             var result = vehicleClient.getSafetyOfficerVehicles();
-            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            List<java.util.Map<String, Object>> vehicles = result != null ? result.getData() : null;
             if (vehicles != null && !vehicles.isEmpty()) {
                 int randomIndex = (int) (Math.random() * vehicles.size());
-                VehicleInfo vehicle = vehicles.get(randomIndex);
-                log.info("分配救援专用车成功, vehicleId: {}, vehicleNo: {}", vehicle.getId(), vehicle.getVehicleNo());
-                return vehicle.getId();
+                java.util.Map<String, Object> vehicle = vehicles.get(randomIndex);
+                Object idObj = vehicle.get("id");
+                Long vehicleId = idObj instanceof Number ? ((Number) idObj).longValue() : 
+                                 idObj instanceof String ? Long.parseLong((String) idObj) : null;
+                log.info("分配救援专用车成功, vehicleId: {}, vehicleNo: {}", vehicleId, vehicle.get("vehicleNo"));
+                return vehicleId;
             }
         } catch (Exception e) {
             log.error("获取救援专用车失败", e);

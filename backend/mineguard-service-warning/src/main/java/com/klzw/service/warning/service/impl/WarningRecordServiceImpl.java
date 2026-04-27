@@ -351,10 +351,12 @@ public class WarningRecordServiceImpl implements WarningRecordService {
         String vehicleNo = "未知车辆";
         try {
             var vehicleInfoResult = vehicleClient.getById(vehicleId);
-            if (vehicleInfoResult != null && vehicleInfoResult.getCode() == 200 && vehicleInfoResult.getData() != null && vehicleInfoResult.getData().getVehicleNo() != null) {
+            if (vehicleInfoResult != null && vehicleInfoResult.getCode() == 200 && vehicleInfoResult.getData() != null) {
                 var vehicleInfo = vehicleInfoResult.getData();
-                vehicleNo = vehicleInfo.getVehicleNo();
-                redisCacheService.set(key, vehicleNo, 24, TimeUnit.HOURS);
+                vehicleNo = (String) vehicleInfo.get("vehicleNo");
+                if (vehicleNo != null) {
+                    redisCacheService.set(key, vehicleNo, 24, TimeUnit.HOURS);
+                }
             }
         } catch (Exception e) {
             log.warn("查询车辆信息失败：vehicleId={}", vehicleId);

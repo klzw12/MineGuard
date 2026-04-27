@@ -2,7 +2,6 @@ package com.klzw.service.ai.tool;
 
 import com.klzw.common.core.client.*;
 import com.klzw.common.core.domain.dto.CostStatisticsResponseDTO;
-import com.klzw.common.core.domain.dto.VehicleInfo;
 import com.klzw.common.core.result.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,15 +50,15 @@ public class MineGuardToolProvider {
             Integer totalVehicles = totalResult != null && totalResult.getCode() == 200 ? totalResult.getData() : 0;
             result.put("totalVehicles", totalVehicles);
 
-            Result<List<VehicleInfo>> idleResult = vehicleClient.getIdleVehicles();
+            Result<List<java.util.Map<String, Object>>> idleResult = vehicleClient.getIdleVehicles();
             Integer idleCount = idleResult != null && idleResult.getCode() == 200 && idleResult.getData() != null ? idleResult.getData().size() : 0;
             result.put("idleVehicles", idleCount);
 
-            Result<List<VehicleInfo>> faultResult = vehicleClient.getFaultVehicles();
+            Result<List<java.util.Map<String, Object>>> faultResult = vehicleClient.getFaultVehicles();
             Integer faultCount = faultResult != null && faultResult.getCode() == 200 && faultResult.getData() != null ? faultResult.getData().size() : 0;
             result.put("faultVehicles", faultCount);
 
-            Result<List<VehicleInfo>> maintenanceResult = vehicleClient.getMaintenanceVehicles();
+            Result<List<java.util.Map<String, Object>>> maintenanceResult = vehicleClient.getMaintenanceVehicles();
             Integer maintenanceCount = maintenanceResult != null && maintenanceResult.getCode() == 200 && maintenanceResult.getData() != null ? maintenanceResult.getData().size() : 0;
             result.put("maintenanceVehicles", maintenanceCount);
 
@@ -157,7 +156,7 @@ public class MineGuardToolProvider {
                 result.put("completedTrips", tripStats.getOrDefault("completedTrips", 0));
             }
 
-            Result<List<VehicleInfo>> availableVehicles = vehicleClient.getAvailableVehicles();
+            Result<List<java.util.Map<String, Object>>> availableVehicles = vehicleClient.getAvailableVehicles();
             Integer availableCount = availableVehicles != null && availableVehicles.getCode() == 200 && availableVehicles.getData() != null ? availableVehicles.getData().size() : 0;
             result.put("availableVehicles", availableCount);
 
@@ -259,13 +258,13 @@ public class MineGuardToolProvider {
         
         try {
             if ("fault".equals(status)) {
-                Result<List<VehicleInfo>> vehicles = vehicleClient.getFaultVehicles();
+                Result<List<java.util.Map<String, Object>>> vehicles = vehicleClient.getFaultVehicles();
                 result.put("vehicles", vehicles != null ? vehicles.getData() : new ArrayList<>());
             } else if ("maintenance".equals(status)) {
-                Result<List<VehicleInfo>> vehicles = vehicleClient.getMaintenanceVehicles();
+                Result<List<java.util.Map<String, Object>>> vehicles = vehicleClient.getMaintenanceVehicles();
                 result.put("vehicles", vehicles != null ? vehicles.getData() : new ArrayList<>());
             } else {
-                Result<List<VehicleInfo>> vehicles = vehicleClient.getAvailableVehicles();
+                Result<List<java.util.Map<String, Object>>> vehicles = vehicleClient.getAvailableVehicles();
                 result.put("vehicles", vehicles != null ? vehicles.getData() : new ArrayList<>());
             }
             result.put("status", "success");

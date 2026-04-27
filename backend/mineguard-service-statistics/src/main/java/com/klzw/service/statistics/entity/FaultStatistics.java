@@ -16,9 +16,9 @@ public class FaultStatistics {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
-    private LocalDate statisticsDate;
-
     private Long vehicleId;
+
+    private LocalDate statisticsDate;
 
     private Integer faultCount;
 

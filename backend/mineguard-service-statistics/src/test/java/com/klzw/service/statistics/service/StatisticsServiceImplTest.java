@@ -333,7 +333,7 @@ public class StatisticsServiceImplTest {
         when(vehicleStatisticsMapper.insert(any(VehicleStatistics.class))).thenReturn(1);
 
         // 调用被测方法
-        VehicleStatisticsVO result = statisticsService.calculateVehicleStatistics(1L, LocalDate.now().toString());
+        VehicleStatisticsVO result = statisticsService.calculateVehicleStatistics(1L, LocalDate.now().toString(), LocalDate.now().toString());
 
         // 验证结果
         assertNotNull(result);
@@ -364,7 +364,7 @@ public class StatisticsServiceImplTest {
         when(driverStatisticsMapper.insert(any(DriverStatistics.class))).thenReturn(1);
 
         // 调用被测方法
-        DriverStatisticsVO result = statisticsService.calculateDriverStatistics(1L, LocalDate.now().toString());
+        DriverStatisticsVO result = statisticsService.calculateDriverStatistics(1L, LocalDate.now().toString(), LocalDate.now().toString());
 
         // 验证结果
         assertNotNull(result);
@@ -438,7 +438,7 @@ public class StatisticsServiceImplTest {
         when(faultStatisticsMapper.insert(any(FaultStatistics.class))).thenReturn(1);
 
         // 调用被测方法
-        statisticsService.calculateFaultStatistics(1L, LocalDate.now().toString());
+        statisticsService.calculateFaultStatistics(1L, LocalDate.now().toString(), LocalDate.now().toString());
 
         // 验证依赖方法被调用
         verify(vehicleClient, times(1)).getFaultStatistics(anyLong(), anyString());
@@ -455,7 +455,7 @@ public class StatisticsServiceImplTest {
         when(faultStatisticsMapper.insert(any(FaultStatistics.class))).thenReturn(1);
 
         // 调用被测方法
-        statisticsService.calculateFaultStatistics(1L, LocalDate.now().toString());
+        statisticsService.calculateFaultStatistics(1L, LocalDate.now().toString(), LocalDate.now().toString());
 
         // 验证依赖方法被调用
         verify(vehicleClient, times(1)).getFaultStatistics(anyLong(), anyString());

@@ -213,4 +213,19 @@ public interface VehicleService extends IService<Vehicle> {
      */
     List<VehicleVO> getBindableVehicles(Long userId);
 
-} 
+    /**
+     * 获取车辆统计数据（运营天数、油耗、行驶里程）
+     * @param vehicleId 车辆ID
+     * @param startDate 开始日期
+     * @param endDate 结束日期
+     * @return 统计数据
+     */
+    java.util.Map<String, Object> getVehicleStatistics(Long vehicleId, String startDate, String endDate);
+
+    /**
+     * 获取所有车辆统计数据列表
+     * @return 所有车辆统计数据
+     */
+    java.util.List<java.util.Map<String, Object>> getAllVehicleStatistics();
+
+}  

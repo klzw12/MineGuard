@@ -35,4 +35,7 @@ public interface CostClient {
             @PathVariable("userId") Long userId,
             @RequestParam("startDate") String startDate,
             @RequestParam("endDate") String endDate);
+    
+    @PostExchange("/cost/salary/calculate")
+    Result<Map<String, Object>> calculateSalaries(@RequestParam("month") String month);
 }

@@ -985,128 +985,127 @@ public class CostServiceImpl implements CostService {
                     .eq(SalaryConfig::getDeleted, 0)
             );
             
-            Map<String, SalaryConfig> configMap = salaryConfigs.stream()
-                .collect(Collectors.toMap(SalaryConfig::getRoleCode, c -> c, (a, b) -> a));
-            
-            List<CostDetail> laborCosts = costDetailMapper.selectList(
-                new LambdaQueryWrapper<CostDetail>()
-                    .eq(CostDetail::getCostType, CostTypeEnum.LABOR.getCode())
-                    .ge(CostDetail::getCostDate, startDate)
-                    .le(CostDetail::getCostDate, endDate)
-                    .eq(CostDetail::getDeleted, 0)
-            );
-            
-            Map<Long, BigDecimal> userCommissionMap = new HashMap<>();
-            for (CostDetail cost : laborCosts) {
-                if (cost.getUserId() != null) {
-                    BigDecimal current = userCommissionMap.getOrDefault(cost.getUserId(), BigDecimal.ZERO);
-                    userCommissionMap.put(cost.getUserId(), current.add(cost.getAmount() != null ? cost.getAmount() : BigDecimal.ZERO));
-                }
-            }
+            Map<Long, SalaryConfig> userConfigMap = salaryConfigs.stream()
+                .collect(Collectors.toMap(SalaryConfig::getUserId, c -> c, (a, b) -> a));
             
             String period = startDate.format(DateTimeFormatter.ofPattern("yyyy-MM"));
             
-            for (Map.Entry<Long, BigDecimal> entry : userCommissionMap.entrySet()) {
-                Long userId = entry.getKey();
-                BigDecimal commission = entry.getValue();
+            Result<List<Long>> driverIdsResult = userClient.getDriverIds();
+            List<Long> driverIds = driverIdsResult != null && driverIdsResult.getCode() == 200 
+                ? driverIdsResult.getData() 
+                : new ArrayList<>();
+            
+            log.info("获取到 {} 个司机需要计算薪资", driverIds.size());
+            
+            for (Long userId : driverIds) {
+                SalaryConfig config = userConfigMap.get(userId);
+                
+                if (config == null) {
+                    log.warn("用户 {} 没有薪资配置，跳过", userId);
+                    continue;
+                }
+                
+                BigDecimal baseSalary = config.getBaseSalary() != null 
+                    ? config.getBaseSalary() 
+                    : BigDecimal.valueOf(3000);
+                BigDecimal overtimeRate = config.getOvertimeRate() != null 
+                    ? config.getOvertimeRate() 
+                    : salaryConfigProperties.getOvertimeRate();
                 
                 try {
-                    SalaryConfig config = configMap.get("DRIVER");
-                    BigDecimal baseSalary = config != null && config.getBaseSalary() != null 
-                        ? config.getBaseSalary() 
-                        : BigDecimal.valueOf(3000);
-                    
-                    // 从考勤系统获取真实数据
                     Result<Map<String, Object>> attendanceResult = userClient.getAttendanceStatistics(userId, startDate, endDate);
                     Map<String, Object> attendanceData = attendanceResult.getCode() == 200 ? attendanceResult.getData() : new HashMap<>();
                     
-                    // 考勤数据
                     int actualAttendanceDays = attendanceData.containsKey("actualAttendanceDays") 
                             ? (int) attendanceData.get("actualAttendanceDays") 
-                            : 20; // 当月实际出勤天数
+                            : 20;
                     int lateEarlyLeaveHours = attendanceData.containsKey("lateEarlyLeaveHours") 
                             ? (int) attendanceData.get("lateEarlyLeaveHours") 
-                            : 0; // 迟到早退小时数
+                            : 0;
                     int overtimeHours = attendanceData.containsKey("overtimeHours") 
                             ? (int) attendanceData.get("overtimeHours") 
-                            : 0; // 加班小时数
+                            : 0;
                     int leaveDays = attendanceData.containsKey("leaveDays") 
                             ? (int) attendanceData.get("leaveDays") 
-                            : 0; // 请假天数
+                            : 0;
                     boolean isFullAttendance = attendanceData.containsKey("isFullAttendance") 
                             ? (boolean) attendanceData.get("isFullAttendance") 
-                            : (lateEarlyLeaveHours == 0 && leaveDays == 0); // 全勤
+                            : (lateEarlyLeaveHours == 0 && leaveDays == 0);
                     
-                    // 从配置中获取参数
-                    BigDecimal minimumWage = salaryConfigProperties.getMinSalary(); // 最低保障工资
-                    BigDecimal attendanceWage = baseSalary; // 出勤保障工资（这里使用基础工资）
-                    BigDecimal fullAttendanceBonus = salaryConfigProperties.getFullAttendanceBonus(); // 全勤奖
-                    int workDaysPerMonth = salaryConfigProperties.getWorkDaysPerMonth(); // 每月工作日
-                    int leaveThreshold = salaryConfigProperties.getLeaveThreshold(); // 请假免扣阈值
+                    BigDecimal minimumWage = salaryConfigProperties.getMinSalary();
+                    BigDecimal attendanceWage = baseSalary;
+                    BigDecimal fullAttendanceBonus = salaryConfigProperties.getFullAttendanceBonus();
+                    int workDaysPerMonth = salaryConfigProperties.getWorkDaysPerMonth();
+                    int leaveThreshold = salaryConfigProperties.getLeaveThreshold();
                     
-                    // 计算各项
-                    // 1. 最低保障工资
                     BigDecimal item1 = minimumWage;
                     
-                    // 2. 出勤工资：(当月实际出勤天数 ÷ 22) × 出勤保障工资
                     BigDecimal item2 = BigDecimal.valueOf(actualAttendanceDays)
                             .divide(BigDecimal.valueOf(workDaysPerMonth), 2, RoundingMode.HALF_UP)
                             .multiply(attendanceWage);
                     
-                    // 3. 绩效奖金
-                    BigDecimal item3 = commission;
+                    BigDecimal item3 = BigDecimal.ZERO;
+                    try {
+                        List<CostDetail> tripCommissions = costDetailMapper.selectList(
+                            new LambdaQueryWrapper<CostDetail>()
+                                .eq(CostDetail::getUserId, userId)
+                                .eq(CostDetail::getCostType, CostTypeEnum.TRIP_COMMISSION.getCode())
+                                .ge(CostDetail::getCostDate, startDate)
+                                .le(CostDetail::getCostDate, endDate)
+                                .eq(CostDetail::getDeleted, 0)
+                        );
+                        for (CostDetail detail : tripCommissions) {
+                            if (detail.getAmount() != null) {
+                                item3 = item3.add(detail.getAmount());
+                            }
+                        }
+                        log.debug("用户 {} 行程提成总额：{}", userId, item3);
+                    } catch (Exception e) {
+                        log.warn("获取用户 {} 行程提成失败", userId);
+                    }
                     
-                    // 4. trip提成（已包含在commission中）
-                    
-                    // 5. 全勤奖
                     BigDecimal item5 = isFullAttendance ? fullAttendanceBonus : BigDecimal.ZERO;
                     
-                    // 6. 加班工资：加班小时数 × 加班倍率 × (出勤保障工资 ÷ 22 ÷ 8)
                     BigDecimal hourlyWage = attendanceWage
                             .divide(BigDecimal.valueOf(workDaysPerMonth), 2, RoundingMode.HALF_UP)
                             .divide(BigDecimal.valueOf(8), 2, RoundingMode.HALF_UP);
-                    BigDecimal overtimeRate = config != null && config.getOvertimeRate() != null 
-                            ? config.getOvertimeRate() 
-                            : salaryConfigProperties.getOvertimeRate();
                     BigDecimal item6 = BigDecimal.valueOf(overtimeHours)
                             .multiply(overtimeRate)
                             .multiply(hourlyWage);
                     
-                    // 7. 迟到早退扣除：迟到早退小时数 × (出勤保障工资 ÷ 22 ÷ 8)
                     BigDecimal item7 = BigDecimal.valueOf(lateEarlyLeaveHours)
                             .multiply(hourlyWage);
                     
-                    // 8. 请假扣除：max(0, 当月请假总天数 - 免扣阈值天数) × (出勤保障工资 ÷ 22)
                     int leaveDaysToDeduct = Math.max(0, leaveDays - leaveThreshold);
                     BigDecimal dailyWage = attendanceWage
                             .divide(BigDecimal.valueOf(workDaysPerMonth), 2, RoundingMode.HALF_UP);
                     BigDecimal item8 = BigDecimal.valueOf(leaveDaysToDeduct)
                             .multiply(dailyWage);
                     
-                    // 计算总薪资
                     BigDecimal totalSalary = item1.add(item2).add(item3).add(item5).add(item6)
                             .subtract(item7).subtract(item8);
                     
-                    // 确保总薪资不低于最低保障工资
                     totalSalary = totalSalary.max(minimumWage);
                     
-                    // 记录薪酬到成本明细
                     CostDetailDTO dto = new CostDetailDTO();
                     dto.setCostType(CostTypeEnum.LABOR.getCode());
                     dto.setCostName("月度薪酬");
                     dto.setAmount(totalSalary);
                     dto.setUserId(userId);
-                    dto.setCostDate(LocalDate.now());
-                    dto.setRemark(String.format("月度薪酬计算：%s，基础工资：%s，绩效：%s，总薪酬：%s", 
-                        period, baseSalary, commission, totalSalary));
+                    dto.setCostDate(endDate);
+                    dto.setRemark(String.format("月度薪酬计算：%s，基础工资：%s，行程提成：%s，总薪酬：%s", 
+                        period, baseSalary, item3, totalSalary));
                     
-                    CostDetailVO vo = addCostDetail(dto);
+                    addCostDetail(dto);
                     
                     Map<String, Object> salaryResult = new HashMap<>();
                     salaryResult.put("userId", userId);
                     salaryResult.put("period", period);
                     salaryResult.put("baseSalary", baseSalary);
-                    salaryResult.put("bonus", commission);
+                    salaryResult.put("tripCommission", item3);
+                    salaryResult.put("overtimePay", item6);
+                    salaryResult.put("fullAttendanceBonus", item5);
+                    salaryResult.put("deduction", item7.add(item8));
                     salaryResult.put("totalSalary", totalSalary);
                     salaryResults.add(salaryResult);
                     
@@ -1125,7 +1124,7 @@ public class CostServiceImpl implements CostService {
             result.put("period", period);
             result.put("successCount", successCount);
             result.put("failCount", failCount);
-            result.put("totalProcessed", userCommissionMap.size());
+            result.put("totalProcessed", driverIds.size());
             result.put("salaryResults", salaryResults);
             
             log.info("薪酬计算完成：成功={}, 失败={}", successCount, failCount);

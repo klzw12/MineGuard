@@ -32,6 +32,24 @@ public class CostScheduledTask {
     private final CostBudgetMapper costBudgetMapper;
     private final CostDetailMapper costDetailMapper;
 
+    @Scheduled(cron = "0 0 1 1 * ?")
+    public void calculateMonthlySalary() {
+        YearMonth lastMonth = YearMonth.now().minusMonths(1);
+        log.info("开始执行月度薪酬计算任务，计算月份：{}", lastMonth);
+        
+        try {
+            LocalDate startDate = lastMonth.atDay(1);
+            LocalDate endDate = lastMonth.atEndOfMonth();
+            
+            Map<String, Object> result = costService.calculateSalaries(startDate, endDate);
+            
+            log.info("月度薪酬计算完成：成功={}, 失败={}", 
+                result.get("successCount"), result.get("failCount"));
+        } catch (Exception e) {
+            log.error("月度薪酬计算任务执行失败", e);
+        }
+    }
+
     @Scheduled(cron = "0 0 2 1 * ?")
     public void checkMonthlyBudget() {
         LocalDate currentMonth = LocalDate.now().withDayOfMonth(1);

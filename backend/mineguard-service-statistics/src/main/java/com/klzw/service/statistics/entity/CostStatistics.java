@@ -16,7 +16,7 @@ public class CostStatistics {
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
-    private LocalDate statisticsDate;
+    private LocalDate statisticsMonth;
 
     private BigDecimal fuelCost;
 

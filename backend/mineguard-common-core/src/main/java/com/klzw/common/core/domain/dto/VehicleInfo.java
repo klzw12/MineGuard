@@ -3,6 +3,7 @@ package com.klzw.common.core.domain.dto;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 public class VehicleInfo {
@@ -26,4 +27,5 @@ public class VehicleInfo {
     private Double startLongitude;
     private Double startLatitude;
     private BigDecimal depreciationRate;
+    private LocalDateTime createTime;
 }

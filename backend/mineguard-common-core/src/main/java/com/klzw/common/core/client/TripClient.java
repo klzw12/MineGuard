@@ -1,6 +1,7 @@
 package com.klzw.common.core.client;
 
 import com.klzw.common.core.domain.dto.TripCreateRequest;
+import com.klzw.common.core.domain.dto.TripStatisticsResponseDTO;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -48,4 +49,14 @@ public interface TripClient {
         @PathVariable("dispatchTaskId") Long dispatchTaskId,
         @RequestParam(value = "reason", required = false) String reason
     );
+    
+    @GetExchange("/trip/vehicle-statistics/{vehicleId}")
+    com.klzw.common.core.result.Result<java.util.Map<String, Object>> getVehicleTripStatistics(
+        @PathVariable("vehicleId") Long vehicleId,
+        @RequestParam(value = "startDate", required = false) String startDate,
+        @RequestParam(value = "endDate", required = false) String endDate
+    );
+    
+    @GetExchange("/trip/weekly-operation")
+    com.klzw.common.core.result.Result<java.util.List<java.util.Map<String, Object>>> getWeeklyOperationStats();
 }

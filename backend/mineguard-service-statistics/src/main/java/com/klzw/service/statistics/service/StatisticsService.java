@@ -12,9 +12,9 @@ public interface StatisticsService {
 
     CostStatisticsVO calculateCostStatistics(String date);
 
-    VehicleStatisticsVO calculateVehicleStatistics(Long vehicleId, String date);
+    VehicleStatisticsVO calculateVehicleStatistics(Long vehicleId, String startDate, String endDate);
 
-    DriverStatisticsVO calculateDriverStatistics(Long userId, String date);
+    DriverStatisticsVO calculateDriverStatistics(Long userId, String startDate, String endDate);
 
     TransportStatisticsVO calculateTransportStatistics(String date);
 
@@ -26,8 +26,6 @@ public interface StatisticsService {
 
     List<CostStatisticsVO> getCostStatistics(StatisticsQueryDTO queryDTO);
 
-    List<VehicleStatisticsVO> getVehicleStatistics(StatisticsQueryDTO queryDTO);
-
     List<DriverStatisticsVO> getDriverStatistics(StatisticsQueryDTO queryDTO);
 
     List<TransportStatisticsVO> getTransportStatistics(StatisticsQueryDTO queryDTO);
@@ -38,5 +36,17 @@ public interface StatisticsService {
     
     FaultStatisticsVO getFaultOverallStatistics(StatisticsQueryDTO queryDTO);
     
-    void calculateFaultStatistics(Long vehicleId, String date);
+    void calculateFaultStatistics(Long vehicleId, String startDate, String endDate);
+    
+    void calculateAllDriverStatistics(String startDate, String endDate);
+    
+    void calculateAllFaultStatistics(String startDate, String endDate);
+    
+    void calculateAllVehicleStatistics(String startDate, String endDate);
+    
+    List<VehicleTripStatsVO> getVehicleTripStats(String dimension, String startDate, String endDate);
+    
+    List<DriverStatisticsVO> getDriverStatsAggregated(String dimension, String startDate, String endDate);
+    
+    void backfillStatistics(String date);
 }

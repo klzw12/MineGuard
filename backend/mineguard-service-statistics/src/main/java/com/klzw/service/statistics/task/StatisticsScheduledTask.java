@@ -84,7 +84,7 @@ public class StatisticsScheduledTask {
                 
                 for (Long vehicleId : vehicleIds) {
                     try {
-                        statisticsService.calculateVehicleStatistics(vehicleId, yesterday.toString());
+                        statisticsService.calculateVehicleStatistics(vehicleId, yesterday.toString(), yesterday.toString());
                         successCount++;
                     } catch (Exception e) {
                         log.error("车辆统计失败：车辆ID={}", vehicleId, e);
@@ -116,7 +116,7 @@ public class StatisticsScheduledTask {
                 
                 for (Long userId : driverIds) {
                     try {
-                        statisticsService.calculateDriverStatistics(userId, yesterday.toString());
+                        statisticsService.calculateDriverStatistics(userId, yesterday.toString(), yesterday.toString());
                         successCount++;
                     } catch (Exception e) {
                         log.error("司机统计失败：用户ID={}", userId, e);

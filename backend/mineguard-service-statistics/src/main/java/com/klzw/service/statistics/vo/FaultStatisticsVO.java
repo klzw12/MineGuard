@@ -14,6 +14,12 @@ public class FaultStatisticsVO {
 
     private LocalDate statisticsDate;
 
+    private LocalDate startDate;
+
+    private LocalDate endDate;
+
+    private String period;
+
     private Long vehicleId;
 
     private String vehicleNo;

@@ -315,7 +315,17 @@ public class DispatchServiceImpl implements DispatchService {
     private boolean isVehicleAvailable(Long vehicleId) {
         try {
             var result = vehicleClient.getById(vehicleId);
-            if (result == null || result.getData() == null || result.getData().getStatus() == null || result.getData().getStatus() != 0) {
+            if (result == null || result.getData() == null) {
+                return false;
+            }
+            
+            java.util.Map<String, Object> vehicleData = result.getData();
+            Object statusObj = vehicleData.get("status");
+            Integer status = null;
+            if (statusObj instanceof Number) {
+                status = ((Number) statusObj).intValue();
+            }
+            if (status == null || status != 0) {
                 return false;
             }
 
@@ -346,7 +356,7 @@ public class DispatchServiceImpl implements DispatchService {
                     task.getScheduledStartTime() != null ? task.getScheduledStartTime().toString() : null
             );
 
-            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            List<java.util.Map<String, Object>> vehicles = result != null ? result.getData() : null;
             if (vehicles == null || vehicles.isEmpty()) {
                 log.warn("没有可用车辆");
                 return null;
@@ -355,10 +365,13 @@ public class DispatchServiceImpl implements DispatchService {
             List<Long> assignedVehicleIds = transportTaskMapper.findAssignedButNotAcceptedVehicleIds();
             log.info("已分配待接单的车辆ID列表: {}", assignedVehicleIds);
 
-            for (VehicleInfo vehicle : vehicles) {
-                if (vehicle.getId() != null && !assignedVehicleIds.contains(vehicle.getId())) {
-                    log.info("选择最佳车辆：车辆ID={}", vehicle.getId());
-                    return vehicle.getId();
+            for (java.util.Map<String, Object> vehicle : vehicles) {
+                Object idObj = vehicle.get("id");
+                Long vehicleId = idObj instanceof Number ? ((Number) idObj).longValue() : 
+                                 idObj instanceof String ? Long.parseLong((String) idObj) : null;
+                if (vehicleId != null && !assignedVehicleIds.contains(vehicleId)) {
+                    log.info("选择最佳车辆：车辆ID={}", vehicleId);
+                    return vehicleId;
                 }
             }
 
@@ -1341,7 +1354,8 @@ public class DispatchServiceImpl implements DispatchService {
             try {
                 var result = vehicleClient.getById(task.getVehicleId());
                 if (result != null && result.getData() != null) {
-                    vo.setVehicleNo(result.getData().getVehicleNo());
+                    java.util.Map<String, Object> vehicleData = result.getData();
+                    vo.setVehicleNo((String) vehicleData.get("vehicleNo"));
                 }
             } catch (Exception e) {
                 log.warn("获取车辆信息失败：vehicleId={}", task.getVehicleId());
@@ -1385,7 +1399,8 @@ public class DispatchServiceImpl implements DispatchService {
             try {
                 var result = vehicleClient.getById(task.getVehicleId());
                 if (result != null && result.getData() != null) {
-                    vo.setVehicleNo(result.getData().getVehicleNo());
+                    java.util.Map<String, Object> vehicleData = result.getData();
+                    vo.setVehicleNo((String) vehicleData.get("vehicleNo"));
                 }
             } catch (Exception e) {
                 log.warn("获取车辆信息失败：vehicleId={}", task.getVehicleId());
@@ -1396,7 +1411,8 @@ public class DispatchServiceImpl implements DispatchService {
             try {
                 var result = vehicleClient.getById(task.getRepairmanVehicleId());
                 if (result != null && result.getData() != null) {
-                    vo.setRepairmanVehicleNo(result.getData().getVehicleNo());
+                    java.util.Map<String, Object> repairVehicleData = result.getData();
+                    vo.setRepairmanVehicleNo((String) repairVehicleData.get("vehicleNo"));
                 }
             } catch (Exception e) {
                 log.warn("获取维修员车辆信息失败：vehicleId={}", task.getRepairmanVehicleId());
@@ -1439,7 +1455,8 @@ public class DispatchServiceImpl implements DispatchService {
             try {
                 var result = vehicleClient.getById(task.getVehicleId());
                 if (result != null && result.getData() != null) {
-                    vo.setVehicleNo(result.getData().getVehicleNo());
+                    java.util.Map<String, Object> vehicleData = result.getData();
+                    vo.setVehicleNo((String) vehicleData.get("vehicleNo"));
                 }
             } catch (Exception e) {
                 log.warn("获取车辆信息失败：vehicleId={}", task.getVehicleId());
@@ -1634,9 +1651,14 @@ public class DispatchServiceImpl implements DispatchService {
     private Long selectFaultVehicle() {
         try {
             var result = vehicleClient.getFaultVehicles();
-            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            java.util.List<java.util.Map<String, Object>> vehicles = result != null ? result.getData() : null;
             if (vehicles != null && !vehicles.isEmpty()) {
-                return vehicles.getFirst().getId();
+                Object idObj = vehicles.get(0).get("id");
+                if (idObj instanceof Number) {
+                    return ((Number) idObj).longValue();
+                } else if (idObj instanceof String) {
+                    return Long.parseLong((String) idObj);
+                }
             }
         } catch (Exception e) {
             log.error("获取故障车辆失败", e);
@@ -1647,9 +1669,14 @@ public class DispatchServiceImpl implements DispatchService {
     private Long selectAvailableVehicle() {
         try {
             var result = vehicleClient.getAvailableVehicles();
-            List<VehicleInfo> vehicles = result != null ? result.getData() : null;
+            java.util.List<java.util.Map<String, Object>> vehicles = result != null ? result.getData() : null;
             if (vehicles != null && !vehicles.isEmpty()) {
-                return vehicles.get(0).getId();
+                Object idObj = vehicles.get(0).get("id");
+                if (idObj instanceof Number) {
+                    return ((Number) idObj).longValue();
+                } else if (idObj instanceof String) {
+                    return Long.parseLong((String) idObj);
+                }
             }
         } catch (Exception e) {
             log.error("获取可用车辆失败", e);
@@ -1715,12 +1742,15 @@ public class DispatchServiceImpl implements DispatchService {
 
     private Long assignRepairmanVehicle() {
         try {
-            Result<List<VehicleInfo>> result = vehicleClient.getRepairmanVehicles();
-            List<VehicleInfo> vehicles = result != null && result.getData() != null ? result.getData() : Collections.emptyList();
+            Result<List<java.util.Map<String, Object>>> result = vehicleClient.getRepairmanVehicles();
+            List<java.util.Map<String, Object>> vehicles = result != null && result.getData() != null ? result.getData() : Collections.emptyList();
             if (!vehicles.isEmpty()) {
-                VehicleInfo vehicle = vehicles.get(0);
-                log.info("分配维修专用车成功, vehicleId: {}, vehicleNo: {}", vehicle.getId(), vehicle.getVehicleNo());
-                return vehicle.getId();
+                java.util.Map<String, Object> vehicle = vehicles.get(0);
+                Object idObj = vehicle.get("id");
+                Long vehicleId = idObj instanceof Number ? ((Number) idObj).longValue() : 
+                                 idObj instanceof String ? Long.parseLong((String) idObj) : null;
+                log.info("分配维修专用车成功, vehicleId: {}, vehicleNo: {}", vehicleId, vehicle.get("vehicleNo"));
+                return vehicleId;
             }
             log.warn("没有可用的维修专用车");
         } catch (Exception e) {

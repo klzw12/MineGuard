@@ -452,7 +452,7 @@ class StatisticsIntegrationTest {
     @Test
     void testCalculateVehicleStatistics() {
         // 调用计算车辆统计方法
-        VehicleStatisticsVO result = statisticsService.calculateVehicleStatistics(1L, LocalDate.now().toString());
+        VehicleStatisticsVO result = statisticsService.calculateVehicleStatistics(1L, LocalDate.now().toString(), LocalDate.now().toString());
 
         // 验证结果
         assertNotNull(result);
@@ -467,7 +467,7 @@ class StatisticsIntegrationTest {
     @Test
     void testCalculateDriverStatistics() {
         // 调用计算司机统计方法
-        DriverStatisticsVO result = statisticsService.calculateDriverStatistics(1L, LocalDate.now().toString());
+        DriverStatisticsVO result = statisticsService.calculateDriverStatistics(1L, LocalDate.now().toString(), LocalDate.now().toString());
 
         // 验证结果
         assertNotNull(result);
@@ -496,7 +496,7 @@ class StatisticsIntegrationTest {
     @Test
     void testCalculateFaultStatistics() {
         // 调用计算故障统计方法
-        statisticsService.calculateFaultStatistics(1L, LocalDate.now().toString());
+        statisticsService.calculateFaultStatistics(1L, LocalDate.now().toString(), LocalDate.now().toString());
 
         // 验证方法执行成功（无异常抛出）
         // 实际结果可以通过查询验证

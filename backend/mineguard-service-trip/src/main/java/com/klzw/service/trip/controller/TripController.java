@@ -7,7 +7,7 @@ import com.klzw.common.core.domain.dto.TripResponse;
 import com.klzw.common.core.domain.dto.TripCreateRequest;
 import com.klzw.service.trip.dto.TripDTO;
 import com.klzw.service.trip.dto.TripEndDTO;
-import com.klzw.service.trip.dto.TripStatisticsResponseDTO;
+import com.klzw.common.core.domain.dto.TripStatisticsResponseDTO;
 import com.klzw.service.trip.service.TripService;
 import com.klzw.service.trip.vo.TripStatisticsVO;
 import com.klzw.service.trip.vo.TripVO;
@@ -211,5 +211,20 @@ public class TripController {
         java.math.BigDecimal actualCargoWeight = request.get("actualCargoWeight");
         tripService.updateActualCargoWeight(id, actualCargoWeight);
         return Result.success();
+    }
+    
+    @GetMapping("/vehicle-statistics/{vehicleId}")
+    @Operation(summary = "获取车辆行程统计（运营天数、总里程）")
+    public Result<java.util.Map<String, Object>> getVehicleTripStatistics(
+            @PathVariable Long vehicleId,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate) {
+        return Result.success(tripService.getVehicleTripStatistics(vehicleId, startDate, endDate));
+    }
+    
+    @GetMapping("/weekly-operation")
+    @Operation(summary = "获取每周运营统计（每天有多少辆车有行程）")
+    public Result<java.util.List<java.util.Map<String, Object>>> getWeeklyOperationStats() {
+        return Result.success(tripService.getWeeklyOperationStats());
     }
 }

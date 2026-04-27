@@ -75,27 +75,18 @@ public class StatisticsServiceImpl implements StatisticsService {
         entity.setStatisticsDate(statisticsDate);
         
         try {
-            com.klzw.common.core.result.Result<java.util.Map<String, Object>> tripResult = tripClient.getStatistics(date, date);
+            var tripResult = tripClient.getStatistics(date, date);
             java.util.Map<String, Object> tripStats = tripResult != null && tripResult.getCode() == 200 ? tripResult.getData() : null;
             
             if (tripStats != null) {
-                Object tripCountObj = tripStats.get("tripCount");
-                Object totalDistanceObj = tripStats.get("totalDistance");
-                Object totalDurationObj = tripStats.get("totalDuration");
-                Object completedTripCountObj = tripStats.get("completedTripCount");
-                Object cancelledTripCountObj = tripStats.get("cancelledTripCount");
-                Object averageSpeedObj = tripStats.get("averageSpeed");
-                Object fuelConsumptionObj = tripStats.get("fuelConsumption");
-                Object cargoWeightObj = tripStats.get("cargoWeight");
-                
-                entity.setTripCount(tripCountObj != null ? ((Number) tripCountObj).intValue() : 0);
-                entity.setTotalDistance(totalDistanceObj != null ? new BigDecimal(totalDistanceObj.toString()) : BigDecimal.ZERO);
-                entity.setTotalDuration(totalDurationObj != null ? new BigDecimal(totalDurationObj.toString()) : BigDecimal.ZERO);
-                entity.setCompletedTripCount(completedTripCountObj != null ? ((Number) completedTripCountObj).intValue() : 0);
-                entity.setCancelledTripCount(cancelledTripCountObj != null ? ((Number) cancelledTripCountObj).intValue() : 0);
-                entity.setAverageSpeed(averageSpeedObj != null ? new BigDecimal(averageSpeedObj.toString()) : BigDecimal.ZERO);
-                entity.setFuelConsumption(fuelConsumptionObj != null ? new BigDecimal(fuelConsumptionObj.toString()) : BigDecimal.ZERO);
-                entity.setCargoWeight(cargoWeightObj != null ? new BigDecimal(cargoWeightObj.toString()) : BigDecimal.ZERO);
+                entity.setTripCount(tripStats.get("tripCount") != null ? ((Number) tripStats.get("tripCount")).intValue() : 0);
+                entity.setTotalDistance(tripStats.get("totalDistance") != null ? new java.math.BigDecimal(tripStats.get("totalDistance").toString()) : BigDecimal.ZERO);
+                entity.setTotalDuration(tripStats.get("totalDuration") != null ? new java.math.BigDecimal(tripStats.get("totalDuration").toString()) : BigDecimal.ZERO);
+                entity.setCompletedTripCount(tripStats.get("completedTripCount") != null ? ((Number) tripStats.get("completedTripCount")).intValue() : 0);
+                entity.setCancelledTripCount(tripStats.get("cancelledTripCount") != null ? ((Number) tripStats.get("cancelledTripCount")).intValue() : 0);
+                entity.setAverageSpeed(tripStats.get("averageSpeed") != null ? new java.math.BigDecimal(tripStats.get("averageSpeed").toString()) : BigDecimal.ZERO);
+                entity.setFuelConsumption(tripStats.get("fuelConsumption") != null ? new java.math.BigDecimal(tripStats.get("fuelConsumption").toString()) : BigDecimal.ZERO);
+                entity.setCargoWeight(tripStats.get("cargoWeight") != null ? new java.math.BigDecimal(tripStats.get("cargoWeight").toString()) : BigDecimal.ZERO);
             }
         } catch (Exception e) {
             log.warn("从行程服务获取统计数据失败，使用默认值：{}", e.getMessage());
@@ -124,16 +115,17 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     @Override
-    public CostStatisticsVO calculateCostStatistics(String date) {
-        LocalDate statisticsDate = LocalDate.parse(date);
+    public CostStatisticsVO calculateCostStatistics(String month) {
+        LocalDate statisticsMonth = LocalDate.parse(month).withDayOfMonth(1);
+        LocalDate monthStart = statisticsMonth;
+        LocalDate monthEnd = statisticsMonth.plusMonths(1);
         
-        // 删除旧缓存
-        String cacheKey = "statistics:cost:" + date;
+        String cacheKey = "statistics:cost:" + statisticsMonth.toString();
         redisTemplate.delete(cacheKey);
         
         CostStatistics existing = costStatisticsMapper.selectOne(
             new LambdaQueryWrapper<CostStatistics>()
-                .eq(CostStatistics::getStatisticsDate, statisticsDate)
+                .eq(CostStatistics::getStatisticsMonth, statisticsMonth)
         );
         
         if (existing != null) {
@@ -141,10 +133,17 @@ public class StatisticsServiceImpl implements StatisticsService {
         }
         
         CostStatistics entity = new CostStatistics();
-        entity.setStatisticsDate(statisticsDate);
+        entity.setStatisticsMonth(statisticsMonth);
         
         try {
-            var costStatsResult = costClient.getCostStatistics(date, date);
+            costClient.calculateSalaries(statisticsMonth.toString());
+            log.info("已触发薪资计算：month={}", statisticsMonth);
+        } catch (Exception e) {
+            log.warn("触发薪资计算失败：{}", e.getMessage());
+        }
+        
+        try {
+            var costStatsResult = costClient.getCostStatistics(monthStart.toString(), monthEnd.toString());
             com.klzw.common.core.domain.dto.CostStatisticsResponseDTO costStats = costStatsResult != null && costStatsResult.isSuccess() ? costStatsResult.getData() : null;
             
             if (costStats != null) {
@@ -181,22 +180,20 @@ public class StatisticsServiceImpl implements StatisticsService {
         entity.setUpdateTime(LocalDateTime.now());
         
         costStatisticsMapper.insert(entity);
-        log.info("计算成本统计数据：日期={}, 总成本={}", date, entity.getTotalCost());
+        log.info("计算成本统计数据：月份={} ({} ~ {}), 总成本={}", statisticsMonth, monthStart, monthEnd, entity.getTotalCost());
         
         CostStatisticsVO vo = convertToCostStatisticsVO(entity);
         
-        // 写入缓存
         redisTemplate.opsForValue().set(cacheKey, vo, CACHE_EXPIRE_DAYS, TimeUnit.DAYS);
         
         return vo;
     }
 
     @Override
-    public VehicleStatisticsVO calculateVehicleStatistics(Long vehicleId, String date) {
-        LocalDate statisticsDate = LocalDate.parse(date);
+    public VehicleStatisticsVO calculateVehicleStatistics(Long vehicleId, String startDate, String endDate) {
+        LocalDate statisticsDate = LocalDate.parse(endDate);
         
-        // 删除旧缓存
-        String cacheKey = "statistics:vehicle:" + vehicleId + ":" + date;
+        String cacheKey = "statistics:vehicle:" + vehicleId + ":" + endDate;
         redisTemplate.delete(cacheKey);
         
         VehicleStatistics existing = vehicleStatisticsMapper.selectOne(
@@ -213,59 +210,77 @@ public class StatisticsServiceImpl implements StatisticsService {
         entity.setVehicleId(vehicleId);
         entity.setStatisticsDate(statisticsDate);
         
+        entity.setTripCount(0);
+        entity.setTotalDistance(BigDecimal.ZERO);
+        entity.setTotalDuration(BigDecimal.ZERO);
+        entity.setCargoWeight(BigDecimal.ZERO);
+        entity.setFuelConsumption(BigDecimal.ZERO);
+        entity.setFuelCost(BigDecimal.ZERO);
+        entity.setMaintenanceCount(0);
+        entity.setMaintenanceCost(BigDecimal.ZERO);
+        entity.setWarningCount(0);
+        entity.setViolationCount(0);
+        entity.setIdleDuration(BigDecimal.ZERO);
+        entity.setIdleDistance(BigDecimal.ZERO);
+        
         try {
-            // 使用 StatisticsClient 调用相关服务获取车辆统计数据
-            // 这里可以调用多个服务获取不同维度的车辆数据
-            // 例如：行程数据、故障数据、维护数据等
-            // 为简化实现，暂时使用默认值
-            entity.setTripCount(0);
-            entity.setTotalDistance(BigDecimal.ZERO);
-            entity.setTotalDuration(BigDecimal.ZERO);
-            entity.setCargoWeight(BigDecimal.ZERO);
-            entity.setFuelConsumption(BigDecimal.ZERO);
-            entity.setFuelCost(BigDecimal.ZERO);
-            entity.setMaintenanceCount(0);
-            entity.setMaintenanceCost(BigDecimal.ZERO);
-            entity.setWarningCount(0);
-            entity.setViolationCount(0);
-            entity.setIdleDuration(BigDecimal.ZERO);
-            entity.setIdleDistance(BigDecimal.ZERO);
+            var tripResult = tripClient.getVehicleTripStatistics(vehicleId, startDate, endDate);
+            log.info("车辆行程统计返回：vehicleId={}, result={}", vehicleId, tripResult);
+            if (tripResult != null && tripResult.getCode() == 200 && tripResult.getData() != null) {
+                Map<String, Object> tripStats = tripResult.getData();
+                log.info("车辆行程统计数据：tripStats={}", tripStats);
+                entity.setTripCount(getIntegerValue(tripStats, "tripCount"));
+                entity.setTotalDistance(getBigDecimalValue(tripStats, "totalMileage"));
+                entity.setTotalDuration(getBigDecimalValue(tripStats, "totalDuration"));
+                entity.setCargoWeight(getBigDecimalValue(tripStats, "totalCargoWeight"));
+                log.info("设置货物重量：cargoWeight={}", entity.getCargoWeight());
+                entity.setFuelConsumption(getBigDecimalValue(tripStats, "totalFuelConsumption"));
+                entity.setIdleDuration(getBigDecimalValue(tripStats, "totalIdleDuration"));
+                entity.setIdleDistance(getBigDecimalValue(tripStats, "totalIdleDistance"));
+            }
         } catch (Exception e) {
-            log.warn("获取车辆统计数据失败，使用默认值：{}", e.getMessage());
-            entity.setTripCount(0);
-            entity.setTotalDistance(BigDecimal.ZERO);
-            entity.setTotalDuration(BigDecimal.ZERO);
-            entity.setCargoWeight(BigDecimal.ZERO);
-            entity.setFuelConsumption(BigDecimal.ZERO);
-            entity.setFuelCost(BigDecimal.ZERO);
-            entity.setMaintenanceCount(0);
-            entity.setMaintenanceCost(BigDecimal.ZERO);
-            entity.setWarningCount(0);
-            entity.setViolationCount(0);
-            entity.setIdleDuration(BigDecimal.ZERO);
-            entity.setIdleDistance(BigDecimal.ZERO);
+            log.warn("获取车辆行程统计失败：vehicleId={}, error={}", vehicleId, e.getMessage());
+        }
+        
+        try {
+            var warningResult = warningClient.getStatistics(startDate + "T00:00:00", endDate + "T23:59:59");
+            if (warningResult != null && warningResult.getCode() == 200 && warningResult.getData() != null) {
+                Map<String, Object> warningStats = warningResult.getData();
+                entity.setWarningCount(getIntegerValue(warningStats, "totalCount"));
+            }
+        } catch (Exception e) {
+            log.warn("获取车辆预警统计失败：vehicleId={}, error={}", vehicleId, e.getMessage());
+        }
+        
+        try {
+            var faultResult = vehicleClient.getFaultStatistics(vehicleId, endDate);
+            if (faultResult != null && faultResult.getCode() == 200 && faultResult.getData() != null) {
+                Map<String, Object> faultStats = faultResult.getData();
+                entity.setMaintenanceCount(getIntegerValue(faultStats, "faultCount"));
+                entity.setMaintenanceCost(getBigDecimalValue(faultStats, "totalRepairCost"));
+            }
+        } catch (Exception e) {
+            log.warn("获取车辆故障统计失败：vehicleId={}, error={}", vehicleId, e.getMessage());
         }
         
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         
         vehicleStatisticsMapper.insert(entity);
-        log.info("计算车辆统计数据：车辆 ID={}, 日期={}, 行程数={}", vehicleId, date, entity.getTripCount());
+        log.info("计算车辆统计数据：车辆 ID={}, 统计日期={}, 行程数={}", vehicleId, statisticsDate, entity.getTripCount());
         
         VehicleStatisticsVO vo = convertToVehicleStatisticsVO(entity);
         
-        // 写入缓存
         redisTemplate.opsForValue().set(cacheKey, vo, CACHE_EXPIRE_DAYS, TimeUnit.DAYS);
         
         return vo;
     }
 
     @Override
-    public DriverStatisticsVO calculateDriverStatistics(Long userId, String date) {
-        LocalDate statisticsDate = LocalDate.parse(date);
+    public DriverStatisticsVO calculateDriverStatistics(Long userId, String startDate, String endDate) {
+        LocalDate statisticsDate = LocalDate.parse(endDate);
         
-        // 删除旧缓存
-        String cacheKey = "statistics:driver:" + userId + ":" + date;
+        String cacheKey = "statistics:driver:" + userId + ":" + endDate;
         redisTemplate.delete(cacheKey);
         
         DriverStatistics existing = driverStatisticsMapper.selectOne(
@@ -282,24 +297,23 @@ public class StatisticsServiceImpl implements StatisticsService {
         entity.setUserId(userId);
         entity.setStatisticsDate(statisticsDate);
         
-        // 获取用户名
         try {
-            var userResult = userClient.getUserById(userId);
-            if (userResult != null && userResult.isSuccess() && userResult.getData() != null) {
-                Object userData = userResult.getData();
-                if (userData instanceof Map) {
+            var driverResult = userClient.getDriverByUserId(userId);
+            if (driverResult != null && driverResult.isSuccess() && driverResult.getData() != null) {
+                Object driverData = driverResult.getData();
+                if (driverData instanceof Map) {
                     @SuppressWarnings("unchecked")
-                    Map<String, Object> userMap = (Map<String, Object>) userData;
-                    entity.setUserName((String) userMap.get("realName"));
+                    Map<String, Object> driverMap = (Map<String, Object>) driverData;
+                    entity.setUserName((String) driverMap.get("driverName"));
                 }
             }
         } catch (Exception e) {
-            log.warn("获取用户名失败：userId={}", userId);
+            log.warn("获取司机信息失败：userId={}, error={}", userId, e.getMessage());
         }
         
-        // 获取行程统计数据
         try {
-            var tripResult = tripClient.getDriverStatistics(userId, date, date);
+            var tripResult = tripClient.getDriverStatistics(userId, startDate, endDate);
+            log.info("获取司机行程统计返回：userId={}, result={}", userId, tripResult);
             if (tripResult != null && tripResult.getCode() == 200 && tripResult.getData() != null) {
                 Map<String, Object> tripStats = tripResult.getData();
                 entity.setTripCount(getIntegerValue(tripStats, "tripCount"));
@@ -313,9 +327,8 @@ public class StatisticsServiceImpl implements StatisticsService {
             entity.setCargoWeight(BigDecimal.ZERO);
         }
         
-        // 获取成本统计数据
         try {
-            var costResult = costClient.getDriverCostStatistics(userId, date, date);
+            var costResult = costClient.getDriverCostStatistics(userId, startDate, endDate);
             if (costResult != null && costResult.getCode() == 200 && costResult.getData() != null) {
                 Map<String, Object> costStats = costResult.getData();
                 entity.setFuelCost(getBigDecimalValue(costStats, "fuelCost"));
@@ -331,12 +344,10 @@ public class StatisticsServiceImpl implements StatisticsService {
             entity.setTotalCost(BigDecimal.ZERO);
         }
         
-        // 获取预警统计数据
         try {
-            var warningResult = warningClient.getStatistics(date + "T00:00:00", date + "T23:59:59");
+            var warningResult = warningClient.getStatistics(startDate + "T00:00:00", endDate + "T23:59:59");
             if (warningResult != null && warningResult.getCode() == 200 && warningResult.getData() != null) {
                 Map<String, Object> warningStats = warningResult.getData();
-                // 这里需要根据driverId过滤预警记录，暂时使用总数
                 entity.setWarningCount(getIntegerValue(warningStats, "totalCount"));
             }
         } catch (Exception e) {
@@ -344,17 +355,27 @@ public class StatisticsServiceImpl implements StatisticsService {
             entity.setWarningCount(0);
         }
         
-        // 绩效评分：基础分100，每次预警扣5分，最低0分
-        // 绩效奖金由管理端手动发放，不在此自动计算
         int baseScore = 100;
         int warningDeduction = (entity.getWarningCount() != null ? entity.getWarningCount() : 0) * 5;
         entity.setPerformanceScore(BigDecimal.valueOf(Math.max(0, baseScore - warningDeduction)));
         
-        // 默认值
-        entity.setAttendanceDays(1);
-        entity.setAttendanceHours(BigDecimal.valueOf(8));
-        entity.setLateCount(0);
-        entity.setEarlyLeaveCount(0);
+        try {
+            LocalDate start = LocalDate.parse(startDate);
+            LocalDate end = LocalDate.parse(endDate);
+            var attendanceResult = userClient.getAttendanceStatistics(userId, start, end);
+            log.info("获取司机考勤统计返回：userId={}, result={}", userId, attendanceResult);
+            if (attendanceResult != null && attendanceResult.getCode() == 200 && attendanceResult.getData() != null) {
+                Map<String, Object> attendanceStats = attendanceResult.getData();
+                log.info("司机考勤统计数据：attendanceStats={}", attendanceStats);
+                entity.setAttendanceDays(getIntegerValue(attendanceStats, "actualAttendanceDays"));
+                entity.setAttendanceHours(getBigDecimalValue(attendanceStats, "attendanceHours"));
+                entity.setLateCount(getIntegerValue(attendanceStats, "lateTimes"));
+                entity.setEarlyLeaveCount(getIntegerValue(attendanceStats, "earlyLeaveTimes"));
+            }
+        } catch (Exception e) {
+            log.warn("获取司机考勤统计失败：userId={}, error={}", userId, e.getMessage());
+        }
+        
         entity.setViolationCount(0);
         entity.setOverSpeedCount(0);
         entity.setRouteDeviationCount(0);
@@ -363,11 +384,10 @@ public class StatisticsServiceImpl implements StatisticsService {
         entity.setUpdateTime(LocalDateTime.now());
         
         driverStatisticsMapper.insert(entity);
-        log.info("计算司机统计数据：用户 ID={}, 日期={}, 行程数={}", userId, date, entity.getTripCount());
+        log.info("计算司机统计数据：用户 ID={}, 统计日期={}, 行程数={}", userId, statisticsDate, entity.getTripCount());
         
         DriverStatisticsVO vo = convertToDriverStatisticsVO(entity);
         
-        // 写入缓存
         redisTemplate.opsForValue().set(cacheKey, vo, CACHE_EXPIRE_DAYS, TimeUnit.DAYS);
         
         return vo;
@@ -417,36 +437,16 @@ public class StatisticsServiceImpl implements StatisticsService {
         LambdaQueryWrapper<CostStatistics> wrapper = new LambdaQueryWrapper<>();
         
         if (queryDTO.getStartDate() != null) {
-            wrapper.ge(CostStatistics::getStatisticsDate, queryDTO.getStartDate());
+            wrapper.ge(CostStatistics::getStatisticsMonth, queryDTO.getStartDate().withDayOfMonth(1));
         }
         if (queryDTO.getEndDate() != null) {
-            wrapper.le(CostStatistics::getStatisticsDate, queryDTO.getEndDate());
+            wrapper.le(CostStatistics::getStatisticsMonth, queryDTO.getEndDate().withDayOfMonth(1));
         }
         
-        wrapper.orderByDesc(CostStatistics::getStatisticsDate);
+        wrapper.orderByDesc(CostStatistics::getStatisticsMonth);
         
         List<CostStatistics> list = costStatisticsMapper.selectList(wrapper);
         return list.stream().map(this::convertToCostStatisticsVO).collect(Collectors.toList());
-    }
-
-    @Override
-    public List<VehicleStatisticsVO> getVehicleStatistics(StatisticsQueryDTO queryDTO) {
-        LambdaQueryWrapper<VehicleStatistics> wrapper = new LambdaQueryWrapper<>();
-        
-        if (queryDTO.getVehicleId() != null) {
-            wrapper.eq(VehicleStatistics::getVehicleId, queryDTO.getVehicleId());
-        }
-        if (queryDTO.getStartDate() != null) {
-            wrapper.ge(VehicleStatistics::getStatisticsDate, queryDTO.getStartDate());
-        }
-        if (queryDTO.getEndDate() != null) {
-            wrapper.le(VehicleStatistics::getStatisticsDate, queryDTO.getEndDate());
-        }
-        
-        wrapper.orderByDesc(VehicleStatistics::getStatisticsDate);
-        
-        List<VehicleStatistics> list = vehicleStatisticsMapper.selectList(wrapper);
-        return list.stream().map(this::convertToVehicleStatisticsVO).collect(Collectors.toList());
     }
 
     @Override
@@ -519,11 +519,10 @@ public class StatisticsServiceImpl implements StatisticsService {
         }
         
         try {
-            // 尝试从用户服务获取司机总数
-            // 由于UserClient没有直接提供获取司机总数的接口
-            // 我们可以尝试通过其他方式获取，或者暂时使用默认值
-            // 为了演示，暂时使用默认值
-            totalDrivers = 5; // 假设系统中有5个司机
+            var driverIdsResult = userClient.getDriverIds();
+            if (driverIdsResult != null && driverIdsResult.getCode() == 200 && driverIdsResult.getData() != null) {
+                totalDrivers = driverIdsResult.getData().size();
+            }
         } catch (Exception e) {
             log.warn("获取司机总数失败：{}", e.getMessage());
         }
@@ -591,10 +590,25 @@ public class StatisticsServiceImpl implements StatisticsService {
             entity.setTotalCargoWeight(totalCargoWeight);
             entity.setTotalTrips(totalTrips);
             
-            // 这里可以继续调用其他服务获取车辆数量和司机数量
-            // 为简化实现，暂时设为 0
-            entity.setTotalVehicles(0);
-            entity.setTotalDrivers(0);
+            try {
+                var vehicleResult = vehicleClient.getVehicleCount();
+                if (vehicleResult != null && vehicleResult.getCode() == 200 && vehicleResult.getData() != null) {
+                    entity.setTotalVehicles(vehicleResult.getData());
+                }
+            } catch (Exception ex) {
+                log.warn("获取车辆总数失败：{}", ex.getMessage());
+                entity.setTotalVehicles(0);
+            }
+            
+            try {
+                var driverIdsResult = userClient.getDriverIds();
+                if (driverIdsResult != null && driverIdsResult.getCode() == 200 && driverIdsResult.getData() != null) {
+                    entity.setTotalDrivers(driverIdsResult.getData().size());
+                }
+            } catch (Exception ex) {
+                log.warn("获取司机总数失败：{}", ex.getMessage());
+                entity.setTotalDrivers(0);
+            }
             
             if (totalTrips > 0) {
                 entity.setAvgCargoPerTrip(totalCargoWeight.divide(BigDecimal.valueOf(totalTrips), 2, RoundingMode.HALF_UP));
@@ -697,11 +711,10 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
     @Override
-    public void calculateFaultStatistics(Long vehicleId, String date) {
-        LocalDate statisticsDate = LocalDate.parse(date);
+    public void calculateFaultStatistics(Long vehicleId, String startDate, String endDate) {
+        LocalDate statisticsDate = LocalDate.parse(endDate);
         
-        // 删除旧缓存
-        String cacheKey = "statistics:fault:" + vehicleId + ":" + date;
+        String cacheKey = "statistics:fault:" + vehicleId + ":" + endDate;
         redisTemplate.delete(cacheKey);
         
         FaultStatistics existing = faultStatisticsMapper.selectOne(
@@ -719,7 +732,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         entity.setStatisticsDate(statisticsDate);
         
         try {
-            com.klzw.common.core.result.Result<java.util.Map<String, Object>> faultResult = vehicleClient.getFaultStatistics(vehicleId, date);
+            com.klzw.common.core.result.Result<java.util.Map<String, Object>> faultResult = vehicleClient.getFaultStatistics(vehicleId, endDate);
             java.util.Map<String, Object> faultStats = faultResult != null && faultResult.getCode() == 200 ? faultResult.getData() : null;
             
             if (faultStats != null) {
@@ -752,11 +765,10 @@ public class StatisticsServiceImpl implements StatisticsService {
         entity.setUpdateTime(LocalDateTime.now());
         
         faultStatisticsMapper.insert(entity);
-        log.info("计算故障统计数据：车辆 ID={}, 日期={}, 故障数={}", vehicleId, date, entity.getFaultCount());
+        log.info("计算故障统计数据：车辆 ID={}, 统计日期={}, 故障数={}", vehicleId, statisticsDate, entity.getFaultCount());
         
         FaultStatisticsVO vo = convertToFaultStatisticsVO(entity);
         
-        // 写入缓存
         redisTemplate.opsForValue().set(cacheKey, vo, CACHE_EXPIRE_DAYS, TimeUnit.DAYS);
     }
     
@@ -953,5 +965,433 @@ public class StatisticsServiceImpl implements StatisticsService {
             log.warn("获取预警统计失败：startTime={}, endTime={}, error={}", startTime, endTime, e.getMessage());
         }
         return new HashMap<>();
+    }
+    
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<VehicleTripStatsVO> getVehicleTripStats(String dimension, String startDate, String endDate) {
+        log.info("获取车辆出车统计：dimension={}, startDate={}, endDate={}", dimension, startDate, endDate);
+        
+        LocalDate start = startDate != null ? LocalDate.parse(startDate) : LocalDate.now().minusDays(7);
+        LocalDate end = endDate != null ? LocalDate.parse(endDate) : LocalDate.now();
+        
+        String cacheKey = "statistics:vehicle:trip:" + dimension + ":" + start + ":" + end;
+        
+        List<VehicleTripStatsVO> cached = (List<VehicleTripStatsVO>) redisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            log.info("从缓存获取车辆出车统计：{} 条记录", cached.size());
+            return cached;
+        }
+        
+        List<VehicleTripStatsVO> result = new java.util.ArrayList<>();
+        
+        List<VehicleStatistics> statsList = vehicleStatisticsMapper.selectList(
+            new LambdaQueryWrapper<VehicleStatistics>()
+                .ge(VehicleStatistics::getStatisticsDate, start)
+                .le(VehicleStatistics::getStatisticsDate, end)
+        );
+        
+        if (statsList == null || statsList.isEmpty()) {
+            log.info("未找到车辆统计数据：startDate={}, endDate={}", start, end);
+            return result;
+        }
+        
+        Map<Long, VehicleTripStatsVO> vehicleStatsMap = new java.util.HashMap<>();
+        
+        for (VehicleStatistics stats : statsList) {
+            Long vehicleId = stats.getVehicleId();
+            VehicleTripStatsVO vo = vehicleStatsMap.get(vehicleId);
+            
+            if (vo == null) {
+                vo = new VehicleTripStatsVO();
+                vo.setVehicleId(vehicleId);
+                vo.setTripCount(0);
+                vo.setTotalDistance(BigDecimal.ZERO);
+                vo.setCargoWeight(BigDecimal.ZERO);
+                vehicleStatsMap.put(vehicleId, vo);
+                
+                try {
+                    var vehicleResult = vehicleClient.getById(vehicleId);
+                    if (vehicleResult != null && vehicleResult.getCode() == 200 && vehicleResult.getData() != null) {
+                        var vehicleData = vehicleResult.getData();
+                        vo.setVehicleNo((String) vehicleData.get("vehicleNo"));
+                    }
+                } catch (Exception e) {
+                    log.warn("获取车辆信息失败：vehicleId={}", vehicleId);
+                    vo.setVehicleNo("未知车辆");
+                }
+            }
+            
+            vo.setTripCount(vo.getTripCount() + (stats.getTripCount() != null ? stats.getTripCount() : 0));
+            vo.setTotalDistance(vo.getTotalDistance().add(stats.getTotalDistance() != null ? stats.getTotalDistance() : BigDecimal.ZERO));
+            vo.setCargoWeight(vo.getCargoWeight().add(stats.getCargoWeight() != null ? stats.getCargoWeight() : BigDecimal.ZERO));
+        }
+        
+        for (VehicleTripStatsVO vo : vehicleStatsMap.values()) {
+            vo.setPeriod(start + " ~ " + end);
+            result.add(vo);
+        }
+        
+        redisTemplate.opsForValue().set(cacheKey, result, CACHE_EXPIRE_DAYS, TimeUnit.DAYS);
+        log.info("返回车辆出车统计：{} 条记录，已缓存", result.size());
+        return result;
+    }
+    
+    @Override
+    @SuppressWarnings("unchecked")
+    public List<DriverStatisticsVO> getDriverStatsAggregated(String dimension, String startDate, String endDate) {
+        log.info("获取司机统计聚合：dimension={}, startDate={}, endDate={}", dimension, startDate, endDate);
+        
+        LocalDate start = startDate != null ? LocalDate.parse(startDate) : LocalDate.now().minusDays(7);
+        LocalDate end = endDate != null ? LocalDate.parse(endDate) : LocalDate.now();
+        
+        String cacheKey = "statistics:driver:aggregated:" + dimension + ":" + start + ":" + end;
+        
+        List<DriverStatisticsVO> cached = (List<DriverStatisticsVO>) redisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            log.info("从缓存获取司机统计聚合：{} 条记录", cached.size());
+            return cached;
+        }
+        
+        List<DriverStatisticsVO> result = new java.util.ArrayList<>();
+        
+        List<DriverStatistics> statsList = driverStatisticsMapper.selectList(
+            new LambdaQueryWrapper<DriverStatistics>()
+                .ge(DriverStatistics::getStatisticsDate, start)
+                .le(DriverStatistics::getStatisticsDate, end)
+        );
+        
+        if (statsList == null || statsList.isEmpty()) {
+            log.info("未找到司机统计数据：startDate={}, endDate={}", start, end);
+            return result;
+        }
+        
+        Map<Long, DriverStatisticsVO> driverStatsMap = new java.util.HashMap<>();
+        
+        for (DriverStatistics stats : statsList) {
+            Long userId = stats.getUserId();
+            DriverStatisticsVO vo = driverStatsMap.get(userId);
+            
+            if (vo == null) {
+                vo = new DriverStatisticsVO();
+                vo.setUserId(userId);
+                vo.setUserName(stats.getUserName());
+                vo.setAttendanceDays(0);
+                vo.setAttendanceHours(BigDecimal.ZERO);
+                vo.setTripCount(0);
+                vo.setTotalDistance(BigDecimal.ZERO);
+                vo.setCargoWeight(BigDecimal.ZERO);
+                vo.setLateCount(0);
+                vo.setEarlyLeaveCount(0);
+                vo.setWarningCount(0);
+                vo.setPerformanceScore(BigDecimal.ZERO);
+                vo.setFuelCost(BigDecimal.ZERO);
+                vo.setTollCost(BigDecimal.ZERO);
+                vo.setCommissionAmount(BigDecimal.ZERO);
+                vo.setTotalCost(BigDecimal.ZERO);
+                driverStatsMap.put(userId, vo);
+            }
+            
+            vo.setAttendanceDays(vo.getAttendanceDays() + (stats.getAttendanceDays() != null ? stats.getAttendanceDays() : 0));
+            vo.setAttendanceHours(vo.getAttendanceHours().add(stats.getAttendanceHours() != null ? stats.getAttendanceHours() : BigDecimal.ZERO));
+            vo.setTripCount(vo.getTripCount() + (stats.getTripCount() != null ? stats.getTripCount() : 0));
+            vo.setTotalDistance(vo.getTotalDistance().add(stats.getTotalDistance() != null ? stats.getTotalDistance() : BigDecimal.ZERO));
+            vo.setCargoWeight(vo.getCargoWeight().add(stats.getCargoWeight() != null ? stats.getCargoWeight() : BigDecimal.ZERO));
+            vo.setLateCount(vo.getLateCount() + (stats.getLateCount() != null ? stats.getLateCount() : 0));
+            vo.setEarlyLeaveCount(vo.getEarlyLeaveCount() + (stats.getEarlyLeaveCount() != null ? stats.getEarlyLeaveCount() : 0));
+            vo.setWarningCount(vo.getWarningCount() + (stats.getWarningCount() != null ? stats.getWarningCount() : 0));
+            vo.setFuelCost(vo.getFuelCost().add(stats.getFuelCost() != null ? stats.getFuelCost() : BigDecimal.ZERO));
+            vo.setTollCost(vo.getTollCost().add(stats.getTollCost() != null ? stats.getTollCost() : BigDecimal.ZERO));
+            vo.setCommissionAmount(vo.getCommissionAmount().add(stats.getCommissionAmount() != null ? stats.getCommissionAmount() : BigDecimal.ZERO));
+            vo.setTotalCost(vo.getTotalCost().add(stats.getTotalCost() != null ? stats.getTotalCost() : BigDecimal.ZERO));
+            
+            if (stats.getPerformanceScore() != null) {
+                vo.setPerformanceScore(vo.getPerformanceScore().add(stats.getPerformanceScore()));
+            }
+        }
+        
+        int recordCount = statsList.size();
+        for (DriverStatisticsVO vo : driverStatsMap.values()) {
+            vo.setPeriod(start + " ~ " + end);
+            if (recordCount > 0 && vo.getPerformanceScore().compareTo(BigDecimal.ZERO) > 0) {
+                vo.setPerformanceScore(vo.getPerformanceScore().divide(BigDecimal.valueOf(recordCount), 0, java.math.RoundingMode.HALF_UP));
+            }
+            result.add(vo);
+        }
+        
+        redisTemplate.opsForValue().set(cacheKey, result, CACHE_EXPIRE_DAYS, TimeUnit.DAYS);
+        log.info("返回司机统计聚合：{} 条记录，已缓存", result.size());
+        return result;
+    }
+    
+    private void calculateVehicleTripData(VehicleTripStatsVO vo, LocalDate start, LocalDate end) {
+        try {
+            var tripResult = tripClient.getVehicleTripStatistics(vo.getVehicleId(), start.toString(), end.toString());
+            if (tripResult != null && tripResult.getCode() == 200 && tripResult.getData() != null) {
+                var data = tripResult.getData();
+                vo.setTripCount(getIntegerValue(data, "tripCount"));
+                vo.setTotalDistance(getBigDecimalValue(data, "totalMileage"));
+            }
+        } catch (Exception e) {
+            log.warn("获取车辆行程统计失败：vehicleId={}", vo.getVehicleId());
+        }
+        
+        try {
+            var vehicleResult = vehicleClient.getById(vo.getVehicleId());
+            if (vehicleResult != null && vehicleResult.getCode() == 200 && vehicleResult.getData() != null) {
+                var vehicleData = vehicleResult.getData();
+                Object cargoWeightObj = vehicleData.get("cargoWeight");
+                if (cargoWeightObj != null) {
+                    if (cargoWeightObj instanceof BigDecimal) {
+                        vo.setCargoWeight((BigDecimal) cargoWeightObj);
+                    } else if (cargoWeightObj instanceof Number) {
+                        vo.setCargoWeight(BigDecimal.valueOf(((Number) cargoWeightObj).doubleValue()));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("获取车辆货运量失败：vehicleId={}", vo.getVehicleId());
+        }
+        
+        if (vo.getTripCount() == null) vo.setTripCount(0);
+        if (vo.getTotalDistance() == null) vo.setTotalDistance(BigDecimal.ZERO);
+        if (vo.getCargoWeight() == null) vo.setCargoWeight(BigDecimal.ZERO);
+    }
+    
+    @Override
+    public void calculateAllDriverStatistics(String startDate, String endDate) {
+        log.info("批量计算所有司机统计：startDate={}, endDate={}", startDate, endDate);
+        try {
+            var result = userClient.getDriverIds();
+            if (result != null && result.getCode() == 200 && result.getData() != null) {
+                List<Long> driverIds = result.getData();
+                int successCount = 0;
+                int failCount = 0;
+                for (Long driverId : driverIds) {
+                    try {
+                        calculateDriverStatistics(driverId, startDate, endDate);
+                        successCount++;
+                    } catch (Exception e) {
+                        log.warn("计算司机统计失败：driverId={}, error={}", driverId, e.getMessage());
+                        failCount++;
+                    }
+                }
+                log.info("批量计算司机统计完成：成功={}, 失败={}", successCount, failCount);
+                
+                var keys = redisTemplate.keys("statistics:driver:aggregated:*");
+                if (keys != null && !keys.isEmpty()) {
+                    redisTemplate.delete(keys);
+                    log.info("清除司机统计聚合缓存：{} 个", keys.size());
+                }
+            }
+        } catch (Exception e) {
+            log.error("批量计算司机统计失败", e);
+        }
+    }
+    
+    @Override
+    public void calculateAllFaultStatistics(String startDate, String endDate) {
+        log.info("批量计算所有故障统计：startDate={}, endDate={}", startDate, endDate);
+        try {
+            var result = vehicleClient.getVehicleCount();
+            if (result != null && result.getCode() == 200 && result.getData() != null) {
+                Integer totalVehicles = result.getData();
+                log.info("开始计算 {} 辆车的故障统计", totalVehicles);
+                
+                var vehiclesResult = vehicleClient.getIdleVehicles();
+                if (vehiclesResult != null && vehiclesResult.getCode() == 200 && vehiclesResult.getData() != null) {
+                    var vehicles = vehiclesResult.getData();
+                    int successCount = 0;
+                    int failCount = 0;
+                    for (var vehicleMap : vehicles) {
+                        try {
+                            Object idObj = vehicleMap.get("id");
+                            Long vehicleId = null;
+                            if (idObj instanceof Number) {
+                                vehicleId = ((Number) idObj).longValue();
+                            } else if (idObj instanceof String) {
+                                vehicleId = Long.parseLong((String) idObj);
+                            }
+                            if (vehicleId != null) {
+                                calculateFaultStatistics(vehicleId, startDate, endDate);
+                                successCount++;
+                            }
+                        } catch (Exception e) {
+                            log.warn("计算故障统计失败：error={}", e.getMessage());
+                            failCount++;
+                        }
+                    }
+                    log.info("批量计算故障统计完成：成功={}, 失败={}", successCount, failCount);
+                }
+            }
+        } catch (Exception e) {
+            log.error("批量计算故障统计失败", e);
+        }
+    }
+    
+    @Override
+    public void calculateAllVehicleStatistics(String startDate, String endDate) {
+        log.info("批量计算所有车辆统计：startDate={}, endDate={}", startDate, endDate);
+        try {
+            var vehiclesResult = vehicleClient.getVehicleIds();
+            if (vehiclesResult != null && vehiclesResult.getCode() == 200 && vehiclesResult.getData() != null) {
+                List<Long> vehicleIds = vehiclesResult.getData();
+                
+                LocalDate start = LocalDate.parse(startDate);
+                LocalDate end = LocalDate.parse(endDate);
+                List<LocalDate> dates = new java.util.ArrayList<>();
+                for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+                    dates.add(date);
+                }
+                
+                int successCount = 0;
+                int failCount = 0;
+                
+                for (LocalDate date : dates) {
+                    String dateStr = date.toString();
+                    for (Long vehicleId : vehicleIds) {
+                        try {
+                            calculateVehicleStatistics(vehicleId, dateStr, dateStr);
+                            successCount++;
+                        } catch (Exception e) {
+                            log.warn("计算车辆统计失败：vehicleId={}, date={}, error={}", vehicleId, dateStr, e.getMessage());
+                            failCount++;
+                        }
+                    }
+                }
+                
+                log.info("批量计算车辆统计完成：成功={}, 失败={}", successCount, failCount);
+                
+                var keys = redisTemplate.keys("statistics:vehicle:trip:*");
+                if (keys != null && !keys.isEmpty()) {
+                    redisTemplate.delete(keys);
+                    log.info("清除车辆出车统计缓存：{} 个", keys.size());
+                }
+            }
+        } catch (Exception e) {
+            log.error("批量计算车辆统计失败", e);
+        }
+    }
+    
+    @Override
+    public void backfillStatistics(String date) {
+        log.info("开始补录统计数据：date={}", date);
+        
+        LocalDate statisticsDate = LocalDate.parse(date);
+        LocalDate previousDate = statisticsDate.minusDays(1);
+        String previousDateStr = previousDate.toString();
+        
+        int successCount = 0;
+        int failCount = 0;
+        
+        try {
+            calculateTripStatistics(date);
+            log.info("补录行程统计成功：date={}", date);
+            successCount++;
+        } catch (Exception e) {
+            log.warn("补录行程统计失败：date={}, error={}", date, e.getMessage());
+            failCount++;
+        }
+        
+        try {
+            calculateCostStatistics(date);
+            log.info("补录成本统计成功：date={}", date);
+            successCount++;
+        } catch (Exception e) {
+            log.warn("补录成本统计失败：date={}, error={}", date, e.getMessage());
+            failCount++;
+        }
+        
+        try {
+            calculateTransportStatistics(date);
+            log.info("补录运输统计成功：date={}", date);
+            successCount++;
+        } catch (Exception e) {
+            log.warn("补录运输统计失败：date={}, error={}", date, e.getMessage());
+            failCount++;
+        }
+        
+        try {
+            var vehiclesResult = vehicleClient.getIdleVehicles();
+            if (vehiclesResult != null && vehiclesResult.getCode() == 200 && vehiclesResult.getData() != null) {
+                var vehicles = vehiclesResult.getData();
+                int vehicleSuccess = 0;
+                int vehicleFail = 0;
+                for (var vehicleMap : vehicles) {
+                    try {
+                        Object idObj = vehicleMap.get("id");
+                        Long vehicleId = null;
+                        if (idObj instanceof Number) {
+                            vehicleId = ((Number) idObj).longValue();
+                        } else if (idObj instanceof String) {
+                            vehicleId = Long.parseLong((String) idObj);
+                        }
+                        if (vehicleId != null) {
+                            calculateVehicleStatistics(vehicleId, date, date);
+                            vehicleSuccess++;
+                        }
+                    } catch (Exception e) {
+                        log.warn("补录车辆统计失败：vehicleId={}, error={}", vehicleMap.get("id"), e.getMessage());
+                        vehicleFail++;
+                    }
+                }
+                log.info("补录车辆统计完成：成功={}, 失败={}", vehicleSuccess, vehicleFail);
+            }
+        } catch (Exception e) {
+            log.warn("补录车辆统计失败：error={}", e.getMessage());
+        }
+        
+        try {
+            var result = userClient.getDriverIds();
+            if (result != null && result.getCode() == 200 && result.getData() != null) {
+                List<Long> driverIds = result.getData();
+                int driverSuccess = 0;
+                int driverFail = 0;
+                for (Long driverId : driverIds) {
+                    try {
+                        calculateDriverStatistics(driverId, date, date);
+                        driverSuccess++;
+                    } catch (Exception e) {
+                        log.warn("补录司机统计失败：driverId={}, error={}", driverId, e.getMessage());
+                        driverFail++;
+                    }
+                }
+                log.info("补录司机统计完成：成功={}, 失败={}", driverSuccess, driverFail);
+            }
+        } catch (Exception e) {
+            log.warn("补录司机统计失败：error={}", e.getMessage());
+        }
+        
+        try {
+            var vehiclesResult = vehicleClient.getIdleVehicles();
+            if (vehiclesResult != null && vehiclesResult.getCode() == 200 && vehiclesResult.getData() != null) {
+                var vehicles = vehiclesResult.getData();
+                int faultSuccess = 0;
+                int faultFail = 0;
+                for (var vehicleMap : vehicles) {
+                    try {
+                        Object idObj = vehicleMap.get("id");
+                        Long vehicleId = null;
+                        if (idObj instanceof Number) {
+                            vehicleId = ((Number) idObj).longValue();
+                        } else if (idObj instanceof String) {
+                            vehicleId = Long.parseLong((String) idObj);
+                        }
+                        if (vehicleId != null) {
+                            calculateFaultStatistics(vehicleId, date, date);
+                            faultSuccess++;
+                        }
+                    } catch (Exception e) {
+                        log.warn("补录故障统计失败：vehicleId={}, error={}", vehicleMap.get("id"), e.getMessage());
+                        faultFail++;
+                    }
+                }
+                log.info("补录故障统计完成：成功={}, 失败={}", faultSuccess, faultFail);
+            }
+        } catch (Exception e) {
+            log.warn("补录故障统计失败：error={}", e.getMessage());
+        }
+        
+        log.info("补录统计数据完成：date={}, 成功={}, 失败={}", date, successCount, failCount);
     }
 }

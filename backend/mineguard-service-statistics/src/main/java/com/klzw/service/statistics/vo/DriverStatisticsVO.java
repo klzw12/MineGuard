@@ -16,6 +16,12 @@ public class DriverStatisticsVO {
 
     private LocalDate statisticsDate;
 
+    private LocalDate startDate;
+
+    private LocalDate endDate;
+
+    private String period;
+
     private Integer attendanceDays;
 
     private BigDecimal attendanceHours;

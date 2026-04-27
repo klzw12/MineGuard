@@ -2,6 +2,7 @@ package com.klzw.service.vehicle.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.klzw.common.core.client.DriverClient;
+import com.klzw.common.core.client.TripClient;
 import com.klzw.common.core.client.UserClient;
 import com.klzw.common.core.domain.dto.DriverVehicleInfo;
 import com.klzw.common.core.result.Result;
@@ -10,6 +11,7 @@ import com.klzw.common.file.service.OcrService;
 import com.klzw.common.file.service.StorageService;
 import com.klzw.service.vehicle.dto.BestVehicleQueryDTO;
 import com.klzw.service.vehicle.entity.Vehicle;
+import com.klzw.service.vehicle.entity.VehicleRefueling;
 import com.klzw.service.vehicle.entity.VehicleStatus;
 import com.klzw.service.vehicle.enums.InsuranceTypeEnum;
 import com.klzw.service.vehicle.enums.VehicleStatusEnum;
@@ -52,6 +54,10 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
     private final DriverClient driverClient;
     
     private final UserClient userClient;
+    
+    private final TripClient tripClient;
+    
+    private final com.klzw.service.vehicle.service.VehicleRefuelingService vehicleRefuelingService;
     
     @Override
     public Vehicle createVehicle(Vehicle vehicle) {
@@ -824,6 +830,81 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         return vehicles.stream()
                 .map(this::convertToVO)
                 .collect(Collectors.toList());
+    }
+    
+    @Override
+    public java.util.Map<String, Object> getVehicleStatistics(Long vehicleId, String startDate, String endDate) {
+        log.info("获取车辆统计数据: vehicleId={}, startDate={}, endDate={}", vehicleId, startDate, endDate);
+        
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        result.put("vehicleId", vehicleId);
+        
+        try {
+            // 1. 从行程服务获取运营天数和行驶里程
+            java.util.Map<String, Object> tripStats = tripClient.getVehicleTripStatistics(vehicleId, startDate, endDate).getData();
+            if (tripStats != null) {
+                result.put("operatingDays", tripStats.getOrDefault("operatingDays", 0L));
+                result.put("totalMileage", tripStats.getOrDefault("totalMileage", java.math.BigDecimal.ZERO));
+                result.put("tripCount", tripStats.getOrDefault("tripCount", 0));
+            } else {
+                result.put("operatingDays", 0L);
+                result.put("totalMileage", java.math.BigDecimal.ZERO);
+                result.put("tripCount", 0);
+            }
+            
+            // 2. 从加油表获取总油耗
+            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<VehicleRefueling> refuelWrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+            refuelWrapper.eq(VehicleRefueling::getVehicleId, vehicleId);
+            
+            List<VehicleRefueling> refuelRecords = vehicleRefuelingService.list(refuelWrapper);
+            
+            java.math.BigDecimal totalFuel = refuelRecords.stream()
+                .filter(r -> r.getRefuelingAmount() != null)
+                .map(VehicleRefueling::getRefuelingAmount)
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+            
+            result.put("totalFuel", totalFuel);
+            result.put("refuelCount", refuelRecords.size());
+            
+            log.info("车辆统计数据获取完成: vehicleId={}, operatingDays={}, totalMileage={}, totalFuel={}", 
+                vehicleId, result.get("operatingDays"), result.get("totalMileage"), totalFuel);
+            
+        } catch (Exception e) {
+            log.error("获取车辆统计数据失败: vehicleId={}", vehicleId, e);
+            result.put("operatingDays", 0L);
+            result.put("totalMileage", java.math.BigDecimal.ZERO);
+            result.put("totalFuel", java.math.BigDecimal.ZERO);
+            result.put("tripCount", 0);
+            result.put("refuelCount", 0);
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    @Override
+    public java.util.List<java.util.Map<String, Object>> getAllVehicleStatistics() {
+        log.info("获取所有车辆统计数据");
+        
+        java.util.List<java.util.Map<String, Object>> resultList = new java.util.ArrayList<>();
+        
+        try {
+            List<Vehicle> vehicles = list();
+            for (Vehicle vehicle : vehicles) {
+                Long vehicleId =vehicle.getId();
+                java.util.Map<String, Object> stats = getVehicleStatistics(vehicleId, null, null);
+                stats.put("vehicleNo", vehicle.getVehicleNo());
+                stats.put("vehicleType", vehicle.getVehicleType());
+                stats.put("status", vehicle.getStatus());
+                resultList.add(stats);
+            }
+            log.info("所有车辆统计数据获取完成: count={}", resultList.size());
+        } catch (Exception e) {
+            log.error("获取所有车辆统计数据失败", e);
+        }
+        
+        return resultList;
     }
     
 }

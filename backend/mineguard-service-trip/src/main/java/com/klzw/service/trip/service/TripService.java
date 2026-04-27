@@ -7,7 +7,7 @@ import com.klzw.common.core.domain.dto.TripResponse;
 import com.klzw.common.core.domain.dto.TripCreateRequest;
 import com.klzw.service.trip.dto.TripDTO;
 import com.klzw.service.trip.dto.TripEndDTO;
-import com.klzw.service.trip.dto.TripStatisticsResponseDTO;
+import com.klzw.common.core.domain.dto.TripStatisticsResponseDTO;
 import com.klzw.service.trip.entity.Trip;
 import com.klzw.service.trip.vo.TripStatisticsVO;
 import com.klzw.service.trip.vo.TripVO;
@@ -92,4 +92,14 @@ public interface TripService extends IService<Trip> {
      * 获取司机行程统计（供 statistics 服务调用）
      */
     java.util.Map<String, Object> getDriverStatistics(Long driverId, String startDate, String endDate);
+    
+    /**
+     * 获取车辆行程统计（运营天数、总里程）
+     */
+    java.util.Map<String, Object> getVehicleTripStatistics(Long vehicleId, String startDate, String endDate);
+    
+    /**
+     * 获取每周运营统计（每天有多少辆车有行程）
+     */
+    java.util.List<java.util.Map<String, Object>> getWeeklyOperationStats();
 }

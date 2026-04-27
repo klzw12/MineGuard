@@ -27,7 +27,7 @@ import com.klzw.service.trip.exception.TripException;
 import com.klzw.service.trip.mapper.TripMapper;
 import com.klzw.service.trip.processor.TripStatusProcessor;
 import com.klzw.service.trip.service.TripService;
-import com.klzw.service.trip.dto.TripStatisticsResponseDTO;
+import com.klzw.common.core.domain.dto.TripStatisticsResponseDTO;
 import com.klzw.service.trip.vo.TripStatisticsVO;
 import com.klzw.service.trip.vo.TripTrackVO;
 import com.klzw.service.trip.vo.TripVO;
@@ -456,14 +456,20 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
                 return;
             }
             
-            var vehicleInfo = vehicleResult.getData();
-            if (vehicleInfo == null) {
+            java.util.Map<String, Object> vehicleData = vehicleResult.getData();
+            if (vehicleData == null) {
                 log.warn("车辆信息为空：车辆ID={}", trip.getVehicleId());
                 return;
             }
             
             // 创建车辆折旧成本明细
-            java.math.BigDecimal depreciationRate = vehicleInfo.getDepreciationRate();
+            Object depreciationRateObj = vehicleData.get("depreciationRate");
+            java.math.BigDecimal depreciationRate = null;
+            if (depreciationRateObj instanceof java.math.BigDecimal) {
+                depreciationRate = (java.math.BigDecimal) depreciationRateObj;
+            } else if (depreciationRateObj instanceof Number) {
+                depreciationRate = java.math.BigDecimal.valueOf(((Number) depreciationRateObj).doubleValue());
+            }
             if (depreciationRate != null && depreciationRate.compareTo(java.math.BigDecimal.ZERO) > 0) {
                 java.math.BigDecimal depreciationAmount = trip.getActualMileage().multiply(depreciationRate).setScale(2, java.math.RoundingMode.HALF_UP);
                 
@@ -699,8 +705,8 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         try {
             var vehicleInfoResult = vehicleClient.getById(trip.getVehicleId());
             if (vehicleInfoResult != null && vehicleInfoResult.getCode() == 200 && vehicleInfoResult.getData() != null) {
-                var vehicleInfo = vehicleInfoResult.getData();
-                vo.setVehicleNo(vehicleInfo.getVehicleNo());
+                java.util.Map<String, Object> vehicleData = vehicleInfoResult.getData();
+                vo.setVehicleNo((String) vehicleData.get("vehicleNo"));
             }
         } catch (Exception e) {
             log.warn("获取车辆信息失败，vehicleId={}", trip.getVehicleId(), e);
@@ -780,8 +786,8 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         LocalDate end = LocalDate.parse(endDate);
         
         LambdaQueryWrapper<Trip> wrapper = new LambdaQueryWrapper<>();
-        wrapper.ge(Trip::getActualStartTime, start.atStartOfDay())
-               .le(Trip::getActualStartTime, end.atTime(23, 59, 59));
+        wrapper.ge(Trip::getCreateTime, start.atStartOfDay())
+               .le(Trip::getCreateTime, end.atTime(23, 59, 59));
         
         List<Trip> trips = this.list(wrapper);
         
@@ -799,37 +805,41 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
             return dto;
         }
         
-        // 统计各项数据
         int tripCount = trips.size();
         int completedCount = 0;
         int cancelledCount = 0;
         BigDecimal totalDistance = BigDecimal.ZERO;
         BigDecimal totalDuration = BigDecimal.ZERO;
+        BigDecimal totalCargoWeight = BigDecimal.ZERO;
         
         for (Trip trip : trips) {
-            // 统计完成和取消的行程
             if (trip.getStatus() != null && TripStatusEnum.COMPLETED.getCode() == trip.getStatus()) {
                 completedCount++;
             } else if (trip.getStatus() != null && TripStatusEnum.CANCELLED.getCode() == trip.getStatus()) {
                 cancelledCount++;
             }
             
-            // 累加距离
-            if (trip.getEstimatedMileage() != null) {
+            if (trip.getActualMileage() != null) {
+                totalDistance = totalDistance.add(trip.getActualMileage());
+            } else if (trip.getEstimatedMileage() != null) {
                 totalDistance = totalDistance.add(trip.getEstimatedMileage());
             }
             
-            // 累加时长
             if (trip.getActualStartTime() != null && trip.getActualEndTime() != null) {
                 long minutes = Duration.between(trip.getActualStartTime(), trip.getActualEndTime()).toMinutes();
-                totalDuration = totalDuration.add(BigDecimal.valueOf(minutes).divide(BigDecimal.valueOf(60), 2, BigDecimal.ROUND_HALF_UP));
+                totalDuration = totalDuration.add(BigDecimal.valueOf(minutes).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP));
+            }
+            
+            if (trip.getCargoWeight() != null) {
+                totalCargoWeight = totalCargoWeight.add(trip.getCargoWeight());
+            } else if (trip.getActualCargoWeight() != null) {
+                totalCargoWeight = totalCargoWeight.add(trip.getActualCargoWeight());
             }
         }
         
-        // 计算平均速度
         BigDecimal averageSpeed = BigDecimal.ZERO;
         if (totalDuration.compareTo(BigDecimal.ZERO) > 0) {
-            averageSpeed = totalDistance.divide(totalDuration, 2, BigDecimal.ROUND_HALF_UP);
+            averageSpeed = totalDistance.divide(totalDuration, 2, java.math.RoundingMode.HALF_UP);
         }
         
         dto.setTripCount(tripCount);
@@ -838,8 +848,8 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         dto.setCompletedTripCount(completedCount);
         dto.setCancelledTripCount(cancelledCount);
         dto.setAverageSpeed(averageSpeed);
-        dto.setFuelConsumption(BigDecimal.ZERO); // 暂时设为 0
-        dto.setCargoWeight(BigDecimal.ZERO); // 暂时设为 0
+        dto.setFuelConsumption(BigDecimal.ZERO);
+        dto.setCargoWeight(totalCargoWeight);
         
         log.info("按日期范围查询行程统计：startDate={}, endDate={}, tripCount={}", startDate, endDate, tripCount);
         
@@ -1038,9 +1048,9 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
             com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Trip> wrapper = 
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
             wrapper.eq(Trip::getDriverId, driverId)
-                   .ge(Trip::getActualStartTime, start.atStartOfDay())
-                   .le(Trip::getActualEndTime, end.atTime(23, 59, 59))
-                   .eq(Trip::getStatus, 3); // 已完成的行程
+                   .isNotNull(Trip::getActualEndTime)
+                   .ge(Trip::getActualEndTime, start.atStartOfDay())
+                   .le(Trip::getActualEndTime, end.atTime(23, 59, 59));
             
             List<Trip> trips = getBaseMapper().selectList(wrapper);
             
@@ -1052,12 +1062,16 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
             for (Trip trip : trips) {
                 if (trip.getActualMileage() != null) {
                     totalDistance = totalDistance.add(trip.getActualMileage());
+                } else if (trip.getEstimatedMileage() != null) {
+                    totalDistance = totalDistance.add(trip.getEstimatedMileage());
                 }
                 if (trip.getActualDuration() != null) {
                     totalDuration = totalDuration.add(java.math.BigDecimal.valueOf(trip.getActualDuration()));
                 }
                 if (trip.getCargoWeight() != null) {
                     cargoWeight = cargoWeight.add(trip.getCargoWeight());
+                } else if (trip.getActualCargoWeight() != null) {
+                    cargoWeight = cargoWeight.add(trip.getActualCargoWeight());
                 }
             }
             
@@ -1067,7 +1081,7 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
             result.put("totalDuration", totalDuration);
             result.put("cargoWeight", cargoWeight);
             
-            log.info("司机行程统计完成：driverId={}, tripCount={}", driverId, tripCount);
+            log.info("司机行程统计完成：driverId={}, tripCount={}, totalDistance={}, cargoWeight={}", driverId, tripCount, totalDistance, cargoWeight);
             
         } catch (Exception e) {
             log.error("获取司机行程统计失败：driverId={}", driverId, e);
@@ -1080,5 +1094,172 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         }
         
         return result;
+    }
+    
+    @Override
+    public java.util.Map<String, Object> getVehicleTripStatistics(Long vehicleId, String startDate, String endDate) {
+        log.info("获取车辆行程统计：vehicleId={}, startDate={}, endDate={}", vehicleId, startDate, endDate);
+        
+        java.util.Map<String, Object> result = new java.util.HashMap<>();
+        
+        try {
+            // 获取车辆创建时间，计算运营天数
+            long operatingDays = 0L;
+            try {
+                var vehicleResult = vehicleClient.getById(vehicleId);
+                if (vehicleResult != null && vehicleResult.getCode() == 200 && vehicleResult.getData() != null) {
+                    java.util.Map<String, Object> vehicleData = vehicleResult.getData();
+                    Object createTimeObj = vehicleData.get("createTime");
+                    if (createTimeObj != null) {
+                        java.time.LocalDateTime createTime = parseDateTime(createTimeObj);
+                        if (createTime != null) {
+                            operatingDays = java.time.temporal.ChronoUnit.DAYS.between(createTime.toLocalDate(), java.time.LocalDate.now()) + 1;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("获取车辆创建时间失败：vehicleId={}", vehicleId);
+            }
+            
+            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Trip> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+            wrapper.eq(Trip::getVehicleId, vehicleId);
+            
+            if (startDate != null && endDate != null) {
+                java.time.LocalDate start = java.time.LocalDate.parse(startDate);
+                java.time.LocalDate end = java.time.LocalDate.parse(endDate);
+                wrapper.ge(Trip::getCreateTime, start.atStartOfDay())
+                       .le(Trip::getCreateTime, end.atTime(23, 59, 59));
+            }
+            
+            List<Trip> trips = getBaseMapper().selectList(wrapper);
+            
+            java.math.BigDecimal totalMileage = java.math.BigDecimal.ZERO;
+            for (Trip trip : trips) {
+                if (trip.getActualMileage() != null) {
+                    totalMileage = totalMileage.add(trip.getActualMileage());
+                } else if (trip.getEstimatedMileage() != null) {
+                    totalMileage = totalMileage.add(trip.getEstimatedMileage());
+                }
+            }
+            
+            java.math.BigDecimal totalDuration = java.math.BigDecimal.ZERO;
+            for (Trip trip : trips) {
+                if (trip.getActualDuration() != null) {
+                    totalDuration = totalDuration.add(java.math.BigDecimal.valueOf(trip.getActualDuration()));
+                }
+            }
+            
+            java.math.BigDecimal totalCargoWeight = trips.stream()
+                .filter(t -> t.getActualCargoWeight() != null || t.getCargoWeight() != null)
+                .map(t -> t.getActualCargoWeight() != null ? t.getActualCargoWeight() : t.getCargoWeight())
+                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+            
+            result.put("vehicleId", vehicleId);
+            result.put("operatingDays", operatingDays);
+            result.put("totalMileage", totalMileage);
+            result.put("totalDuration", totalDuration);
+            result.put("totalCargoWeight", totalCargoWeight);
+            result.put("tripCount", trips.size());
+            
+            log.info("车辆行程统计完成：vehicleId={}, operatingDays={}, totalMileage={}, tripCount={}", 
+                vehicleId, operatingDays, totalMileage, trips.size());
+            
+        } catch (Exception e) {
+            log.error("获取车辆行程统计失败：vehicleId={}", vehicleId, e);
+            result.put("vehicleId", vehicleId);
+            result.put("operatingDays", 0L);
+            result.put("totalMileage", java.math.BigDecimal.ZERO);
+            result.put("totalDuration", java.math.BigDecimal.ZERO);
+            result.put("totalCargoWeight", java.math.BigDecimal.ZERO);
+            result.put("tripCount", 0);
+            result.put("totalFuelConsumption", java.math.BigDecimal.ZERO);
+            result.put("totalIdleDuration", java.math.BigDecimal.ZERO);
+            result.put("totalIdleDistance", java.math.BigDecimal.ZERO);
+            result.put("error", e.getMessage());
+        }
+        
+        return result;
+    }
+    
+    @Override
+    public java.util.List<java.util.Map<String, Object>> getWeeklyOperationStats() {
+        log.info("获取每周运营统计");
+        
+        java.util.List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
+        
+        try {
+            LocalDate today = LocalDate.now();
+            String[] dayNames = {"周一", "周二", "周三", "周四", "周五", "周六", "周日"};
+            
+            // 获取本周的周一
+            LocalDate monday = today.with(java.time.DayOfWeek.MONDAY);
+            
+            for (int i = 0; i < 7; i++) {
+                LocalDate date = monday.plusDays(i);
+                LocalDateTime dayStart = date.atStartOfDay();
+                LocalDateTime dayEnd = date.atTime(23, 59, 59);
+                
+                // 查询当天有行程的车辆数
+                com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Trip> wrapper = 
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+                wrapper.ge(Trip::getActualStartTime, dayStart)
+                       .le(Trip::getActualStartTime, dayEnd)
+                       .isNotNull(Trip::getVehicleId);
+                
+                List<Trip> trips = getBaseMapper().selectList(wrapper);
+                
+                // 统计不重复的车辆数
+                long vehicleCount = trips.stream()
+                    .map(Trip::getVehicleId)
+                    .distinct()
+                    .count();
+                
+                java.util.Map<String, Object> dayStat = new java.util.HashMap<>();
+                dayStat.put("label", dayNames[i]);
+                dayStat.put("value", vehicleCount);
+                dayStat.put("date", date.toString());
+                
+                result.add(dayStat);
+            }
+            
+            log.info("每周运营统计完成");
+            
+        } catch (Exception e) {
+            log.error("获取每周运营统计失败", e);
+        }
+        
+        return result;
+    }
+    
+    private java.time.LocalDateTime parseDateTime(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof java.time.LocalDateTime) {
+            return (java.time.LocalDateTime) obj;
+        }
+        if (obj instanceof String) {
+            try {
+                return java.time.LocalDateTime.parse((String) obj);
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        if (obj instanceof java.util.List) {
+            java.util.List<?> list = (java.util.List<?>) obj;
+            if (list.size() >= 6) {
+                try {
+                    int year = ((Number) list.get(0)).intValue();
+                    int month = ((Number) list.get(1)).intValue();
+                    int day = ((Number) list.get(2)).intValue();
+                    int hour = ((Number) list.get(3)).intValue();
+                    int minute = ((Number) list.get(4)).intValue();
+                    int second = ((Number) list.get(5)).intValue();
+                    return java.time.LocalDateTime.of(year, month, day, hour, minute, second);
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+        }
+        return null;
     }
 }
