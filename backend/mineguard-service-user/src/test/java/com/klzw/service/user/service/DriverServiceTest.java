@@ -3,18 +3,21 @@ package com.klzw.service.user.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.klzw.common.auth.enums.RoleEnum;
 import com.klzw.common.core.client.VehicleClient;
-import com.klzw.common.core.domain.dto.VehicleInfo;
 import com.klzw.common.core.result.Result;
 import com.klzw.service.user.entity.Driver;
 import com.klzw.service.user.entity.DriverVehicle;
 import com.klzw.service.user.entity.Repairman;
 import com.klzw.service.user.entity.SafetyOfficer;
 import com.klzw.service.user.enums.DriverStatusEnum;
+import com.klzw.service.user.entity.Role;
+import com.klzw.service.user.entity.User;
 import com.klzw.service.user.mapper.DriverMapper;
 import com.klzw.service.user.mapper.DriverVehicleMapper;
 import com.klzw.service.user.mapper.RepairmanMapper;
+import com.klzw.service.user.mapper.RoleMapper;
 import com.klzw.service.user.mapper.SafetyOfficerMapper;
 import com.klzw.service.user.mapper.UserAttendanceMapper;
+import com.klzw.service.user.mapper.UserMapper;
 import com.klzw.service.user.service.impl.DriverServiceImpl;
 import com.klzw.service.user.vo.DriverVehicleVO;
 import com.klzw.service.user.vo.DriverVO;
@@ -30,6 +33,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -66,6 +70,12 @@ class DriverServiceTest {
     @Mock
     private UserAttendanceMapper userAttendanceMapper;
 
+    @Mock
+    private UserMapper userMapper;
+
+    @Mock
+    private RoleMapper roleMapper;
+
     private Driver testDriver;
     private DriverVehicle testDriverVehicle;
 
@@ -100,7 +110,7 @@ class DriverServiceTest {
 
     @AfterEach
     void tearDown() {
-        reset(driverMapper, driverVehicleMapper, vehicleClient, repairmanMapper, safetyOfficerMapper, userAttendanceMapper);
+        reset(driverMapper, driverVehicleMapper, vehicleClient, repairmanMapper, safetyOfficerMapper, userAttendanceMapper, userMapper, roleMapper);
     }
 
     /**
@@ -109,13 +119,12 @@ class DriverServiceTest {
     @Test
     void testGetById() {
         when(driverMapper.selectById(1L)).thenReturn(testDriver);
-        when(driverVehicleMapper.selectByDriverId(1L)).thenReturn(Collections.singletonList(testDriverVehicle));
+        when(driverVehicleMapper.selectByDriverId(100L)).thenReturn(Collections.singletonList(testDriverVehicle));
 
-        // Mock VehicleClient
-        VehicleInfo vehicleInfo = new VehicleInfo();
-        vehicleInfo.setId(100L);
-        vehicleInfo.setVehicleNo("京A12345");
-        Result<VehicleInfo> vehicleResult = Result.success(vehicleInfo);
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 100L);
+        vehicleMap.put("vehicleNo", "京A12345");
+        Result<Map<String, Object>> vehicleResult = Result.success(vehicleMap);
         when(vehicleClient.getById(100L)).thenReturn(vehicleResult);
 
         DriverVO result = driverService.getById(1L);
@@ -145,13 +154,22 @@ class DriverServiceTest {
      */
     @Test
     void testGetByUserId() {
+        User testUser = new User();
+        testUser.setId(100L);
+        testUser.setRealName("测试司机");
+        testUser.setGender(1);
+        testUser.setIdCard("110101199001011234");
+        testUser.setIdCardFrontUrl("front.jpg");
+        testUser.setIdCardBackUrl("back.jpg");
+        when(userMapper.selectById(100L)).thenReturn(testUser);
+        
         when(driverMapper.selectByUserId(anyString())).thenReturn(testDriver);
-        when(driverVehicleMapper.selectByDriverId(1L)).thenReturn(Collections.singletonList(testDriverVehicle));
+        when(driverVehicleMapper.selectByDriverId(100L)).thenReturn(Collections.singletonList(testDriverVehicle));
 
-        VehicleInfo vehicleInfo = new VehicleInfo();
-        vehicleInfo.setId(100L);
-        vehicleInfo.setVehicleNo("京A12345");
-        Result<VehicleInfo> vehicleResult = Result.success(vehicleInfo);
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 100L);
+        vehicleMap.put("vehicleNo", "京A12345");
+        Result<Map<String, Object>> vehicleResult = Result.success(vehicleMap);
         when(vehicleClient.getById(100L)).thenReturn(vehicleResult);
 
         DriverVO result = driverService.getByUserId(100L);
@@ -167,12 +185,12 @@ class DriverServiceTest {
      */
     @Test
     void testGetByUserIdNotFound() {
-        when(driverMapper.selectByUserId("999")).thenReturn(null);
+        when(userMapper.selectById(999L)).thenReturn(null);
 
         DriverVO result = driverService.getByUserId(999L);
 
         assertNull(result);
-        verify(driverMapper, times(1)).selectByUserId("999");
+        verify(userMapper, times(1)).selectById(999L);
     }
 
     /**
@@ -305,7 +323,7 @@ class DriverServiceTest {
         List<Driver> drivers = Collections.singletonList(testDriver);
         when(driverMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(drivers);
         when(driverMapper.hasRole(100L, RoleEnum.DRIVER.getValue())).thenReturn(true);
-        when(driverVehicleMapper.selectByDriverId(1L)).thenReturn(Collections.singletonList(testDriverVehicle));
+        when(driverVehicleMapper.selectByDriverId(100L)).thenReturn(Collections.singletonList(testDriverVehicle));
         when(driverMapper.findBusyDriverIds(any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(Collections.emptyList());
         when(userAttendanceMapper.countNormalDays(anyLong(), any(LocalDate.class), any(LocalDate.class))).thenReturn(20);
         when(userAttendanceMapper.countLateAndEarlyLeaveDays(anyLong(), any(LocalDate.class), any(LocalDate.class))).thenReturn(2);
@@ -323,14 +341,29 @@ class DriverServiceTest {
      */
     @Test
     void testAddCommonVehicle() {
-        when(driverMapper.selectById(1L)).thenReturn(testDriver);
+        User testUser = new User();
+        testUser.setId(1L);
+        testUser.setRoleId(1L);
+        when(userMapper.selectById(1L)).thenReturn(testUser);
+        
+        Role driverRole = new Role();
+        driverRole.setId(1L);
+        driverRole.setRoleCode("DRIVER");
+        when(roleMapper.selectById(1L)).thenReturn(driverRole);
+        
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 100L);
+        vehicleMap.put("vehicleType", 1);
+        Result<Map<String, Object>> vehicleResult = Result.success(vehicleMap);
+        when(vehicleClient.getById(100L)).thenReturn(vehicleResult);
+        
         when(driverVehicleMapper.selectByDriverAndVehicle(1L, 100L)).thenReturn(null);
         when(driverVehicleMapper.selectByDriverId(1L)).thenReturn(Collections.emptyList());
         when(driverVehicleMapper.insert(any(DriverVehicle.class))).thenReturn(1);
 
         driverService.addCommonVehicle(1L, 100L);
 
-        verify(driverMapper, times(1)).selectById(1L);
+        verify(userMapper, times(1)).selectById(1L);
         verify(driverVehicleMapper, times(1)).insert(any(DriverVehicle.class));
     }
 
@@ -339,13 +372,13 @@ class DriverServiceTest {
      */
     @Test
     void testAddCommonVehicleDriverNotFound() {
-        when(driverMapper.selectById(999L)).thenReturn(null);
+        when(userMapper.selectById(999L)).thenReturn(null);
 
         assertThrows(RuntimeException.class, () -> {
             driverService.addCommonVehicle(999L, 100L);
         });
 
-        verify(driverMapper, times(1)).selectById(999L);
+        verify(userMapper, times(1)).selectById(999L);
         verify(driverVehicleMapper, never()).insert(any(DriverVehicle.class));
     }
 
@@ -354,7 +387,22 @@ class DriverServiceTest {
      */
     @Test
     void testAddCommonVehicleAlreadyExists() {
-        when(driverMapper.selectById(1L)).thenReturn(testDriver);
+        User testUser = new User();
+        testUser.setId(1L);
+        testUser.setRoleId(1L);
+        when(userMapper.selectById(1L)).thenReturn(testUser);
+        
+        Role driverRole = new Role();
+        driverRole.setId(1L);
+        driverRole.setRoleCode("DRIVER");
+        when(roleMapper.selectById(1L)).thenReturn(driverRole);
+        
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 100L);
+        vehicleMap.put("vehicleType", 1);
+        Result<Map<String, Object>> vehicleResult = Result.success(vehicleMap);
+        when(vehicleClient.getById(100L)).thenReturn(vehicleResult);
+        
         when(driverVehicleMapper.selectByDriverAndVehicle(1L, 100L)).thenReturn(testDriverVehicle);
 
         driverService.addCommonVehicle(1L, 100L);
@@ -429,10 +477,10 @@ class DriverServiceTest {
     void testGetCommonVehicles() {
         when(driverVehicleMapper.selectByDriverId(1L)).thenReturn(Collections.singletonList(testDriverVehicle));
 
-        VehicleInfo vehicleInfo = new VehicleInfo();
-        vehicleInfo.setId(100L);
-        vehicleInfo.setVehicleNo("京A12345");
-        Result<VehicleInfo> vehicleResult = Result.success(vehicleInfo);
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 100L);
+        vehicleMap.put("vehicleNo", "京A12345");
+        Result<Map<String, Object>> vehicleResult = Result.success(vehicleMap);
         when(vehicleClient.getById(100L)).thenReturn(vehicleResult);
 
         List<DriverVehicleVO> result = driverService.getCommonVehicles(1L);
@@ -456,7 +504,7 @@ class DriverServiceTest {
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(1L, result.get(0));
+        assertEquals(100L, result.get(0));
         verify(driverMapper, times(1)).selectList(any(LambdaQueryWrapper.class));
     }
 
@@ -477,15 +525,29 @@ class DriverServiceTest {
      */
     @Test
     void testAddCommonVehicleByUserId() {
-        when(driverMapper.selectByUserId(anyString())).thenReturn(testDriver);
-        when(driverMapper.selectById(1L)).thenReturn(testDriver);
-        when(driverVehicleMapper.selectByDriverAndVehicle(1L, 100L)).thenReturn(null);
-        when(driverVehicleMapper.selectByDriverId(1L)).thenReturn(Collections.emptyList());
+        User testUser = new User();
+        testUser.setId(100L);
+        testUser.setRoleId(1L);
+        when(userMapper.selectById(100L)).thenReturn(testUser);
+        
+        Role driverRole = new Role();
+        driverRole.setId(1L);
+        driverRole.setRoleCode("DRIVER");
+        when(roleMapper.selectById(1L)).thenReturn(driverRole);
+        
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 100L);
+        vehicleMap.put("vehicleType", 1);
+        Result<Map<String, Object>> vehicleResult = Result.success(vehicleMap);
+        when(vehicleClient.getById(100L)).thenReturn(vehicleResult);
+        
+        when(driverVehicleMapper.selectByDriverAndVehicle(100L, 100L)).thenReturn(null);
+        when(driverVehicleMapper.selectByDriverId(100L)).thenReturn(Collections.emptyList());
         when(driverVehicleMapper.insert(any(DriverVehicle.class))).thenReturn(1);
 
         driverService.addCommonVehicleByUserId(100L, 100L);
 
-        verify(driverMapper, times(1)).selectByUserId(anyString());
+        verify(userMapper, times(1)).selectById(100L);
         verify(driverVehicleMapper, times(1)).insert(any(DriverVehicle.class));
     }
 
@@ -494,15 +556,13 @@ class DriverServiceTest {
      */
     @Test
     void testSetDefaultVehicleByUserId() {
-        when(driverMapper.selectByUserId(anyString())).thenReturn(testDriver);
-        when(driverVehicleMapper.selectByDriverAndVehicle(1L, 100L)).thenReturn(testDriverVehicle);
-        when(driverVehicleMapper.clearDefaultByDriverId(1L)).thenReturn(1);
+        when(driverVehicleMapper.selectByDriverAndVehicle(100L, 100L)).thenReturn(testDriverVehicle);
+        when(driverVehicleMapper.clearDefaultByDriverId(100L)).thenReturn(1);
         when(driverVehicleMapper.updateById(any(DriverVehicle.class))).thenReturn(1);
 
         driverService.setDefaultVehicleByUserId(100L, 100L);
 
-        verify(driverMapper, times(1)).selectByUserId(anyString());
-        verify(driverVehicleMapper, times(1)).clearDefaultByDriverId(1L);
+        verify(driverVehicleMapper, times(1)).clearDefaultByDriverId(100L);
     }
 
     /**
@@ -510,20 +570,18 @@ class DriverServiceTest {
      */
     @Test
     void testGetCommonVehiclesByUserId() {
-        when(driverMapper.selectByUserId(anyString())).thenReturn(testDriver);
-        when(driverVehicleMapper.selectByDriverId(1L)).thenReturn(Collections.singletonList(testDriverVehicle));
+        when(driverVehicleMapper.selectByDriverId(100L)).thenReturn(Collections.singletonList(testDriverVehicle));
 
-        VehicleInfo vehicleInfo = new VehicleInfo();
-        vehicleInfo.setId(100L);
-        vehicleInfo.setVehicleNo("京A12345");
-        Result<VehicleInfo> vehicleResult = Result.success(vehicleInfo);
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 100L);
+        vehicleMap.put("vehicleNo", "京A12345");
+        Result<Map<String, Object>> vehicleResult = Result.success(vehicleMap);
         when(vehicleClient.getById(100L)).thenReturn(vehicleResult);
 
         List<DriverVehicleVO> result = driverService.getCommonVehiclesByUserId(100L);
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        verify(driverMapper, times(1)).selectByUserId(anyString());
     }
 
     /**

@@ -3,9 +3,11 @@
 		<view class="page-header">
 			<text class="page-title">统计分析</text>
 			<view class="header-actions">
+				<picker mode="date" :value="backfillDate" @change="onBackfillDateChange">
+					<view class="backfill-btn">补录统计</view>
+				</picker>
 				<button class="export-btn" @click="exportData">导出报表</button>
 				<button class="refresh-btn" @click="refreshData">刷新数据</button>
-				<button class="calculate-btn" @click="calculateStatistics">触发统计</button>
 			</view>
 		</view>
 		
@@ -46,6 +48,7 @@
 		<view v-if="currentTab === 'overview'" class="statistics-card">
 			<view class="card-header">
 				<text class="card-title">数据概览</text>
+				<button class="calc-btn" @click="calculateAllStats">触发全部统计</button>
 			</view>
 			<view class="overview-cards">
 				<view class="overview-item">
@@ -89,17 +92,23 @@
 			<view class="charts-section">
 				<view class="chart-card">
 					<text class="chart-title">成本分布</text>
-					<ECharts :option="costPieOption" :height="400" :showLegend="true" />
+					<view class="chart-container">
+						<e-chart ref="costPieChartRef" @ready="initCostPieChart" />
+					</view>
 				</view>
 				
 				<view class="chart-card">
 					<text class="chart-title">行程趋势</text>
-					<ECharts :option="tripTrendOption" :height="400" :showLegend="true" />
+					<view class="chart-container">
+						<e-chart ref="tripTrendChartRef" @ready="initTripTrendChart" />
+					</view>
 				</view>
 				
 				<view class="chart-card">
 					<text class="chart-title">成本趋势</text>
-					<ECharts :option="costTrendOption" :height="400" :showLegend="true" />
+					<view class="chart-container">
+						<e-chart ref="costTrendChartRef" @ready="initCostTrendChart" />
+					</view>
 				</view>
 			</view>
 		</view>
@@ -107,6 +116,7 @@
 		<view v-if="currentTab === 'trip'" class="statistics-card">
 			<view class="card-header">
 				<text class="card-title">行程统计明细</text>
+				<button class="calc-btn" @click="calculateTripStats">触发行程统计</button>
 			</view>
 			<view class="trip-list">
 				<view class="trip-item" v-for="(item, index) in tripStatistics" :key="item.id">
@@ -140,7 +150,24 @@
 		<view v-if="currentTab === 'cost'" class="statistics-card">
 			<view class="card-header">
 				<text class="card-title">成本统计明细</text>
+				<button class="calc-btn" @click="calculateCostStats">触发成本统计</button>
 			</view>
+			
+			<view class="cost-charts">
+				<view class="chart-card">
+					<text class="chart-title">成本构成</text>
+					<view class="chart-container">
+						<e-chart ref="costDetailPieChartRef" @ready="initCostDetailPieChart" />
+					</view>
+				</view>
+				<view class="chart-card">
+					<text class="chart-title">成本趋势</text>
+					<view class="chart-container">
+						<e-chart ref="costDetailTrendChartRef" @ready="initCostDetailTrendChart" />
+					</view>
+				</view>
+			</view>
+			
 			<view class="cost-list">
 				<view class="cost-item" v-for="(item, index) in costStatistics" :key="item.id">
 					<view class="cost-date">{{ item.statisticsDate }}</view>
@@ -169,17 +196,65 @@
 		<view v-if="currentTab === 'vehicle'" class="statistics-card">
 			<view class="card-header">
 				<text class="card-title">车辆运营统计</text>
+				<button class="calc-btn" @click="calculateVehicleStats">触发车辆统计</button>
 			</view>
+			
+			<view class="dimension-selector">
+				<view class="dimension-tabs">
+					<view class="dimension-tab" :class="{'active': vehicleDimension === 'day'}" @click="selectVehicleDay">
+						<text class="tab-text">日</text>
+					</view>
+					<view class="dimension-tab" :class="{'active': vehicleDimension === 'week'}" @click="selectVehicleWeek">
+						<text class="tab-text">周</text>
+					</view>
+					<view class="dimension-tab" :class="{'active': vehicleDimension === 'month'}" @click="selectVehicleMonth">
+						<text class="tab-text">月</text>
+					</view>
+				</view>
+				<view class="dimension-value">
+					<picker v-if="vehicleDimension === 'day'" mode="date" :value="selectedDate" @change="onDaySelect">
+						<view class="value-display">{{ selectedDate }}</view>
+					</picker>
+					<view v-else-if="vehicleDimension === 'week'" class="value-display clickable" @click="showWeekPicker">
+						{{ weekStart.slice(5) }} - {{ weekEnd.slice(5) }}
+					</view>
+					<picker v-else mode="date" :value="selectedMonth + '-01'" fields="month" @change="onMonthSelect">
+						<view class="value-display">{{ selectedMonth }}</view>
+					</picker>
+				</view>
+			</view>
+			
+			<view class="vehicle-charts">
+				<view class="chart-card">
+					<text class="chart-title">出车次数统计</text>
+					<view class="chart-container">
+						<e-chart ref="vehicleTripCountChartRef" @ready="initVehicleTripCountChart" />
+					</view>
+				</view>
+				<view class="chart-card">
+					<text class="chart-title">行驶里程统计(km)</text>
+					<view class="chart-container">
+						<e-chart ref="vehicleDistanceChartRef" @ready="initVehicleDistanceChart" />
+					</view>
+				</view>
+				<view class="chart-card">
+					<text class="chart-title">运矿吨位统计(吨)</text>
+					<view class="chart-container">
+						<e-chart ref="vehicleCargoChartRef" @ready="initVehicleCargoChart" />
+					</view>
+				</view>
+			</view>
+			
 			<view class="vehicle-list">
-				<view class="vehicle-item" v-for="(item, index) in vehicleStatistics" :key="item.id">
+				<view class="vehicle-item" v-for="(item, index) in vehicleTripStats" :key="item.vehicleId">
 					<view class="vehicle-header">
 						<text class="vehicle-no">🚚 {{ item.vehicleNo }}</text>
-						<text class="vehicle-date">{{ item.statisticsDate }}</text>
+						<text class="vehicle-period">{{ item.period }}</text>
 					</view>
 					<view class="vehicle-stats">
 						<view class="stat-item">
 							<text class="stat-value">{{ item.tripCount }}</text>
-							<text class="stat-label">行程数</text>
+							<text class="stat-label">出车次数</text>
 						</view>
 						<view class="stat-item">
 							<text class="stat-value">{{ item.totalDistance.toFixed(1) }}</text>
@@ -187,11 +262,7 @@
 						</view>
 						<view class="stat-item">
 							<text class="stat-value">{{ item.cargoWeight.toFixed(1) }}</text>
-							<text class="stat-label">货运(吨)</text>
-						</view>
-						<view class="stat-item">
-							<text class="stat-value">{{ item.utilizationRate.toFixed(1) }}%</text>
-							<text class="stat-label">利用率</text>
+							<text class="stat-label">运矿(吨)</text>
 						</view>
 					</view>
 				</view>
@@ -201,15 +272,58 @@
 		<view v-if="currentTab === 'driver'" class="statistics-card">
 			<view class="card-header">
 				<text class="card-title">司机绩效统计</text>
+				<view class="header-actions">
+					<picker mode="date" :value="driverBackfillDate" @change="onDriverBackfillDateChange">
+						<view class="calc-btn secondary">补录司机统计</view>
+					</picker>
+					<button class="calc-btn" @click="calculateDriverStats">触发司机统计</button>
+				</view>
 			</view>
+			
+			<view class="dimension-selector">
+				<view class="dimension-tabs">
+					<view class="dimension-tab" :class="{'active': driverDimension === 'day'}" @click="selectDriverDay">
+						<text class="tab-text">日</text>
+					</view>
+					<view class="dimension-tab" :class="{'active': driverDimension === 'week'}" @click="selectDriverWeek">
+						<text class="tab-text">周</text>
+					</view>
+					<view class="dimension-tab" :class="{'active': driverDimension === 'month'}" @click="selectDriverMonth">
+						<text class="tab-text">月</text>
+					</view>
+				</view>
+				<view class="dimension-value">
+					<picker v-if="driverDimension === 'day'" mode="date" :value="driverSelectedDate" @change="onDriverDaySelect">
+						<view class="value-display">{{ driverSelectedDate }}</view>
+					</picker>
+					<view v-else-if="driverDimension === 'week'" class="value-display clickable" @click="showDriverWeekPicker">
+						{{ driverWeekStart.slice(5) }} - {{ driverWeekEnd.slice(5) }}
+					</view>
+					<picker v-else mode="date" :value="driverSelectedMonth + '-01'" fields="month" @change="onDriverMonthSelect">
+						<view class="value-display">{{ driverSelectedMonth }}</view>
+					</picker>
+				</view>
+			</view>
+			
+			<view class="driver-charts">
+				<view class="chart-card">
+					<text class="chart-title">出勤天数统计</text>
+					<view class="chart-container">
+						<e-chart ref="driverAttendanceChartRef" @ready="initDriverAttendanceChart" />
+					</view>
+				</view>
+				<view class="chart-card">
+					<text class="chart-title">行程数量统计</text>
+					<view class="chart-container">
+						<e-chart ref="driverTripChartRef" @ready="initDriverTripChart" />
+					</view>
+				</view>
+			</view>
+			
 			<view class="driver-list">
 				<view class="driver-item" v-for="(item, index) in driverStatistics" :key="item.id">
 					<view class="driver-header">
 						<text class="driver-name">👤 {{ item.userName }}</text>
-						<view class="performance-score" :class="getScoreClass(item.performanceScore)">
-							<text class="score-value">{{ item.performanceScore.toFixed(0) }}</text>
-							<text class="score-label">分</text>
-						</view>
 					</view>
 					<view class="driver-stats">
 						<view class="stat-row">
@@ -232,6 +346,7 @@
 		<view v-if="currentTab === 'fault'" class="statistics-card">
 			<view class="card-header">
 				<text class="card-title">故障统计分析</text>
+				<button class="calc-btn" @click="calculateFaultStats">触发故障统计</button>
 			</view>
 			<view class="fault-summary">
 				<view class="summary-item">
@@ -295,9 +410,9 @@
 
 <script setup lang="uts">
 	import AdminLayout from '../../../components/AdminLayout.uvue'
-	import ECharts from '../../../components/ECharts.uvue'
-	import { ref, computed, onMounted } from 'vue'
-	import { statisticsApi } from '@/api/statistics.uts'
+	import EChart from '@/uni_modules/e-chart/components/e-chart/e-chart.uvue'
+	import { ref, computed, onMounted, nextTick } from 'vue'
+	import { statisticsApi, type VehicleTripStatsVO } from '@/api/statistics.uts'
 
 	type TripStatisticsVO = {
 		id: number,
@@ -314,7 +429,7 @@
 
 	type CostStatisticsVO = {
 		id: number,
-		statisticsDate: string,
+		statisticsMonth: string,
 		fuelCost: number,
 		maintenanceCost: number,
 		laborCost: number,
@@ -360,8 +475,7 @@
 		warningCount: number,
 		violationCount: number,
 		overSpeedCount: number,
-		routeDeviationCount: number,
-		performanceScore: number
+		routeDeviationCount: number
 	}
 
 	type FaultStatisticsVO = {
@@ -408,9 +522,25 @@
 	const currentTab = ref('overview')
 	const startDate = ref('')
 	const endDate = ref('')
+	const vehicleDimension = ref('day')
+	const selectedDate = ref('')
+	const selectedMonth = ref('')
+	const weekStart = ref('')
+	const weekEnd = ref('')
+	const weekDisplay = ref('')
+	const monthDisplay = ref('')
+	const driverDimension = ref('day')
+	const driverSelectedDate = ref('')
+	const driverSelectedMonth = ref('')
+	const driverWeekStart = ref('')
+	const driverWeekEnd = ref('')
+	const driverWeekDisplay = ref('')
+	const driverMonthDisplay = ref('')
+	const driverBackfillDate = ref('')
 	const tripStatistics = ref<TripStatisticsVO[]>([])
 	const costStatistics = ref<CostStatisticsVO[]>([])
 	const vehicleStatistics = ref<VehicleStatisticsVO[]>([])
+	const vehicleTripStats = ref<VehicleTripStatsVO[]>([])
 	const driverStatistics = ref<DriverStatisticsVO[]>([])
 	const faultStatistics = ref<FaultStatisticsVO[]>([])
 	const faultOverall = ref<FaultOverallVO>({
@@ -436,47 +566,227 @@
 		totalDrivers: 0
 	})
 
-	const costPieOption = computed(() => ({
-		series: [{
-			type: 'pie',
-			data: [
-				{ name: '燃油成本', value: overall.value.totalFuelCost || 0 },
-				{ name: '维修成本', value: overall.value.totalMaintenanceCost || 0 },
-				{ name: '人工成本', value: overall.value.totalLaborCost || 0 },
-				{ name: '其他成本', value: overall.value.totalOtherCost || 0 }
-			]
-		}]
-	}))
+	const costPieChartRef = ref<any>(null)
+	const tripTrendChartRef = ref<any>(null)
+	const costTrendChartRef = ref<any>(null)
+	const costDetailPieChartRef = ref<any>(null)
+	const costDetailTrendChartRef = ref<any>(null)
+	const vehicleTripCountChartRef = ref<any>(null)
+	const vehicleDistanceChartRef = ref<any>(null)
+	const vehicleCargoChartRef = ref<any>(null)
+	const driverAttendanceChartRef = ref<any>(null)
+	const driverTripChartRef = ref<any>(null)
 
-	const tripTrendOption = computed(() => {
+	const initCostPieChart = () => {
+		if (costPieChartRef.value == null) return
+		const option = {
+			tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+			legend: { bottom: 10, textStyle: { color: '#fff' } },
+			series: [{
+				type: 'pie',
+				radius: ['40%', '70%'],
+				data: [
+					{ name: '燃油成本', value: overall.value.totalFuelCost || 0 },
+					{ name: '维修成本', value: overall.value.totalMaintenanceCost || 0 },
+					{ name: '人工成本', value: overall.value.totalLaborCost || 0 },
+					{ name: '其他成本', value: overall.value.totalOtherCost || 0 }
+				],
+				label: { color: '#fff' }
+			}]
+		}
+		costPieChartRef.value.init(option)
+	}
+
+	const initTripTrendChart = () => {
+		if (tripTrendChartRef.value == null) return
 		const dates = tripStatistics.value.map(t => t.statisticsDate.slice(5)).reverse()
 		const counts = tripStatistics.value.map(t => t.tripCount).reverse()
 		const distances = tripStatistics.value.map(t => t.totalDistance).reverse()
-		
-		return {
-			xAxis: { data: dates },
+		const option = {
+			tooltip: { trigger: 'axis' },
+			legend: { data: ['行程数', '里程(km)'], textStyle: { color: '#fff' } },
+			grid: { left: 50, right: 15, top: 40, bottom: 30 },
+			xAxis: { type: 'category', data: dates, axisLabel: { color: '#fff' } },
+			yAxis: { type: 'value', axisLabel: { color: '#fff' } },
 			series: [
-				{ name: '行程数', type: 'line', data: counts },
-				{ name: '里程(km)', type: 'line', data: distances }
+				{ name: '行程数', type: 'line', data: counts, smooth: true },
+				{ name: '里程(km)', type: 'line', data: distances, smooth: true }
 			]
 		}
-	})
+		tripTrendChartRef.value.init(option)
+	}
 
-	const costTrendOption = computed(() => {
-		const dates = costStatistics.value.map(c => c.statisticsDate.slice(5)).reverse()
+	const initCostTrendChart = () => {
+		if (costTrendChartRef.value == null) return
+		const dates = costStatistics.value.map(c => {
+			const month = c.statisticsMonth.slice(5, 7)
+			return month.startsWith('0') ? month.slice(1) + '月' : month + '月'
+		}).reverse()
 		const fuelCosts = costStatistics.value.map(c => c.fuelCost).reverse()
 		const maintenanceCosts = costStatistics.value.map(c => c.maintenanceCost).reverse()
 		const laborCosts = costStatistics.value.map(c => c.laborCost).reverse()
-		
-		return {
-			xAxis: { data: dates },
+		const option = {
+			tooltip: { trigger: 'axis' },
+			legend: { data: ['燃油', '维修', '人工'], textStyle: { color: '#fff' } },
+			grid: { left: 50, right: 15, top: 40, bottom: 30 },
+			xAxis: { type: 'category', data: dates, axisLabel: { color: '#fff' } },
+			yAxis: { type: 'value', axisLabel: { color: '#fff' } },
 			series: [
 				{ name: '燃油', type: 'bar', data: fuelCosts },
 				{ name: '维修', type: 'bar', data: maintenanceCosts },
 				{ name: '人工', type: 'bar', data: laborCosts }
 			]
 		}
-	})
+		costTrendChartRef.value.init(option)
+	}
+
+	const initCostDetailPieChart = () => {
+		if (costDetailPieChartRef.value == null) return
+		let totalFuel = 0, totalMaintenance = 0, totalLabor = 0, totalOther = 0
+		for (const item of costStatistics.value) {
+			totalFuel += item.fuelCost || 0
+			totalMaintenance += item.maintenanceCost || 0
+			totalLabor += item.laborCost || 0
+			totalOther += (item.insuranceCost || 0) + (item.depreciationCost || 0) + (item.managementCost || 0) + (item.otherCost || 0)
+		}
+		const option = {
+			tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+			legend: { bottom: 10, textStyle: { color: '#fff' } },
+			series: [{
+				type: 'pie',
+				radius: ['40%', '70%'],
+				data: [
+					{ name: '燃油成本', value: totalFuel },
+					{ name: '维修成本', value: totalMaintenance },
+					{ name: '人工成本', value: totalLabor },
+					{ name: '其他成本', value: totalOther }
+				],
+				label: { color: '#fff' }
+			}]
+		}
+		costDetailPieChartRef.value.init(option)
+	}
+
+	const initCostDetailTrendChart = () => {
+		if (costDetailTrendChartRef.value == null) return
+		const months = costStatistics.value.map(c => {
+			const month = c.statisticsMonth.slice(5, 7)
+			return month.startsWith('0') ? month.slice(1) + '月' : month + '月'
+		}).reverse()
+		const fuelCosts = costStatistics.value.map(c => c.fuelCost || 0).reverse()
+		const maintenanceCosts = costStatistics.value.map(c => c.maintenanceCost || 0).reverse()
+		const laborCosts = costStatistics.value.map(c => c.laborCost || 0).reverse()
+		const totalCosts = costStatistics.value.map(c => c.totalCost || 0).reverse()
+		const option = {
+			tooltip: { trigger: 'axis' },
+			legend: { data: ['燃油', '维修', '人工', '总成本'], textStyle: { color: '#fff' } },
+			grid: { left: 50, right: 15, top: 40, bottom: 30 },
+			xAxis: { type: 'category', data: months, axisLabel: { color: '#fff' } },
+			yAxis: { type: 'value', axisLabel: { color: '#fff' } },
+			series: [
+				{ name: '燃油', type: 'bar', stack: 'total', data: fuelCosts, itemStyle: { color: '#FF9500' } },
+				{ name: '维修', type: 'bar', stack: 'total', data: maintenanceCosts, itemStyle: { color: '#34C759' } },
+				{ name: '人工', type: 'bar', stack: 'total', data: laborCosts, itemStyle: { color: '#007AFF' } },
+				{ name: '总成本', type: 'line', data: totalCosts, itemStyle: { color: '#FF3B30' } }
+			]
+		}
+		costDetailTrendChartRef.value.init(option)
+	}
+
+	const initVehicleTripCountChart = () => {
+		if (vehicleTripCountChartRef.value == null) return
+		const vehicleNos = vehicleTripStats.value.map(v => v.vehicleNo)
+		const tripCounts = vehicleTripStats.value.map(v => Number(v.tripCount) || 0)
+		const option = {
+			tooltip: { trigger: 'axis' },
+			grid: { left: 50, right: 15, top: 20, bottom: 50 },
+			xAxis: { type: 'category', data: vehicleNos, axisLabel: { rotate: 30, color: '#fff' } },
+			yAxis: { type: 'value', axisLabel: { color: '#fff' } },
+			series: [
+				{ name: '出车次数', type: 'bar', data: tripCounts, itemStyle: { color: '#007AFF' } }
+			]
+		}
+		vehicleTripCountChartRef.value.init(option)
+	}
+
+	const initVehicleDistanceChart = () => {
+		if (vehicleDistanceChartRef.value == null) return
+		const vehicleNos = vehicleTripStats.value.map(v => v.vehicleNo)
+		const distances = vehicleTripStats.value.map(v => Number(v.totalDistance) || 0)
+		const option = {
+			tooltip: { trigger: 'axis' },
+			grid: { left: 50, right: 15, top: 20, bottom: 50 },
+			xAxis: { type: 'category', data: vehicleNos, axisLabel: { rotate: 30, color: '#fff' } },
+			yAxis: { type: 'value', axisLabel: { color: '#fff' } },
+			series: [
+				{ name: '行驶里程', type: 'bar', data: distances, itemStyle: { color: '#34C759' } }
+			]
+		}
+		vehicleDistanceChartRef.value.init(option)
+	}
+
+	const initVehicleCargoChart = () => {
+		if (vehicleCargoChartRef.value == null) return
+		const vehicleNos = vehicleTripStats.value.map(v => v.vehicleNo)
+		const cargos = vehicleTripStats.value.map(v => Number(v.cargoWeight) || 0)
+		const option = {
+			tooltip: { trigger: 'axis' },
+			grid: { left: 50, right: 15, top: 20, bottom: 50 },
+			xAxis: { type: 'category', data: vehicleNos, axisLabel: { rotate: 30, color: '#fff' } },
+			yAxis: { type: 'value', axisLabel: { color: '#fff' } },
+			series: [
+				{ name: '运矿吨位', type: 'bar', data: cargos, itemStyle: { color: '#FF9500' } }
+			]
+		}
+		vehicleCargoChartRef.value.init(option)
+	}
+
+	const initDriverAttendanceChart = () => {
+		if (driverAttendanceChartRef.value == null) return
+		const driverNames = driverStatistics.value.map(d => d.userName)
+		const attendances = driverStatistics.value.map(d => d.attendanceDays)
+		const option = {
+			tooltip: { trigger: 'axis' },
+			grid: { left: 50, right: 15, top: 20, bottom: 50 },
+			xAxis: { type: 'category', data: driverNames, axisLabel: { rotate: 30, color: '#fff' } },
+			yAxis: { type: 'value', axisLabel: { color: '#fff' } },
+			series: [
+				{ name: '出勤天数', type: 'bar', data: attendances, itemStyle: { color: '#34C759' } }
+			]
+		}
+		driverAttendanceChartRef.value.init(option)
+	}
+
+	const initDriverTripChart = () => {
+		if (driverTripChartRef.value == null) return
+		const driverNames = driverStatistics.value.map(d => d.userName)
+		const trips = driverStatistics.value.map(d => d.tripCount)
+		const option = {
+			tooltip: { trigger: 'axis' },
+			grid: { left: 50, right: 15, top: 20, bottom: 50 },
+			xAxis: { type: 'category', data: driverNames, axisLabel: { rotate: 30, color: '#fff' } },
+			yAxis: { type: 'value', axisLabel: { color: '#fff' } },
+			series: [
+				{ name: '行程数量', type: 'bar', data: trips, itemStyle: { color: '#FF9500' } }
+			]
+		}
+		driverTripChartRef.value.init(option)
+	}
+
+	const updateCharts = () => {
+		nextTick(() => {
+			initCostPieChart()
+			initTripTrendChart()
+			initCostTrendChart()
+			initCostDetailPieChart()
+			initCostDetailTrendChart()
+			initVehicleTripCountChart()
+			initVehicleDistanceChart()
+			initVehicleCargoChart()
+			initDriverAttendanceChart()
+			initDriverTripChart()
+		})
+	}
 
 	const isEmpty = computed(() => {
 		if (currentTab.value === 'overview') return false
@@ -492,6 +802,190 @@
 		currentTab.value = tab
 		if (tab !== 'overview') {
 			fetchData()
+		}
+	}
+
+	const formatDate = (d: Date): string => {
+		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+	}
+
+	const onDaySelect = (e: any) => {
+		vehicleDimension.value = 'day'
+		selectedDate.value = e.detail.value
+		startDate.value = e.detail.value
+		endDate.value = e.detail.value
+		fetchVehicleTripStats()
+	}
+
+	const selectVehicleDay = () => {
+		vehicleDimension.value = 'day'
+		startDate.value = selectedDate.value
+		endDate.value = selectedDate.value
+		fetchVehicleTripStats()
+	}
+
+	const selectVehicleWeek = () => {
+		vehicleDimension.value = 'week'
+		startDate.value = weekStart.value
+		endDate.value = weekEnd.value
+		fetchVehicleTripStats()
+	}
+
+	const selectVehicleMonth = () => {
+		vehicleDimension.value = 'month'
+		const [year, month] = selectedMonth.value.split('-').map(Number)
+		const monthStart = new Date(year, month - 1, 1)
+		const monthEnd = new Date(year, month, 0)
+		startDate.value = formatDate(monthStart)
+		endDate.value = formatDate(monthEnd)
+		fetchVehicleTripStats()
+	}
+
+	const showWeekPicker = () => {
+		uni.showActionSheet({
+			itemList: ['本周', '上周', '上上周'],
+			success: (res) => {
+				vehicleDimension.value = 'week'
+				const today = new Date()
+				const dayOfWeek = today.getDay()
+				const weekStartOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+				
+				let baseMonday = new Date(today)
+				baseMonday.setDate(today.getDate() + weekStartOffset)
+				
+				if (res.tapIndex === 1) {
+					baseMonday.setDate(baseMonday.getDate() - 7)
+				} else if (res.tapIndex === 2) {
+					baseMonday.setDate(baseMonday.getDate() - 14)
+				}
+				
+				const weekEnd = new Date(baseMonday)
+				weekEnd.setDate(baseMonday.getDate() + 6)
+				
+				weekStart.value = formatDate(baseMonday)
+				weekEnd.value = formatDate(weekEnd)
+				weekDisplay.value = `${weekStart.value.slice(5)} - ${weekEnd.value.slice(5)}`
+				
+				startDate.value = weekStart.value
+				endDate.value = weekEnd.value
+				fetchVehicleTripStats()
+			}
+		})
+	}
+
+	const onMonthSelect = (e: any) => {
+		vehicleDimension.value = 'month'
+		const monthStr = e.detail.value.slice(0, 7)
+		selectedMonth.value = monthStr
+		monthDisplay.value = monthStr.slice(5) + '月'
+		
+		const [year, month] = monthStr.split('-').map(Number)
+		const monthStart = new Date(year, month - 1, 1)
+		const monthEnd = new Date(year, month, 0)
+		
+		startDate.value = formatDate(monthStart)
+		endDate.value = formatDate(monthEnd)
+		fetchVehicleTripStats()
+	}
+
+	const onDriverDaySelect = (e: any) => {
+		driverDimension.value = 'day'
+		driverSelectedDate.value = e.detail.value
+		startDate.value = e.detail.value
+		endDate.value = e.detail.value
+		fetchDriverStats()
+	}
+
+	const selectDriverDay = () => {
+		driverDimension.value = 'day'
+		startDate.value = driverSelectedDate.value
+		endDate.value = driverSelectedDate.value
+		fetchDriverStats()
+	}
+
+	const selectDriverWeek = () => {
+		driverDimension.value = 'week'
+		startDate.value = driverWeekStart.value
+		endDate.value = driverWeekEnd.value
+		fetchDriverStats()
+	}
+
+	const selectDriverMonth = () => {
+		driverDimension.value = 'month'
+		const [year, month] = driverSelectedMonth.value.split('-').map(Number)
+		const monthStart = new Date(year, month - 1, 1)
+		const monthEnd = new Date(year, month, 0)
+		startDate.value = formatDate(monthStart)
+		endDate.value = formatDate(monthEnd)
+		fetchDriverStats()
+	}
+
+	const showDriverWeekPicker = () => {
+		uni.showActionSheet({
+			itemList: ['本周', '上周', '上上周'],
+			success: (res) => {
+				driverDimension.value = 'week'
+				const today = new Date()
+				const dayOfWeek = today.getDay()
+				const weekStartOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+				
+				let baseMonday = new Date(today)
+				baseMonday.setDate(today.getDate() + weekStartOffset)
+				
+				if (res.tapIndex === 1) {
+					baseMonday.setDate(baseMonday.getDate() - 7)
+				} else if (res.tapIndex === 2) {
+					baseMonday.setDate(baseMonday.getDate() - 14)
+				}
+				
+				const weekEndDate = new Date(baseMonday)
+				weekEndDate.setDate(baseMonday.getDate() + 6)
+				
+				driverWeekStart.value = formatDate(baseMonday)
+				driverWeekEnd.value = formatDate(weekEndDate)
+				driverWeekDisplay.value = `${driverWeekStart.value.slice(5)} - ${driverWeekEnd.value.slice(5)}`
+				
+				startDate.value = driverWeekStart.value
+				endDate.value = driverWeekEnd.value
+				fetchDriverStats()
+			}
+		})
+	}
+
+	const onDriverMonthSelect = (e: any) => {
+		driverDimension.value = 'month'
+		const monthStr = e.detail.value.slice(0, 7)
+		driverSelectedMonth.value = monthStr
+		driverMonthDisplay.value = monthStr.slice(5) + '月'
+		
+		const [year, month] = monthStr.split('-').map(Number)
+		const monthStart = new Date(year, month - 1, 1)
+		const monthEnd = new Date(year, month, 0)
+		
+		startDate.value = formatDate(monthStart)
+		endDate.value = formatDate(monthEnd)
+		fetchDriverStats()
+	}
+
+	const fetchDriverStats = async () => {
+		try {
+			const res = await statisticsApi.getDriverStatsAggregated(driverDimension.value, startDate.value, endDate.value)
+			driverStatistics.value = res || []
+			console.log('司机统计数据：', driverDimension.value, startDate.value, '-', endDate.value, driverStatistics.value.length, '条')
+			updateCharts()
+		} catch (e) {
+			console.error('获取司机统计失败', e)
+		}
+	}
+
+	const fetchVehicleTripStats = async () => {
+		try {
+			const res = await statisticsApi.getVehicleTripStats(vehicleDimension.value, startDate.value, endDate.value)
+			vehicleTripStats.value = res || []
+			console.log('车辆统计数据：', vehicleDimension.value, startDate.value, '-', endDate.value, vehicleTripStats.value.length, '条')
+			updateCharts()
+		} catch (e) {
+			console.error('获取车辆出车统计失败', e)
 		}
 	}
 
@@ -511,24 +1005,26 @@
 		if (endDate.value) params.endDate = endDate.value
 
 		try {
-			// 获取总体统计
 			const overallRes = await statisticsApi.getOverallStatistics(params)
 			if (overallRes) {
 				overall.value = overallRes
 			}
 
-			if (currentTab.value === 'trip') {
+			if (currentTab.value === 'overview') {
+				const tripRes = await statisticsApi.getTripStatistics(params)
+				tripStatistics.value = tripRes || []
+				const costRes = await statisticsApi.getCostStatistics(params)
+				costStatistics.value = costRes || []
+			} else if (currentTab.value === 'trip') {
 				const res = await statisticsApi.getTripStatistics(params)
 				tripStatistics.value = res || []
 			} else if (currentTab.value === 'cost') {
 				const res = await statisticsApi.getCostStatistics(params)
 				costStatistics.value = res || []
 			} else if (currentTab.value === 'vehicle') {
-				const res = await statisticsApi.getVehicleStatistics(params)
-				vehicleStatistics.value = res || []
+				await fetchVehicleTripStats()
 			} else if (currentTab.value === 'driver') {
-				const res = await statisticsApi.getDriverStatistics(params)
-				driverStatistics.value = res || []
+				await fetchDriverStats()
 			} else if (currentTab.value === 'fault') {
 				const res = await statisticsApi.getFaultStatistics(params)
 				faultStatistics.value = res || []
@@ -538,6 +1034,7 @@
 					faultOverall.value = overallFaultRes
 				}
 			}
+			updateCharts()
 		} catch (e) {
 			console.error('获取统计数据失败', e)
 		}
@@ -546,6 +1043,36 @@
 	const refreshData = () => {
 		fetchData()
 		uni.showToast({ title: '数据已刷新', icon: 'success' })
+	}
+
+	const backfillDate = ref('')
+
+	const showBackfillPicker = () => {
+		const today = new Date()
+		backfillDate.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+	}
+
+	const onBackfillDateChange = (e: any) => {
+		backfillDate.value = e.detail.value
+		doBackfill(backfillDate.value)
+	}
+
+	const doBackfill = async (date: string) => {
+		uni.showLoading({ title: '正在补录统计...' })
+		try {
+			const res = await statisticsApi.backfillStatistics(date)
+			uni.hideLoading()
+			if (res && res.success) {
+				uni.showToast({ title: '补录成功', icon: 'success' })
+				fetchData()
+			} else {
+				uni.showToast({ title: res?.error || '补录失败', icon: 'none' })
+			}
+		} catch (e) {
+			uni.hideLoading()
+			uni.showToast({ title: '补录失败', icon: 'none' })
+			console.error('补录统计失败', e)
+		}
 	}
 
 	const exportData = () => {
@@ -561,22 +1088,45 @@
 	const doExport = (format: string) => {
 		uni.showToast({ title: `正在导出${format.toUpperCase()}...`, icon: 'loading' })
 		
-		setTimeout(() => {
-			uni.hideToast()
-			uni.showToast({ title: '导出成功', icon: 'success' })
-		}, 1500)
+		const exportUrl = statisticsApi.exportStatistics(format, startDate.value, endDate.value, currentTab.value)
+		
+		uni.downloadFile({
+			url: exportUrl,
+			success: (res) => {
+				uni.hideToast()
+				if (res.statusCode === 200) {
+					uni.saveFile({
+						tempFilePath: res.tempFilePath,
+						success: (saveRes) => {
+							uni.showToast({ title: '导出成功', icon: 'success' })
+							console.log('文件保存路径：', saveRes.savedFilePath)
+						},
+						fail: () => {
+							uni.showToast({ title: '保存文件失败', icon: 'none' })
+						}
+					})
+				} else {
+					uni.showToast({ title: '导出失败', icon: 'none' })
+				}
+			},
+			fail: () => {
+				uni.hideToast()
+				uni.showToast({ title: '导出失败', icon: 'none' })
+			}
+		})
 	}
 
-	const calculateStatistics = async () => {
-		uni.showToast({ title: '正在触发统计...', icon: 'loading' })
-		
+	const getDateStr = (): string => {
 		const today = new Date()
-		const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
-		
+		return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+	}
+
+	const calculateAllStats = async () => {
+		uni.showToast({ title: '正在触发全部统计...', icon: 'loading' })
 		try {
-			await statisticsApi.calculateAllStatistics(dateStr)
+			await statisticsApi.calculateAllStatistics(getDateStr())
 			uni.hideToast()
-			uni.showToast({ title: '统计触发成功', icon: 'success' })
+			uni.showToast({ title: '全部统计触发成功', icon: 'success' })
 			fetchData()
 		} catch (e) {
 			uni.hideToast()
@@ -584,11 +1134,114 @@
 		}
 	}
 
-	const getScoreClass = (score: number): string => {
-		if (score >= 90) return 'excellent'
-		if (score >= 80) return 'good'
-		if (score >= 60) return 'average'
-		return 'poor'
+	const calculateTripStats = async () => {
+		uni.showToast({ title: '正在触发行程统计...', icon: 'loading' })
+		try {
+			await statisticsApi.calculateTripStatistics(getDateStr())
+			uni.hideToast()
+			uni.showToast({ title: '行程统计触发成功', icon: 'success' })
+			fetchData()
+		} catch (e) {
+			uni.hideToast()
+			uni.showToast({ title: '行程统计触发失败', icon: 'none' })
+		}
+	}
+
+	const calculateCostStats = async () => {
+		uni.showToast({ title: '正在触发成本统计...', icon: 'loading' })
+		try {
+			await statisticsApi.calculateCostStatistics(getDateStr())
+			uni.hideToast()
+			uni.showToast({ title: '成本统计触发成功', icon: 'success' })
+			fetchData()
+		} catch (e) {
+			uni.hideToast()
+			uni.showToast({ title: '成本统计触发失败', icon: 'none' })
+		}
+	}
+
+	const calculateVehicleStats = async () => {
+		uni.showToast({ title: '正在触发车辆统计...', icon: 'loading' })
+		try {
+			const today = new Date()
+			const formatDate = (d: Date): string => {
+				return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+			}
+			let startStr = ''
+			let endStr = ''
+			if (vehicleDimension.value === 'day') {
+				startStr = formatDate(today)
+				endStr = startStr
+			} else if (vehicleDimension.value === 'week') {
+				const weekStart = new Date(today)
+				weekStart.setDate(today.getDate() - 6)
+				startStr = formatDate(weekStart)
+				endStr = formatDate(today)
+			} else if (vehicleDimension.value === 'month') {
+				const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+				startStr = formatDate(monthStart)
+				endStr = formatDate(today)
+			}
+			await statisticsApi.calculateAllVehicleStatistics(startStr, endStr)
+			uni.hideToast()
+			uni.showToast({ title: '车辆统计触发成功', icon: 'success' })
+			fetchData()
+			fetchVehicleTripStats()
+		} catch (e) {
+			uni.hideToast()
+			uni.showToast({ title: '车辆统计触发失败', icon: 'none' })
+		}
+	}
+
+	const calculateDriverStats = async () => {
+		uni.showToast({ title: '正在触发司机统计...', icon: 'loading' })
+		try {
+			const today = new Date()
+			const formatDate = (d: Date): string => {
+				return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+			}
+			const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+			await statisticsApi.calculateAllDriverStatistics(formatDate(monthStart), formatDate(today))
+			uni.hideToast()
+			uni.showToast({ title: '司机统计触发成功', icon: 'success' })
+			fetchData()
+		} catch (e) {
+			uni.hideToast()
+			uni.showToast({ title: '司机统计触发失败', icon: 'none' })
+		}
+	}
+
+	const onDriverBackfillDateChange = async (e: any) => {
+		const date = e.detail.value
+		driverBackfillDate.value = date
+		uni.showToast({ title: '正在补录司机统计...', icon: 'loading' })
+		try {
+			await statisticsApi.calculateAllDriverStatistics(date, date)
+			uni.hideToast()
+			uni.showToast({ title: '司机统计补录成功', icon: 'success' })
+			fetchDriverStats()
+		} catch (e) {
+			uni.hideToast()
+			uni.showToast({ title: '司机统计补录失败', icon: 'none' })
+		}
+	}
+
+	const calculateFaultStats = async () => {
+		uni.showToast({ title: '正在触发故障统计...', icon: 'loading' })
+		try {
+			const today = new Date()
+			const formatDate = (d: Date): string => {
+				return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+			}
+			const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+			await statisticsApi.calculateAllFaultStatistics(formatDate(monthStart), formatDate(today))
+			uni.hideToast()
+			uni.showToast({ title: '故障统计触发成功', icon: 'success' })
+			fetchData()
+		} catch (e) {
+			uni.hideToast()
+			uni.showToast({ title: '故障统计触发失败', icon: 'none' })
+		}
 	}
 
 	onMounted(() => {
@@ -598,6 +1251,27 @@
 		const day = String(today.getDate()).padStart(2, '0')
 		endDate.value = `${year}-${month}-${day}`
 		startDate.value = `${year}-${month}-01`
+		backfillDate.value = `${year}-${month}-${day}`
+		selectedDate.value = `${year}-${month}-${day}`
+		selectedMonth.value = `${year}-${month}`
+		monthDisplay.value = `${month}月`
+		driverSelectedDate.value = `${year}-${month}-${day}`
+		driverSelectedMonth.value = `${year}-${month}`
+		driverMonthDisplay.value = `${month}月`
+		driverBackfillDate.value = `${year}-${month}-${day}`
+		
+		const dayOfWeek = today.getDay()
+		const weekStartOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+		const baseMonday = new Date(today)
+		baseMonday.setDate(today.getDate() + weekStartOffset)
+		const weekEnd = new Date(baseMonday)
+		weekEnd.setDate(baseMonday.getDate() + 6)
+		weekStart.value = formatDate(baseMonday)
+		weekEnd.value = formatDate(weekEnd)
+		weekDisplay.value = `${weekStart.value.slice(5)} - ${weekEnd.value.slice(5)}`
+		driverWeekStart.value = formatDate(baseMonday)
+		driverWeekEnd.value = formatDate(weekEnd)
+		driverWeekDisplay.value = `${driverWeekStart.value.slice(5)} - ${driverWeekEnd.value.slice(5)}`
 
 		fetchData()
 	})
@@ -622,7 +1296,7 @@
 			flex-direction: row;
 			gap: 15rpx;
 
-			.export-btn, .refresh-btn, .calculate-btn {
+			.backfill-btn, .export-btn, .refresh-btn {
 					padding: 15rpx 30rpx;
 					background-color: #2a3347;
 					color: #fff;
@@ -630,12 +1304,12 @@
 					border-radius: 12rpx;
 				}
 
-				.export-btn {
-					background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+				.backfill-btn {
+					background: linear-gradient(135deg, #FF9500 0%, #FF6B00 100%);
 				}
 
-				.calculate-btn {
-					background: linear-gradient(135deg, #FF9500 0%, #FF6600 100%);
+				.export-btn {
+					background: linear-gradient(135deg, #34C759 0%, #28a745 100%);
 				}
 		}
 	}
@@ -740,6 +1414,11 @@
 				margin-bottom: 20rpx;
 				display: block;
 			}
+			
+			.chart-container {
+				width: 100%;
+				height: 500rpx;
+			}
 		}
 	}
 
@@ -775,6 +1454,10 @@
 		overflow: hidden;
 
 		.card-header {
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+			align-items: center;
 			padding: 25rpx 30rpx;
 			border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
 
@@ -782,6 +1465,24 @@
 				font-size: 28rpx;
 				font-weight: bold;
 				color: #fff;
+			}
+			
+			.calc-btn {
+				padding: 10rpx 20rpx;
+				background: linear-gradient(135deg, #FF9500 0%, #FF6600 100%);
+				color: #fff;
+				font-size: 22rpx;
+				border-radius: 8rpx;
+				
+				&.secondary {
+					background: linear-gradient(135deg, #5856D6 0%, #4834d4 100%);
+				}
+			}
+			
+			.header-actions {
+				display: flex;
+				flex-direction: row;
+				gap: 15rpx;
 			}
 		}
 	}
@@ -875,7 +1576,7 @@
 			margin-bottom: 15rpx;
 
 			.vehicle-no { font-size: 28rpx; font-weight: bold; color: #fff; }
-			.vehicle-date { font-size: 22rpx; color: rgba(255, 255, 255, 0.5); }
+			.vehicle-period { font-size: 22rpx; color: rgba(255, 255, 255, 0.5); }
 		}
 
 		.vehicle-stats {
@@ -903,6 +1604,95 @@
 		}
 	}
 
+	.vehicle-charts, .driver-charts, .cost-charts {
+		display: flex;
+		flex-direction: column;
+		gap: 20rpx;
+		padding: 20rpx;
+		
+		.chart-card {
+			background-color: rgba(255, 255, 255, 0.05);
+			border-radius: 16rpx;
+			padding: 20rpx;
+			
+			.chart-title {
+				font-size: 24rpx;
+				font-weight: bold;
+				color: #fff;
+				margin-bottom: 15rpx;
+				display: block;
+			}
+			
+			.chart-container {
+				width: 100%;
+				height: 500rpx;
+			}
+		}
+	}
+
+	.dimension-tabs {
+		display: flex;
+		flex-direction: row;
+		gap: 10rpx;
+		
+		.dimension-tab {
+			padding: 10rpx 20rpx;
+			background-color: rgba(255, 255, 255, 0.1);
+			border-radius: 8rpx;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			
+			&.active {
+				background-color: #007AFF;
+			}
+			
+			.tab-text {
+				font-size: 22rpx;
+				color: #fff;
+			}
+			
+			.tab-value {
+				font-size: 18rpx;
+				color: rgba(255, 255, 255, 0.7);
+				margin-top: 4rpx;
+			}
+		}
+	}
+
+	.dimension-selector {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		padding: 20rpx 30rpx;
+		border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+		
+		.dimension-tabs {
+			.dimension-tab {
+				padding: 15rpx 30rpx;
+				
+				&.active {
+					background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+				}
+			}
+		}
+		
+		.dimension-value {
+			.value-display {
+				padding: 15rpx 25rpx;
+				background-color: rgba(255, 255, 255, 0.1);
+				border-radius: 10rpx;
+				font-size: 24rpx;
+				color: #fff;
+				
+				&.clickable {
+					background-color: rgba(0, 122, 255, 0.3);
+				}
+			}
+		}
+	}
+
 	.driver-item {
 		.driver-header {
 			display: flex;
@@ -912,22 +1702,6 @@
 			margin-bottom: 15rpx;
 
 			.driver-name { font-size: 28rpx; font-weight: bold; color: #fff; }
-
-			.performance-score {
-				display: flex;
-				flex-direction: row;
-				align-items: baseline;
-				padding: 8rpx 20rpx;
-				border-radius: 20rpx;
-
-				&.excellent { background-color: rgba(52, 199, 89, 0.2); color: #34C759; }
-				&.good { background-color: rgba(0, 122, 255, 0.2); color: #007AFF; }
-				&.average { background-color: rgba(255, 149, 0, 0.2); color: #FF9500; }
-				&.poor { background-color: rgba(255, 59, 48, 0.2); color: #FF3B30; }
-
-				.score-value { font-size: 28rpx; font-weight: bold; }
-				.score-label { font-size: 18rpx; margin-left: 5rpx; }
-			}
 		}
 
 		.driver-stats {

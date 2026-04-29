@@ -9,7 +9,7 @@ import com.klzw.common.core.result.Result;
 import com.klzw.service.trip.controller.TripController;
 import com.klzw.service.trip.dto.TripDTO;
 import com.klzw.service.trip.dto.TripEndDTO;
-import com.klzw.service.trip.dto.TripStatisticsResponseDTO;
+import com.klzw.common.core.domain.dto.TripStatisticsResponseDTO;
 import com.klzw.service.trip.service.TripService;
 import com.klzw.service.trip.vo.TripStatisticsVO;
 import com.klzw.service.trip.vo.TripTrackVO;
@@ -146,9 +146,13 @@ public class TripControllerTest {
     void testEndTrip() throws Exception {
         doNothing().when(tripService).endTrip(eq(1L), any(TripEndDTO.class));
 
+        TripEndDTO dto = new TripEndDTO();
+        dto.setEndLongitude(116.487428);
+        dto.setEndLatitude(39.91923);
+
         mockMvc.perform(post("/trip/1/end")
-                        .param("endLongitude", "116.487428")
-                        .param("endLatitude", "39.91923"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200));
 

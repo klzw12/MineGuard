@@ -15,7 +15,7 @@ import com.klzw.common.core.result.Result;
 import com.klzw.service.trip.constant.TripResultCode;
 import com.klzw.service.trip.dto.TripDTO;
 import com.klzw.service.trip.dto.TripEndDTO;
-import com.klzw.service.trip.dto.TripStatisticsResponseDTO;
+import com.klzw.common.core.domain.dto.TripStatisticsResponseDTO;
 import com.klzw.service.trip.entity.Trip;
 import com.klzw.service.trip.enums.TripStatusEnum;
 import com.klzw.service.trip.exception.TripException;
@@ -95,6 +95,14 @@ public class TripServiceImplTest {
         tripDTO.setStartLatitude(39.0);
         tripDTO.setEndLongitude(116.1);
         tripDTO.setEndLatitude(39.1);
+
+        try {
+            java.lang.reflect.Field baseMapperField = com.baomidou.mybatisplus.extension.repository.CrudRepository.class.getDeclaredField("baseMapper");
+            baseMapperField.setAccessible(true);
+            baseMapperField.set(tripService, tripMapper);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
@@ -283,16 +291,14 @@ public class TripServiceImplTest {
 
     @Test
     void startTrip() {
-        // 模拟数据
+        trip.setDispatchTaskId(1L);
         when(tripMapper.selectById(1L)).thenReturn(trip);
         when(tripMapper.updateById(any(Trip.class))).thenReturn(1);
-        doNothing().when(dispatchClient).startTaskByTrip(anyLong());
+        when(dispatchClient.startTaskByTrip(anyLong())).thenReturn(Result.success(null));
         doNothing().when(tripStatusProcessor).processStatusChange(any(Trip.class), anyInt(), anyInt());
 
-        // 执行开始行程
         tripService.startTrip(1L);
 
-        // 验证方法调用
         verify(tripMapper, times(1)).selectById(1L);
         verify(tripMapper, times(1)).updateById(any(Trip.class));
         verify(dispatchClient, times(1)).startTaskByTrip(anyLong());
@@ -322,13 +328,14 @@ public class TripServiceImplTest {
 
     @Test
     void endTrip() {
-        // 模拟数据
         trip.setStatus(TripStatusEnum.IN_PROGRESS.getCode());
         trip.setActualStartTime(LocalDateTime.now().minusHours(1));
+        trip.setDispatchTaskId(1L);
         when(tripMapper.selectById(1L)).thenReturn(trip);
         when(tripMapper.updateById(any(Trip.class))).thenReturn(1);
         when(tripTrackService.getTracksFromRedis(1L)).thenReturn(new ArrayList<>());
-        doNothing().when(dispatchClient).completeTaskByTrip(anyLong());
+        when(tripTrackService.calculateTotalDistance(1L)).thenReturn(0.0);
+        when(dispatchClient.completeTaskByTrip(anyLong())).thenReturn(Result.success(null));
         doNothing().when(tripStatusProcessor).processStatusChange(any(Trip.class), anyInt(), anyInt());
 
         TripEndDTO dto = new TripEndDTO();

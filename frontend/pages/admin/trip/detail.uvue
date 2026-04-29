@@ -124,7 +124,7 @@
 				<view class="card-body">
 					<view class="ai-score-section" v-if="aiAnalysis.analysis">
 						<view class="score-circle">
-							<text class="score-value">{{ aiAnalysis.analysis.driving_score || 85 }}</text>
+							<text class="score-value">{{ aiAnalysis.analysis.driving_score ?? 0 }}</text>
 							<text class="score-label">驾驶评分</text>
 						</view>
 					</view>
@@ -250,7 +250,39 @@
 				
 				if (detail.aiAnalysis) {
 					try {
-						aiAnalysis.value = JSON.parse(detail.aiAnalysis) as AiAnalysisResult
+						const rawResult = JSON.parse(detail.aiAnalysis)
+						if (rawResult.analysis && rawResult.analysis.content) {
+							const contentText = rawResult.analysis.content.text || rawResult.analysis.content.response || ''
+							const jsonMatch = contentText.match(/```json\s*([\s\S]*?)\s*```/)
+							if (jsonMatch && jsonMatch[1]) {
+								const parsedAnalysis = JSON.parse(jsonMatch[1].trim())
+								aiAnalysis.value = {
+									analysis: {
+										driving_score: parsedAnalysis.driving_score || 0,
+										recommendations: parsedAnalysis.recommendations || [],
+										speeding_analysis: parsedAnalysis.speed_analysis || '',
+										acceleration_analysis: parsedAnalysis.acceleration_analysis || '',
+										overall_evaluation: parsedAnalysis.analysis || ''
+									},
+									status: rawResult.status || 'success',
+									message: rawResult.message || ''
+								}
+							} else {
+								aiAnalysis.value = {
+									analysis: {
+										driving_score: rawResult.analysis?.driving_score || 0,
+										recommendations: rawResult.analysis?.recommendations || [],
+										speeding_analysis: rawResult.analysis?.speed_analysis || '',
+										acceleration_analysis: rawResult.analysis?.acceleration_analysis || '',
+										overall_evaluation: rawResult.analysis?.analysis || ''
+									},
+									status: rawResult.status || 'success',
+									message: rawResult.message || ''
+								}
+							}
+						} else {
+							aiAnalysis.value = rawResult as AiAnalysisResult
+						}
 					} catch (e) {
 						console.error('解析AI分析结果失败', e)
 					}

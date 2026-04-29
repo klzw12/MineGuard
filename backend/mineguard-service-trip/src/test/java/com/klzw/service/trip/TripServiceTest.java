@@ -31,7 +31,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -291,7 +293,10 @@ public class TripServiceTest {
     void testGetByVehicleId() {
         List<Trip> trips = List.of(testTrip);
         when(tripMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(trips);
-        when(vehicleClient.getById(anyLong())).thenReturn(Result.success(new com.klzw.common.core.domain.dto.VehicleInfo()));
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 1L);
+        vehicleMap.put("vehicleNo", "京A12345");
+        when(vehicleClient.getById(anyLong())).thenReturn(Result.success(vehicleMap));
         when(userClient.getUserById(anyLong())).thenReturn(Result.success(Collections.singletonMap("realName", "司机")));
 
         List<TripVO> result = tripService.getByVehicleId(100L);
@@ -317,7 +322,10 @@ public class TripServiceTest {
     void testGetByDriverId() {
         List<Trip> trips = List.of(testTrip);
         when(tripMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(trips);
-        when(vehicleClient.getById(anyLong())).thenReturn(Result.success(new com.klzw.common.core.domain.dto.VehicleInfo()));
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 1L);
+        vehicleMap.put("vehicleNo", "京A12345");
+        when(vehicleClient.getById(anyLong())).thenReturn(Result.success(vehicleMap));
         when(userClient.getUserById(anyLong())).thenReturn(Result.success(Collections.singletonMap("realName", "司机")));
 
         List<TripVO> result = tripService.getByDriverId(200L);
@@ -384,7 +392,10 @@ public class TripServiceTest {
         page.setRecords(List.of(testTrip));
         page.setTotal(1);
         when(tripMapper.selectPage(any(Page.class), any(LambdaQueryWrapper.class))).thenReturn(page);
-        when(vehicleClient.getById(anyLong())).thenReturn(Result.success(new com.klzw.common.core.domain.dto.VehicleInfo()));
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 1L);
+        vehicleMap.put("vehicleNo", "京A12345");
+        when(vehicleClient.getById(anyLong())).thenReturn(Result.success(vehicleMap));
         when(userClient.getUserById(anyLong())).thenReturn(Result.success(Collections.singletonMap("realName", "司机")));
 
         com.klzw.common.core.result.PageResult<TripVO> result = tripService.page(createPageRequest(1, 10), null);

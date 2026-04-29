@@ -27,12 +27,12 @@
 			</view>
 			<view class="stat-card">
 				<text class="stat-value">{{ driverStats.onRest || 0 }}</text>
-				<text class="stat-label">休息中</text>
+				<text class="stat-label">异常</text>
 				<text class="stat-trend">-</text>
 			</view>
 			<view class="stat-card">
 				<text class="stat-value">{{ driverStats.onLeave || 0 }}</text>
-				<text class="stat-label">请假</text>
+				<text class="stat-label">缺勤</text>
 				<text class="stat-trend negative">↓ 2%</text>
 			</view>
 		</view>
@@ -136,13 +136,13 @@
 					let status = '在岗'
 					let statusClass = 'active'
 					
-					// 简单模拟状态判断
-					if (driver.attendanceDays < 10) {
-						status = '请假'
-						statusClass = 'leave'
-					} else if (driver.attendanceDays < 20) {
-						status = '休息'
-						statusClass = 'rest'
+					// 根据出勤天数和迟到早退判断状态
+					if (driver.attendanceDays === 0) {
+						status = '缺勤'
+						statusClass = 'absent'
+					} else if (driver.lateCount > 0 || driver.earlyLeaveCount > 0) {
+						status = '异常'
+						statusClass = 'warning'
 					}
 					
 					return {
@@ -159,8 +159,8 @@
 				driverStats.value = {
 					total: result.length,
 					onDuty: attendanceStats.value.filter(item => item.statusClass === 'active').length,
-					onRest: attendanceStats.value.filter(item => item.statusClass === 'rest').length,
-					onLeave: attendanceStats.value.filter(item => item.statusClass === 'leave').length
+					onRest: attendanceStats.value.filter(item => item.statusClass === 'warning').length,
+					onLeave: attendanceStats.value.filter(item => item.statusClass === 'absent').length
 				}
 			}
 		} catch (e: any) {
@@ -343,12 +343,12 @@
 					color: #34C759;
 				}
 				
-				&.rest {
+				&.warning {
 					background-color: rgba(255, 149, 0, 0.2);
 					color: #FF9500;
 				}
 				
-				&.leave {
+				&.absent {
 					background-color: rgba(255, 59, 48, 0.2);
 					color: #FF3B30;
 				}

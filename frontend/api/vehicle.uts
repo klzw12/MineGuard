@@ -95,6 +95,19 @@ export const vehicleApi = {
   // 更新车辆维修状态（维修员端使用）
   updateMaintenanceStatus: (id: number, maintenanceStatus: number): Promise<VehicleVO | null> => {
     return http.put<VehicleVO>(`/vehicle/${id}/maintenance`, { maintenanceStatus })
+  },
+
+  // 获取车辆统计数据（运营天数、油耗、行驶里程）
+  getVehicleStatistics: (vehicleId: number, startDate?: string, endDate?: string): Promise<any | null> => {
+    const params: any = {}
+    if (startDate) params.startDate = startDate
+    if (endDate) params.endDate = endDate
+    return http.get<any>(`/vehicle/${vehicleId}/statistics`, params)
+  },
+
+  // 获取所有车辆统计数据列表
+  getAllVehicleStatistics: (): Promise<any[] | null> => {
+    return http.get<any[]>('/vehicle/statistics/all')
   }
 }
 

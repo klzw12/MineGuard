@@ -216,14 +216,13 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
         }
         
         int oldStatus = trip.getStatus();
-        int newStatus = TripStatusEnum.IN_PROGRESS.getCode(); // 进行中
+        int newStatus = TripStatusEnum.IN_PROGRESS.getCode();
         trip.setStatus(newStatus);
         trip.setActualStartTime(LocalDateTime.now());
         
         getBaseMapper().updateById(trip);
         log.info("行程开始，行程ID：{}，调度任务ID：{}", id, trip.getDispatchTaskId());
         
-        // 回调dispatch模块更新调度任务状态为进行中
         if (trip.getDispatchTaskId() != null) {
             try {
                 dispatchClient.startTaskByTrip(trip.getDispatchTaskId());
@@ -233,7 +232,20 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
             }
         }
         
-        // 处理状态变化（车辆状态更新 + 通知）
+        if (trip.getStartLongitude() != null && trip.getStartLatitude() != null &&
+            trip.getEndLongitude() != null && trip.getEndLatitude() != null) {
+            try {
+                java.util.List<java.util.Map<String, Double>> routePoints = java.util.List.of(
+                    java.util.Map.of("longitude", trip.getStartLongitude().doubleValue(), "latitude", trip.getStartLatitude().doubleValue()),
+                    java.util.Map.of("longitude", trip.getEndLongitude().doubleValue(), "latitude", trip.getEndLatitude().doubleValue())
+                );
+                warningClient.setPlannedRoute(trip.getVehicleId(), routePoints);
+                log.info("已设置规划路线：车辆ID={}", trip.getVehicleId());
+            } catch (Exception e) {
+                log.warn("设置规划路线失败：车辆ID={}，错误={}", trip.getVehicleId(), e.getMessage());
+            }
+        }
+        
         tripStatusProcessor.processStatusChange(trip, oldStatus, newStatus);
     }
 
@@ -909,6 +921,48 @@ public class TripServiceImpl extends ServiceImpl<TripMapper, Trip> implements Tr
                     
                     if (recordTime != null) {
                         vo.setLastRecordTime(LocalDateTime.parse(recordTime.toString()));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("获取行程最后位置失败：tripId={}, error={}", trip.getId(), e.getMessage());
+        }
+        
+        return vo;
+    }
+    
+    @Override
+    public TripVO getCurrentTripByUserId(Long userId) {
+        if (userId == null) {
+            return null;
+        }
+        
+        LambdaQueryWrapper<Trip> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Trip::getDriverId, userId);
+        wrapper.in(Trip::getStatus, TripStatusEnum.IN_PROGRESS.getCode(), TripStatusEnum.PAUSED.getCode());
+        wrapper.orderByDesc(Trip::getCreateTime);
+        wrapper.last("LIMIT 1");
+        
+        Trip trip = getBaseMapper().selectOne(wrapper);
+        if (trip == null) {
+            return null;
+        }
+        
+        TripVO vo = convertToVO(trip);
+        
+        try {
+            String trackKey = "trip:track:" + trip.getId();
+            List<?> trackList = redisCacheService.lRange(trackKey, -1L, -1L);
+            if (trackList != null && !trackList.isEmpty()) {
+                Object lastTrack = trackList.get(0);
+                if (lastTrack instanceof java.util.Map) {
+                    java.util.Map<?, ?> trackMap = (java.util.Map<?, ?>) lastTrack;
+                    Object longitude = trackMap.get("longitude");
+                    Object latitude = trackMap.get("latitude");
+                    
+                    if (longitude != null && latitude != null) {
+                        vo.setLastLongitude(Double.parseDouble(longitude.toString()));
+                        vo.setLastLatitude(Double.parseDouble(latitude.toString()));
                     }
                 }
             }

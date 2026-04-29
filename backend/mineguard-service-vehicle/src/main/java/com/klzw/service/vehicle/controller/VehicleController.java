@@ -340,4 +340,14 @@ public class VehicleController {
         return Result.success(vehicleService.getAllVehicleStatistics());
     }
     
+    @Operation(summary = "更新车辆状态及位置", description = "更新车辆状态并记录位置信息")
+    @PostMapping("/{id}/status/location")
+    public Result<Void> updateStatusWithLocation(
+            @PathVariable Long id,
+            @RequestParam("status") Integer status,
+            @RequestParam("latitude") Double latitude,
+            @RequestParam("longitude") Double longitude) {
+        vehicleService.updateStatusWithLocation(id, status, latitude, longitude);
+        return Result.success();
+    }
 }

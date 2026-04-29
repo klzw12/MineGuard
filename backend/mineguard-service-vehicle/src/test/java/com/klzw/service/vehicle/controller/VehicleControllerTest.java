@@ -2,7 +2,6 @@ package com.klzw.service.vehicle.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.klzw.common.core.domain.dto.VehicleInfo;
 import com.klzw.service.vehicle.dto.BestVehicleQueryDTO;
 import com.klzw.service.vehicle.entity.Vehicle;
 import com.klzw.service.vehicle.enums.VehicleStatusEnum;

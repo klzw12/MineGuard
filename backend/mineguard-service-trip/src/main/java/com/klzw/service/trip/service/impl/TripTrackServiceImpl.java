@@ -42,6 +42,13 @@ public class TripTrackServiceImpl implements TripTrackService {
         validateTripStatus(dto.getTripId());
         
         String redisKey = "trip:track:" + dto.getTripId();
+        
+        Long currentCount = redisCacheService.lSize(redisKey);
+        if (currentCount == null) {
+            currentCount = 0L;
+        }
+        dto.setPointIndex(currentCount.intValue());
+        
         redisCacheService.lPush(redisKey, (Object) dto);
         redisCacheService.expire(redisKey, 2, java.util.concurrent.TimeUnit.DAYS);
         

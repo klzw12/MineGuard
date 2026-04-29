@@ -85,16 +85,14 @@ public class TripTrackServiceTest {
     @Test
     @DisplayName("测试保存轨迹点")
     void testSaveTrackPoint() {
-        // 模拟验证通过
         doNothing().when(tripValidatorService).validateTripInProgress(1L);
+        when(redisCacheService.lSize("trip:track:1")).thenReturn(0L);
 
-        // 执行保存
         tripTrackService.uploadTrack(testTrackDTO);
 
-        // 验证
         verify(tripValidatorService).validateTripInProgress(1L);
         verify(redisCacheService).lPush(eq("trip:track:1"), eq(testTrackDTO));
-        verify(redisCacheService).set(eq("trip:track:vehicle:100"), eq(1L), eq(1L), any());
+        verify(redisCacheService).set(eq("trip:track:vehicle:100"), eq(1L), eq(2L), any());
     }
 
     @Test

@@ -8,6 +8,7 @@ import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.client.TripClient;
 import com.klzw.common.core.client.VehicleClient;
 import com.klzw.common.core.client.UserClient;
+import com.klzw.common.core.client.MessageClient;
 import com.klzw.service.warning.constant.WarningResultCode;
 import com.klzw.service.warning.dto.WarningHandleDTO;
 import com.klzw.service.warning.dto.WarningRecordDTO;
@@ -53,11 +54,44 @@ public class WarningRecordServiceImpl implements WarningRecordService {
     private final TripClient tripClient;
     private final VehicleClient vehicleClient;
     private final UserClient userClient;
+    private final MessageClient messageClient;
 
     @Override
     public PageResult<WarningRecordVO> page(PageRequest pageRequest) {
         Page<WarningRecord> page = new Page<>(pageRequest.getPage(), pageRequest.getSize());
         LambdaQueryWrapper<WarningRecord> wrapper = new LambdaQueryWrapper<>();
+        wrapper.orderByDesc(WarningRecord::getWarningTime);
+
+        Page<WarningRecord> result = warningRecordMapper.selectPage(page, wrapper);
+
+        List<WarningRecordVO> voList = result.getRecords().stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+
+        return PageResult.of(result.getTotal(), pageRequest.getPage(), pageRequest.getSize(), voList);
+    }
+    
+    @Override
+    public PageResult<WarningRecordVO> pageWithFilters(PageRequest pageRequest, Integer status, Integer warningLevel, Integer warningType, Long vehicleId, Long driverId) {
+        Page<WarningRecord> page = new Page<>(pageRequest.getPage(), pageRequest.getSize());
+        LambdaQueryWrapper<WarningRecord> wrapper = new LambdaQueryWrapper<>();
+        
+        if (status != null) {
+            wrapper.eq(WarningRecord::getStatus, status);
+        }
+        if (warningLevel != null) {
+            wrapper.eq(WarningRecord::getWarningLevel, warningLevel);
+        }
+        if (warningType != null) {
+            wrapper.eq(WarningRecord::getWarningType, warningType);
+        }
+        if (vehicleId != null) {
+            wrapper.eq(WarningRecord::getVehicleId, vehicleId);
+        }
+        if (driverId != null) {
+            wrapper.eq(WarningRecord::getDriverId, driverId);
+        }
+        
         wrapper.orderByDesc(WarningRecord::getWarningTime);
 
         Page<WarningRecord> result = warningRecordMapper.selectPage(page, wrapper);
@@ -173,17 +207,38 @@ public class WarningRecordServiceImpl implements WarningRecordService {
     @Override
     public void pushWarningNotification(WarningRecord warningRecord) {
         Integer level = warningRecord.getWarningLevel();
+        Integer warningType = warningRecord.getWarningType();
+        Long driverId = warningRecord.getDriverId();
+        String title = "预警通知";
+        String content = warningRecord.getWarningContent();
 
         if (level == null) {
             return;
         }
 
         if (level.equals(WarningLevelEnum.HIGH.getCode())) {
-            log.error("【高危预警】立即推送全体安全员、维修员！预警内容： {}", warningRecord.getWarningContent());
+            log.error("【高危预警】立即推送全体安全员、维修员！预警内容： {}", content);
+            messageClient.sendMessageByRole("ROLE_SAFETY_OFFICER", title, content, "WARNING");
+            messageClient.sendMessageByRole("ROLE_REPAIRMAN", title, content, "WARNING");
+            messageClient.sendMessage(1L, title, content, "WARNING", "");
         } else if (level.equals(WarningLevelEnum.MEDIUM.getCode())) {
-            log.warn("【中危预警】推送给维修员处理! 预警内容： {}", warningRecord.getWarningContent());
+            log.warn("【中危预警】推送给维修员处理! 预警内容： {}", content);
+            messageClient.sendMessageByRole("ROLE_REPAIRMAN", title, content, "WARNING");
+            messageClient.sendMessage(1L, title, content, "WARNING", "");
         } else if (level.equals(WarningLevelEnum.LOW.getCode())) {
-            log.info("【低危预警】推送给维修员处理! 预警内容: {}", warningRecord.getWarningContent());
+            log.info("【低危预警】推送给相关人员! 预警内容: {}", content);
+        }
+        
+        if (warningType != null && driverId != null) {
+            if (warningType.equals(WarningTypeEnum.SPEED_ABNORMAL.getCode()) 
+                    || warningType.equals(WarningTypeEnum.FATIGUE_DRIVING.getCode())) {
+                log.info("【驾驶行为预警】推送给司机！预警内容：{}", content);
+                messageClient.sendMessage(driverId, title, content, "WARNING", "");
+            } else if (warningType.equals(WarningTypeEnum.ROUTE_DEVIATION.getCode())
+                    || warningType.equals(WarningTypeEnum.LONG_STAY.getCode())) {
+                log.info("【路线异常】推送给司机！预警内容：{}", content);
+                messageClient.sendMessage(driverId, title, content, "WARNING", "");
+            }
         }
     }
 

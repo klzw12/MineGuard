@@ -104,7 +104,7 @@ class StatisticsServiceTest {
 
         testCostStatistics = new CostStatistics();
         testCostStatistics.setId(1L);
-        testCostStatistics.setStatisticsDate(LocalDate.now());
+        testCostStatistics.setStatisticsMonth(LocalDate.now());
         testCostStatistics.setFuelCost(new BigDecimal("1000.0"));
         testCostStatistics.setMaintenanceCost(new BigDecimal("500.0"));
         testCostStatistics.setLaborCost(new BigDecimal("2000.0"));
@@ -149,26 +149,6 @@ class StatisticsServiceTest {
                 driverStatisticsMapper, transportStatisticsMapper, faultStatisticsMapper,
                 tripClient, costClient, vehicleClient, aiClient, warningClient,
                 redisTemplate, valueOperations);
-    }
-
-    /**
-     * 测试获取车辆统计
-     */
-    @Test
-    void testGetVehicleStatistics() {
-        // Mock数据库查询
-        when(vehicleStatisticsMapper.selectList(any(LambdaQueryWrapper.class)))
-                .thenReturn(Collections.singletonList(testVehicleStatistics));
-
-        // 执行测试
-        List<VehicleStatisticsVO> result = statisticsService.getVehicleStatistics(testQueryDTO);
-
-        // 验证结果
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(1L, result.get(0).getVehicleId());
-        assertEquals(5, result.get(0).getTripCount());
-        verify(vehicleStatisticsMapper, times(1)).selectList(any(LambdaQueryWrapper.class));
     }
 
     /**
@@ -240,44 +220,6 @@ class StatisticsServiceTest {
         assertEquals(new BigDecimal("4500.0"), result.getTotalCost());
         verify(tripStatisticsMapper, times(1)).selectList(any(LambdaQueryWrapper.class));
         verify(costStatisticsMapper, times(1)).selectList(any(LambdaQueryWrapper.class));
-    }
-
-    /**
-     * 测试获取车辆趋势 - 通过获取多日数据
-     */
-    @Test
-    void testGetVehicleTrend() {
-        // 准备多日数据
-        VehicleStatistics stats1 = new VehicleStatistics();
-        stats1.setId(1L);
-        stats1.setVehicleId(1L);
-        stats1.setStatisticsDate(LocalDate.now().minusDays(1));
-        stats1.setTripCount(5);
-        stats1.setTotalDistance(new BigDecimal("200.0"));
-
-        VehicleStatistics stats2 = new VehicleStatistics();
-        stats2.setId(2L);
-        stats2.setVehicleId(1L);
-        stats2.setStatisticsDate(LocalDate.now());
-        stats2.setTripCount(6);
-        stats2.setTotalDistance(new BigDecimal("250.0"));
-
-        // Mock数据库查询
-        when(vehicleStatisticsMapper.selectList(any(LambdaQueryWrapper.class)))
-                .thenReturn(Arrays.asList(stats1, stats2));
-
-        // 执行测试
-        StatisticsQueryDTO queryDTO = new StatisticsQueryDTO();
-        queryDTO.setVehicleId(1L);
-        queryDTO.setStartDate(LocalDate.now().minusDays(1));
-        queryDTO.setEndDate(LocalDate.now());
-
-        List<VehicleStatisticsVO> result = statisticsService.getVehicleStatistics(queryDTO);
-
-        // 验证结果
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        verify(vehicleStatisticsMapper, times(1)).selectList(any(LambdaQueryWrapper.class));
     }
 
     /**

@@ -144,7 +144,7 @@
 					<view class="form-item">
 						<text class="form-label">选择车辆 *</text>
 						<view class="picker-wrapper" @click="openPicker('fault_vehicle')">
-							<text class="picker-text" :class="{'placeholder': faultForm.vehicleId === 0}">{{ faultForm.vehicleId ? getVehicleNo(faultForm.vehicleId) : '请选择车辆' }}</text>
+							<text class="picker-text" :class="{'placeholder': !faultForm.vehicleId}">{{ faultForm.vehicleId ? getVehicleNo(faultForm.vehicleId) : '请选择车辆' }}</text>
 							<text class="picker-arrow">▼</text>
 						</view>
 					</view>
@@ -193,7 +193,7 @@
 							<text class="picker-hint">当前行程车辆</text>
 						</view>
 						<view v-else class="picker-wrapper" @click="openPicker('refuel_vehicle')">
-							<text class="picker-text" :class="{'placeholder': refuelingForm.vehicleId === 0}">{{ refuelingForm.vehicleId ? getVehicleNo(refuelingForm.vehicleId) : '请选择车辆' }}</text>
+							<text class="picker-text" :class="{'placeholder': !refuelingForm.vehicleId}">{{ refuelingForm.vehicleId ? getVehicleNo(refuelingForm.vehicleId) : '请选择车辆' }}</text>
 							<text class="picker-arrow">▼</text>
 						</view>
 					</view>
@@ -250,7 +250,7 @@
 					<view class="form-item">
 						<text class="form-label">选择车辆 *</text>
 						<view class="picker-wrapper" @click="openPicker('maint_vehicle')">
-							<text class="picker-text" :class="{'placeholder': maintenanceForm.vehicleId === 0}">{{ maintenanceForm.vehicleId ? getVehicleNo(maintenanceForm.vehicleId) : '请选择车辆' }}</text>
+							<text class="picker-text" :class="{'placeholder': !maintenanceForm.vehicleId}">{{ maintenanceForm.vehicleId ? getVehicleNo(maintenanceForm.vehicleId) : '请选择车辆' }}</text>
 							<text class="picker-arrow">▼</text>
 						</view>
 					</view>
@@ -301,7 +301,7 @@
 					<view class="form-item">
 						<text class="form-label">选择车辆 *</text>
 						<view class="picker-wrapper" @click="openPicker('ins_vehicle')">
-							<text class="picker-text" :class="{'placeholder': insuranceForm.vehicleId === 0}">{{ insuranceForm.vehicleId ? getVehicleNo(insuranceForm.vehicleId) : '请选择车辆' }}</text>
+							<text class="picker-text" :class="{'placeholder': !insuranceForm.vehicleId}">{{ insuranceForm.vehicleId ? getVehicleNo(insuranceForm.vehicleId) : '请选择车辆' }}</text>
 							<text class="picker-arrow">▼</text>
 						</view>
 					</view>
@@ -404,11 +404,11 @@
 	import { useUserStore } from '@/stores/user.uts'
 	import { http } from '@/utils/request.uts'
 
-	type VehicleOption = { id: number, vehicleNo: string }
-	type FaultRecord = { id: string, vehicleId: number, vehicleNo: string, faultType: string, faultDescription: string, severity: number, status: number, faultDate: string }
-	type RefuelingRecord = { id: string, vehicleId: number, vehicleNo: string, refuelingDate: string, refuelingStation: string, fuelType: string, refuelingAmount: number, unitPrice: number, totalCost: number }
-	type MaintenanceRecord = { id: string, vehicleId: number, vehicleNo: string, maintenanceType: number, maintenanceDate: string, maintenanceShop: string, maintenanceContent: string, maintenanceCost: number }
-	type InsuranceRecord = { id: string, vehicleId: number, vehicleNo: string, insuranceCompany: string, insuranceNumber: string, insuranceType: number, insuranceAmount: number, startDate: string, expiryDate: string, status: number }
+	type VehicleOption = { id: string, vehicleNo: string }
+	type FaultRecord = { id: string, vehicleId: string, vehicleNo: string, faultType: string, faultDescription: string, severity: number, status: number, faultDate: string }
+	type RefuelingRecord = { id: string, vehicleId: string, vehicleNo: string, refuelingDate: string, refuelingStation: string, fuelType: string, refuelingAmount: number, unitPrice: number, totalCost: number }
+	type MaintenanceRecord = { id: string, vehicleId: string, vehicleNo: string, maintenanceType: number, maintenanceDate: string, maintenanceShop: string, maintenanceContent: string, maintenanceCost: number }
+	type InsuranceRecord = { id: string, vehicleId: string, vehicleNo: string, insuranceCompany: string, insuranceNumber: string, insuranceType: number, insuranceAmount: number, startDate: string, expiryDate: string, status: number }
 	type PickerOption = { value: any, label: string }
 
 	const userStore = useUserStore()
@@ -429,10 +429,10 @@
 	const showHandleModal = ref(false)
 	const currentFault = ref<FaultRecord | null>(null)
 
-	const faultForm = ref({ vehicleId: 0, faultType: '', faultDescription: '', severity: 1, latitude: 0, longitude: 0, locationAddress: '' })
-	const refuelingForm = ref({ vehicleId: 0, refuelingDate: '', refuelingStation: '', fuelType: '92#', refuelingAmount: '', unitPrice: '', totalCost: '' })
-	const maintenanceForm = ref({ vehicleId: 0, maintenanceType: 1, maintenanceDate: '', maintenanceShop: '', maintenanceContent: '', maintenanceCost: '' })
-	const insuranceForm = ref({ vehicleId: 0, insuranceCompany: '', insuranceNumber: '', insuranceType: 1, insuranceAmount: '', startDate: '', expiryDate: '' })
+	const faultForm = ref({ vehicleId: '', faultType: '', faultDescription: '', severity: 1, latitude: 0, longitude: 0, locationAddress: '' })
+	const refuelingForm = ref({ vehicleId: '', refuelingDate: '', refuelingStation: '', fuelType: '92#', refuelingAmount: '', unitPrice: '', totalCost: '' })
+	const maintenanceForm = ref({ vehicleId: '', maintenanceType: 1, maintenanceDate: '', maintenanceShop: '', maintenanceContent: '', maintenanceCost: '' })
+	const insuranceForm = ref({ vehicleId: '', insuranceCompany: '', insuranceNumber: '', insuranceType: 1, insuranceAmount: '', startDate: '', expiryDate: '' })
 	const handleForm = ref({ repairContent: '', repairCost: '' })
 
 	const fuelTypeOptions: PickerOption[] = [
@@ -468,8 +468,8 @@
 	const pickerSelectedIndex = ref(0)
 	const currentPickerType = ref('')
 
-	const getVehicleNo = (id: number): string => {
-		const vehicle = vehicleOptions.value.find(v => v.id === id)
+	const getVehicleNo = (id: string | number): string => {
+		const vehicle = vehicleOptions.value.find(v => v.id === String(id))
 		return vehicle ? vehicle.vehicleNo : ''
 	}
 
@@ -588,19 +588,19 @@
 		const type = currentPickerType.value
 		
 		if (type === 'fault_vehicle') {
-			faultForm.value.vehicleId = selected.value as number
+			faultForm.value.vehicleId = String(selected.value)
 		} else if (type === 'fault_severity') {
 			faultForm.value.severity = selected.value as number
 		} else if (type === 'refuel_vehicle') {
-			refuelingForm.value.vehicleId = selected.value as number
+			refuelingForm.value.vehicleId = String(selected.value)
 		} else if (type === 'refuel_fuelType') {
 			refuelingForm.value.fuelType = selected.value as string
 		} else if (type === 'maint_vehicle') {
-			maintenanceForm.value.vehicleId = selected.value as number
+			maintenanceForm.value.vehicleId = String(selected.value)
 		} else if (type === 'maint_type') {
 			maintenanceForm.value.maintenanceType = selected.value as number
 		} else if (type === 'ins_vehicle') {
-			insuranceForm.value.vehicleId = selected.value as number
+			insuranceForm.value.vehicleId = String(selected.value)
 		} else if (type === 'ins_type') {
 			insuranceForm.value.insuranceType = selected.value as number
 		}
@@ -628,9 +628,9 @@
 		try {
 			const res = await http.get<any>('/vehicle/page', { pageNum: 1, pageSize: 100 })
 			if (res && (res as any).list) {
-				vehicleOptions.value = (res as any).list.map((v: any) => ({ id: v.id as number, vehicleNo: v.vehicleNo }))
+				vehicleOptions.value = (res as any).list.map((v: any) => ({ id: String(v.id), vehicleNo: v.vehicleNo }))
 			} else if (res && Array.isArray(res)) {
-				vehicleOptions.value = res.map((v: any) => ({ id: v.id as number, vehicleNo: v.vehicleNo }))
+				vehicleOptions.value = res.map((v: any) => ({ id: String(v.id), vehicleNo: v.vehicleNo }))
 			}
 		} catch (e) { console.error('获取车辆列表失败', e) }
 	}
@@ -665,14 +665,33 @@
 		} catch (e) { console.error('获取保险列表失败', e) }
 	}
 
-	const openFaultModal = () => {
-		faultForm.value = { vehicleId: 0, faultType: '', faultDescription: '', severity: 1, latitude: 0, longitude: 0, locationAddress: '' }
+	const openFaultModal = async () => {
+		faultForm.value = { vehicleId: '', faultType: '', faultDescription: '', severity: 1, latitude: 0, longitude: 0, locationAddress: '' }
+		await fetchCurrentTripVehicleForFault()
 		showFaultModal.value = true
 		getCurrentLocation()
 	}
+	
+	const fetchCurrentTripVehicleForFault = async () => {
+		try {
+			const userId = userStore.userInfo.value?.id
+			if (!userId) return
+			const res = await http.get<any>(`/trip/current?userId=${userId}`)
+			if (res && (res as any).vehicleId) {
+				const vehicleId = String((res as any).vehicleId)
+				faultForm.value.vehicleId = vehicleId
+				const vehicle = vehicleOptions.value.find(v => v.id === vehicleId)
+				if (vehicle) {
+					console.log('故障报告自动填充当前驾驶车辆:', vehicle.vehicleNo)
+				}
+			}
+		} catch (e) {
+			console.error('获取当前行程车辆失败', e)
+		}
+	}
 
 		const openRefuelingModal = async () => {
-		refuelingForm.value = { vehicleId: 0, refuelingDate: '', refuelingStation: '', fuelType: '92#', refuelingAmount: '', unitPrice: '', totalCost: '' }
+		refuelingForm.value = { vehicleId: '', refuelingDate: '', refuelingStation: '', fuelType: '92#', refuelingAmount: '', unitPrice: '', totalCost: '' }
 		if (!isRepairman.value) {
 			await fetchCurrentTripVehicle()
 		}
@@ -685,7 +704,7 @@
 				if (!userId) return
 				const res = await http.get<any>(`/trip/current?userId=${userId}`)
 				if (res && (res as any).vehicleId) {
-					const vehicleId = (res as any).vehicleId as number
+					const vehicleId = String((res as any).vehicleId)
 					refuelingForm.value.vehicleId = vehicleId
 					const vehicle = vehicleOptions.value.find(v => v.id === vehicleId)
 					if (vehicle) {
@@ -698,12 +717,12 @@
 		}
 
 	const openMaintenanceModal = () => {
-		maintenanceForm.value = { vehicleId: 0, maintenanceType: 1, maintenanceDate: '', maintenanceShop: '', maintenanceContent: '', maintenanceCost: '' }
+		maintenanceForm.value = { vehicleId: '', maintenanceType: 1, maintenanceDate: '', maintenanceShop: '', maintenanceContent: '', maintenanceCost: '' }
 		showMaintenanceModal.value = true
 	}
 
 	const openInsuranceModal = () => {
-		insuranceForm.value = { vehicleId: 0, insuranceCompany: '', insuranceNumber: '', insuranceType: 1, insuranceAmount: '', startDate: '', expiryDate: '' }
+		insuranceForm.value = { vehicleId: '', insuranceCompany: '', insuranceNumber: '', insuranceType: 1, insuranceAmount: '', startDate: '', expiryDate: '' }
 		showInsuranceModal.value = true
 	}
 

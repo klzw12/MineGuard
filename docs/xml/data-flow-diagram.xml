@@ -1,0 +1,205 @@
+<mxfile host="app.diagrams.net" agent="MineGuard">
+  <diagram name="MineGuard数据流图" id="data-flow-diagram">
+    <mxGraphModel dx="1382" dy="880" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="ext_admin" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="管理员" vertex="1">
+          <mxGeometry height="50" width="100" x="40" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="ext_driver" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" value="司机" vertex="1">
+          <mxGeometry height="50" width="100" x="40" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="ext_gps" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" value="定位" vertex="1">
+          <mxGeometry height="50" width="100" x="40" y="900" as="geometry" />
+        </mxCell>
+        <mxCell id="ext_api" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" value="外部API&#xa;(高德地图/AI)" vertex="1">
+          <mxGeometry height="50" width="100" x="1600" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="p1_auth" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="P1&#xa;用户认证&#xa;服务" vertex="1">
+          <mxGeometry height="80" width="100" x="220" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="p2_vehicle" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" value="P2&#xa;车辆管理&#xa;服务" vertex="1">
+          <mxGeometry height="80" width="100" x="400" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p3_dispatch" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" value="P3&#xa;调度服务" vertex="1">
+          <mxGeometry height="80" width="100" x="580" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p4_trip" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" value="P4&#xa;行程服务" vertex="1">
+          <mxGeometry height="80" width="100" x="760" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p5_warning" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" value="P5&#xa;预警服务" vertex="1">
+          <mxGeometry height="80" width="100" x="940" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p6_cost" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" value="P6&#xa;成本服务" vertex="1">
+          <mxGeometry height="80" width="100" x="400" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="p7_ai" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" value="P7&#xa;AI服务" vertex="1">
+          <mxGeometry height="80" width="100" x="580" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="p8_stats" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="P8&#xa;统计服务" vertex="1">
+          <mxGeometry height="80" width="100" x="760" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="p9_message" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" value="P9&#xa;消息服务" vertex="1">
+          <mxGeometry height="80" width="100" x="940" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="p10_track" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" value="P10&#xa;轨迹处理" vertex="1">
+          <mxGeometry height="80" width="100" x="580" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="p11_task" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" value="P11&#xa;定时任务" vertex="1">
+          <mxGeometry height="80" width="100" x="1120" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="d1_mysql" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" value="D1&#xa;MySQL&#xa;主数据库" vertex="1">
+          <mxGeometry height="60" width="100" x="700" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="d2_redis" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" value="D2&#xa;Redis&#xa;缓存" vertex="1">
+          <mxGeometry height="60" width="100" x="860" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="d3_mongo" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" value="D3&#xa;MongoDB&#xa;轨迹库" vertex="1">
+          <mxGeometry height="60" width="100" x="1020" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="d4_mq" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;" value="D4&#xa;RabbitMQ&#xa;消息队列" vertex="1">
+          <mxGeometry height="60" width="100" x="1180" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_admin_auth" edge="1" parent="1" source="ext_admin" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#333333;" target="p1_auth" value="登录请求">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_auth_admin" edge="1" parent="1" source="p1_auth" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#333333;" target="ext_admin" value="Token">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_driver_auth" edge="1" parent="1" source="ext_driver" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d6b656;fontColor=#333333;" target="p1_auth" value="登录请求">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_admin_vehicle" edge="1" parent="1" source="ext_admin" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;fontColor=#333333;" target="p2_vehicle" value="车辆操作">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_admin_dispatch" edge="1" parent="1" source="ext_admin" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d6b656;fontColor=#333333;" target="p3_dispatch" value="调度请求">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_dispatch_trip" edge="1" parent="1" source="p3_dispatch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#9673a6;fontColor=#333333;" target="p4_trip" value="创建行程">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_trip_warning" edge="1" parent="1" source="p4_trip" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#b85450;fontColor=#333333;" target="p5_warning" value="行程数据">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_warning_msg" edge="1" parent="1" source="p5_warning" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;fontColor=#333333;" target="p9_message" value="预警通知">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_msg_driver" edge="1" parent="1" source="p9_message" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;fontColor=#333333;" target="ext_driver" value="推送消息">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_gps_track" edge="1" parent="1" source="ext_gps" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;fontColor=#333333;" target="p10_track" value="位置数据">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_track_trip" edge="1" parent="1" source="p10_track" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#9673a6;fontColor=#333333;" target="p4_trip" value="轨迹数据">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_trip_ai" edge="1" parent="1" source="p4_trip" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;fontColor=#333333;" target="p7_ai" value="行程分析">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_ai_api" edge="1" parent="1" source="p7_ai" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#b85450;fontColor=#333333;" target="ext_api" value="AI请求">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_api_ai" edge="1" parent="1" source="ext_api" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#b85450;fontColor=#333333;" target="p7_ai" value="AI响应">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_trip_cost" edge="1" parent="1" source="p4_trip" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d79b00;fontColor=#333333;" target="p6_cost" value="成本计算">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_cost_stats" edge="1" parent="1" source="p6_cost" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#333333;" target="p8_stats" value="成本数据">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_trip_stats" edge="1" parent="1" source="p4_trip" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#333333;" target="p8_stats" value="行程数据">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_stats_admin" edge="1" parent="1" source="p8_stats" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#333333;" target="ext_admin" value="统计报表">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_task_warning" edge="1" parent="1" source="p11_task" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#b85450;fontColor=#333333;" target="p5_warning" value="触发检查">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_task_stats" edge="1" parent="1" source="p11_task" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#333333;" target="p8_stats" value="触发统计">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_vehicle_mysql" edge="1" parent="1" source="p2_vehicle" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#333333;dashed=1;" target="d1_mysql" value="车辆数据">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_trip_mysql" edge="1" parent="1" source="p4_trip" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#333333;dashed=1;" target="d1_mysql" value="行程数据">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_cost_mysql" edge="1" parent="1" source="p6_cost" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#333333;dashed=1;" target="d1_mysql" value="成本数据">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_dispatch_mysql" edge="1" parent="1" source="p3_dispatch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;fontColor=#333333;dashed=1;" target="d1_mysql" value="调度数据">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_vehicle_redis" edge="1" parent="1" source="p2_vehicle" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#b85450;fontColor=#333333;dashed=1;" target="d2_redis" value="状态缓存">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_warning_redis" edge="1" parent="1" source="p5_warning" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#b85450;fontColor=#333333;dashed=1;" target="d2_redis" value="预警缓存">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_stats_redis" edge="1" parent="1" source="p8_stats" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#b85450;fontColor=#333333;dashed=1;" target="d2_redis" value="统计缓存">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_track_mongo" edge="1" parent="1" source="p10_track" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;fontColor=#333333;dashed=1;" target="d3_mongo" value="轨迹存储">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_msg_mq" edge="1" parent="1" source="p9_message" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#d6b656;fontColor=#333333;dashed=1;" target="d4_mq" value="消息队列">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_dispatch_vehicle" edge="1" parent="1" source="p3_dispatch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#82b366;fontColor=#333333;" target="p2_vehicle" value="查询车辆">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_dispatch_api" edge="1" parent="1" source="p3_dispatch" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#b85450;fontColor=#333333;" target="ext_api" value="路线规划">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_ai_warning" edge="1" parent="1" source="p7_ai" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#b85450;fontColor=#333333;" target="p5_warning" value="预警分析">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" value="" vertex="1">
+          <mxGeometry height="280" width="180" x="1400" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=14;" value="图例" vertex="1">
+          <mxGeometry height="30" width="180" x="1400" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_ext" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="外部实体" vertex="1">
+          <mxGeometry height="30" width="70" x="1410" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_process" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="处理过程" vertex="1">
+          <mxGeometry height="40" width="70" x="1410" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_store" parent="1" style="shape=partialRectangle;whiteSpace=wrap;html=1;left=0;right=0;fillColor=#fff2cc;strokeColor=#d6b656;" value="数据存储" vertex="1">
+          <mxGeometry height="30" width="70" x="1410" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="legend_flow" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="数据流">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1410" y="280" as="sourcePoint" />
+            <mxPoint x="1480" y="280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_flow_dashed" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;dashed=1;" value="存储操作">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1410" y="310" as="sourcePoint" />
+            <mxPoint x="1480" y="310" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend_note" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" value="P=处理过程&#xa;D=数据存储" vertex="1">
+          <mxGeometry height="30" width="160" x="1410" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=18;fontColor=#333333;" value="MineGuard 矿区车辆管理系统 - 数据流图 (DFD Level 1)" vertex="1">
+          <mxGeometry height="40" width="500" x="600" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="group_backend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;strokeWidth=2;dashed=1;verticalAlign=top;fontStyle=1;fontSize=12;" value="后端微服务" vertex="1">
+          <mxGeometry height="750" width="1080" x="180" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="group_data" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;strokeWidth=2;dashed=1;verticalAlign=top;fontStyle=1;fontSize=12;" value="数据层" vertex="1">
+          <mxGeometry height="120" width="640" x="660" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="note_1" parent="1" style="text;html=1;strokeColor=#666666;fillColor=#f5f5f5;align=left;verticalAlign=top;whiteSpace=wrap;rounded=1;fontSize=11;spacingLeft=5;spacingTop=5;" value="数据流说明：&#xa;1. 管理员/司机通过认证服务获取Token&#xa;2. 调度服务创建行程，调用车辆服务查询可用车辆&#xa;3. GPS设备上报位置，经轨迹处理后更新行程&#xa;4. 预警服务监控行程，触发预警通知&#xa;5. AI服务分析驾驶行为，计算评分&#xa;6. 成本服务计算行程成本和薪资&#xa;7. 统计服务汇总各维度数据&#xa;8. 定时任务触发预警检查和统计计算" vertex="1">
+          <mxGeometry height="200" width="180" x="1400" y="700" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

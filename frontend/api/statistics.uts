@@ -1,4 +1,4 @@
-import { http } from '@/utils/request.uts'
+import { http, BASE_URL, getToken } from '@/utils/request.uts'
 
 export interface TripStatisticsVO {
   id: number
@@ -15,7 +15,7 @@ export interface TripStatisticsVO {
 
 export interface CostStatisticsVO {
   id: number
-  statisticsDate: string
+  statisticsMonth: string
   fuelCost: number
   maintenanceCost: number
   laborCost: number
@@ -48,7 +48,7 @@ export interface VehicleStatisticsVO {
 
 export interface DriverStatisticsVO {
   id: number
-  userId: number
+  userId: string
   userName: string
   statisticsDate: string
   attendanceDays: number
@@ -143,10 +143,6 @@ export const statisticsApi = {
     return http.get<CostStatisticsVO[]>('/statistics/cost', params)
   },
 
-  getVehicleStatistics: (params: any): Promise<VehicleStatisticsVO[] | null> => {
-    return http.get<VehicleStatisticsVO[]>('/statistics/vehicle', params)
-  },
-
   getDriverStatistics: (params: any): Promise<DriverStatisticsVO[] | null> => {
     return http.get<DriverStatisticsVO[]>('/statistics/driver', params)
   },
@@ -185,5 +181,72 @@ export const statisticsApi = {
 
   calculateAllStatistics: (date: string): Promise<any | null> => {
     return http.post<any>(`/statistics/calculate-all?date=${date}`, {})
+  },
+  
+  calculateAllDriverStatistics: (startDate: string, endDate: string): Promise<any | null> => {
+    return http.post<any>(`/statistics/driver/calculate-all?startDate=${startDate}&endDate=${endDate}`, {})
+  },
+  
+  calculateAllFaultStatistics: (startDate: string, endDate: string): Promise<any | null> => {
+    return http.post<any>(`/statistics/fault/calculate-all?startDate=${startDate}&endDate=${endDate}`, {})
+  },
+  
+  calculateAllVehicleStatistics: (startDate: string, endDate: string): Promise<any | null> => {
+    return http.post<any>(`/statistics/vehicle/calculate-all?startDate=${startDate}&endDate=${endDate}`, {})
+  },
+  
+  getVehicleTripStats: (dimension: string, startDate?: string, endDate?: string): Promise<VehicleTripStatsVO[] | null> => {
+    const params: any = { dimension }
+    if (startDate) params.startDate = startDate
+    if (endDate) params.endDate = endDate
+    return http.get<VehicleTripStatsVO[]>('/statistics/vehicle/trip-stats', params)
+  },
+  
+  getDriverStatsAggregated: (dimension: string, startDate?: string, endDate?: string): Promise<DriverStatisticsVO[] | null> => {
+    const params: any = { dimension }
+    if (startDate) params.startDate = startDate
+    if (endDate) params.endDate = endDate
+    return http.get<DriverStatisticsVO[]>('/statistics/driver/stats-aggregated', params)
+  },
+  
+  exportStatistics: (format: string, startDate?: string, endDate?: string, type?: string): string => {
+    const params: string[] = [`format=${format}`]
+    if (startDate) params.push(`startDate=${startDate}`)
+    if (endDate) params.push(`endDate=${endDate}`)
+    if (type) params.push(`type=${type}`)
+    const token = getToken()
+    if (token) params.push(`token=${token}`)
+    return `${BASE_URL}/statistics/export?${params.join('&')}`
+  },
+  
+  exportTripReport: (format: string, startDate?: string, endDate?: string): string => {
+    const params: string[] = [`format=${format}`]
+    if (startDate) params.push(`startDate=${startDate}`)
+    if (endDate) params.push(`endDate=${endDate}`)
+    const token = getToken()
+    if (token) params.push(`token=${token}`)
+    return `${BASE_URL}/statistics/export/trip?${params.join('&')}`
+  },
+  
+  exportVehicleReport: (format: string, startDate?: string, endDate?: string): string => {
+    const params: string[] = [`format=${format}`]
+    if (startDate) params.push(`startDate=${startDate}`)
+    if (endDate) params.push(`endDate=${endDate}`)
+    const token = getToken()
+    if (token) params.push(`token=${token}`)
+    return `${BASE_URL}/statistics/export/vehicle?${params.join('&')}`
+  },
+  
+  backfillStatistics: (date: string): Promise<any | null> => {
+    return http.post<any>(`/statistics/backfill?date=${date}`, {})
   }
+}
+
+export interface VehicleTripStatsVO {
+  vehicleId: number
+  vehicleNo: string
+  period: string
+  tripCount: number
+  totalDistance: number
+  cargoWeight: number
 }

@@ -24,10 +24,11 @@ import com.klzw.common.core.client.DispatchClient;
 import com.klzw.common.core.client.WarningClient;
 import com.klzw.common.core.client.MessageClient;
 import com.klzw.common.core.domain.dto.VehicleStatus;
-import com.klzw.common.core.domain.dto.VehicleInfo;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -71,10 +72,11 @@ public class TripIntegrationTest {
         vehicleStatus.setStatus(0); // IDLE状态
         Mockito.when(vehicleClient.getStatus(Mockito.anyLong())).thenReturn(Result.success(vehicleStatus));
         // 模拟vehicleClient.getById
-        VehicleInfo vehicleInfo = new VehicleInfo();
-        vehicleInfo.setVehicleNo("TEST-VEHICLE-001");
-        vehicleInfo.setStatus(0); // IDLE状态
-        Mockito.when(vehicleClient.getById(Mockito.anyLong())).thenReturn(Result.success(vehicleInfo));
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 1L);
+        vehicleMap.put("vehicleNo", "TEST-VEHICLE-001");
+        vehicleMap.put("status", 0);
+        Mockito.when(vehicleClient.getById(Mockito.anyLong())).thenReturn(Result.success(vehicleMap));
         // 模拟vehicleClient.updateStatus
         Mockito.when(vehicleClient.updateStatus(Mockito.anyLong(), Mockito.any(VehicleStatus.class))).thenReturn(Result.success(vehicleStatus));
         // 模拟userClient.existsUser

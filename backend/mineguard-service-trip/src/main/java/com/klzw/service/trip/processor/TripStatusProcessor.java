@@ -3,10 +3,13 @@ package com.klzw.service.trip.processor;
 import com.klzw.common.core.client.MessageClient;
 import com.klzw.common.core.client.VehicleClient;
 import com.klzw.common.core.enums.VehicleStatusEnum;
+import com.klzw.common.redis.service.RedisCacheService;
 import com.klzw.service.trip.entity.Trip;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Slf4j
 @Component
@@ -15,6 +18,7 @@ public class TripStatusProcessor {
 
     private final MessageClient messageClient;
     private final VehicleClient vehicleClient;
+    private final RedisCacheService redisCacheService;
 
     public void processStatusChange(Trip trip, int oldStatus, int newStatus) {
         log.info("行程状态变化：行程ID={}, 旧状态={}, 新状态={}", 
@@ -22,10 +26,38 @@ public class TripStatusProcessor {
 
         updateVehicleStatus(trip, newStatus);
         
-        if (trip.getEndLongitude() != null && trip.getEndLatitude() != null) {
-            vehicleClient.updateStatusWithLocation(trip.getVehicleId(), newStatus, trip.getEndLatitude(), trip.getEndLongitude());
+        Double latitude = trip.getEndLatitude();
+        Double longitude = trip.getEndLongitude();
+        
+        if (latitude == null || longitude == null) {
+            try {
+                String trackKey = "trip:track:" + trip.getId();
+                List<?> trackList = redisCacheService.lRange(trackKey, 0L, 0L);
+                if (trackList != null && !trackList.isEmpty()) {
+                    Object lastTrack = trackList.get(0);
+                    if (lastTrack instanceof java.util.Map) {
+                        java.util.Map<?, ?> trackMap = (java.util.Map<?, ?>) lastTrack;
+                        Object lon = trackMap.get("longitude");
+                        Object lat = trackMap.get("latitude");
+                        if (lon != null && lat != null) {
+                            longitude = Double.parseDouble(lon.toString());
+                            latitude = Double.parseDouble(lat.toString());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("从Redis获取最新位置失败：tripId={}", trip.getId());
+            }
+        }
+        
+        if (latitude != null && longitude != null) {
+            try {
+                vehicleClient.updateStatusWithLocation(trip.getVehicleId(), newStatus, latitude, longitude);
+            } catch (Exception e) {
+                log.error("更新车辆状态及位置失败：vehicleId={}", trip.getVehicleId(), e);
+            }
         } else {
-            log.warn("行程结束经纬度为空，无法更新车辆状态表的经纬度");
+            log.warn("无法获取行程位置，跳过更新车辆位置：行程ID={}", trip.getId());
         }
         
         String notificationContent = generateNotificationContent(trip, oldStatus, newStatus);

@@ -424,7 +424,7 @@ onShow(() => {
 		// 加载行程统计
 		try {
 			const driverResult = await statisticsApi.getDriverStatistics({
-				userId: parseInt(uid),
+				userId: uid,
 				startDate: dateRange.startDate,
 				endDate: dateRange.endDate
 			})
@@ -442,7 +442,7 @@ onShow(() => {
 				
 				tripStats.value = {
 					id: 0,
-					userId: parseInt(uid),
+					userId: uid,
 					userName: userStore.userInfo.value?.realName || '',
 					statisticsDate: dateRange.startDate,
 					attendanceDays: 0,

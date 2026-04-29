@@ -907,4 +907,29 @@ public class VehicleServiceImpl extends ServiceImpl<VehicleMapper, Vehicle> impl
         return resultList;
     }
     
+    @Override
+    public void updateStatusWithLocation(Long vehicleId, Integer status, Double latitude, Double longitude) {
+        log.info("更新车辆状态及位置：vehicleId={}, status={}, latitude={}, longitude={}", vehicleId, status, latitude, longitude);
+        
+        Vehicle vehicle = getBaseMapper().selectById(vehicleId);
+        if (vehicle == null) {
+            log.warn("车辆不存在：vehicleId={}", vehicleId);
+            return;
+        }
+        
+        vehicle.setStatus(status);
+        vehicle.setUpdateTime(java.time.LocalDateTime.now());
+        getBaseMapper().updateById(vehicle);
+        
+        VehicleStatus vehicleStatus = new VehicleStatus();
+        vehicleStatus.setVehicleId(vehicleId);
+        vehicleStatus.setStatus(status);
+        vehicleStatus.setLatitude(latitude);
+        vehicleStatus.setLongitude(longitude);
+        vehicleStatus.setStatusTime(java.time.LocalDateTime.now());
+        vehicleStatusService.save(vehicleStatus);
+        
+        log.info("车辆状态及位置更新完成：vehicleId={}", vehicleId);
+    }
+    
 }

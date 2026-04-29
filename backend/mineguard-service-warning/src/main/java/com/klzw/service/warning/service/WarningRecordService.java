@@ -15,6 +15,8 @@ public interface WarningRecordService {
 
     PageResult<WarningRecordVO> page(PageRequest pageRequest);
 
+    PageResult<WarningRecordVO> pageWithFilters(PageRequest pageRequest, Integer status, Integer warningLevel, Integer warningType, Long vehicleId, Long driverId);
+
     WarningRecordVO getById(Long id);
     
     List<WarningRecordVO> getByTripId(Long tripId);

@@ -1,0 +1,211 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0" version="29.3.4">
+  <diagram name="统计域E-R图" id="statistics-domain-er">
+    <mxGraphModel dx="1282" dy="468" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=20;fontColor=#333333;" value="统计域 E-R 图" vertex="1">
+          <mxGeometry height="40" width="200" x="980" y="15" as="geometry" />
+        </mxCell>
+        <mxCell id="entity_ts" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#003366;strokeColor=#001a33;fontStyle=1;fontSize=11;fontColor=#FFFFFF;" value="&lt;b&gt;trip_statistics&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;行程统计&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="145" x="120" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_ts_id" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="id [PK]" vertex="1">
+          <mxGeometry height="25" width="68" x="158.5" y="168" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_ts_date" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="statistics_date [UK]" vertex="1">
+          <mxGeometry height="25" width="128" x="25" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_ts_cnt" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="trip_count" vertex="1">
+          <mxGeometry height="25" width="80" x="10" y="267.5" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_ts_dist" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="total_distance" vertex="1">
+          <mxGeometry height="25" width="100" x="39" y="355" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_ts_dur" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="total_duration" vertex="1">
+          <mxGeometry height="25" width="100" x="142.5" y="388" as="geometry" />
+        </mxCell>
+        <mxCell id="entity_cs" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#003366;strokeColor=#001a33;fontStyle=1;fontSize=11;fontColor=#FFFFFF;" value="&lt;b&gt;cost_statistics&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;成本统计&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="140" x="400" y="255" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_cs_id" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" value="id [PK]" vertex="1">
+          <mxGeometry height="25" width="68" x="436" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_cs_date" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" value="statistics_date [UK]" vertex="1">
+          <mxGeometry height="25" width="128" x="295" y="168" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_cs_fcost" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" value="fuel_cost" vertex="1">
+          <mxGeometry height="25" width="75" x="280" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_cs_mcost" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" value="maintenance_cost" vertex="1">
+          <mxGeometry height="25" width="115" x="315" y="335" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_cs_total" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" value="total_cost" vertex="1">
+          <mxGeometry height="25" width="75" x="432.5" y="376" as="geometry" />
+        </mxCell>
+        <mxCell id="entity_vs" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#003366;strokeColor=#001a33;fontStyle=1;fontSize=11;fontColor=#FFFFFF;" value="&lt;b&gt;vehicle_statistics&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;车辆统计&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="155" x="700" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_vs_id" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="id [PK]" vertex="1">
+          <mxGeometry height="25" width="68" x="738.5" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_vs_vid" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="vehicle_id [FK]" vertex="1">
+          <mxGeometry height="25" width="95" x="592.5" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_vs_date" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="statistics_date [UK]" vertex="1">
+          <mxGeometry height="25" width="128" x="530" y="257.5" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_vs_dist" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="total_distance" vertex="1">
+          <mxGeometry height="25" width="100" x="558" y="323" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_vs_mcnt" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="maintenance_count" vertex="1">
+          <mxGeometry height="25" width="118" x="726" y="376" as="geometry" />
+        </mxCell>
+        <mxCell id="entity_ds" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#003366;strokeColor=#001a33;fontStyle=1;fontSize=11;fontColor=#FFFFFF;" value="&lt;b&gt;driver_statistics&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;司机统计&lt;/font&gt;" vertex="1">
+          <mxGeometry height="40" width="150" x="1030" y="248" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_ds_id" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" value="id [PK]" vertex="1">
+          <mxGeometry height="25" width="68" x="1132" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_ds_uid" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" value="user_id [FK]" vertex="1">
+          <mxGeometry height="25" width="85" x="1050" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_ds_date" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" value="statistics_date [UK]" vertex="1">
+          <mxGeometry height="25" width="128" x="902" y="170" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_ds_att" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" value="attendance_days" vertex="1">
+          <mxGeometry height="25" width="112" x="890" y="257.5" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_ds_perf" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" value="performance_score" vertex="1">
+          <mxGeometry height="25" width="118" x="912" y="355" as="geometry" />
+        </mxCell>
+        <mxCell id="entity_trs" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#003366;strokeColor=#001a33;fontStyle=1;fontSize=10;fontColor=#FFFFFF;" value="&lt;b&gt;transport_statistics&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;运输统计&lt;/font&gt;" vertex="1">
+          <mxGeometry height="38" width="160" x="1340" y="248" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_trs_id" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="id [PK]" vertex="1">
+          <mxGeometry height="25" width="68" x="1460" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_trs_date" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="statistics_date [UK]" vertex="1">
+          <mxGeometry height="25" width="128" x="1320" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_trs_cargo" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="total_cargo_weight" vertex="1">
+          <mxGeometry height="25" width="125" x="1220" y="195" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_trs_trips" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="total_trips" vertex="1">
+          <mxGeometry height="25" width="80" x="1230" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_trs_vcnt" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="total_vehicles" vertex="1">
+          <mxGeometry height="25" width="100" x="1370" y="348" as="geometry" />
+        </mxCell>
+        <mxCell id="entity_fs" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#003366;strokeColor=#001a33;fontStyle=1;fontSize=11;fontColor=#FFFFFF;" value="&lt;b&gt;fault_statistics&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;故障统计&lt;/font&gt;" vertex="1">
+          <mxGeometry height="38" width="145" x="700" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_fs_id" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" value="id [PK]" vertex="1">
+          <mxGeometry height="25" width="68" x="834" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_fs_vid" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" value="vehicle_id [FK]" vertex="1">
+          <mxGeometry height="25" width="95" x="631" y="420" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_fs_date" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" value="statistics_date [UK]" vertex="1">
+          <mxGeometry height="25" width="128" x="507.5" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_fs_fcnt" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" value="fault_count" vertex="1">
+          <mxGeometry height="25" width="82" x="656.5" y="596" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_fs_rcost" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;" value="total_repair_cost" vertex="1">
+          <mxGeometry height="25" width="118" x="809" y="596" as="geometry" />
+        </mxCell>
+        <mxCell id="ets_id" edge="1" parent="1" source="entity_ts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_ts_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ets_date" edge="1" parent="1" source="entity_ts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_ts_date">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ets_cnt" edge="1" parent="1" source="entity_ts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_ts_cnt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ets_dist" edge="1" parent="1" source="entity_ts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_ts_dist">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ets_dur" edge="1" parent="1" source="entity_ts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_ts_dur">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs_id" edge="1" parent="1" source="entity_cs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_cs_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs_date" edge="1" parent="1" source="entity_cs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_cs_date">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs_fcost" edge="1" parent="1" source="entity_cs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_cs_fcost">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs_mcost" edge="1" parent="1" source="entity_cs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_cs_mcost">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ecs_total" edge="1" parent="1" source="entity_cs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_cs_total">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="evs_id" edge="1" parent="1" source="entity_vs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_vs_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="evs_vid" edge="1" parent="1" source="entity_vs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_vs_vid">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="evs_date" edge="1" parent="1" source="entity_vs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_vs_date">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="evs_dist" edge="1" parent="1" source="entity_vs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_vs_dist">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="evs_mcnt" edge="1" parent="1" source="entity_vs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_vs_mcnt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eds_id" edge="1" parent="1" source="entity_ds" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_ds_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eds_uid" edge="1" parent="1" source="entity_ds" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_ds_uid">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eds_date" edge="1" parent="1" source="entity_ds" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_ds_date">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eds_att" edge="1" parent="1" source="entity_ds" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_ds_att">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eds_perf" edge="1" parent="1" source="entity_ds" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_ds_perf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="etrs_id" edge="1" parent="1" source="entity_trs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_trs_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="etrs_date" edge="1" parent="1" source="entity_trs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_trs_date">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="etrs_cargo" edge="1" parent="1" source="entity_trs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_trs_cargo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="etrs_trips" edge="1" parent="1" source="entity_trs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_trs_trips">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="etrs_vcnt" edge="1" parent="1" source="entity_trs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_trs_vcnt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="efs_id" edge="1" parent="1" source="entity_fs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_fs_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="efs_vid" edge="1" parent="1" source="entity_fs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_fs_vid">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="efs_date" edge="1" parent="1" source="entity_fs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_fs_date">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="efs_fcnt" edge="1" parent="1" source="entity_fs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_fs_fcnt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="efs_rcost" edge="1" parent="1" source="entity_fs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_fs_rcost">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

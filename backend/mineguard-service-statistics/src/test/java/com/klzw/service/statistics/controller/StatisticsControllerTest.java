@@ -65,7 +65,7 @@ class StatisticsControllerTest {
 
         testCostStatisticsVO = new CostStatisticsVO();
         testCostStatisticsVO.setId(1L);
-        testCostStatisticsVO.setStatisticsDate(LocalDate.now());
+        testCostStatisticsVO.setStatisticsMonth(LocalDate.now());
         testCostStatisticsVO.setFuelCost(new BigDecimal("1000.0"));
         testCostStatisticsVO.setMaintenanceCost(new BigDecimal("500.0"));
         testCostStatisticsVO.setTotalCost(new BigDecimal("4500.0"));
@@ -137,26 +137,6 @@ class StatisticsControllerTest {
                 .andExpect(jsonPath("$.data[0].totalCost").value(4500.0));
 
         verify(statisticsService, times(1)).getCostStatistics(any(StatisticsQueryDTO.class));
-    }
-
-    /**
-     * 测试获取车辆统计
-     */
-    @Test
-    void testGetVehicleStatistics() throws Exception {
-        when(statisticsService.getVehicleStatistics(any(StatisticsQueryDTO.class)))
-                .thenReturn(Collections.singletonList(testVehicleStatisticsVO));
-
-        mockMvc.perform(get("/statistics/vehicle")
-                        .param("vehicleId", "1")
-                        .param("startDate", LocalDate.now().toString())
-                        .param("endDate", LocalDate.now().toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data[0].vehicleId").value(1));
-
-        verify(statisticsService, times(1)).getVehicleStatistics(any(StatisticsQueryDTO.class));
     }
 
     /**

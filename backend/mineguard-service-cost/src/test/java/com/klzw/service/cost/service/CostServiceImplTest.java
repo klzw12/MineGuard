@@ -6,6 +6,7 @@ import com.klzw.common.core.client.TransportClient;
 import com.klzw.common.core.client.TripClient;
 import com.klzw.common.core.client.VehicleClient;
 import com.klzw.common.core.result.Result;
+import com.klzw.service.cost.config.SalaryConfigProperties;
 import com.klzw.service.cost.dto.CostBudgetDTO;
 import com.klzw.service.cost.dto.CostDetailDTO;
 import com.klzw.service.cost.dto.CostQueryDTO;
@@ -73,6 +74,9 @@ public class CostServiceImplTest {
 
     @Mock
     private VehicleClient vehicleClient;
+
+    @Mock
+    private SalaryConfigProperties salaryConfigProperties;
 
     @InjectMocks
     private CostServiceImpl costService;
@@ -302,6 +306,8 @@ public class CostServiceImplTest {
     @Test
     void testAddSalaryConfig() {
         // 模拟依赖方法的返回值
+        when(salaryConfigProperties.getWorkDaysPerMonth()).thenReturn(22);
+        when(salaryConfigProperties.getMinSalary()).thenReturn(new BigDecimal(2500));
         when(salaryConfigMapper.insert(any(SalaryConfig.class))).thenReturn(1);
 
         // 调用被测方法
@@ -320,6 +326,8 @@ public class CostServiceImplTest {
     @Test
     void testUpdateSalaryConfig() {
         // 模拟依赖方法的返回值
+        when(salaryConfigProperties.getWorkDaysPerMonth()).thenReturn(22);
+        when(salaryConfigProperties.getMinSalary()).thenReturn(new BigDecimal(2500));
         when(salaryConfigMapper.selectById(anyLong())).thenReturn(salaryConfig);
         when(salaryConfigMapper.updateById(any(SalaryConfig.class))).thenReturn(1);
 

@@ -64,6 +64,11 @@ public interface TripService extends IService<Trip> {
     TripVO getActiveTrip();
     
     /**
+     * 根据用户ID获取当前进行中的行程
+     */
+    TripVO getCurrentTripByUserId(Long userId);
+    
+    /**
      * 获取行程完整详情（包含AI分析、成本明细）
      */
     TripVO getTripDetail(Long id);

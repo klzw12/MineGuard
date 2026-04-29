@@ -264,7 +264,7 @@
 				keyword: searchKeyword.value || undefined,
 				status: statusFilter.value ?? undefined
 			})
-			userList.value = result.list
+			userList.value = result.list || (result as any).records || []
 			total.value = result.total
 		} catch (e: any) {
 			uni.showToast({

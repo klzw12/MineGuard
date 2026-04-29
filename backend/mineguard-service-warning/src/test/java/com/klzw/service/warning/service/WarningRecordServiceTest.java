@@ -2,11 +2,11 @@ package com.klzw.service.warning.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.klzw.common.core.client.MessageClient;
 import com.klzw.common.core.client.TripClient;
 import com.klzw.common.core.client.UserClient;
 import com.klzw.common.core.client.VehicleClient;
 import com.klzw.common.core.domain.PageRequest;
-import com.klzw.common.core.domain.dto.VehicleInfo;
 import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.result.Result;
 import com.klzw.common.redis.service.RedisCacheService;
@@ -37,6 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -76,6 +77,9 @@ class WarningRecordServiceTest {
 
     @Mock
     private UserClient userClient;
+
+    @Mock
+    private MessageClient messageClient;
 
     private WarningRecord testRecord;
     private WarningRecordDTO testRecordDTO;
@@ -237,9 +241,10 @@ class WarningRecordServiceTest {
         when(redisCacheService.get(anyString())).thenReturn(null);
 
         // Mock车辆查询
-        VehicleInfo vehicleInfo = new VehicleInfo();
-        vehicleInfo.setVehicleNo("京A12345");
-        when(vehicleClient.getById(1L)).thenReturn(Result.success(vehicleInfo));
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 1L);
+        vehicleMap.put("vehicleNo", "京A12345");
+        when(vehicleClient.getById(1L)).thenReturn(Result.success(vehicleMap));
 
         // Mock司机查询
         Result<Object> userResult = Result.success(Map.of("realName", "张三"));

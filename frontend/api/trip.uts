@@ -171,3 +171,7 @@ export function getTripCostDetails(tripId: string): Promise<CostDetailItem[] | n
 export function updateActualCargoWeight(tripId: string, actualCargoWeight: number): Promise<void | null> {
   return http.put<void>(`/trip/${tripId}/actual-cargo-weight`, { actualCargoWeight })
 }
+
+export function getWeeklyOperationStats(): Promise<any[] | null> {
+  return http.get<any[]>('/trip/weekly-operation')
+}

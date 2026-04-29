@@ -32,12 +32,13 @@
 			<view class="content-card">
 				<view class="card-header">
 					<text class="card-title">车辆运营统计</text>
+					<text class="card-subtitle">本周各天有行程的车辆数</text>
 				</view>
 				
 				<view class="chart-placeholder">
 					<view class="bar-chart">
 						<view class="bar-item" v-for="(item, index) in chartData" :key="index">
-							<view class="bar" :style="{ height: item.value + '%' }">
+							<view class="bar" :style="{ height: getBarHeight(item.value) + 'rpx' }">
 								<text class="bar-value">{{ item.value }}</text>
 							</view>
 							<text class="bar-label">{{ item.label }}</text>
@@ -71,6 +72,14 @@
 							</view>
 						</view>
 					</view>
+					
+					<view class="loading-row" v-if="loading">
+						<text class="loading-text">加载中...</text>
+					</view>
+					
+					<view class="empty-row" v-if="!loading && vehicleStats.length === 0">
+						<text class="empty-text">暂无数据</text>
+					</view>
 				</view>
 			</view>
 		</view>
@@ -81,8 +90,10 @@
 	import { ref, onMounted } from 'vue'
 	import AdminSidebar from '@/components/AdminSidebar.uvue'
 	import { vehicleApi, type VehicleVO, type PageResult } from '@/api/vehicle.uts'
+	import { getWeeklyOperationStats } from '@/api/trip.uts'
 	
-	// 统计数据
+	const loading = ref(false)
+	
 	const stats = ref({
 		total: 0,
 		operating: 0,
@@ -110,62 +121,117 @@
 		statusClass: string
 	}>>([])
 	
-	// 加载数据
 	onMounted(async () => {
 		await loadVehicleData()
+		await loadWeeklyOperationStats()
 	})
 	
-	// 加载车辆数据
 	async function loadVehicleData() {
+		loading.value = true
 		try {
 			const result = await vehicleApi.getVehiclePage({ pageNum: 1, pageSize: 100 })
-			let vehicles = []
+			let vehicles: VehicleVO[] = []
 			
-			// 处理不同的响应格式
 			if (result && result.list) {
-				// PageResult 格式
 				vehicles = result.list
 			} else if (Array.isArray(result)) {
-				// 直接数组格式
-				vehicles = result
+				vehicles = result as VehicleVO[]
 			}
 			
 			if (vehicles.length > 0) {
-				// 统计数据
 				stats.value.total = vehicles.length
 				stats.value.operating = vehicles.filter(v => v.status === 1).length
 				stats.value.idle = vehicles.filter(v => v.status === 0).length
 				stats.value.maintenance = vehicles.filter(v => v.status === 2).length
 				stats.value.stopped = vehicles.filter(v => v.status === 3 || v.status === 4).length
 				
-				// 生成车辆状态明细
-				vehicleStats.value = vehicles.map(v => ({
-					plate: v.vehicleNo,
-					days: 30, // 暂时用固定值，实际应该从后端获取
-					mileage: 0, // 需要从行程服务获取
-					fuel: 0, // 需要从加油记录获取
-					status: getStatusText(v.status),
-					statusClass: getStatusClass(v.status)
-				}))
-				
-				// 生成图表数据（按状态统计）
-				updateChartData()
+				await loadVehicleStatistics(vehicles)
 			}
 		} catch (e) {
 			console.error('加载车辆数据失败', e)
+		} finally {
+			loading.value = false
 		}
 	}
 	
-	// 更新图表数据
-	function updateChartData() {
-		// 这里简单模拟，实际应该按日期统计
-		chartData.value = chartData.value.map(item => ({
-			...item,
-			value: Math.floor(Math.random() * 40) + 60 // 临时数据
-		}))
+	async function loadVehicleStatistics(vehicles: VehicleVO[]) {
+		try {
+			const statsResult = await vehicleApi.getAllVehicleStatistics()
+			
+			if (statsResult && Array.isArray(statsResult)) {
+				const statsMap = new Map<number, any>()
+				statsResult.forEach((s: any) => {
+					if (s.vehicleId) {
+						statsMap.set(Number(s.vehicleId), s)
+					}
+				})
+				
+				vehicleStats.value = vehicles.map(v => {
+					const vehicleId = Number(v.id)
+					const stat = statsMap.get(vehicleId)
+					
+					return {
+						plate: v.vehicleNo,
+						days: stat?.operatingDays ?? 0,
+						mileage: stat?.totalMileage ?? 0,
+						fuel: stat?.totalFuel ?? 0,
+						status: getStatusText(v.status),
+						statusClass: getStatusClass(v.status)
+					}
+				})
+			} else {
+				vehicleStats.value = vehicles.map(v => ({
+					plate: v.vehicleNo,
+					days: 0,
+					mileage: 0,
+					fuel: 0,
+					status: getStatusText(v.status),
+					statusClass: getStatusClass(v.status)
+				}))
+			}
+		} catch (e) {
+			console.error('加载车辆统计数据失败', e)
+			vehicleStats.value = vehicles.map(v => ({
+				plate: v.vehicleNo,
+				days: 0,
+				mileage: 0,
+				fuel: 0,
+				status: getStatusText(v.status),
+				statusClass: getStatusClass(v.status)
+			}))
+		}
 	}
 	
-	// 获取状态文本
+	async function loadWeeklyOperationStats() {
+		try {
+			const result = await getWeeklyOperationStats()
+			
+			if (result && Array.isArray(result)) {
+				const dayMap = new Map<string, number>()
+				result.forEach((item: any) => {
+					if (item.label) {
+						dayMap.set(item.label, item.value ?? 0)
+					}
+				})
+				
+				chartData.value = chartData.value.map(item => ({
+					...item,
+					value: dayMap.get(item.label) ?? 0
+				}))
+			}
+		} catch (e) {
+			console.error('加载周运营统计失败', e)
+		}
+	}
+	
+	function getBarHeight(value: number): number {
+		const maxHeight = 250
+		const minHeight = 20
+		if (value <= 0) return minHeight
+		const max = Math.max(...chartData.value.map(d => d.value), 1)
+		return Math.max(minHeight, Math.min(maxHeight, (value / max) * maxHeight))
+	}
+	
 	function getStatusText(status: number): string {
 		const statusMap: Record<number, string> = {
 			0: '空闲',
@@ -177,7 +243,6 @@
 		return statusMap[status] || '未知'
 	}
 	
-	// 获取状态样式
 	function getStatusClass(status: number): string {
 		if (status === 0) return 'idle'
 		if (status === 1) return 'active'
@@ -191,7 +256,7 @@
 	
 	.stats-grid {
 		display: grid;
-		grid-template-columns: repeat(4, 1fr);
+		grid-template-columns: repeat(5, 1fr);
 		gap: 20rpx;
 		margin-bottom: 30rpx;
 	}
@@ -218,27 +283,23 @@
 		margin-bottom: 10rpx;
 	}
 	
-	.stat-trend {
-		font-size: 22rpx;
-		
-		&.positive {
-			color: #34C759;
-		}
-		
-		&.negative {
-			color: #FF3B30;
-		}
-	}
-	
 	.card-header {
 		padding: 25rpx 30rpx;
 		border-bottom: 1rpx solid rgba(255, 255, 255, 0.08);
+		display: flex;
+		flex-direction: column;
 	}
 	
 	.card-title {
 		font-size: 28rpx;
 		font-weight: bold;
 		color: #fff;
+	}
+	
+	.card-subtitle {
+		font-size: 22rpx;
+		color: rgba(255, 255, 255, 0.5);
+		margin-top: 8rpx;
 	}
 	
 	.chart-placeholder {
@@ -267,6 +328,7 @@
 		align-items: flex-start;
 		justify-content: center;
 		padding-top: 10rpx;
+		min-height: 20rpx;
 	}
 	
 	.bar-value {
@@ -304,5 +366,17 @@
 			background-color: rgba(255, 59, 48, 0.2);
 			color: #FF3B30;
 		}
+	}
+	
+	.loading-row,
+	.empty-row {
+		padding: 40rpx;
+		text-align: center;
+	}
+	
+	.loading-text,
+	.empty-text {
+		font-size: 24rpx;
+		color: rgba(255, 255, 255, 0.5);
 	}
 </style>

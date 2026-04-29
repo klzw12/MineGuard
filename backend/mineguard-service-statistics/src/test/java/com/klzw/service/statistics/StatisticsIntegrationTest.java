@@ -99,7 +99,7 @@ class StatisticsIntegrationTest {
 
         // 初始化成本统计数据
         testCostStatistics = new CostStatistics();
-        testCostStatistics.setStatisticsDate(LocalDate.now());
+        testCostStatistics.setStatisticsMonth(LocalDate.now());
         testCostStatistics.setFuelCost(new BigDecimal("1000.0"));
         testCostStatistics.setMaintenanceCost(new BigDecimal("500.0"));
         testCostStatistics.setLaborCost(new BigDecimal("2000.0"));
@@ -215,24 +215,6 @@ class StatisticsIntegrationTest {
         assertNotNull(result);
         assertFalse(result.isEmpty());
         assertTrue(result.get(0).getTotalCost().compareTo(new BigDecimal("4500.0")) == 0);
-    }
-
-    /**
-     * 测试获取车辆统计完整流程
-     */
-    @Test
-    void testGetVehicleStatisticsFlow() {
-        StatisticsQueryDTO queryDTO = new StatisticsQueryDTO();
-        queryDTO.setVehicleId(1L);
-        queryDTO.setStartDate(LocalDate.now());
-        queryDTO.setEndDate(LocalDate.now());
-
-        List<VehicleStatisticsVO> result = statisticsService.getVehicleStatistics(queryDTO);
-
-        assertNotNull(result);
-        assertFalse(result.isEmpty());
-        assertEquals(1L, result.get(0).getVehicleId());
-        assertEquals(5, result.get(0).getTripCount());
     }
 
     /**
@@ -360,33 +342,6 @@ class StatisticsIntegrationTest {
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
-    }
-
-    /**
-     * 测试特定车辆查询
-     */
-    @Test
-    void testSpecificVehicleQuery() {
-        // 插入另一车辆的数据
-        VehicleStatistics anotherVehicle = new VehicleStatistics();
-        anotherVehicle.setVehicleId(2L);
-        anotherVehicle.setStatisticsDate(LocalDate.now());
-        anotherVehicle.setTripCount(3);
-        anotherVehicle.setTotalDistance(new BigDecimal("150.0"));
-        anotherVehicle.setCreateTime(LocalDateTime.now());
-        anotherVehicle.setUpdateTime(LocalDateTime.now());
-        vehicleStatisticsMapper.insert(anotherVehicle);
-
-        StatisticsQueryDTO queryDTO = new StatisticsQueryDTO();
-        queryDTO.setVehicleId(1L);
-        queryDTO.setStartDate(LocalDate.now());
-        queryDTO.setEndDate(LocalDate.now());
-
-        List<VehicleStatisticsVO> result = statisticsService.getVehicleStatistics(queryDTO);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(1L, result.get(0).getVehicleId());
     }
 
     /**

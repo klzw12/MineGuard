@@ -41,6 +41,7 @@ public class WarningTriggerProcessor {
     private static final int FATIGUE_DRIVING_THRESHOLD_MINUTES = 240;
     private static final String FATIGUE_DRIVING_KEY = "vehicle:fatigue:";
     private static final int FATIGUE_DRIVING_EXPIRE_HOURS = 8;
+    private static final double MOVEMENT_THRESHOLD_METERS = 50.0;
 
     public WarningRecord processTrack(WarningTrackDTO track) {
         List<WarningTrackDTO> history = getTrackHistory(track.getTripId());
@@ -79,6 +80,11 @@ public class WarningTriggerProcessor {
     private WarningRecord analyzeTrackAnomaly(WarningTrackDTO track, List<WarningTrackDTO> history) {
         WarningRecord warning = null;
         
+        WarningRecord stayWarning = checkLongStayWarning(track);
+        if (stayWarning != null) {
+            return stayWarning;
+        }
+        
         WarningRecord speedWarning = checkSpeedAbnormal(track);
         if (speedWarning != null) {
             return speedWarning;
@@ -94,7 +100,7 @@ public class WarningTriggerProcessor {
             return theftWarning;
         }
         
-        WarningRecord fatigueWarning = checkFatigueDriving(track);
+        WarningRecord fatigueWarning = checkFatigueDriving(track, history);
         if (fatigueWarning != null) {
             return fatigueWarning;
         }
@@ -108,6 +114,47 @@ public class WarningTriggerProcessor {
         }
         
         return warning;
+    }
+    
+    private WarningRecord checkLongStayWarning(WarningTrackDTO track) {
+        String stayKey = "vehicle:stay:start:" + track.getVehicleId();
+        Double currentSpeed = track.getSpeed() != null ? track.getSpeed().doubleValue() : 0.0;
+        
+        if (currentSpeed <= 0.1) {
+            Long stayStartTime = redisCacheService.get(stayKey);
+            
+            if (stayStartTime == null) {
+                redisCacheService.set(stayKey, System.currentTimeMillis(), 2, TimeUnit.HOURS);
+                log.info("记录停留开始时间：车辆ID={}, 位置=({},{})", 
+                    track.getVehicleId(), track.getLongitude(), track.getLatitude());
+            } else {
+                long stayDuration = (System.currentTimeMillis() - stayStartTime) / 1000 / 60;
+                
+                if (stayDuration >= LONG_STAY_MINUTES) {
+                    String alertKey = "vehicle:stay:alerted:" + track.getVehicleId();
+                    Boolean alerted = redisCacheService.get(alertKey);
+                    
+                    if (alerted == null || !alerted) {
+                        WarningRecord warning = createWarningRecord(track);
+                        warning.setWarningType(WarningTypeEnum.LONG_STAY.getCode());
+                        warning.setWarningLevel(WarningLevelEnum.MEDIUM.getCode());
+                        warning.setWarningContent(String.format("长时间停留预警：已停留%d分钟，请确认是否正常", stayDuration));
+                        log.warn("长时间停留预警：车辆ID={}, 司机ID={}, 停留时长={}分钟", 
+                            track.getVehicleId(), track.getDriverId(), stayDuration);
+                        
+                        redisCacheService.set(alertKey, true, 1, TimeUnit.HOURS);
+                        return warning;
+                    }
+                }
+            }
+        } else {
+            redisCacheService.delete(stayKey);
+            String alertKey = "vehicle:stay:alerted:" + track.getVehicleId();
+            redisCacheService.delete(alertKey);
+            log.debug("车辆移动，清除停留记录：车辆ID={}", track.getVehicleId());
+        }
+        
+        return null;
     }
 
     private WarningRecord checkSpeedAbnormal(WarningTrackDTO track) {
@@ -386,21 +433,37 @@ public class WarningTriggerProcessor {
         redisCacheService.set(heartbeatKey, System.currentTimeMillis(), HEARTBEAT_TIMEOUT_SECONDS + 10, TimeUnit.SECONDS);
     }
     
-    private WarningRecord checkFatigueDriving(WarningTrackDTO track) {
-        if (track.getSpeed() == null || track.getSpeed().doubleValue() <= 0) {
-            clearFatigueDriving(track.getVehicleId());
+    private WarningRecord checkFatigueDriving(WarningTrackDTO track, List<WarningTrackDTO> history) {
+        if (history.size() < 2) {
+            updateDrivingStartTime(track.getVehicleId(), track.getLongitude(), track.getLatitude());
+            return null;
+        }
+        
+        WarningTrackDTO lastTrack = history.get(history.size() - 1);
+        GeoPoint currentPoint = new GeoPoint(track.getLongitude(), track.getLatitude());
+        GeoPoint lastPoint = new GeoPoint(lastTrack.getLongitude(), lastTrack.getLatitude());
+        
+        double distance = GeoUtils.calculateDistance(currentPoint, lastPoint);
+        
+        if (distance < MOVEMENT_THRESHOLD_METERS) {
+            log.debug("车辆未移动，跳过疲劳驾驶检测：车辆ID={}, 移动距离={}米", track.getVehicleId(), distance);
             return null;
         }
         
         Long continuousDriveMinutes = getContinuousDrivingMinutes(track.getVehicleId());
         
         if (continuousDriveMinutes >= FATIGUE_DRIVING_THRESHOLD_MINUTES) {
+            if (hasFatigueDrivingFlag(track.getVehicleId())) {
+                log.debug("疲劳驾驶预警已发送过，跳过：车辆 ID={}", track.getVehicleId());
+                return null;
+            }
+            
             WarningRecord warning = createWarningRecord(track);
             warning.setWarningType(WarningTypeEnum.FATIGUE_DRIVING.getCode());
             warning.setWarningLevel(WarningLevelEnum.MEDIUM.getCode());
             warning.setWarningContent(String.format("疲劳驾驶预警：连续驾驶%d分钟，建议休息", continuousDriveMinutes));
-            log.warn("疲劳驾驶预警：车辆 ID={}, 司机 ID={}, 连续驾驶时长={}分钟", 
-                track.getVehicleId(), track.getDriverId(), continuousDriveMinutes);
+            log.warn("疲劳驾驶预警：车辆 ID={}, 司机 ID={}, 连续驾驶时长={}分钟, 移动距离={}米", 
+                track.getVehicleId(), track.getDriverId(), continuousDriveMinutes, distance);
             
             setFatigueDrivingFlag(track.getVehicleId());
             
@@ -410,6 +473,18 @@ public class WarningTriggerProcessor {
         updateDrivingTime(track.getVehicleId());
         
         return null;
+    }
+    
+    private void updateDrivingStartTime(Long vehicleId, Double longitude, Double latitude) {
+        String key = FATIGUE_DRIVING_KEY + vehicleId;
+        Long startTime = redisCacheService.get(key);
+        
+        if (startTime == null) {
+            redisCacheService.set(key, System.currentTimeMillis(), FATIGUE_DRIVING_EXPIRE_HOURS, TimeUnit.HOURS);
+            String posKey = FATIGUE_DRIVING_KEY + "pos:" + vehicleId;
+            redisCacheService.set(posKey, longitude + "," + latitude, FATIGUE_DRIVING_EXPIRE_HOURS, TimeUnit.HOURS);
+            log.info("开始记录驾驶时间：车辆 ID={}", vehicleId);
+        }
     }
     
     private Long getContinuousDrivingMinutes(Long vehicleId) {

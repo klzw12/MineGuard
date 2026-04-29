@@ -75,6 +75,7 @@ public class WarningServiceImplTest {
     void testProcessEventTrigger() {
         // 模拟依赖方法的返回值
         when(eventTriggerProcessor.processEventTrigger(any(WarningTrackDTO.class), anyString())).thenReturn(warningRecord);
+        when(warningRuleMapper.selectById(anyLong())).thenReturn(warningRule);
 
         // 调用被测方法
         WarningRecord result = warningService.processEventTrigger(warningTrackDTO, "SPEED_ABNORMAL");
@@ -84,7 +85,7 @@ public class WarningServiceImplTest {
         assertEquals(warningRecord, result);
         // 验证依赖方法被调用
         verify(eventTriggerProcessor, times(1)).processEventTrigger(any(WarningTrackDTO.class), anyString());
-        verify(messageClient, times(1)).sendMessageByRole(anyString(), anyString(), anyString(), anyString());
+        verify(messageClient, times(2)).sendMessageByRole(anyString(), anyString(), anyString(), anyString());
         verify(messageClient, times(1)).sendMessage(anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
@@ -92,6 +93,7 @@ public class WarningServiceImplTest {
     void testProcessWarningTrack() {
         // 模拟依赖方法的返回值
         when(warningTriggerProcessor.processTrack(any(WarningTrackDTO.class))).thenReturn(warningRecord);
+        when(warningRuleMapper.selectById(anyLong())).thenReturn(warningRule);
 
         // 调用被测方法
         WarningRecord result = warningService.processWarningTrack(warningTrackDTO);
@@ -101,7 +103,7 @@ public class WarningServiceImplTest {
         assertEquals(warningRecord, result);
         // 验证依赖方法被调用
         verify(warningTriggerProcessor, times(1)).processTrack(any(WarningTrackDTO.class));
-        verify(messageClient, times(1)).sendMessageByRole(anyString(), anyString(), anyString(), anyString());
+        verify(messageClient, times(2)).sendMessageByRole(anyString(), anyString(), anyString(), anyString());
         verify(messageClient, times(1)).sendMessage(anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
@@ -164,7 +166,8 @@ public class WarningServiceImplTest {
 
         // 验证依赖方法被调用
         verify(warningRuleMapper, times(1)).selectById(anyLong());
-        verify(messageClient, times(1)).sendMessageByRole(anyString(), anyString(), anyString(), anyString());
+        // 当rule为null时，会调用pushByLevel，然后根据warningType调用pushByType
+        // SPEED_ABNORMAL类型只会调用sendMessage，不会调用sendMessageByRole
         verify(messageClient, times(1)).sendMessage(anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
@@ -178,7 +181,8 @@ public class WarningServiceImplTest {
 
         // 验证依赖方法被调用
         verify(warningRuleMapper, never()).selectById(anyLong());
-        verify(messageClient, times(1)).sendMessageByRole(anyString(), anyString(), anyString(), anyString());
+        // 当ruleId为null时，会调用pushByLevel，然后根据warningType调用pushByType
+        // SPEED_ABNORMAL类型只会调用sendMessage，不会调用sendMessageByRole
         verify(messageClient, times(1)).sendMessage(anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
@@ -192,7 +196,9 @@ public class WarningServiceImplTest {
 
         // 验证依赖方法被调用
         verify(warningRuleMapper, times(1)).selectById(anyLong());
-        verify(messageClient, times(2)).sendMessageByRole(anyString(), anyString(), anyString(), anyString());
+        // 当warningType为null时，会调用pushByLevel -> pushByLevelOnly
+        // MEDIUM级别会调用sendMessageByRole一次（ROLE_REPAIRMAN）和sendMessage一次
+        verify(messageClient, times(1)).sendMessageByRole(anyString(), anyString(), anyString(), anyString());
         verify(messageClient, times(1)).sendMessage(anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
@@ -235,7 +241,7 @@ public class WarningServiceImplTest {
         warningService.pushWarningNotification(warningRecord);
 
         // 验证依赖方法被调用
-        verify(messageClient, times(1)).sendMessageByRole("ROLE_REPAIRMAN", anyString(), anyString(), anyString());
+        verify(messageClient, times(1)).sendMessageByRole(eq("ROLE_REPAIRMAN"), anyString(), anyString(), anyString());
         verify(messageClient, times(1)).sendMessage(anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
@@ -276,7 +282,7 @@ public class WarningServiceImplTest {
         warningService.pushWarningNotification(warningRecord);
 
         // 验证依赖方法被调用
-        verify(messageClient, times(1)).sendMessageByRole("ROLE_REPAIRMAN", anyString(), anyString(), anyString());
+        verify(messageClient, times(1)).sendMessageByRole(eq("ROLE_REPAIRMAN"), anyString(), anyString(), anyString());
         verify(messageClient, times(2)).sendMessage(anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 
@@ -306,7 +312,7 @@ public class WarningServiceImplTest {
         warningService.pushWarningNotification(warningRecord);
 
         // 验证依赖方法被调用
-        verify(messageClient, times(1)).sendMessageByRole("ROLE_REPAIRMAN", anyString(), anyString(), anyString());
+        verify(messageClient, times(1)).sendMessageByRole(eq("ROLE_REPAIRMAN"), anyString(), anyString(), anyString());
         verify(messageClient, times(1)).sendMessage(anyLong(), anyString(), anyString(), anyString(), anyString());
     }
 

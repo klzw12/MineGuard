@@ -5,13 +5,10 @@
 		</view>
 		<view class="echarts-wrapper" :style="{ height: canvasHeight + 'rpx' }">
 			<canvas 
-				canvas-id="echartsCanvas"
-				id="echartsCanvas"
+				:id="canvasId"
+				type="2d"
 				class="echarts-canvas"
-				:style="{ width: canvasWidth + 'rpx', height: canvasHeight + 'rpx' }"
-				@touchstart="touchStart"
-				@touchmove.passive="touchMove"
-				@touchend="touchEnd"
+				:style="{ width: getPxWidth() + 'px', height: getPxHeight() + 'px' }"
 			></canvas>
 		</view>
 		<view class="echarts-legend" v-if="showLegend && legendData.length > 0">
@@ -29,7 +26,7 @@
 </template>
 
 <script setup lang="uts">
-	import { ref, onMounted, watch, nextTick, computed } from 'vue'
+	import { getCurrentInstance, nextTick, ref, watch, onMounted, computed, PropType } from 'vue'
 
 	const props = defineProps<{
 		title?: string
@@ -37,11 +34,21 @@
 		width?: number
 		height?: number
 		showLegend?: boolean
+		canvasId?: string
 	}>()
 
+	const instance = getCurrentInstance()?.proxy
 	const canvasWidth = ref(props.width || 750)
 	const canvasHeight = ref(props.height || 500)
 	const legendData = ref<{ name: string, color: string, value: number, visible: boolean }[]>([])
+	
+	const rpxToPx = (rpx: number): number => {
+		const systemInfo = uni.getSystemInfoSync()
+		return rpx * systemInfo.windowWidth / 750
+	}
+	
+	const getPxWidth = (): number => rpxToPx(canvasWidth.value)
+	const getPxHeight = (): number => rpxToPx(canvasHeight.value)
 	const tooltipVisible = ref(false)
 	const tooltipX = ref(0)
 	const tooltipY = ref(0)
@@ -53,10 +60,12 @@
 	let touchStartY: number = 0
 
 	const initChart = () => {
-		nextTick(() => {
-			buildLegendData()
-			drawChart()
-		})
+		setTimeout(() => {
+			nextTick(() => {
+				buildLegendData()
+				drawChart()
+			})
+		}, 100)
 	}
 
 	const buildLegendData = () => {
@@ -76,10 +85,12 @@
 					})
 				})
 			} else {
+				const data = s.data || []
+				const total = data.reduce((sum: number, v: number) => sum + (v || 0), 0)
 				newLegendData.push({
 					name: s.name || `系列${index}`,
 					color: colors[index % colors.length],
-					value: 0,
+					value: total,
 					visible: true
 				})
 			}
@@ -89,34 +100,163 @@
 	}
 
 	const drawChart = () => {
-		const ctx = uni.createCanvasContext('echartsCanvas')
+		console.log('drawChart called, canvasId:', props.canvasId, 'option:', props.option)
 		
-		if (!props.option) return
+		if (!props.option) {
+			console.log('drawChart: no option, return')
+			return
+		}
 
 		const chartType = props.option.series?.[0]?.type || 'bar'
+		console.log('drawChart chartType:', chartType)
 		
-		ctx.clearRect(0, 0, canvasWidth.value, canvasHeight.value)
-		
-		if (chartType === 'pie') {
-			drawPieChart(ctx)
-		} else if (chartType === 'line') {
-			drawLineChart(ctx)
-		} else if (chartType === 'bar') {
-			drawBarChart(ctx)
+		uni.createCanvasContextAsync({
+			id: props.canvasId || 'echartsCanvas',
+			componentInstance: instance,
+			success: (res: any) => {
+				console.log('createCanvasContextAsync success:', res)
+				const ctx = res.context as CanvasRenderingContext2D
+				const width = getPxWidth()
+				const height = getPxHeight()
+				console.log('drawChart ctx:', ctx, 'width:', width, 'height:', height)
+				
+				ctx.fillStyle = '#1a1a2e'
+				ctx.fillRect(0, 0, width, height)
+				
+				if (chartType === 'pie') {
+					drawPieChart2D(ctx, width, height)
+				} else if (chartType === 'line') {
+					drawLineChart2D(ctx, width, height)
+				} else if (chartType === 'bar') {
+					drawBarChart2D(ctx, width, height)
+				}
+				
+				console.log('drawChart done')
+			},
+			fail: (err: any) => {
+				console.error('createCanvasContextAsync fail:', err)
+			}
+		})
+	}
+	
+	const drawBarChart2D = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+		const xAxis = props.option.xAxis?.data || []
+		const series = props.option.series || []
+		console.log('drawBarChart2D:', 'canvasId:', props.canvasId, 'xAxis.data=', xAxis.length, 'series=', series.length, 'width:', width, 'height:', height)
+		if (series.length > 0) {
+			console.log('series[0].data=', series[0].data)
 		}
 		
-		ctx.draw()
+		if (xAxis.length === 0) {
+			console.log('drawBarChart2D: no xAxis data, skip')
+			return
+		}
+		
+		const padding = 60
+		const chartWidth = width - padding * 2
+		const chartHeight = height - padding * 2 - 40
+
+		ctx.strokeStyle = '#3a3a5c'
+		ctx.lineWidth = 1
+		ctx.beginPath()
+		ctx.moveTo(padding, padding)
+		ctx.lineTo(padding, height - padding - 40)
+		ctx.lineTo(width - padding, height - padding - 40)
+		ctx.stroke()
+
+		const colors = ['#007AFF', '#34C759', '#FF9500']
+		const visibleSeries = series.filter((_: any, i: number) => legendData.value[i]?.visible !== false)
+		
+		if (visibleSeries.length === 0) return
+
+		let allValues: number[] = []
+		visibleSeries.forEach((s: any) => {
+			if (s.data) {
+				allValues = allValues.concat(s.data.filter((v: number) => v !== null && v !== undefined && v !== 0))
+			}
+		})
+		
+		if (allValues.length === 0) {
+			console.log('drawBarChart2D: all values are 0, skip drawing bars')
+			return
+		}
+		
+		const maxValue = Math.max(...allValues.map((v: number) => Math.abs(v))) || 1
+		console.log('drawBarChart2D maxValue:', maxValue, 'allValues:', allValues)
+
+		const gridLines = 5
+		ctx.font = '16px sans-serif'
+		ctx.fillStyle = 'rgba(255,255,255,0.5)'
+		ctx.textAlign = 'right'
+		for (let i = 0; i <= gridLines; i++) {
+			const y = padding + (chartHeight / gridLines) * i
+			const value = maxValue - (maxValue / gridLines) * i
+			ctx.fillText(formatValue(value), padding - 10, y + 5)
+			
+			ctx.beginPath()
+			ctx.strokeStyle = 'rgba(255,255,255,0.1)'
+			ctx.moveTo(padding, y)
+			ctx.lineTo(width - padding, y)
+			ctx.stroke()
+		}
+
+		const barWidth = chartWidth / xAxis.length / (visibleSeries.length + 1)
+		console.log('drawBarChart2D barWidth:', barWidth, 'chartWidth:', chartWidth, 'xAxis.length:', xAxis.length)
+
+		visibleSeries.forEach((s: any, seriesIndex: number) => {
+			const data = s.data || []
+			if (data.length === 0) return
+
+			const originalIndex = series.indexOf(s)
+
+			data.forEach((value: number, index: number) => {
+				if (value === null || value === undefined) return
+				if (value === 0) return
+				
+				const groupWidth = chartWidth / xAxis.length
+				const x = padding + index * groupWidth + (originalIndex + 0.5) * barWidth
+				const barHeight = (value / maxValue) * chartHeight
+				const y = height - padding - 40 - barHeight
+
+				console.log('drawBar2D index:', index, 'value:', value, 'x:', x, 'y:', y, 'barWidth:', barWidth, 'barHeight:', barHeight)
+
+				ctx.fillStyle = colors[originalIndex % colors.length]
+				ctx.fillRect(x, y, barWidth - 5, barHeight)
+			})
+		})
+
+		ctx.font = '16px sans-serif'
+		ctx.fillStyle = '#ffffff'
+		ctx.textAlign = 'center'
+		
+		const labelInterval = Math.ceil(xAxis.length / 7)
+		xAxis.forEach((label: string, index: number) => {
+			if (index % labelInterval === 0 || index === xAxis.length - 1) {
+				const x = padding + (index + 0.5) * (chartWidth / xAxis.length)
+				ctx.fillText(label, x, height - padding - 20)
+			}
+		})
+	}
+	
+	const drawPieChart2D = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+		console.log('drawPieChart2D called')
+	}
+	
+	const drawLineChart2D = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+		console.log('drawLineChart2D called')
 	}
 
 	const drawPieChart = (ctx: any) => {
 		const series = props.option.series?.[0]
 		const data = series?.data || []
 		const visibleData = data.filter((_: any, i: number) => legendData.value[i]?.visible !== false)
+		const width = getPxWidth()
+		const height = getPxHeight()
 		
 		if (visibleData.length === 0) return
 
-		const centerX = canvasWidth.value / 2
-		const centerY = canvasHeight.value / 2 - 30
+		const centerX = width / 2
+		const centerY = height / 2 - 30
 		const radius = Math.min(centerX, centerY) - 80
 
 		let total = 0
@@ -157,22 +297,24 @@
 		ctx.setFontSize(24)
 		ctx.setFillStyle('#ffffff')
 		ctx.setTextAlign('center')
-		ctx.fillText(`总计: ${formatValue(total)}`, centerX, canvasHeight.value - 20)
+		ctx.fillText(`总计: ${formatValue(total)}`, centerX, height - 20)
 	}
 
 	const drawLineChart = (ctx: any) => {
 		const xAxis = props.option.xAxis?.data || []
 		const series = props.option.series || []
+		const width = getPxWidth()
+		const height = getPxHeight()
 		const padding = 60
-		const chartWidth = canvasWidth.value - padding * 2
-		const chartHeight = canvasHeight.value - padding * 2 - 40
+		const chartWidth = width - padding * 2
+		const chartHeight = height - padding * 2 - 40
 
 		ctx.setStrokeStyle('#3a3a5c')
 		ctx.setLineWidth(1)
 		ctx.beginPath()
 		ctx.moveTo(padding, padding)
-		ctx.lineTo(padding, canvasHeight.value - padding - 40)
-		ctx.lineTo(canvasWidth.value - padding, canvasHeight.value - padding - 40)
+		ctx.lineTo(padding, height - padding - 40)
+		ctx.lineTo(width - padding, height - padding - 40)
 		ctx.stroke()
 
 		const colors = ['#007AFF', '#34C759', '#FF9500']
@@ -186,7 +328,9 @@
 		
 		if (allValues.length === 0) return
 		
-		const maxValue = Math.max(...allValues.map((v: number) => Math.abs(v)))
+		const maxValue = Math.max(...allValues.map((v: number) => Math.abs(v))) || 1
+
+		console.log('drawLineChart maxValue:', maxValue, 'allValues:', allValues)
 		const minValue = Math.min(...allValues.map((v: number) => Math.abs(v)))
 		const range = maxValue - minValue || 1
 
@@ -202,7 +346,7 @@
 			ctx.beginPath()
 			ctx.setStrokeStyle('rgba(255,255,255,0.1)')
 			ctx.moveTo(padding, y)
-			ctx.lineTo(canvasWidth.value - padding, y)
+			ctx.lineTo(width - padding, y)
 			ctx.stroke()
 		}
 
@@ -252,7 +396,7 @@
 		xAxis.forEach((label: string, index: number) => {
 			if (index % labelInterval === 0 || index === xAxis.length - 1) {
 				const x = padding + (index / Math.max(xAxis.length - 1, 1)) * chartWidth
-				ctx.fillText(label, x, canvasHeight.value - padding - 20)
+				ctx.fillText(label, x, height - padding - 20)
 			}
 		})
 	}
@@ -260,16 +404,28 @@
 	const drawBarChart = (ctx: any) => {
 		const xAxis = props.option.xAxis?.data || []
 		const series = props.option.series || []
+		const width = getPxWidth()
+		const height = getPxHeight()
+		console.log('drawBarChart:', 'canvasId:', props.canvasId, 'xAxis.data=', xAxis.length, 'series=', series.length, 'width:', width, 'height:', height)
+		if (series.length > 0) {
+			console.log('series[0].data=', series[0].data)
+		}
+		
+		if (xAxis.length === 0) {
+			console.log('drawBarChart: no xAxis data, skip')
+			return
+		}
+		
 		const padding = 60
-		const chartWidth = canvasWidth.value - padding * 2
-		const chartHeight = canvasHeight.value - padding * 2 - 40
+		const chartWidth = width - padding * 2
+		const chartHeight = height - padding * 2 - 40
 
 		ctx.setStrokeStyle('#3a3a5c')
 		ctx.setLineWidth(1)
 		ctx.beginPath()
 		ctx.moveTo(padding, padding)
-		ctx.lineTo(padding, canvasHeight.value - padding - 40)
-		ctx.lineTo(canvasWidth.value - padding, canvasHeight.value - padding - 40)
+		ctx.lineTo(padding, height - padding - 40)
+		ctx.lineTo(width - padding, height - padding - 40)
 		ctx.stroke()
 
 		const colors = ['#007AFF', '#34C759', '#FF9500']
@@ -280,13 +436,17 @@
 		let allValues: number[] = []
 		visibleSeries.forEach((s: any) => {
 			if (s.data) {
-				allValues = allValues.concat(s.data.filter((v: number) => v !== null && v !== undefined))
+				allValues = allValues.concat(s.data.filter((v: number) => v !== null && v !== undefined && v !== 0))
 			}
 		})
 		
-		if (allValues.length === 0) return
+		if (allValues.length === 0) {
+			console.log('drawBarChart: all values are 0, skip drawing bars')
+			return
+		}
 		
-		const maxValue = Math.max(...allValues.map((v: number) => Math.abs(v)))
+		const maxValue = Math.max(...allValues.map((v: number) => Math.abs(v))) || 1
+		console.log('drawBarChart maxValue:', maxValue, 'allValues:', allValues)
 
 		const gridLines = 5
 		ctx.setFontSize(16)
@@ -300,11 +460,12 @@
 			ctx.beginPath()
 			ctx.setStrokeStyle('rgba(255,255,255,0.1)')
 			ctx.moveTo(padding, y)
-			ctx.lineTo(canvasWidth.value - padding, y)
+			ctx.lineTo(width - padding, y)
 			ctx.stroke()
 		}
 
 		const barWidth = chartWidth / xAxis.length / (visibleSeries.length + 1)
+		console.log('drawBarChart barWidth:', barWidth, 'chartWidth:', chartWidth, 'xAxis.length:', xAxis.length)
 
 		visibleSeries.forEach((s: any, seriesIndex: number) => {
 			const data = s.data || []
@@ -314,11 +475,14 @@
 
 			data.forEach((value: number, index: number) => {
 				if (value === null || value === undefined) return
+				if (value === 0) return
 				
 				const groupWidth = chartWidth / xAxis.length
 				const x = padding + index * groupWidth + (originalIndex + 0.5) * barWidth
 				const barHeight = (value / maxValue) * chartHeight
-				const y = canvasHeight.value - padding - 40 - barHeight
+				const y = height - padding - 40 - barHeight
+
+				console.log('drawBar index:', index, 'value:', value, 'x:', x, 'y:', y, 'barWidth:', barWidth, 'barHeight:', barHeight)
 
 				ctx.beginPath()
 				ctx.rect(x, y, barWidth - 5, barHeight)
@@ -335,7 +499,7 @@
 		xAxis.forEach((label: string, index: number) => {
 			if (index % labelInterval === 0 || index === xAxis.length - 1) {
 				const x = padding + (index + 0.5) * (chartWidth / xAxis.length)
-				ctx.fillText(label, x, canvasHeight.value - padding - 20)
+				ctx.fillText(label, x, height - padding - 20)
 			}
 		})
 	}
@@ -385,8 +549,10 @@
 	}
 
 	const handlePieTap = (x: number, y: number) => {
-		const centerX = canvasWidth.value / 2
-		const centerY = canvasHeight.value / 2 - 30
+		const width = getPxWidth()
+		const height = getPxHeight()
+		const centerX = width / 2
+		const centerY = height / 2 - 30
 		const radius = Math.min(centerX, centerY) - 80
 		
 		const dx = x - centerX
@@ -417,11 +583,12 @@
 	}
 
 	const handleBarTap = (x: number, y: number) => {
+		const width = getPxWidth()
 		const padding = 60
-		const chartWidth = canvasWidth.value - padding * 2
+		const chartWidth = width - padding * 2
 		const xAxis = props.option.xAxis?.data || []
 		
-		if (x >= padding && x <= canvasWidth.value - padding) {
+		if (x >= padding && x <= width - padding) {
 			const barIndex = Math.floor((x - padding) / (chartWidth / xAxis.length))
 			if (barIndex >= 0 && barIndex < xAxis.length) {
 				const series = props.option.series?.[0]
@@ -481,7 +648,7 @@
 			width: 100%;
 
 			.echarts-canvas {
-				width: 100%;
+				display: block;
 			}
 		}
 

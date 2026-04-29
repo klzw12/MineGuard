@@ -231,7 +231,7 @@ async function loadUsers() {
 		const response = await pageUsers(params)
 		if (response) {
 			// 过滤掉没有realname的用户
-			let users = (response.list || []).filter(user => user.realName)
+			let users = (response.list || (response as any).records || []).filter(user => user.realName)
 			
 			// 检查每个用户是否设置了起薪
 			const usersWithSalaryConfig = await Promise.all(

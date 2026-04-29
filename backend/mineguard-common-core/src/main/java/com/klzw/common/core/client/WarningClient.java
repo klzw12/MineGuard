@@ -47,4 +47,9 @@ public interface WarningClient {
             @PathVariable("vehicleId") Long vehicleId,
             @RequestParam(value = "status", required = false) Integer status,
             @RequestParam(value = "handleResult", required = false) String handleResult);
+    
+    @PostExchange("/warning/route/set")
+    Result<Void> setPlannedRoute(
+            @RequestParam("vehicleId") Long vehicleId,
+            @RequestBody List<Map<String, Double>> routePoints);
 }

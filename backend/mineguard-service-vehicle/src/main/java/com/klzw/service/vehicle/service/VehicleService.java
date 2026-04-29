@@ -228,4 +228,13 @@ public interface VehicleService extends IService<Vehicle> {
      */
     java.util.List<java.util.Map<String, Object>> getAllVehicleStatistics();
 
+    /**
+     * 更新车辆状态及位置
+     * @param vehicleId 车辆ID
+     * @param status 状态
+     * @param latitude 纬度
+     * @param longitude 经度
+     */
+    void updateStatusWithLocation(Long vehicleId, Integer status, Double latitude, Double longitude);
+
 }  

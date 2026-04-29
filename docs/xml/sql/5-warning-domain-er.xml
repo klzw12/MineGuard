@@ -1,0 +1,133 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36 Edg/147.0.0.0" version="29.3.4">
+  <diagram name="预警域E-R图" id="warning-domain-er">
+    <mxGraphModel dx="1282" dy="468" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=20;fontColor=#333333;" value="预警域 E-R 图" vertex="1">
+          <mxGeometry height="40" width="200" x="680" y="15" as="geometry" />
+        </mxCell>
+        <mxCell id="entity_rule" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#003366;strokeColor=#001a33;fontStyle=1;fontSize=13;fontColor=#FFFFFF;" value="&lt;b&gt;warning_rule&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;预警规则&lt;/font&gt;" vertex="1">
+          <mxGeometry height="45" width="140" x="320" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wr_id" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="id [PK]" vertex="1">
+          <mxGeometry height="26" width="72" x="350" y="149" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wr_name" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="rule_name" vertex="1">
+          <mxGeometry height="25" width="82" x="240" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wr_code" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="rule_code" vertex="1">
+          <mxGeometry height="25" width="78" x="148" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wr_wtype" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="warning_type" vertex="1">
+          <mxGeometry height="25" width="92" x="148" y="299" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wr_wlevel" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="warning_level" vertex="1">
+          <mxGeometry height="25" width="100" x="220" y="375" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wr_thold" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="threshold_value" vertex="1">
+          <mxGeometry height="25" width="105" x="333.5" y="375" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wr_sts" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" value="status" vertex="1">
+          <mxGeometry height="25" width="62" x="448" y="375" as="geometry" />
+        </mxCell>
+        <mxCell id="entity_record" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#003366;strokeColor=#001a33;fontStyle=1;fontSize=13;fontColor=#FFFFFF;" value="&lt;b&gt;warning_record&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px&quot;&gt;预警记录&lt;/font&gt;" vertex="1">
+          <mxGeometry height="45" width="155" x="780" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wrec_id" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="id [PK]" vertex="1">
+          <mxGeometry height="26" width="72" x="960" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wrec_no" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="warning_no" vertex="1">
+          <mxGeometry height="25" width="88" x="812" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wrec_rid" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="rule_id [FK]" vertex="1">
+          <mxGeometry height="25" width="85" x="815" y="385" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wrec_wtype" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="warning_type" vertex="1">
+          <mxGeometry height="25" width="92" x="720" y="385" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wrec_wlevel" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="warning_level" vertex="1">
+          <mxGeometry height="25" width="100" x="598" y="200" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wrec_vid" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="vehicle_id [FK]" vertex="1">
+          <mxGeometry height="25" width="100" x="946" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wrec_did" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="driver_id [FK]" vertex="1">
+          <mxGeometry height="25" width="95" x="1020" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wrec_time" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="warning_time" vertex="1">
+          <mxGeometry height="25" width="95" x="570" y="324" as="geometry" />
+        </mxCell>
+        <mxCell id="attr_wrec_sts" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;" value="status" vertex="1">
+          <mxGeometry height="25" width="62" x="650" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_trigger" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ff99cc;strokeColor=#ff6699;fontSize=11;fontStyle=1;" value="触发" vertex="1">
+          <mxGeometry height="44" width="56" x="530" y="261" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_tr_1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=11;" value="1" vertex="1">
+          <mxGeometry height="22" width="18" x="492" y="248" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_tr_n" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=1;fontSize=11;" value="n" vertex="1">
+          <mxGeometry height="22" width="18" x="598" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="ewr_id" edge="1" parent="1" source="entity_rule" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wr_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewr_name" edge="1" parent="1" source="entity_rule" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wr_name">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewr_code" edge="1" parent="1" source="entity_rule" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wr_code">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewr_wtype" edge="1" parent="1" source="entity_rule" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wr_wtype">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewr_wlevel" edge="1" parent="1" source="entity_rule" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wr_wlevel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewr_thold" edge="1" parent="1" source="entity_rule" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wr_thold">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewr_sts" edge="1" parent="1" source="entity_rule" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wr_sts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewrec_id" edge="1" parent="1" source="entity_record" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wrec_id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewrec_no" edge="1" parent="1" source="entity_record" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wrec_no">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewrec_rid" edge="1" parent="1" source="entity_record" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wrec_rid">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewrec_wtype" edge="1" parent="1" source="entity_record" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wrec_wtype">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewrec_wlevel" edge="1" parent="1" source="entity_record" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wrec_wlevel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewrec_vid" edge="1" parent="1" source="entity_record" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wrec_vid">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewrec_did" edge="1" parent="1" source="entity_record" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wrec_did">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewrec_time" edge="1" parent="1" source="entity_record" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wrec_time">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ewrec_sts" edge="1" parent="1" source="entity_record" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#666666;strokeWidth=1;" target="attr_wrec_sts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="etr_r" edge="1" parent="1" source="rel_trigger" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=1.5;" target="entity_rule">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="etr_rec" edge="1" parent="1" source="rel_trigger" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#333333;strokeWidth=1.5;" target="entity_record">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="yRlquvm1UZ-lhnYab9CR-1" edge="1" parent="1" source="attr_wrec_vid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" target="attr_wrec_vid">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

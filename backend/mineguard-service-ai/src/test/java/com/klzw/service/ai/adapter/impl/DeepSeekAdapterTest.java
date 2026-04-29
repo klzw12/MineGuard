@@ -111,7 +111,12 @@ class DeepSeekAdapterTest {
         Map<String, Object> result = deepSeekAdapter.parseResponse(response);
 
         assertNotNull(result);
-        assertEquals("AI分析结果", result.get("content"));
+        // content 现在是一个 Map 对象
+        assertNotNull(result.get("content"));
+        assertTrue(result.get("content") instanceof Map);
+        Map<String, Object> contentMap = (Map<String, Object>) result.get("content");
+        assertEquals("AI分析结果", contentMap.get("response"));
+        assertEquals("AI分析结果", contentMap.get("text"));
         assertEquals("success", result.get("status"));
     }
 
@@ -123,7 +128,12 @@ class DeepSeekAdapterTest {
         Map<String, Object> result = deepSeekAdapter.parseResponse(response);
 
         assertNotNull(result);
-        assertNull(result.get("content"));
+        // content 现在是一个 Map 对象，当 content 为 null 时返回默认消息
+        assertNotNull(result.get("content"));
+        assertTrue(result.get("content") instanceof Map);
+        Map<String, Object> contentMap = (Map<String, Object>) result.get("content");
+        assertEquals("抱歉，未能获取到有效响应。", contentMap.get("response"));
+        assertEquals("抱歉，未能获取到有效响应。", contentMap.get("text"));
         assertEquals("success", result.get("status"));
     }
 

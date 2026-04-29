@@ -172,6 +172,13 @@ public class TripController {
         TripVO activeTrip = tripService.getActiveTrip();
         return Result.success(activeTrip);
     }
+    
+    @GetMapping("/current")
+    @Operation(summary = "根据用户ID获取当前进行中的行程")
+    public Result<TripVO> getCurrentTrip(@RequestParam("userId") Long userId) {
+        TripVO currentTrip = tripService.getCurrentTripByUserId(userId);
+        return Result.success(currentTrip);
+    }
 
     @GetMapping("/{id}/detail")
     @Operation(summary = "获取行程完整详情（包含AI分析、成本明细）")

@@ -7,7 +7,6 @@ import com.klzw.common.core.client.UserClient;
 import com.klzw.common.core.client.VehicleClient;
 import com.klzw.common.core.domain.PageRequest;
 import com.klzw.common.core.domain.dto.DriverInfo;
-import com.klzw.common.core.domain.dto.VehicleInfo;
 import com.klzw.common.core.result.PageResult;
 import com.klzw.common.core.result.Result;
 import com.klzw.common.mq.producer.IMessageProducer;
@@ -34,7 +33,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -218,10 +219,10 @@ class DispatchPlanServiceTest {
         when(dispatchPlanMapper.selectById(1L)).thenReturn(testPlan);
 
         // Mock车辆查询
-        VehicleInfo vehicleInfo = new VehicleInfo();
-        vehicleInfo.setId(1L);
-        vehicleInfo.setVehicleNo("京A12345");
-        Result<VehicleInfo> vehicleResult = Result.success(vehicleInfo);
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 1L);
+        vehicleMap.put("vehicleNo", "京A12345");
+        Result<Map<String, Object>> vehicleResult = Result.success(vehicleMap);
         when(vehicleClient.getById(1L)).thenReturn(vehicleResult);
 
         // Mock司机查询
@@ -352,12 +353,12 @@ class DispatchPlanServiceTest {
         when(driverClient.getAvailableDrivers()).thenReturn(driverResult);
 
         // Mock获取可用车辆
-        VehicleInfo vehicle = new VehicleInfo();
-        vehicle.setId(1L);
-        vehicle.setVehicleNo("京A12345");
-        vehicle.setStatus(0);
+        Map<String, Object> vehicleMap = new HashMap<>();
+        vehicleMap.put("id", 1L);
+        vehicleMap.put("vehicleNo", "京A12345");
+        vehicleMap.put("status", 0);
 
-        Result<List<VehicleInfo>> vehicleResult = Result.success(Collections.singletonList(vehicle));
+        Result<List<Map<String, Object>>> vehicleResult = Result.success(Collections.singletonList(vehicleMap));
         when(vehicleClient.getAvailableVehicles()).thenReturn(vehicleResult);
 
         // Mock分配但未接单的司机/车辆查询

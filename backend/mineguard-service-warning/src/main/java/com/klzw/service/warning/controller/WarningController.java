@@ -39,8 +39,14 @@ public class WarningController {
 
     @GetMapping("/record/page")
     @Operation(summary = "分页查询预警记录")
-    public Result<PageResult<WarningRecordVO>> pageRecord(PageRequest pageRequest) {
-        return Result.success(warningRecordService.page(pageRequest));
+    public Result<PageResult<WarningRecordVO>> pageRecord(
+            PageRequest pageRequest,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Integer warningLevel,
+            @RequestParam(required = false) Integer warningType,
+            @RequestParam(required = false) Long vehicleId,
+            @RequestParam(required = false) Long driverId) {
+        return Result.success(warningRecordService.pageWithFilters(pageRequest, status, warningLevel, warningType, vehicleId, driverId));
     }
 
     @GetMapping("/record/{id}")
@@ -260,6 +266,18 @@ public class WarningController {
     @Operation(summary = "检查行程是否活跃")
     public Result<Boolean> isTripActive(@PathVariable Long tripId) {
         return Result.success(tripWarningManager.isTripActive(tripId));
+    }
+    
+    @PostMapping("/route/set")
+    @Operation(summary = "设置车辆规划路线")
+    public Result<Void> setPlannedRoute(
+            @RequestParam Long vehicleId,
+            @RequestBody List<Map<String, Double>> routePoints) {
+        List<com.klzw.common.map.domain.GeoPoint> route = routePoints.stream()
+            .map(p -> new com.klzw.common.map.domain.GeoPoint(p.get("longitude"), p.get("latitude")))
+            .collect(java.util.stream.Collectors.toList());
+        warningTriggerProcessor.setPlannedRoute(vehicleId, route);
+        return Result.success();
     }
 
     public static class EventTriggerRequest {

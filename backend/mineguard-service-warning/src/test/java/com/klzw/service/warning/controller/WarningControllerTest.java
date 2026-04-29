@@ -116,7 +116,7 @@ class WarningControllerTest {
     @Test
     void testPageWarningRecords() throws Exception {
         PageResult<WarningRecordVO> pageResult = PageResult.of(1L, 1, 10, Collections.singletonList(testRecordVO));
-        when(warningRecordService.page(any(PageRequest.class))).thenReturn(pageResult);
+        when(warningRecordService.pageWithFilters(any(PageRequest.class), any(), any(), any(), any(), any())).thenReturn(pageResult);
 
         mockMvc.perform(get("/warning/record/page")
                         .param("page", "1")

@@ -280,6 +280,15 @@ public class RedisCacheService {
             throw new RedisException(RedisResultCode.CACHE_OPERATION_FAILED, "列表范围获取失败: " + key, e);
         }
     }
+    
+    public Long lSize(String key) {
+        try {
+            return redisTemplate.opsForList().size(key);
+        } catch (Exception e) {
+            log.error("Redis列表大小获取失败: key={}", key);
+            throw new RedisException(RedisResultCode.CACHE_OPERATION_FAILED, "列表大小获取失败: " + key, e);
+        }
+    }
 
     /**
      * 根据模式获取所有匹配的键

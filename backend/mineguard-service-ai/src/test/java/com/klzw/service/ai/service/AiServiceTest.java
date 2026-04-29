@@ -248,6 +248,12 @@ class AiServiceTest {
     void testAnalyzeDrivingBehavior_DefaultResultWhenAllFail() {
         Map<String, Object> trackData = new HashMap<>();
         trackData.put("speed", 80.0);
+        // 添加预警记录以计算分数
+        List<Map<String, Object>> warningRecords = new ArrayList<>();
+        Map<String, Object> warning = new HashMap<>();
+        warning.put("warningLevel", 2); // 中危预警，扣10分
+        warningRecords.add(warning);
+        trackData.put("warningRecords", warningRecords);
 
         when(pythonClient.cleanDrivingData(trackData)).thenThrow(new RuntimeException("Python服务不可用"));
         when(aiAdapterMap.get("deepseekAdapter")).thenReturn(deepSeekAdapter);
@@ -258,7 +264,8 @@ class AiServiceTest {
         assertNotNull(result);
         assertEquals("success", result.get("status"));
         assertNotNull(result.get("analysis"));
-        assertEquals(85, ((Map<?, ?>) result.get("analysis")).get("driving_score"));
+        // 基础分100分，中危预警扣10分，所以是90分
+        assertEquals(90, ((Map<?, ?>) result.get("analysis")).get("driving_score"));
     }
 
     @Test

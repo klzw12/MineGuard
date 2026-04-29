@@ -170,9 +170,9 @@ public class VehicleServiceImplTest {
     void uploadVehiclePhoto() throws IOException {
         when(vehicleMapper.selectById(1L)).thenReturn(vehicle);
         when(multipartFile.getOriginalFilename()).thenReturn("vehicle.jpg");
-        when(multipartFile.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
+        when(multipartFile.getBytes()).thenReturn(new byte[0]);
         when(multipartFile.getContentType()).thenReturn("image/jpeg");
-        when(storageService.upload(any(InputStream.class), anyString(), anyString())).thenReturn("photo-url");
+        when(storageService.upload(any(ByteArrayInputStream.class), anyString(), anyString())).thenReturn("photo-url");
         when(vehicleMapper.updateById(any(Vehicle.class))).thenReturn(1);
 
         String result = vehicleService.uploadVehiclePhoto(1L, multipartFile);
@@ -302,6 +302,8 @@ public class VehicleServiceImplTest {
         Map<String, String> parseResult = new HashMap<>();
         parseResult.put("plateNumber", "京A12345");
 
+        when(multipartFile.getBytes()).thenReturn(new byte[0]);
+        when(multipartFile.isEmpty()).thenReturn(false);
         when(ocrService.recognizeVehicleLicense(any(byte[].class))).thenReturn("ocr-result");
         when(ocrService.parseVehicleLicenseFront("ocr-result")).thenReturn(parseResult);
         when(vehicleMapper.insert(any(Vehicle.class))).thenAnswer(invocation -> {
@@ -309,10 +311,9 @@ public class VehicleServiceImplTest {
             savedVehicle.setId(1L);
             return 1;
         });
+        when(vehicleStatusService.save(any(VehicleStatus.class))).thenReturn(true);
         when(vehicleMapper.selectById(1L)).thenReturn(vehicle);
-        when(multipartFile.getBytes()).thenReturn(new byte[0]);
         when(multipartFile.getOriginalFilename()).thenReturn("photo.jpg");
-        when(multipartFile.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
         when(multipartFile.getContentType()).thenReturn("image/jpeg");
         when(storageService.upload(any(InputStream.class), anyString(), anyString())).thenReturn("photo-url");
         when(vehicleMapper.updateById(any(Vehicle.class))).thenReturn(1);
