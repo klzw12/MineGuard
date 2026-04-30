@@ -161,6 +161,7 @@ public class RedisConstants {
 | 952 | `INVALID_KEY` | 无效的键 |
 | 953 | `INVALID_VALUE` | 无效的值 |
 | 954 | `OPERATION_NOT_SUPPORTED` | 不支持的操作 |
+| 955 | `PARAMETER_ERROR` | 参数错误 |
 
 ---
 
@@ -348,6 +349,35 @@ User user = redisCacheService.get("user:1001", User.class);
 // 删除缓存
 redisCacheService.delete("user:1001");
 ```
+
+### 11.3 RedisCacheService 方法列表
+
+| 方法 | 说明 | 示例 |
+| ---- | ---- | ---- |
+| **基础操作** | | |
+| `set(key, value, expire, unit)` | 设置缓存 | `set("key", obj, 3600, SECONDS)` |
+| `get(key, clazz)` | 获取缓存 | `get("key", User.class)` |
+| `delete(key)` | 删除缓存 | `delete("key")` |
+| `exists(key)` | 判断Key是否存在 | `exists("key")` |
+| **批量操作** | | |
+| `setBatch(map, expire, unit)` | 批量设置 | `setBatch(map, 3600, SECONDS)` |
+| `getBatch(keys, clazz)` | 批量获取 | `getBatch(keys, User.class)` |
+| `deleteBatch(keys)` | 批量删除 | `deleteBatch(keys)` |
+| `deleteByPattern(pattern)` | 按模式删除 | `deleteByPattern("user:*")` |
+| `existsBatch(keys)` | 批量判断存在 | `existsBatch(keys)` |
+| **过期时间** | | |
+| `expire(key, expire, unit)` | 设置过期时间 | `expire("key", 3600, SECONDS)` |
+| `expireBatch(keys, expire, unit)` | 批量设置过期 | `expireBatch(keys, 3600, SECONDS)` |
+| `getExpire(key)` | 获取剩余过期时间 | `getExpire("key")` |
+| **计数器** | | |
+| `increment(key, delta)` | 自增 | `increment("counter", 1)` |
+| `decrement(key, delta)` | 自减 | `decrement("counter", 1)` |
+| **List操作** | | |
+| `lPush(key, value)` | 左侧插入 | `lPush("list", item)` |
+| `lRange(key, start, end)` | 获取范围 | `lRange("list", 0, -1)` |
+| `lSize(key)` | 获取列表长度 | `lSize("list")` |
+| **其他** | | |
+| `keys(pattern)` | 按模式查找Key | `keys("user:*")` |
 
 ---
 

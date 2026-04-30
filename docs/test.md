@@ -11,7 +11,7 @@
 #### 工具类测试
 
 | 测试类 | 测试方法 | 测试内容 | 测试结果 |
-|--------|----------|----------|----------|
+| ----- | ------- | -------- | ------- |
 | JsonUtilsTest | testToJson | 测试对象转JSON字符串 | ✅ 通过 |
 | JsonUtilsTest | testFromJson | 测试JSON字符串转对象 | ✅ 通过 |
 | JsonUtilsTest | testFromJsonWithTypeReference | 测试JSON转复杂对象（TypeReference） | ✅ 通过 |
@@ -38,7 +38,7 @@
 #### 结果类测试
 
 | 测试类 | 测试方法 | 测试内容 | 测试结果 |
-|--------|----------|----------|----------|
+| ------ | ------- | ------- | ------- |
 | ResultTest | testSuccess | 测试成功结果构建 | ✅ 通过 |
 | ResultTest | testError | 测试错误结果构建 | ✅ 通过 |
 | ResultTest | testGetData | 测试获取数据 | ✅ 通过 |
@@ -49,7 +49,7 @@
 #### 异常处理测试
 
 | 测试类 | 测试方法 | 测试内容 | 测试结果 |
-|--------|----------|----------|----------|
+| ----- | ------- | -------- | ------- |
 | BusinessExceptionHandlerStrategyTest | testHandle | 测试业务异常处理 | ✅ 通过 |
 | SystemExceptionHandlerStrategyTest | testHandle | 测试系统异常处理 | ✅ 通过 |
 | DefaultExceptionHandlerStrategyTest | testHandleRuntimeException | 测试运行时异常处理 | ✅ 通过 |
@@ -59,7 +59,7 @@
 #### 领域对象测试
 
 | 测试类 | 测试方法 | 测试内容 | 测试结果 |
-|--------|----------|----------|----------|
+| ----- | ------- | ------- | ------- |
 | PageRequestTest | testSetPage | 测试设置页码 | ✅ 通过 |
 | PageRequestTest | testSetSize | 测试设置每页大小 | ✅ 通过 |
 | PageRequestTest | testGetOffset | 测试计算偏移量 | ✅ 通过 |
@@ -71,7 +71,7 @@
 #### JWT工具类测试
 
 | 测试类 | 测试方法 | 测试内容 | 测试结果 |
-|--------|----------|----------|----------|
+| ----- | ------- | ------ | ----- |
 | JwtUtilsTest | testGenerateToken | 测试生成JWT令牌 | ✅ 通过 |
 | JwtUtilsTest | testParseToken | 测试解析JWT令牌 | ✅ 通过 |
 | JwtUtilsTest | testValidateToken | 测试验证JWT令牌 | ✅ 通过 |
@@ -80,7 +80,7 @@
 #### 密码工具类测试
 
 | 测试类 | 测试方法 | 测试内容 | 测试结果 |
-|--------|----------|----------|----------|
+| --- | --- | --- | --- |
 | PasswordUtilsTest | testEncode | 测试密码加密 | ✅ 通过 |
 | PasswordUtilsTest | testMatches | 测试密码匹配 | ✅ 通过 |
 

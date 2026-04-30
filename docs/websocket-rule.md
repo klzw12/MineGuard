@@ -853,17 +853,17 @@ WebSocket模块错误码范围：**1500-1518**
 
 | 配置项 | 默认值 | 说明 |
 | ------ | ------ | ---- |
-| `websocket.enabled` | true | 是否启用WebSocket |
-| `websocket.heartbeat-interval` | 30000 | 心跳间隔（毫秒） |
-| `websocket.heartbeat-timeout` | 60000 | 心跳超时（毫秒） |
-| `websocket.max-connections` | 10000 | 最大连接数 |
-| `websocket.max-topics-per-user` | 50 | 每用户最大订阅主题数 |
-| `websocket.max-messages-per-minute` | 100 | 每分钟最大消息数 |
-| `websocket.reconnect-max-retries` | 5 | 最大重连次数 |
-| `websocket.offline-message-expire-days` | 7 | 离线消息过期天数 |
-| `websocket.use-encryption` | false | 是否启用消息加密 |
-| `websocket.enable-message-persistence` | false | 是否启用消息持久化 |
-| `websocket.allowed-origins` | [] | 允许的跨域源 |
+| `mineguard.websocket.enabled` | true | 是否启用WebSocket |
+| `mineguard.websocket.heartbeat-interval` | 30000 | 心跳间隔（毫秒） |
+| `mineguard.websocket.heartbeat-timeout` | 60000 | 心跳超时（毫秒） |
+| `mineguard.websocket.max-connections` | 10000 | 最大连接数 |
+| `mineguard.websocket.max-topics-per-user` | 50 | 每用户最大订阅主题数 |
+| `mineguard.websocket.max-messages-per-minute` | 100 | 每分钟最大消息数 |
+| `mineguard.websocket.reconnect-max-retries` | 5 | 最大重连次数 |
+| `mineguard.websocket.offline-message-expire-days` | 7 | 离线消息过期天数 |
+| `mineguard.websocket.use-encryption` | false | 是否启用消息加密 |
+| `mineguard.websocket.enable-message-persistence` | false | 是否启用消息持久化 |
+| `mineguard.websocket.allowed-origins` | [] | 允许的跨域源 |
 
 ### 13.4 业务推送服务使用
 
@@ -949,7 +949,7 @@ public void broadcastSystemNotice(String title, String content, String type) {
 
 ### 13.6 智能推送服务架构
 
-```
+```txt
 业务服务 → SmartMessagePushService → 用户在线？→ WebSocket实时推送
                                       → 用户离线？→ MongoDB存储 + MQ异步推送
 ```

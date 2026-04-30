@@ -25,7 +25,7 @@
 ## 2. 预留范围
 
 | 范围 | 用途 | 状态 |
-|------|------|------|
+| ---- | --- | ---- |
 | 700-799 | Web层扩展 | 已使用 701-727 |
 | 800-899 | 认证模块 | 已使用 800-863 |
 | 900-999 | Redis模块 | 已使用 900-955 |
@@ -50,7 +50,7 @@
 ### 3.1 Core 核心模块 (ResultCodeEnum)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 200 | SUCCESS | 操作成功 |
 | 400 | FAIL | 操作失败 |
 | 401 | UNAUTHORIZED | 未授权 |
@@ -67,7 +67,7 @@
 ### 3.2 Web 模块 (WebResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 701 | PARAM_MISSING | 参数缺失 |
 | 702 | PARAM_TYPE_ERROR | 参数类型错误 |
 | 703 | PARAM_VALUE_ERROR | 参数值错误 |
@@ -90,7 +90,7 @@
 ### 3.3 Auth 认证模块 (AuthResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 800 | AUTH_ERROR | 认证操作失败 |
 | 801 | PARAMETER_ERROR | 参数错误 |
 | 802 | TOKEN_EXPIRED | Token已过期 |
@@ -133,7 +133,7 @@
 ### 3.4 Redis 模块 (RedisResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 900 | REDIS_ERROR | Redis操作失败 |
 | 901 | CACHE_MISS | 缓存未命中 |
 | 902 | CACHE_OPERATION_FAILED | 缓存操作失败 |
@@ -167,7 +167,7 @@
 ### 3.5 Dispatch 调度模块 (DispatchResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 1000 | DISPATCH_FAILED | 调度失败 |
 | 1001 | PARAMETER_ERROR | 参数错误 |
 | 1002 | NO_AVAILABLE_DRIVER | 无可用司机 |
@@ -191,7 +191,7 @@
 ### 3.6 Database 数据库模块 (DatabaseResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 1100 | DATABASE_ERROR | 数据库操作失败 |
 | 1101 | DATABASE_CONNECTION_ERROR | 数据库连接失败 |
 | 1102 | CONNECTION_TIMEOUT | 数据库连接超时 |
@@ -233,7 +233,7 @@
 ### 3.7 MQ 消息队列模块 (MqResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 1200 | MQ_ERROR | 消息队列操作失败 |
 | 1201 | MQ_CONNECTION_ERROR | 消息队列连接失败 |
 | 1202 | MQ_TIMEOUT_ERROR | 消息队列操作超时 |
@@ -251,7 +251,7 @@
 ### 3.8 File 文件存储模块 (FileResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 1300 | STORAGE_CONNECTION_FAILED | 存储连接失败 |
 | 1301 | STORAGE_TIMEOUT | 存储操作超时 |
 | 1302 | STORAGE_DATA_ERROR | 存储数据错误 |
@@ -277,7 +277,7 @@
 ### 3.9 MongoDB 模块 (MongoDbResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 1400 | MONGODB_ERROR | MongoDB操作失败 |
 | 1401 | CONNECTION_ERROR | MongoDB连接失败 |
 | 1402 | CONNECTION_TIMEOUT | MongoDB连接超时 |
@@ -322,7 +322,7 @@
 ### 3.10 WebSocket 模块 (WebSocketResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 1500 | CONNECTION_FAILED | WebSocket连接失败 |
 | 1501 | CONNECTION_TIMEOUT | WebSocket连接超时 |
 | 1502 | CONNECTION_CLOSED | WebSocket连接已关闭 |
@@ -347,7 +347,7 @@
 ### 3.11 Vehicle 车辆模块 (VehicleResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 2001 | VEHICLE_NOT_FOUND | 车辆不存在 |
 | 2002 | VEHICLE_NO_EXISTS | 车牌号已存在 |
 | 2003 | VEHICLE_STATUS_NOT_ALLOWED | 车辆状态不允许该操作 |
@@ -362,7 +362,7 @@
 ### 3.12 User 用户模块 (UserResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 2100 | USER_ERROR | 用户操作失败 |
 | 2101 | USER_NOT_FOUND | 用户不存在 |
 | 2102 | USERNAME_EXISTS | 用户名已存在 |
@@ -394,7 +394,7 @@
 ### 3.13 Warning 预警模块 (WarningResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 2200 | WARNING_RULE_NOT_FOUND | 预警规则不存在 |
 | 2201 | WARNING_RULE_CODE_EXISTS | 规则编码已存在 |
 | 2202 | WARNING_RULE_DISABLED | 预警规则已禁用 |
@@ -407,7 +407,7 @@
 ### 3.14 Trip 行程模块 (TripResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 2300 | TRIP_NOT_FOUND | 行程不存在 |
 | 2301 | TRIP_ALREADY_STARTED | 行程已开始 |
 | 2302 | TRIP_ALREADY_ENDED | 行程已结束 |
@@ -425,7 +425,7 @@
 ### 3.15 Statistics 统计模块 (StatisticsResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 2400 | STATISTICS_DATA_NOT_FOUND | 统计数据不存在 |
 | 2410 | REPORT_NOT_FOUND | 报表不存在 |
 | 2411 | REPORT_GENERATE_FAILED | 报表生成失败 |
@@ -434,7 +434,7 @@
 ### 3.16 Cost 成本模块 (CostResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 2500 | COST_RECORD_NOT_FOUND | 成本记录不存在 |
 | 2510 | BUDGET_NOT_FOUND | 预算不存在 |
 | 2511 | BUDGET_EXCEEDED | 预算已超支 |
@@ -444,7 +444,7 @@
 ### 3.17 AI 模块 (AiResultCode)
 
 | 错误码 | 常量名 | 说明 |
-|--------|--------|------|
+| --- | --- | --- |
 | 2600 | AI_MODEL_NOT_FOUND | AI模型不存在 |
 | 2601 | AI_MODEL_DISABLED | AI模型已禁用 |
 | 2610 | AI_ANALYSIS_FAILED | AI分析失败 |
@@ -457,7 +457,7 @@
 ## 4. 变更记录
 
 | 日期 | 变更内容 |
-|------|---------|
+| --- | --- |
 | 2026-03-03 | 创建错误码分配规范文档 |
 | 2026-03-07 | 将文件模块错误码从 4001-4018 调整为 1200-1218 |
 | 2026-03-07 | 统一错误码常量命名风格，单码对应单错误 |

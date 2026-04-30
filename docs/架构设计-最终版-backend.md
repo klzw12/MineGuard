@@ -4,8 +4,8 @@
 
 ### 1.1 核心技术栈
 
-- **语言**：Java 21（以 `backend/pom.xml` 的 `java.version` 为准）
-- **框架**：Spring Boot 4.0.3（以 `backend/pom.xml` 为准）
+- **语言**：Java 24（以 `backend/pom.xml` 的 `java.version` 为准）
+- **框架**：Spring Boot 3.5.10（以 `backend/pom.xml` 为准）
 - **微服务框架**：Spring Cloud Alibaba
 - **关系型数据库**：MySQL 8.0
 - **文档型数据库**：MongoDB 6.0
@@ -13,7 +13,6 @@
 - **消息队列**：RabbitMQ
 - **实时通讯**：WebSocket
 - **AI框架**：Spring AI
-- **IoT协议**：MQTT、CoAP
 - **对象存储**：阿里云OSS
 - **OCR服务**：百度OCR API
 - **地图服务**：高德地图API
@@ -58,46 +57,42 @@
 ### 2.2 服务拆分
 
 | 服务名称 | 服务说明 | 端口 | 主要功能 |
-| ------- | ------- | ---- | ------- |
-| user-service | 用户服务 | 8001 | 用户管理、认证授权 |
-| vehicle-service | 车辆服务 | 8002 | 车辆管理、状态监控 |
-| trip-service | 行程服务 | 8003 | 行程记录、路线规划 |
-| warning-service | 预警服务 | 8004 | 预警管理、事件处理 |
-| statistics-service | 统计服务 | 8005 | 数据分析、报表生成 |
-| cost-service | 成本服务 | 8006 | 成本核算、费用管理 |
-| ai-service | AI分析服务 | 8007 | 预测分析、智能推荐、自然语言处理 |
-| iot-service | IoT服务 | 8008 | 设备管理、数据采集、实时监控、设备控制 |
-| file-service | 文件服务 | 8009 | 文件上传、存储管理、OCR识别 |
+| --- | --- | --- | --- |
+| user-service | 用户服务 | 8081 | 用户管理、认证授权、司机管理 |
+| trip-service | 行程服务 | 8084 | 行程记录、路线规划、轨迹追踪 |
+| dispatch-service | 调度服务 | - | 任务调度、资源分配 |
+| warning-service | 预警服务 | - | 预警管理、事件处理 |
+| statistics-service | 统计服务 | - | 数据分析、报表生成 |
+| cost-service | 成本服务 | - | 成本核算、费用管理 |
+| ai-service | AI分析服务 | - | 预测分析、智能推荐 |
+| python-service | Python服务 | - | Python算法服务 |
+| gateway-service | 网关服务 | - | 请求路由、安全控制 |
 
 ### 2.3 公共模块拆分
 
 | 模块名称 | 模块说明 | 主要依赖 | 职责描述 |
-| ------- | ------- | ------- | ------- |
-| mineguard-common-core | 核心工具模块 | 无 | 统一异常、统一响应、工具类、常量定义、枚举类、配置类、领域类 |
+| --- | --- | --- | --- |
+| mineguard-common-core | 核心工具模块 | 无 | 统一异常、统一响应、工具类、常量定义、枚举类、Client接口 |
 | mineguard-common-web | Web配置模块 | mineguard-common-core | 统一拦截器、跨域配置、日志切面、参数校验 |
 | mineguard-common-database | 数据库模块 | mineguard-common-core | MyBatis-Plus配置、数据源配置、分页插件、多数据源支持 |
 | mineguard-common-redis | Redis模块 | mineguard-common-core | RedisTemplate配置、缓存序列化、分布式锁、限流器 |
 | mineguard-common-mq | 消息队列模块 | mineguard-common-core | RabbitMQ配置、消息生产者/消费者模板、事务消息 |
-| mineguard-common-auth | 认证授权模块 | mineguard-common-core | JWT工具、权限注解、用户上下文、RBAC工具 |
-| mineguard-common-log | 日志模块 | mineguard-common-core | 日志切面、异步日志、日志脱敏、审计日志 |
+| mineguard-common-auth | 认证授权模块 | mineguard-common-core, mineguard-common-redis | JWT工具、权限注解、用户上下文、RBAC工具 |
 | mineguard-common-mongodb | MongoDB模块 | mineguard-common-core | MongoTemplate配置、地理空间查询、聚合查询、时序数据支持 |
-| mineguard-common-websocket | WebSocket模块 | mineguard-common-core | WebSocket连接管理、消息推送、消息订阅/发布、在线用户管理 |
+| mineguard-common-websocket | WebSocket模块 | mineguard-common-core, mineguard-common-mongodb | WebSocket连接管理、消息推送、消息订阅/发布、在线用户管理 |
 | mineguard-common-file | 文件存储模块 | mineguard-common-core | 阿里云OSS配置、文件上传下载、OCR识别工具 |
 | mineguard-common-map | 地图服务模块 | mineguard-common-core | 高德地图API集成、地理编码、路径规划、地理围栏、位置搜索 |
 
 **模块依赖关系**：
 
 ```tree
-mineguard-common-core (基础层)
+mineguard-common-core (基础层，包含所有Client接口)
     ↑
     ├── mineguard-common-web
     ├── mineguard-common-database
     ├── mineguard-common-redis
     ├── mineguard-common-mq
     ├── mineguard-common-auth
-    │   └── mineguard-common-redis
-    ├── mineguard-common-log
-    │   ├── mineguard-common-database
     │   └── mineguard-common-redis
     ├── mineguard-common-mongodb
     ├── mineguard-common-websocket
@@ -683,9 +678,10 @@ db.message_history.createIndex({ "timestamp": 1 }, { expireAfterSeconds: 2592000
 
 #### 5. 服务调用
 
-- **组件**：OpenFeign
-- **配置**：服务接口定义
+- **组件**：Spring 6 HTTP Exchange Client
+- **配置**：服务接口定义在 `mineguard-common-core` 的 `client` 包中
 - **功能**：声明式服务调用、负载均衡
+- **Client接口**：UserClient, VehicleClient, TripClient, DispatchClient, WarningClient, CostClient, AiClient, StatisticsClient, DriverClient, MessageClient, TaskClient, TransportClient, PythonClient, GaodeMapClient
 
 #### 6. 熔断降级
 
@@ -1112,7 +1108,8 @@ db.message_history.createIndex({ "timestamp": 1 }, { expireAfterSeconds: 2592000
 ## 12. 文档变更记录
 
 | 日期 | 变更内容 | 变更人 |
-|------|---------|--------|
+| --- | --- | --- |
 | 2026-03-03 | 创建架构设计文档 | - |
 | 2026-03-07 | 更新技术栈，移除 Elasticsearch，Java 版本改为 21 | - |
 | 2026-03-07 | 添加技术栈选型说明章节，说明不使用 ES 的决策依据 | - |
+| 2026-04-30 | 更新版本信息（Java 24, Spring Boot 3.5.10），更新服务模块列表，修正服务间调用方式为HTTP Exchange Client | - |
