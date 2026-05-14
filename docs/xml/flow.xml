@@ -1,0 +1,383 @@
+<mxfile host="app.diagrams.net" modified="2026-05-12T00:00:00.000Z" agent="draw.io" version="22.0.0">
+  <diagram name="MineGuard功能架构" id="mineguard-function-tree">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- 根节点 -->
+        <mxCell id="root" value="MineGuard&lt;br&gt;矿山车辆运输管理系统&lt;br&gt;功能架构" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a237e;strokeColor=#0d1556;fontColor=#ffffff;fontSize=14;fontStyle=1;arcSize=20;" vertex="1" parent="1">
+          <mxGeometry x="620" y="30" width="240" height="70" as="geometry" />
+        </mxCell>
+        
+        <!-- 第1层：9个服务模块 -->
+        <!-- 用户服务 -->
+        <mxCell id="svc1" value="用户服务&lt;br&gt;user-service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1565c0;strokeColor=#0d47a1;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-root-svc1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1a237e;strokeWidth=2;" edge="1" parent="1" source="root" target="svc1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 车辆服务 -->
+        <mxCell id="svc2" value="车辆服务&lt;br&gt;vehicle-service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1565c0;strokeColor=#0d47a1;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="210" y="160" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-root-svc2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1a237e;strokeWidth=2;" edge="1" parent="1" source="root" target="svc2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 行程服务 -->
+        <mxCell id="svc3" value="行程服务&lt;br&gt;trip-service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1565c0;strokeColor=#0d47a1;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="380" y="160" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-root-svc3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1a237e;strokeWidth=2;" edge="1" parent="1" source="root" target="svc3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 预警服务 -->
+        <mxCell id="svc4" value="预警服务&lt;br&gt;warning-service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1565c0;strokeColor=#0d47a1;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="550" y="160" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-root-svc4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1a237e;strokeWidth=2;" edge="1" parent="1" source="root" target="svc4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 调度服务 -->
+        <mxCell id="svc5" value="调度服务&lt;br&gt;dispatch-service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c62828;strokeColor=#b71c1c;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="720" y="160" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-root-svc5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#c62828;strokeWidth=2;" edge="1" parent="1" source="root" target="svc5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 统计服务 -->
+        <mxCell id="svc6" value="统计服务&lt;br&gt;statistics-service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1565c0;strokeColor=#0d47a1;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="890" y="160" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-root-svc6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1a237e;strokeWidth=2;" edge="1" parent="1" source="root" target="svc6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 成本服务 -->
+        <mxCell id="svc7" value="成本服务&lt;br&gt;cost-service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1565c0;strokeColor=#0d47a1;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="160" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-root-svc7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1a237e;strokeWidth=2;" edge="1" parent="1" source="root" target="svc7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Python代理服务 -->
+        <mxCell id="svc8" value="Python代理服务&lt;br&gt;python-service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2e7d32;strokeColor=#1b5e20;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="160" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-root-svc8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2e7d32;strokeWidth=2;" edge="1" parent="1" source="root" target="svc8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- AI服务 -->
+        <mxCell id="svc9" value="AI服务&lt;br&gt;ai-service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e65100;strokeColor=#bf360c;fontColor=#ffffff;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1410" y="160" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-root-svc9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#e65100;strokeWidth=2;" edge="1" parent="1" source="root" target="svc9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 第2层：用户服务子节点 -->
+        <mxCell id="s1-1" value="用户注册登录" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="20" y="260" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc1-s11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc1" target="s1-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s1-2" value="认证授权" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="20" y="320" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc1-s12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc1" target="s1-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s1-3" value="个人信息管理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="20" y="380" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc1-s13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc1" target="s1-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s1-4" value="动态消息通知" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="20" y="440" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc1-s14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc1" target="s1-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 车辆服务子节点 -->
+        <mxCell id="s2-1" value="车辆信息管理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="195" y="260" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc2-s21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc2" target="s2-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s2-2" value="车辆状态监控" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="195" y="320" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc2-s22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc2" target="s2-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s2-3" value="保养记录管理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="195" y="380" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc2-s23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc2" target="s2-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s2-4" value="保险管理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="195" y="440" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc2-s24" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc2" target="s2-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 行程服务子节点 -->
+        <mxCell id="s3-1" value="行程执行跟踪" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="365" y="260" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc3-s31" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc3" target="s3-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s3-2" value="路线规划" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="365" y="320" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc3-s32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc3" target="s3-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s3-3" value="轨迹回放" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="365" y="380" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc3-s33" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc3" target="s3-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s3-4" value="里程统计" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="365" y="440" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc3-s34" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc3" target="s3-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 预警服务子节点 -->
+        <mxCell id="s4-1" value="预警规则配置" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="535" y="260" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc4-s41" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc4" target="s4-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s4-2" value="异常检测" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="535" y="320" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc4-s42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc4" target="s4-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s4-3" value="预警消息生成" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="535" y="380" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc4-s43" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc4" target="s4-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s4-4" value="预警推送处理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="535" y="440" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc4-s44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc4" target="s4-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 调度服务子节点 -->
+        <mxCell id="s5-1" value="调度计划管理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontColor=#b71c1c;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="705" y="260" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc5-s51" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#c62828;" edge="1" parent="1" source="svc5" target="s5-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s5-2" value="智能调度规划" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontColor=#b71c1c;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="705" y="320" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc5-s52" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#c62828;" edge="1" parent="1" source="svc5" target="s5-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s5-3" value="调度任务管理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontColor=#b71c1c;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="705" y="380" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc5-s53" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#c62828;" edge="1" parent="1" source="svc5" target="s5-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s5-4" value="调度规则管理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffebee;strokeColor=#c62828;fontColor=#b71c1c;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="705" y="440" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc5-s54" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#c62828;" edge="1" parent="1" source="svc5" target="s5-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 统计服务子节点 -->
+        <mxCell id="s6-1" value="车辆运营统计" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="875" y="260" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc6-s61" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc6" target="s6-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s6-2" value="司机绩效统计" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="875" y="320" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc6-s62" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc6" target="s6-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s6-3" value="运输量统计" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="875" y="380" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc6-s63" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc6" target="s6-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s6-4" value="报表生成" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="875" y="440" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc6-s64" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc6" target="s6-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 成本服务子节点 -->
+        <mxCell id="s7-1" value="油耗管理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1045" y="260" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc7-s71" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc7" target="s7-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s7-2" value="空载率分析" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1045" y="320" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc7-s72" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc7" target="s7-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s7-3" value="成本核算" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1045" y="380" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc7-s73" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc7" target="s7-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s7-4" value="效益分析" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;fontColor=#0d47a1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1045" y="440" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc7-s74" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#1565c0;" edge="1" parent="1" source="svc7" target="s7-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Python服务子节点 -->
+        <mxCell id="s8-1" value="协议转换" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontColor=#1b5e20;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="260" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc8-s81" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2e7d32;" edge="1" parent="1" source="svc8" target="s8-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s8-2" value="服务代理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontColor=#1b5e20;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="320" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc8-s82" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2e7d32;" edge="1" parent="1" source="svc8" target="s8-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s8-3" value="数据序列化" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontColor=#1b5e20;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="380" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc8-s83" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2e7d32;" edge="1" parent="1" source="svc8" target="s8-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s8-4" value="错误处理" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#2e7d32;fontColor=#1b5e20;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="440" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc8-s84" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2e7d32;" edge="1" parent="1" source="svc8" target="s8-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- AI服务子节点 -->
+        <mxCell id="s9-1" value="数据分析" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;fontColor=#bf360c;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1395" y="260" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc9-s91" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#e65100;" edge="1" parent="1" source="svc9" target="s9-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s9-2" value="智能优化建议" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;fontColor=#bf360c;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1395" y="320" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc9-s92" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#e65100;" edge="1" parent="1" source="svc9" target="s9-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s9-3" value="报表智能分析" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;fontColor=#bf360c;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1395" y="380" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc9-s93" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#e65100;" edge="1" parent="1" source="svc9" target="s9-3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s9-4" value="预警智能研判" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#e65100;fontColor=#bf360c;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1395" y="440" width="95" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-svc9-s94" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#e65100;" edge="1" parent="1" source="svc9" target="s9-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- 颜色图例 -->
+        <mxCell id="legend-title" value="图例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="530" width="60" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1565c0;strokeColor=#0d47a1;" vertex="1" parent="1">
+          <mxGeometry x="110" y="530" width="80" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="legend1-text" value="核心业务服务" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="195" y="530" width="80" height="24" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c62828;strokeColor=#b71c1c;" vertex="1" parent="1">
+          <mxGeometry x="280" y="530" width="80" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="legend2-text" value="调度服务（核心）" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="365" y="530" width="100" height="24" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2e7d32;strokeColor=#1b5e20;" vertex="1" parent="1">
+          <mxGeometry x="470" y="530" width="80" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="legend3-text" value="异构语言服务" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="555" y="530" width="80" height="24" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e65100;strokeColor=#bf360c;" vertex="1" parent="1">
+          <mxGeometry x="640" y="530" width="80" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="legend4-text" value="AI智能服务" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="725" y="530" width="80" height="24" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

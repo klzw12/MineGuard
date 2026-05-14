@@ -936,11 +936,24 @@ public class CostServiceImpl implements CostService {
         double commission = 0;
         
         try {
-            var scoreResult = pythonClient.analyzeDrivingBehavior(tripId);
-            if (scoreResult != null && scoreResult.isSuccess() && scoreResult.getData() != null) {
-                pythonScore = scoreResult.getData();
+            var trackResult = tripClient.getTripTracks(tripId);
+            if (trackResult != null && trackResult.isSuccess() && trackResult.getData() != null) {
+                List<Map<String, Object>> trackPoints = trackResult.getData();
+                
+                Map<String, Object> trackData = new HashMap<>();
+                trackData.put("track_points", trackPoints);
+                
+                var scoreResult = pythonClient.analyzeDrivingBehaviorByTrip(trackData);
+                if (scoreResult != null && scoreResult.get("score") != null) {
+                    Object scoreObj = scoreResult.get("score");
+                    if (scoreObj instanceof Number) {
+                        pythonScore = ((Number) scoreObj).intValue();
+                    }
+                }
+                log.info("Python 评分结果：tripId={}, score={}, trackPoints={}", tripId, pythonScore, trackPoints.size());
+            } else {
+                log.warn("获取轨迹数据失败，使用默认分数60：tripId={}", tripId);
             }
-            log.info("Python 评分结果：tripId={}, score={}", tripId, pythonScore);
         } catch (Exception e) {
             log.warn("调用 Python 服务分析驾驶行为失败，使用默认分数60：tripId={}, error={}", tripId, e.getMessage());
         }

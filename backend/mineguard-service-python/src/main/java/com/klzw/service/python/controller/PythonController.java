@@ -48,11 +48,10 @@ public class PythonController {
         return Result.success(pythonService.analyzeDrivingBehavior(trackData));
     }
 
-    @GetMapping("/analysis/driving-behavior/{tripId}")
-    @Operation(summary = "通过行程ID分析驾驶行为")
-    public Result<Integer> analyzeDrivingBehaviorByTripId(
-            @Parameter(description = "行程ID") @PathVariable Long tripId) {
-        return Result.success(pythonService.analyzeDrivingBehavior(tripId));
+    @PostMapping("/analysis/driving-behavior/by-trip")
+    @Operation(summary = "通过轨迹数据分析驾驶行为", description = "Java服务负责提取轨迹数据后传给本接口")
+    public Result<Map<String, Object>> analyzeDrivingBehaviorByTrip(@RequestBody Map<String, Object> trackData) {
+        return Result.success(pythonService.analyzeDrivingBehaviorByTrip(trackData));
     }
 
     @PostMapping("/analysis/cost")

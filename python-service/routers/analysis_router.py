@@ -111,45 +111,17 @@ async def analyze_driving_behavior(request: AnalysisRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@analysis_router.get("/driving-behavior/{tripId}")
-async def analyze_driving_behavior_by_trip_id(tripId: int):
+@analysis_router.post("/driving-behavior/by-trip")
+async def analyze_driving_behavior_by_trip(request: AnalysisRequest):
     """
-    通过行程ID分析驾驶行为并返回评分
-    从Java服务获取轨迹数据进行真实分析
+    通过行程数据分析驾驶行为并返回评分
+    Java服务负责提取轨迹数据后传给本接口
     """
     try:
-        import httpx
-        import os
-        
-        # 从环境变量获取Java服务地址
-        trip_service_url = os.environ.get('TRIP_SERVICE_URL', 'http://localhost:8003')
-        
-        # 调用Java服务获取轨迹数据
-        track_url = f"{trip_service_url}/trip/{tripId}/track"
-        
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.get(track_url)
-            
-            if response.status_code != 200:
-                # 如果获取失败，使用模拟数据
-                import random
-                track_points = []
-                for i in range(100):
-                    track_points.append({
-                        'latitude': 30.0 + random.random() * 0.1,
-                        'longitude': 114.0 + random.random() * 0.1,
-                        'speed': random.uniform(20, 80),
-                        'timestamp': (datetime.now() - timedelta(minutes=i)).isoformat()
-                    })
-            else:
-                result = response.json()
-                if result.get('code') == 200 and result.get('data'):
-                    track_points = result['data']
-                else:
-                    track_points = []
+        track_points = request.data.get('track_points', [])
         
         if not track_points:
-            return 0
+            return {"score": 0, "error": "无轨迹数据"}
         
         df = pd.DataFrame(track_points)
         
@@ -178,7 +150,7 @@ async def analyze_driving_behavior_by_trip_id(tripId: int):
         # 5. 计算综合评分
         score = calculate_driving_score(result)
         
-        return score
+        return {"score": score, "analysis": result}
         
     except Exception as e:
         print(f"分析驾驶行为异常: {e}")

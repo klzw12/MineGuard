@@ -46,16 +46,16 @@ public class PythonServiceImpl implements PythonService {
     }
 
     @Override
-    public int analyzeDrivingBehavior(Long tripId) {
-        String url = pythonServiceProperties.getUrl() + "/api/analysis/driving-behavior/" + tripId;
-        log.info("调用Python服务分析驾驶行为(按行程ID): {}", url);
+    public Map<String, Object> analyzeDrivingBehaviorByTrip(Map<String, Object> trackData) {
+        String url = pythonServiceProperties.getUrl() + "/api/analysis/driving-behavior/by-trip";
+        log.info("调用Python服务分析驾驶行为(按轨迹数据): {}", url);
         try {
-            Integer score = restTemplate.getForObject(url, Integer.class);
-            return score != null ? score : 0;
+            Map<String, Object> result = restTemplate.postForObject(url, trackData, Map.class);
+            return result;
         } catch (Exception e) {
             log.error("调用Python服务分析驾驶行为失败: {}", e.getMessage());
         }
-        return 0;
+        return Map.of("score", 0, "error", "分析失败");
     }
 
     @Override

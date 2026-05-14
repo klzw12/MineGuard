@@ -59,4 +59,7 @@ public interface TripClient {
     
     @GetExchange("/trip/weekly-operation")
     com.klzw.common.core.result.Result<java.util.List<java.util.Map<String, Object>>> getWeeklyOperationStats();
+    
+    @GetExchange("/trip/track/trip/{tripId}")
+    com.klzw.common.core.result.Result<java.util.List<java.util.Map<String, Object>>> getTripTracks(@PathVariable("tripId") Long tripId);
 }

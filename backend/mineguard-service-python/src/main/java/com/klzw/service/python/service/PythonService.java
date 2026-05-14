@@ -41,12 +41,13 @@ public interface PythonService {
     Map<String, Object> analyzeDrivingBehavior(Map<String, Object> trackData);
 
     /**
-     * 通过行程ID分析驾驶行为
+     * 通过轨迹数据分析驾驶行为并返回评分
+     * Java服务负责提取轨迹数据后传给本接口
      * 
-     * @param tripId 行程ID
-     * @return 分析结果
+     * @param trackData 包含track_points的轨迹数据
+     * @return 分析结果（包含score和analysis）
      */
-    int analyzeDrivingBehavior(Long tripId);
+    Map<String, Object> analyzeDrivingBehaviorByTrip(Map<String, Object> trackData);
 
     /**
      * 分析成本
